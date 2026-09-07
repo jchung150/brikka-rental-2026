@@ -1,0 +1,25 @@
+{
+  "name": "@repo/database",
+  "version": "0.0.0",
+  "main": "./index.ts",
+  "types": "./index.ts",
+  "scripts": {
+    "build": "prisma generate --no-hints"
+  },
+  "dependencies": {
+    "@prisma/client": "6.9.0",
+    "@t3-oss/env-nextjs": "^0.13.6",
+    "server-only": "^0.0.1",
+    "undici": "^7.10.0",
+    "ws": "^8.18.2",
+    "zod": "^3.25.51"
+  },
+  "devDependencies": {
+    "@repo/typescript-config": "workspace:*",
+    "@types/node": "22.15.29",
+    "@types/ws": "^8.18.1",
+    "bufferutil": "^4.0.9",
+    "prisma": "6.9.0",
+    "typescript": "^5.8.3"
+  }
+}

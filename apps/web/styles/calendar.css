@@ -1,0 +1,6 @@
+.rdp-tbody tr td:first-child button,
+.rdp-tbody tr td:last-child button {
+  background-color: transparent !important;
+  color: var(--color-apc-black-900) !important;
+  opacity: 0.4 !important;
+}

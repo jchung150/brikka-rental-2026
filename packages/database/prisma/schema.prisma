@@ -1,0 +1,1164 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/client"
+}
+
+datasource db {
+  provider     = "postgresql"
+  url          = env("DATABASE_URL")
+  relationMode = "prisma"
+}
+
+// 사용자 테이블
+model User {
+  /// 사용자 고유 ID
+  id                          BigInt    @id @default(autoincrement())
+  /// 로그인 이메일
+  email                       String    @unique @db.VarChar(255)
+  /// 비밀번호 해시 값
+  passwordHash                String    @db.VarChar(255)
+  /// 이름
+  name                        String    @db.VarChar(100)
+  /// 전화번호
+  phoneNumber                 String?   @unique @db.VarChar(20)
+  /// 주민등록번호
+  ssn                         String?   @unique @db.VarChar(20)
+  /// 주소
+  address                     String?
+  /// 상세 주소
+  addressDetail               String?
+  /// 우편번호
+  zipcode                     String?   @db.VarChar(20)
+  /// 은행명
+  accountBank                 String?   @db.VarChar(50)
+  /// 계좌번호
+  accountNumber               String?   @db.VarChar(50)
+  /// 사용자 유형 (관리자/매니저/입주자/임대인)
+  userRole                    UserRole  @default(TENANT)
+  /// 프로필 이미지 URL
+  profileImageUrl             String?
+  /// 2단계 인증(2FA) 비밀 키
+  twoFactorSecret             String?
+  /// 관리 위임 계약 시작일
+  managementContractStartDate DateTime? @db.Timestamptz
+  /// 관리 위임 계약 종료일
+  managementContractEndDate   DateTime? @db.Timestamptz
+
+  /// 생성일시
+  createdAt    DateTime  @default(now()) @db.Timestamptz
+  /// 최종 수정일시
+  updatedAt    DateTime  @updatedAt @db.Timestamptz
+  lastLoggedAt DateTime? @db.Timestamptz
+
+  // 관계
+  ManagedBuildings   Building[]
+  BuildingOwnerships BuildingOwnership[]
+  LeaseContractors   LeaseContractor[]
+  UploadedFiles      File[]
+  Requests           Request[]
+  Logs               Log[]
+  Permissions        UserPermission[]
+  Attachments        Attachment[]
+  Messages           Message[]
+  LeaseTenants       LeaseTenant[]
+  ChangeHistories    ChangeHistory[]
+
+  @@map("users")
+}
+
+// 사용자 권한 테이블
+model UserPermission {
+  /// 권한 고유 ID
+  id         BigInt             @id @default(autoincrement())
+  /// 사용자 ID
+  userId     BigInt
+  /// 권한 유형
+  permission UserPermissionType
+  /// 생성일시
+  createdAt  DateTime           @default(now()) @db.Timestamptz
+  /// 최종 수정일시
+  updatedAt  DateTime           @updatedAt @db.Timestamptz
+
+  User User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, permission])
+  @@index([userId])
+  @@map("user_permissions")
+}
+
+// 건물 테이블
+model Building {
+  /// 건물 고유 ID
+  id           BigInt  @id @default(autoincrement())
+  /// 건물 이름
+  name         String  @db.VarChar(255)
+  /// 건물 유형
+  buildingType String? @db.VarChar(50)
+
+  /// 우편번호
+  zipcode       String? @db.VarChar(20)
+  /// 건물 주소
+  address       String
+  /// 건물 상세 주소
+  addressDetail String?
+
+  /// 건축일
+  constructionDate DateTime? @db.Date
+  /// 사용승인일
+  approvalDate     DateTime? @db.Date
+
+  /// 건물 이미지 URL 목록
+  thumbnailUrl       String?
+  /// 건물 관리자(사용자) ID
+  managerId          BigInt?
+  /// 운영 계좌 은행명
+  accountBank        String?  @db.VarChar(50)
+  /// 운영 계좌번호
+  accountNumber      String?  @db.VarChar(50)
+  /// 운영 계좌 예금주
+  accountHolder      String?  @db.VarChar(100)
+  /// 주차 가능 여부
+  isParkingAvailable Boolean  @default(false)
+  /// 엘리베이터 여부
+  hasElevator        Boolean  @default(false)
+  /// 난방 유형 (예: '개별 난방')
+  heatingType        String?  @db.VarChar(50)
+  /// 건물 상세 설명 및 메모
+  description        String?
+  /// 생성일시
+  createdAt          DateTime @default(now()) @db.Timestamptz
+  /// 최종 수정일시
+  updatedAt          DateTime @updatedAt @db.Timestamptz
+
+  Manager                    User?                        @relation(fields: [managerId], references: [id])
+  Ownerships                 BuildingOwnership[]
+  Units                      Unit[]
+  Facilities                 BuildingFacility[]
+  ParkingSpaces              ParkingSpace[]
+  Attachments                Attachment[]
+  Requests                   Request[]
+  BuildingApplianceFurniture BuildingApplianceFurniture[]
+  Messages                   Message[]
+
+  @@index([managerId])
+  @@map("buildings")
+}
+
+// 첨부파일 테이블 (건물/임대차 통합)
+model Attachment {
+  /// 첨부파일 고유 ID
+  id         BigInt  @id @default(autoincrement())
+  /// 건물 ID (선택적)
+  buildingId BigInt?
+  /// 임대차 계약 ID (선택적)
+  leaseId    BigInt?
+  /// 유닛 ID (선택적)
+  unitId     BigInt?
+  /// 관련 파일 ID
+  fileId     BigInt
+
+  /// 첨부파일 카테고리 (예: '건물공용', '유닛', '계약서')
+  category String @db.VarChar(50)
+
+  /// 첨부파일 구분 (예: '계약서', '신분증 사본')
+  type String @db.VarChar(100)
+
+  /// 첨부파일 제목
+  title String? @db.VarChar(255)
+
+  /// 메모
+  memo String? @db.VarChar(255)
+
+  /// 업로더 ID
+  uploaderId BigInt
+
+  /// 생성일시
+  createdAt DateTime @default(now()) @db.Timestamptz
+
+  // 관계
+  Building Building? @relation(fields: [buildingId], references: [id], onDelete: Cascade)
+  Lease    Lease?    @relation(fields: [leaseId], references: [id], onDelete: Cascade)
+  Unit     Unit?     @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  File     File      @relation(fields: [fileId], references: [id], onDelete: Cascade)
+  Uploader User      @relation(fields: [uploaderId], references: [id], onDelete: Cascade)
+
+  @@unique([fileId])
+  @@index([buildingId])
+  @@index([leaseId])
+  @@index([unitId])
+  @@index([uploaderId])
+  @@map("attachments")
+}
+
+// 건물 소유권 테이블
+model BuildingOwnership {
+  /// 소유권 고유 ID
+  id                  BigInt   @id @default(autoincrement())
+  /// 건물 ID
+  buildingId          BigInt
+  /// 임대인(사용자) ID
+  landlordId          BigInt
+  /// 소유 지분율 (%)
+  ownershipPercentage Float
+  /// 생성일시
+  createdAt           DateTime @default(now()) @db.Timestamptz
+  /// 최종 수정일시
+  updatedAt           DateTime @updatedAt @db.Timestamptz
+
+  // 관계
+  Building Building @relation(fields: [buildingId], references: [id], onDelete: Cascade)
+  Landlord User     @relation(fields: [landlordId], references: [id], onDelete: Cascade)
+
+  @@unique([buildingId, landlordId])
+  @@index([landlordId])
+  @@map("building_ownership")
+}
+
+// 유닛 테이블
+model Unit {
+  /// 유닛 고유 ID
+  id               BigInt     @id @default(autoincrement())
+  /// 소속 건물 ID
+  buildingId       BigInt
+  /// 유닛 이름 (예: '정원뷰 로얄층')
+  name             String?    @db.VarChar(255)
+  /// 유닛 유형 (예: '아파트', '오피스텔')
+  unitType         String?    @db.VarChar(50)
+  /// 층 수
+  floor            Int?
+  /// 호수 (예: '502호')
+  unitNumber       String     @db.VarChar(50)
+  /// 공급 면적(m²)
+  supplyAreaSqm    Float?
+  /// 전용 면적(m²)
+  exclusiveAreaSqm Float?
+  /// 서비스 면적(m²)
+  serviceAreaSqm   Float?
+  /// 방 갯수
+  roomCount        Int?
+  /// 욕실 갯수
+  bathroomCount    Int?
+  /// 침실 방향 (예: '남향', '남동향')
+  bedroomDirection String?    @db.VarChar(20)
+  /// 공실/입주 상태
+  status           UnitStatus @default(VACANT)
+  /// 기본 보증금
+  depositAmount    Float?
+  /// 기본 월세
+  rentAmount       Float?
+  /// 생성일시
+  createdAt        DateTime   @default(now()) @db.Timestamptz
+  /// 최종 수정일시
+  updatedAt        DateTime   @updatedAt @db.Timestamptz
+
+  // 관계
+  Building                   Building                     @relation(fields: [buildingId], references: [id], onDelete: Cascade)
+  Leases                     Lease[]
+  Requests                   Request[]
+  BuildingApplianceFurniture BuildingApplianceFurniture[]
+  Attachments                Attachment[]
+
+  @@unique([buildingId, unitNumber])
+  @@map("units")
+}
+
+// 임대차 계약 테이블
+model Lease {
+  /// 계약 고유 ID
+  id                BigInt      @id @default(autoincrement())
+  /// 계약 대상 유닛 ID
+  unitId            BigInt
+  /// 계약자 ID (입주자와 다를 경우)
+  contractorId      BigInt?
+  /// 계약 시작일
+  startDate         DateTime    @db.Date
+  /// 계약 종료일
+  endDate           DateTime    @db.Date
+  /// 계약 상태 (준비중, 진행중, 종료 등)
+  status            LeaseStatus @default(PREPARING)
+  /// 입주 인원 수
+  numberOfOccupants Int?
+  /// 전대차 여부
+  isSublease        Boolean     @default(false)
+  /// 중계사 연계 여부
+  isBrokerLinked    Boolean     @default(false)
+  /// 법인 여부
+  isCorporate       Boolean     @default(false)
+  /// 외국인 여부
+  isForeigner       Boolean     @default(false)
+  /// 세금계산서 발행 여부
+  issueTaxInvoice   Boolean     @default(false)
+  /// 보증금 반환 예정일
+  depositReturnDate DateTime?   @db.Date
+  /// 법인 고유 ID
+  companyId         BigInt?
+  brokerId          BigInt?
+  foreignerId       BigInt?
+  petId             BigInt?
+  /// 계약 관련 메모
+  memo              String?
+  /// 생성일시
+  createdAt         DateTime    @default(now()) @db.Timestamptz
+  /// 최종 수정일시
+  updatedAt         DateTime    @updatedAt @db.Timestamptz
+
+  Unit                 Unit                       @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  Contractor           LeaseContractor?           @relation(fields: [contractorId], references: [id])
+  LeaseTenants         LeaseTenant[]
+  Vehicles             LeaseVehicle[]
+  BillingSchedules     LeaseBillingSchedule[]
+  NotificationSettings LeaseNotificationSetting[]
+  Attachments          Attachment[]
+  Company              Company?                   @relation(fields: [companyId], references: [id])
+  Bills                Bill[]
+  Broker               LeaseBroker?               @relation(fields: [brokerId], references: [id])
+  Foreigner            LeaseForeigner?            @relation(fields: [foreignerId], references: [id])
+  Pet                  LeasePet?                  @relation(fields: [petId], references: [id])
+  Messages             Message[]
+  Request              Request[]
+
+  @@index([companyId])
+  @@index([unitId])
+  @@index([contractorId])
+  @@index([brokerId])
+  @@index([foreignerId])
+  @@index([petId])
+  @@map("leases")
+}
+
+// 임대차 입주자 테이블 (Lease와 User 간의 중간 테이블)
+model LeaseTenant {
+  /// 입주자 관계 고유 ID
+  id               BigInt   @id @default(autoincrement())
+  /// 관련 계약 ID
+  leaseId          BigInt
+  /// 입주자(사용자) ID
+  tenantId         BigInt
+  /// 대표 입주자 여부
+  isRepresentative Boolean  @default(false)
+  /// 생성일시
+  createdAt        DateTime @default(now()) @db.Timestamptz
+  /// 최종 수정일시
+  updatedAt        DateTime @updatedAt @db.Timestamptz
+
+  // 관계
+  Lease  Lease @relation(fields: [leaseId], references: [id], onDelete: Cascade)
+  Tenant User  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([leaseId, tenantId])
+  @@index([leaseId])
+  @@index([tenantId])
+  @@map("lease_tenants")
+}
+
+// 임대차 계약자 테이블
+model LeaseContractor {
+  /// 계약자 고유 ID
+  id            BigInt   @id @default(autoincrement())
+  /// 이름
+  name          String   @db.VarChar(100)
+  /// 주민등록번호
+  ssn           String?  @db.VarChar(20)
+  /// 연락처
+  phoneNumber   String?  @db.VarChar(20)
+  /// 이메일
+  email         String?  @db.VarChar(255)
+  /// 주소
+  address       String?
+  /// 상세 주소
+  addressDetail String?
+  /// 은행명
+  accountBank   String?  @db.VarChar(50)
+  /// 계좌번호
+  accountNumber String?  @db.VarChar(50)
+  /// 예금주
+  accountHolder String?  @db.VarChar(100)
+  /// 생성일시
+  createdAt     DateTime @default(now()) @db.Timestamptz
+
+  // 관계
+  Leases Lease[]
+  User   User[]
+
+  @@map("lease_contractors")
+}
+
+// 임대차 차량 테이블
+model LeaseVehicle {
+  /// 차량 고유 ID
+  id                 BigInt   @id @default(autoincrement())
+  /// 관련 계약 ID
+  leaseId            BigInt
+  /// 차량 번호판
+  licensePlateNumber String   @db.VarChar(20)
+  /// 차량 모델명
+  model              String?  @db.VarChar(100)
+  /// 생성일시
+  createdAt          DateTime @default(now()) @db.Timestamptz
+
+  /// 주차면 ID
+  parkingSpaceId BigInt?
+
+  // 관계
+  Lease        Lease         @relation(fields: [leaseId], references: [id], onDelete: Cascade)
+  ParkingSpace ParkingSpace? @relation(fields: [parkingSpaceId], references: [id])
+
+  @@unique([parkingSpaceId])
+  @@index([leaseId])
+  @@map("lease_vehicles")
+}
+
+// 임대차 청구 스케줄 테이블
+model LeaseBillingSchedule {
+  /// 스케줄 고유 ID
+  id                BigInt            @id @default(autoincrement())
+  /// 관련 계약 ID
+  leaseId           BigInt
+  /// 청구 항목 (예: '임대료', '퇴실정산금')
+  itemName          String            @db.VarChar(100)
+  /// 약정액
+  amount            Float
+  /// (최초/단일) 납부일
+  dueDate           DateTime          @db.Date
+  /// 청구 유형 (정기/비정기)
+  recurrenceType    RecurrenceType
+  /// 반복 주기 (정기 청구일 경우에만 값 설정)
+  recurrencePeriod  RecurrencePeriod?
+  /// 반복 종료일 (정기 청구일 경우)
+  recurrenceEndDate DateTime?         @db.Date
+  /// 부가세 대상 여부
+  isTaxable         Boolean           @default(false)
+  /// 납부 알림 설정
+  notificationDays  Int?
+  /// 메모
+  memo              String?
+  /// 생성일시
+  createdAt         DateTime          @default(now()) @db.Timestamptz
+  /// 최종 수정일시
+  updatedAt         DateTime          @updatedAt @db.Timestamptz
+
+  // 관계
+  Lease Lease  @relation(fields: [leaseId], references: [id], onDelete: Cascade)
+  Bill  Bill[]
+
+  @@index([leaseId])
+  @@map("lease_billing_schedules")
+}
+
+// 임대차 알림 설정 테이블
+model LeaseNotificationSetting {
+  /// 알림 설정 고유 ID
+  id               BigInt              @id @default(autoincrement())
+  /// 관련 계약 ID
+  leaseId          BigInt
+  /// 선호 알림 채널
+  preferredChannel NotificationChannel
+  /// 납부일로부터 며칠 전에 알릴지
+  daysBeforeDue    Int
+  /// 알림 활성화 여부
+  isEnabled        Boolean             @default(true)
+  /// 메모
+  memo             String?
+  /// 생성일시
+  createdAt        DateTime            @default(now()) @db.Timestamptz
+
+  // 관계
+  Lease Lease @relation(fields: [leaseId], references: [id], onDelete: Cascade)
+
+  @@index([leaseId])
+  @@map("lease_notification_settings")
+}
+
+// 법인 정보 테이블
+model Company {
+  /// 법인 고유 ID
+  id                 BigInt   @id @default(autoincrement())
+  /// 법인명
+  companyName        String   @db.VarChar(255)
+  /// 사업자 번호
+  businessNumber     String   @db.VarChar(20)
+  /// 대표자 이름
+  representativeName String?  @db.VarChar(100)
+  /// 이메일
+  contactEmail       String?  @db.VarChar(255)
+  /// 연락처
+  contactPhone       String?  @db.VarChar(20)
+  /// 주소
+  address            String?
+  /// 상세 주소
+  addressDetail      String?
+  /// 생성일시
+  createdAt          DateTime @default(now()) @db.Timestamptz
+  /// 최종 수정일시
+  updatedAt          DateTime @updatedAt @db.Timestamptz
+
+  Leases Lease[]
+
+  @@map("companies")
+}
+
+// 청구서 테이블
+model Bill {
+  /// 청구서 고유 ID
+  id          BigInt     @id @default(autoincrement())
+  /// 관련 계약 ID
+  leaseId     BigInt
+  /// 관련 청구 스케줄 ID
+  scheduleId  BigInt
+  /// 청구서 발행일
+  issueDate   DateTime   @db.Date
+  /// 납부 기한일
+  dueDate     DateTime   @db.Date
+  /// 총 청구 금액
+  totalAmount Float
+  /// 납부 상태
+  status      BillStatus @default(UNPAID)
+  /// 생성일시
+  createdAt   DateTime   @default(now()) @db.Timestamptz
+  /// 최종 수정일시
+  updatedAt   DateTime   @updatedAt @db.Timestamptz
+
+  // 관계
+  Lease                Lease                @relation(fields: [leaseId], references: [id], onDelete: Cascade)
+  LeaseBillingSchedule LeaseBillingSchedule @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+  Payments             Payment[]
+  Messages             Message[]
+
+  @@index([scheduleId])
+  @@index([leaseId])
+  @@map("bills")
+}
+
+// 수납 내역 테이블
+model Payment {
+  /// 수납 내역 고유 ID
+  id            BigInt   @id @default(autoincrement())
+  /// 관련 청구서 ID
+  billId        BigInt
+  /// 납부 금액
+  amountPaid    Float
+  /// 실제 납부일시
+  paymentDate   DateTime @db.Timestamptz
+  /// 납부 방법 (예: '계좌이체')
+  paymentMethod String?  @db.VarChar(50)
+  /// 생성일시
+  createdAt     DateTime @default(now()) @db.Timestamptz
+
+  // 관계
+  Bill Bill @relation(fields: [billId], references: [id], onDelete: Cascade)
+
+  @@index([billId])
+  @@map("payments")
+}
+
+// 요청 관리 테이블
+model Request {
+  /// 요청 고유 ID
+  id            BigInt           @id @default(autoincrement())
+  /// 요청자 ID (null이면 대면 요청)
+  requesterId   BigInt?
+  /// 관련 건물 ID
+  buildingId    BigInt?
+  /// 관련 임대차 계약 ID
+  leaseId       BigInt?
+  /// 관련 유닛 ID
+  unitId        BigInt?
+  /// 요청 우선순위
+  priority      RequestPriority?
+  /// 요청 유형
+  requestType   RequestType
+  /// 요청 제목
+  title         String?          @db.VarChar(255)
+  /// 요청 내용
+  details       String?          @db.Text
+  /// 요청 출처
+  requestSource RequestSource?
+  /// 처리 상태
+  status        RequestStatus    @default(PENDING)
+  /// 생성일시
+  createdAt     DateTime         @default(now()) @db.Timestamptz
+  /// 최종 수정일시
+  updatedAt     DateTime         @updatedAt @db.Timestamptz
+
+  // 관계
+  Requester User?     @relation(fields: [requesterId], references: [id])
+  Building  Building? @relation(fields: [buildingId], references: [id])
+  Unit      Unit?     @relation(fields: [unitId], references: [id])
+  Lease     Lease?    @relation(fields: [leaseId], references: [id])
+
+  @@index([leaseId])
+  @@index([requesterId])
+  @@index([buildingId])
+  @@index([unitId])
+  @@map("requests")
+}
+
+// 로그 테이블
+model Log {
+  /// 로그 고유 ID
+  id     BigInt @id @default(autoincrement())
+  /// 로그를 생성한 사용자(관리자) ID
+  userId BigInt
+  /// 수행된 작업 유형
+  action String @db.VarChar(255)
+
+  /// 수행된 작업 (예: '임차인 등록', '청구서 삭제')
+  description String?  @db.VarChar(255)
+  /// 작업에 대한 상세 정보 (구조화된 데이터)
+  details     Json?
+  /// 발생일시
+  createdAt   DateTime @default(now()) @db.Timestamptz
+
+  // 관계
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("logs")
+}
+
+// 빌딩 공용시설
+model BuildingFacility {
+  /// 시설 고유 ID
+  id          BigInt   @id @default(autoincrement())
+  /// 소속 건물 ID
+  buildingId  BigInt
+  facilityId  BigInt
+  /// 시설 상세 정보
+  description String?
+  /// 생성일시
+  createdAt   DateTime @default(now()) @db.Timestamptz
+  /// 최종 수정일시
+  updatedAt   DateTime @updatedAt @db.Timestamptz
+
+  // 관계
+  Building Building @relation(fields: [buildingId], references: [id], onDelete: Cascade)
+  Facility Facility @relation(fields: [facilityId], references: [id], onDelete: Cascade)
+
+  @@index([buildingId])
+  @@index([facilityId])
+  @@map("building_facilities")
+}
+
+// 공용 시설 테이블
+model Facility {
+  id               BigInt             @id @default(autoincrement())
+  name             String             @db.VarChar(100)
+  description      String?
+  createdAt        DateTime           @default(now()) @db.Timestamptz
+  updatedAt        DateTime           @updatedAt @db.Timestamptz
+  BuildingFacility BuildingFacility[]
+
+  @@unique([name])
+  @@map("facilities")
+}
+
+// 주차면 테이블
+model ParkingSpace {
+  /// 주차면 고유 ID
+  id         BigInt           @id @default(autoincrement())
+  /// 소속 건물 ID
+  buildingId BigInt
+  /// 주차면 이름
+  spaceName  String           @db.VarChar(50)
+  /// 주차면 유형
+  spaceType  ParkingSpaceType
+  /// 메모
+  memo       String           @db.VarChar(255)
+  /// 생성일시
+  createdAt  DateTime         @default(now()) @db.Timestamptz
+  /// 최종 수정일시
+  updatedAt  DateTime         @updatedAt @db.Timestamptz
+
+  // 관계
+  Building     Building      @relation(fields: [buildingId], references: [id], onDelete: Cascade)
+  LeaseVehicle LeaseVehicle?
+
+  @@index([buildingId])
+  @@map("parking_spaces")
+}
+
+// 가전/가구 테이블
+model BuildingApplianceFurniture {
+  /// 항목 고유 ID
+  id                   BigInt      @id @default(autoincrement())
+  usageScope           UsageScope? @default(BUILDING_COMMON)
+  /// 소속 건물 ID (건물 공용일 경우)
+  buildingId           BigInt?
+  /// 소속 유닛 ID (유닛 전용일 경우)
+  unitId               BigInt?
+  /// 수량
+  quantity             Int         @default(1)
+  applianceFurnitureId BigInt
+  /// 제조사 (예: '삼성전자')
+  manufacturerId       BigInt
+  /// 설치 위치 (예: '거실')
+  locationId           BigInt?
+  /// 모델명
+  modelName            String?     @db.VarChar(100)
+  /// 일련번호
+  serialNumber         String?     @db.VarChar(100)
+  /// 설치 일자
+  installationDate     DateTime?   @db.Date
+  /// 보증 만료 일자
+  warrantyExpiryDate   DateTime?   @db.Date
+  /// 메모
+  memo                 String?
+  /// 생성일시
+  createdAt            DateTime    @default(now()) @db.Timestamptz
+  /// 최종 수정일시,,
+  updatedAt            DateTime    @updatedAt @db.Timestamptz
+
+  Building           Building?                      @relation(fields: [buildingId], references: [id])
+  Unit               Unit?                          @relation(fields: [unitId], references: [id])
+  /// 제품 ID
+  ApplianceFurniture ApplianceFurniture             @relation(fields: [applianceFurnitureId], references: [id])
+  Manufacturer       ApplianceFurnitureManufacturer @relation(fields: [manufacturerId], references: [id])
+  Location           ApplianceFurnitureLocation?    @relation(fields: [locationId], references: [id])
+
+  @@index([applianceFurnitureId])
+  @@index([manufacturerId])
+  @@index([locationId])
+  @@index([buildingId])
+  @@index([unitId])
+  @@map("building_appliances_furniture")
+}
+
+// 가전/가구 제품 테이블
+model ApplianceFurniture {
+  /// 제품 고유 ID
+  id          BigInt                     @id @default(autoincrement())
+  /// 제품 구분 (가전제품/가구)
+  category    ApplianceFurnitureCategory
+  /// 제품명
+  name        String                     @db.VarChar(100)
+  /// 제품 설명
+  description String?                    @db.VarChar(255)
+  /// 생성일시
+  createdAt   DateTime                   @default(now()) @db.Timestamptz
+
+  BuildingApplianceFurniture BuildingApplianceFurniture[]
+
+  @@unique([name])
+  @@map("appliances_furniture")
+}
+
+// 가전/가구 브랜드 테이블
+model ApplianceFurnitureManufacturer {
+  /// 브랜드 고유 ID
+  id                         BigInt                       @id @default(autoincrement())
+  /// 브랜드명
+  name                       String                       @db.VarChar(100)
+  /// 생성일시
+  createdAt                  DateTime                     @default(now()) @db.Timestamptz
+  BuildingApplianceFurniture BuildingApplianceFurniture[]
+
+  @@unique([name])
+  @@map("appliances_furniture_manufacturers")
+}
+
+// 가전/가구 위치 테이블
+model ApplianceFurnitureLocation {
+  /// 위치 고유 ID
+  id                         BigInt                       @id @default(autoincrement())
+  /// 위치명
+  name                       String                       @db.VarChar(100)
+  /// 생성일시
+  createdAt                  DateTime                     @default(now()) @db.Timestamptz
+  BuildingApplianceFurniture BuildingApplianceFurniture[]
+
+  @@index([name])
+  @@map("appliances_furniture_locations")
+}
+
+// 파일 테이블
+model File {
+  /// 파일 고유 ID
+  id            BigInt   @id @default(autoincrement())
+  /// 파일을 업로드한 사용자 ID
+  uploaderId    BigInt?
+  /// 파일 저장 경로 (예: S3 key)
+  filePath      String
+  /// 원본 파일 이름
+  fileName      String
+  /// 파일 URL
+  fileUrl       String
+  /// 파일 크기 (Bytes)
+  fileSizeBytes BigInt
+  /// 파일 MIME 타입 (예: 'image/jpeg')
+  mimeType      String   @db.VarChar(255)
+  /// 파일 접근 권한 (True: 비공개)
+  isPrivate     Boolean  @default(true)
+  /// 생성일시
+  createdAt     DateTime @default(now()) @db.Timestamptz
+
+  // 관계
+  Uploader    User?       @relation(fields: [uploaderId], references: [id])
+  Attachments Attachment?
+
+  @@index([uploaderId])
+  @@map("files")
+}
+
+// 메시지 테이블
+model Message {
+  /// 메시지 고유 ID
+  id          BigInt        @id @default(autoincrement())
+  /// 메시지 제목
+  title       String        @db.VarChar(255)
+  /// 메시지 내용
+  content     String        @db.Text
+  /// 결제 관련 정보 (JSON)
+  payment     Json?
+  /// 전송 방법
+  method      MessageMethod
+  /// 수신인 ID (사용자)
+  receiverId  BigInt
+  /// 메시지 타입
+  messageType String        @db.VarChar(100)
+  /// 관련 임대차 계약 ID (선택적)
+  leaseId     BigInt?
+  /// 관련 건물 ID (선택적)
+  buildingId  BigInt?
+  /// 관련 청구서 ID (선택적)
+  billId      BigInt?
+  /// 생성일시
+  createdAt   DateTime      @default(now()) @db.Timestamptz
+  /// 최종 수정일시
+  updatedAt   DateTime      @updatedAt @db.Timestamptz
+
+  // 관계
+  User     User      @relation(fields: [receiverId], references: [id])
+  Lease    Lease?    @relation(fields: [leaseId], references: [id])
+  Building Building? @relation(fields: [buildingId], references: [id])
+  Bill     Bill?     @relation(fields: [billId], references: [id])
+
+  @@index([receiverId])
+  @@index([leaseId])
+  @@index([buildingId])
+  @@index([billId])
+  @@index([method])
+  @@index([messageType])
+  @@map("messages")
+}
+
+// 알림 설정 테이블 (single table 구조)
+model AlarmConfig {
+  /// 알림 설정 고유 ID (항상 1로 고정)
+  id BigInt @id @default(1)
+
+  // 계약 및 거주 관련 알림
+  /// 세입자 퇴거 알림서 제출 시 알림 설정 (ALARM_TALK|EMAIL)
+  tenantMoveOut  String? @db.VarChar(50)
+  /// 계약 만료 예정 리마인더 알림 설정 (ALARM_TALK|EMAIL)
+  contractExpiry String? @db.VarChar(50)
+
+  // 청구 및 수납 관련 알림
+  /// 임대료 미납 발생 시 알림 설정 (ALARM_TALK|EMAIL)
+  rentUnpaid         String? @db.VarChar(50)
+  /// 미납 상태 지속 알림 설정 (ALARM_TALK|EMAIL)
+  rentUnpaidReminder String? @db.VarChar(50)
+  /// 자동 수납 처리 결과 알림 설정 (ALARM_TALK|EMAIL)
+  autoPaymentResult  String? @db.VarChar(50)
+
+  // 수선 요청/업무 알림
+  /// 신규 수선 요청 등록 알림 설정 (ALARM_TALK|EMAIL)
+  newRepairRequest    String? @db.VarChar(50)
+  /// 담당 업무 배정 알림 설정 (ALARM_TALK|EMAIL)
+  taskAssignment      String? @db.VarChar(50)
+  /// 요청 상태 변경 알림 설정 (ALARM_TALK|EMAIL)
+  requestStatusChange String? @db.VarChar(50)
+
+  // 문서 및 알림 관련
+  /// 공지사항 발송 완료 알림 설정 (ALARM_TALK|EMAIL)
+  noticeSent String? @db.VarChar(50)
+
+  // 계정 및 보안 관련
+  /// 관리자 계정 변경 알림 설정 (ALARM_TALK|EMAIL)
+  adminAccountChange   String? @db.VarChar(50)
+  /// 비밀번호 재설정 요청 알림 설정 (ALARM_TALK|EMAIL)
+  passwordResetRequest String? @db.VarChar(50)
+
+  /// 생성일시
+  createdAt DateTime @default(now()) @db.Timestamptz
+  /// 최종 수정일시
+  updatedAt DateTime @updatedAt @db.Timestamptz
+
+  @@map("alarm_config")
+}
+
+// 임대차 중개사 테이블
+model LeaseBroker {
+  /// 중개사 고유 ID
+  id                  BigInt   @id @default(autoincrement())
+  /// 중개사 사무소명
+  officeName          String   @db.VarChar(200)
+  /// 대표자명
+  representativeName  String   @db.VarChar(100)
+  /// 사업자등록번호
+  registrationNumber  String   @db.VarChar(20)
+  /// 연락처
+  phone               String?  @db.VarChar(20)
+  /// 이메일
+  email               String?  @db.VarChar(255)
+  /// 사무소 주소
+  officeAddress       String?
+  /// 사무소 상세 주소
+  officeAddressDetail String?
+  /// 생성일시
+  createdAt           DateTime @default(now()) @db.Timestamptz
+  /// 최종 수정일시
+  updatedAt           DateTime @updatedAt @db.Timestamptz
+
+  /// 연결된 임대차 계약들
+  Leases Lease[]
+
+  @@map("lease_brokers")
+}
+
+// 임대차 외국인 테이블
+model LeaseForeigner {
+  /// 외국인 고유 ID
+  id                 BigInt   @id @default(autoincrement())
+  /// 외국인 이름
+  name               String   @db.VarChar(100)
+  /// 외국인등록번호
+  registrationNumber String   @db.VarChar(20)
+  /// 연락처
+  phone              String?  @db.VarChar(20)
+  /// 이메일
+  email              String?  @db.VarChar(255)
+  /// 주소
+  address            String?
+  /// 상세 주소
+  addressDetail      String?
+  /// 생성일시
+  createdAt          DateTime @default(now()) @db.Timestamptz
+  /// 최종 수정일시
+  updatedAt          DateTime @updatedAt @db.Timestamptz
+
+  /// 연결된 임대차 계약들
+  Leases Lease[]
+
+  @@map("lease_foreigners")
+}
+
+// 임대차 반려동물 테이블
+model LeasePet {
+  /// 반려동물 고유 ID
+  id                 BigInt   @id @default(autoincrement())
+  /// 반려동물 이름
+  name               String   @db.VarChar(100)
+  /// 반려동물 종류
+  type               String?  @db.VarChar(50)
+  /// 체중
+  weight             String?  @db.VarChar(20)
+  /// 나이
+  age                String?  @db.VarChar(20)
+  /// 반려동물 등록번호
+  registrationNumber String?  @db.VarChar(50)
+  /// 생성일시
+  createdAt          DateTime @default(now()) @db.Timestamptz
+  /// 최종 수정일시
+  updatedAt          DateTime @updatedAt @db.Timestamptz
+
+  /// 연결된 임대차 계약들
+  Leases Lease[]
+
+  @@map("lease_pets")
+}
+
+enum UsageScope {
+  BUILDING_COMMON
+  UNIT_COMMON
+  UNIT_EXCLUSIVE
+}
+
+enum RequestSource {
+  TENANT_REQUEST // 입주자요청
+  TENANT_FACE_TO_FACE // 입주자 대면요청
+  LANDLORD_REQUEST // 임대인 요청
+  LANDLORD_FACE_TO_FACE // 임대인 대면요청
+  INTERNAL // 내부등록
+}
+
+enum UserRole {
+  ADMIN // 슈퍼관리자
+  MANAGER // 매니저
+  TENANT // 입주자
+  LANDLORD // 임대인
+}
+
+enum UserPermissionType {
+  MANAGER_GENERAL // 일반 관리권한
+  MANAGER_FACILITY // 시설 관리권한
+  USER_MANAGEMENT // 사용자 관리권한
+  BUILDING_MANAGEMENT // 건물 관리권한
+  LEASE_MANAGEMENT // 임대차 관리권한
+  BILLING_MANAGEMENT // 청구 관리권한
+  REPORT_VIEW // 리포트 조회권한
+  SYSTEM_SETTINGS // 시스템 설정권한
+}
+
+enum UnitStatus {
+  VACANT // 공실
+  OCCUPIED // 입주중
+  RESERVED // 예약중
+  UNDER_CONSTRUCTION // 공사중
+}
+
+enum LeaseStatus {
+  PREPARING // 준비중 - 계약이 생성되었지만 아직 확정/시작 전인 상태 (대시보드에서 신규 계약 등록만 입력한 상태)
+  ACTIVE // 진행중 - 신규계약등록 입력 및 계약서 날인 후 계약금이 들어온 상태
+  COMPLETED // 종료됨 - 계약 만료가 되어 정상적으로 종료된 상태
+  TERMINATED // 해지됨 - 분쟁, 위반 등의 이유로 계약이 강제 종료되거나 무효 처리된 상태
+}
+
+enum RecurrenceType {
+  RECURRING // 반복
+  ONE_TIME // 한번
+}
+
+enum RecurrencePeriod {
+  MONTHLY // 월별
+  QUARTERLY // 분기별
+  YEARLY // 연간
+}
+
+enum NotificationChannel {
+  ALIMTALK // 알림톡
+  EMAIL // 이메일
+  SMS // SMS
+}
+
+enum BillStatus {
+  PAID // 납부완료
+  UNPAID // 미납
+  OVERDUE // 연체
+}
+
+enum RequestType {
+  COMPLAINT // 민원
+  SUGGESTION // 제안
+  INQUIRY // 문의
+  REPAIR // 수선
+}
+
+enum RequestStatus {
+  PENDING // 미분류
+  IN_PROGRESS // 처리중
+  COMPLETED // 완료
+  CANCELED // 보류
+  REJECTED // 거부
+}
+
+enum RequestPriority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum ParkingSpaceType {
+  NORMAL
+  COMPACT
+  HANDICAPPED
+}
+
+enum ApplianceFurnitureCategory {
+  APPLIANCE
+  FURNITURE
+}
+
+enum MessageMethod {
+  ALARM_TALK // 알림톡
+  EMAIL // 이메일
+}
+
+// 투어 예약 설정 테이블
+model ContactConfig {
+  /// 설정 고유 ID (항상 1로 고정)
+  id        BigInt   @id @default(1)
+  /// 투어 운영 시작 시간 (HH:mm 형식)
+  start     String   @db.VarChar(5)
+  /// 투어 운영 종료 시간 (HH:mm 형식)
+  end       String   @db.VarChar(5)
+  /// 생성일시
+  createdAt DateTime @default(now()) @db.Timestamptz
+  /// 최종 수정일시
+  updatedAt DateTime @updatedAt @db.Timestamptz
+
+  @@map("contact_config")
+}
+
+// 투어 예약 정보 테이블
+model Contact {
+  /// 예약 고유 ID
+  id              BigInt        @id @default(autoincrement())
+  /// 예약자 성함
+  name            String        @db.VarChar(100)
+  /// 예약자 이메일
+  email           String?       @db.VarChar(255)
+  /// 예약자 전화번호
+  phoneNumber     String?       @db.VarChar(20)
+  /// 알게된 경로
+  howDidYouFind   String?       @db.VarChar(255)
+  /// 메모
+  memo            String?
+  /// 동
+  dong            String?       @db.VarChar(100)
+  /// 유형
+  type            String?       @db.VarChar(100)
+  /// 예약 시간
+  reservationTime DateTime      @db.Timestamptz
+  /// 예약 상태
+  status          ContactStatus @default(PENDING)
+  /// 관리자 메모
+  adminMemo       String?
+  /// 생성일시
+  createdAt       DateTime      @default(now()) @db.Timestamptz
+  /// 최종 수정일시
+  updatedAt       DateTime      @updatedAt @db.Timestamptz
+
+  @@index([status])
+  @@index([reservationTime])
+  @@map("contacts")
+}
+
+enum ContactStatus {
+  PENDING // 대기중
+  CONFIRMED // 확정
+  COMPLETED // 완료
+  CANCELLED // 취소
+}
+
+// 변경이력 테이블
+model ChangeHistory {
+  /// 변경이력 고유 ID
+  id         BigInt           @id @default(autoincrement())
+  /// 대상 유형
+  targetType ChangeTargetType
+  /// 대상 ID
+  targetId   BigInt
+  /// 수정한 사용자 ID
+  userId     BigInt
+  /// 변경값 (before/after)
+  changes    Json
+  /// 생성일시
+  createdAt  DateTime         @default(now()) @db.Timestamptz
+
+  User User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([targetType, targetId])
+  @@index([userId])
+  @@index([createdAt])
+  @@map("change_histories")
+}
+
+enum ChangeTargetType {
+  BUILDING // 건물
+  UNIT // 유닛
+  LEASE // 계약
+  USER // 사용자
+  BILLING // 청구
+  PAYMENT // 수납
+  MESSAGE // 메시지
+}

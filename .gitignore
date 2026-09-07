@@ -1,0 +1,26 @@
+# 의존성
+node_modules/
+.pnpm-store/
+
+# 빌드 산출물
+.next/
+out/
+build/
+dist/
+.turbo/
+*.tsbuildinfo
+
+# 환경변수 — 절대 올리지 않음
+.env
+.env.local
+.env.*.local
+
+# Prisma 생성물
+packages/database/generated/
+
+# macOS
+.DS_Store
+
+# 에디터
+.vscode/
+.idea/
