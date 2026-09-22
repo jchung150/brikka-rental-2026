@@ -145,7 +145,7 @@ You'll be designing against a finished spec, not guessing. The spec is currently
 Tables, relationships, indexes, constraints, and migrations. Includes **row-level security policies** for multi-tenant isolation.
 
 **2. Project scaffold**
-Folder structure, configuration, Supabase integration (auth, storage), and a working deployment pipeline.
+Folder structure, configuration, Supabase integration (auth, storage), migrations, and a working deployment pipeline. I should be able to go from an empty database to a running app with documented commands.
 
 **3. Reference implementation — one complete slice**
 The building module (list, create, detail — 3 screens), built end to end:
@@ -165,7 +165,9 @@ This is a first-class deliverable, not an afterthought. It's how the project sur
 - **CLAUDE.md** (or AGENTS.md) — a rules file for AI coding tools. Project conventions, naming, the patterns to follow, and the things that must never be done (bypassing tenant isolation, mutating ledger records, and so on). I'll be building with AI assistance, so this file does real work.
 - **Architecture decisions** — short notes on why the schema is shaped the way it is. What you considered and rejected. Enough that a future developer doesn't undo your reasoning by accident.
 - **Type generation** — a scripted path from schema to TypeScript types, so they stay in sync when the schema changes. This matters more than usual: accurate types are what keep an AI assistant from inventing columns that don't exist.
-- **Isolation tests** — automated tests proving that one operating company cannot read another's data. I need to be able to run these myself after adding new screens.
+- **Isolation tests** — automated tests I can run myself with a single command, covering two things:
+  - **Cross-tenant access fails.** Sign in as operator A, try to read, update, and delete operator B's rows by id — all must come back empty or rejected. Include whatever minimal fixtures the tests need (two operators, a few rows, one account each); that's part of the test suite, not a separate deliverable.
+  - **No table is left unprotected.** A test that queries the database for tables without an RLS policy and fails if it finds any. I'll be adding tables as I build, and I need the suite to catch it when I forget to protect one. This is the check that matters most to me — everything else assumes I remembered.
 - **Walkthrough recording** — one screen-share video (an hour is plenty) walking through the schema, the reference slice, and the reasoning.
 
 **5. Two weeks of follow-up**
