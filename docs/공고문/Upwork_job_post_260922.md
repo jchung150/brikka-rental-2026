@@ -7,7 +7,7 @@ Category: Full Stack Development · Drafted 2026-09-22
 ## 1. Title
 
 ```
-Build a commercial property management back-office (Next.js + Supabase)
+Canada-based only — Build a commercial property management back-office (Next.js + Supabase)
 ```
 
 ---
@@ -59,7 +59,28 @@ To    $100.00 /hr
 
 ---
 
+## 6a. Talent preferences — Location
+
+```
+Location:  Canada  (only)
+```
+
+Set this in the **Talent preferences / Freelancer location** section of the job post form.
+Combine with the statements in the title and description below — the platform filter alone
+does not prevent applications from outside the selected region.
+
+---
+
 ## 7. Description
+
+> ### Canada-based freelancers only
+>
+> We're a Canadian company and we work with freelancers located in Canada. We need
+> overlapping business hours and the ability to meet in person occasionally during the
+> early stages of the project.
+>
+> **Applications from outside Canada will not be reviewed.** Please don't apply if you
+> aren't currently based in Canada — it saves us both the time.
 
 ### Project
 
@@ -106,7 +127,7 @@ Admin back-office only. Tenant and landlord portals are Phase 2.
 
 **Third: you work well from a written spec.** We've documented this thoroughly so we're not on calls all day. We're available when you need us, but we're looking for someone who reads the spec, makes reasonable calls, and flags the places where the spec is genuinely ambiguous.
 
-We're based in Canada and looking for someone in Canada as well.
+**Fourth: you're based in Canada.** See the note at the top — this one isn't flexible.
 
 ### Engagement
 
@@ -114,8 +135,9 @@ Hourly, expected to run several months. There's likely ongoing maintenance after
 
 ### When you apply, please tell us
 
-1. **A system you built that handled money.** What did it do, and what was the hardest part to get right?
-2. **Have you isolated customer data in a shared database?** Row-level security or another approach — how did you do it, and how did you verify it worked?
-3. **Anything in the scope above that concerns you**, or that you'd approach differently.
+1. **Which city and province are you based in?** (Canada-based applicants only.)
+2. **A system you built that handled money.** What did it do, and what was the hardest part to get right?
+3. **Have you isolated customer data in a shared database?** Row-level security or another approach — how did you do it, and how did you verify it worked?
+4. **Anything in the scope above that concerns you**, or that you'd approach differently.
 
 We read proposals carefully. Please skip the generic template.
