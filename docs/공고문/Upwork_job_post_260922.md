@@ -53,9 +53,11 @@ No, not at this time
 ```
 Hourly
 
-From   $60.00 /hr
-To    $100.00 /hr
+From   $60.00 /hr   (USD)
+To    $100.00 /hr   (USD)
 ```
+
+All Upwork rates are quoted and paid in **US dollars**, not Canadian dollars.
 
 ---
 
@@ -75,9 +77,8 @@ does not prevent applications from outside the selected region.
 
 > ### Canada-based freelancers only
 >
-> We're a Canadian company and we work with freelancers located in Canada. We need
-> overlapping business hours and the ability to meet in person occasionally during the
-> early stages of the project.
+> We're a Canadian company and we work with freelancers located in Canada. It keeps
+> contracting, invoicing, and business hours straightforward.
 >
 > **Applications from outside Canada will not be reviewed.** Please don't apply if you
 > aren't currently based in Canada — it saves us both the time.
