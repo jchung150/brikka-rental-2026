@@ -32,6 +32,14 @@ Large
 
 ---
 
+## 3a. How long will your work take?
+
+```
+More than 6 months
+```
+
+---
+
 ## 4. Experience level
 
 ```
