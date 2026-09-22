@@ -1,26 +1,14 @@
 # Upwork Job Post — BRIKKA Phase 1
 
-작성일 2026-09-22 · 플랫폼 Upwork · 카테고리 Full Stack Development
+Category: Full Stack Development · Drafted 2026-09-22
 
 ---
 
 ## 1. Title
 
-**추천안**
-
 ```
 Build a commercial property management back-office (Next.js + Supabase)
 ```
-
-대안 2건
-
-```
-Full-stack developer for multi-tenant property management system — billing & payments
-Build billing and payment reconciliation back-office for commercial real estate
-```
-
-> 추천안 선정 이유: 무엇을(property management back-office) 어떤 스택으로(Next.js + Supabase)
-> 만드는지가 한 줄에 들어간다. `commercial`을 넣어 주거용 임대 경험자와 구분한다.
 
 ---
 
@@ -34,72 +22,44 @@ TypeScript
 Database Design
 ```
 
-> 목록에 없으면 직접 입력한다. `Web Development`·`API` 같은 광범위한 태그는 지원자 수는 늘리지만
-> 적합도를 낮춘다. `PostgreSQL`·`Supabase`는 제외 필터로 작동하므로 유지한다.
-
 ---
 
 ## 3. Project size
 
 ```
-■ Large
+Large
 ```
-
-> 1차 35개 화면. 수개월 단위. Medium을 선택하면 단기 작업 기대 지원자가 유입된다.
 
 ---
 
 ## 4. Experience level
 
 ```
-■ Expert
+Expert
 ```
-
-> 금액 계산 정확성과 운영사 간 데이터 격리가 핵심이다. 두 영역 모두 결함 시 영향이 크고
-> 사후 수정 비용이 높다. Intermediate 선택 시 단가는 낮아지나 검수 부담이 증가한다.
 
 ---
 
 ## 5. Contract-to-hire
 
 ```
-■ No, not at this time
+No, not at this time
 ```
-
-> 정규직 전환 의사가 없는 상태에서 Yes를 선택하면 기대 불일치가 발생한다.
-> 장기 관계 가능성(유지보수 계약, 2차 42개 화면)은 본문에 명시하여 동일한 효과를 얻는다.
 
 ---
 
 ## 6. Rate
 
 ```
-■ Hourly
-   $50.00 /hr  ~  $80.00 /hr (USD)
+Hourly
+
+From   $60.00 /hr
+To    $100.00 /hr
 ```
-
-**Hourly를 선택하는 이유**
-
-| | 판단 |
-|---|---|
-| Fixed price | 목업 단계에서 명세가 변경될 예정이므로 총액 확정이 곤란. 개발자가 위험을 단가에 반영하거나 범위 축소로 대응 |
-| Hourly | 대규모·장기 프로젝트의 통상 방식. 주 단위 산출물 확인 가능 |
-
-**제시 구간이 Upwork 평균($25~47)보다 높은 이유**
-
-플랫폼 평균은 전 세계 지원자 기준이다. 캐나다 현지 거주 + Expert 등급 조건에서는
-해당 구간에 지원자가 형성되지 않는다. 캐나다 시니어 풀스택 개발자의 통상 구간은
-$60~100 USD/hr이며, $50~80은 하단에 해당한다.
-
-$25~47을 제시할 경우 예상되는 결과: 해외 거주 지원자 다수 유입, 캐나다 현지 지원자 부재.
 
 ---
 
 ## 7. Description
-
-아래 전문을 그대로 붙여 넣는다.
-
----
 
 ### Project
 
@@ -159,24 +119,3 @@ Hourly, expected to run several months. There's likely ongoing maintenance after
 3. **Anything in the scope above that concerns you**, or that you'd approach differently.
 
 We read proposals carefully. Please skip the generic template.
-
----
-
-## 부가 메모
-
-**첨부 자료**
-현 시점 첨부 없음. 기능정의서는 한국어 원문이므로 영문 요약본(개요·범위·구조) 작성 후
-지원자 선별 단계에서 제공한다.
-
-**선별 질문 3건의 의도**
-
-| # | 확인 대상 |
-|---|---|
-| 1 | 금액 처리 경험의 실재 여부. 경험자는 구체적 난점(반올림·동시성·정정 처리)을 서술한다 |
-| 2 | 데이터 격리 경험. **검증 방법**을 함께 물어 구현 경험과 학습 지식을 구분한다 |
-| 3 | 명세 독해력과 솔직함. 우려를 제기하는 지원자가 명세를 읽은 지원자다 |
-
-**공고 게시 전 확인**
-
-- 시급 구간을 $50~80으로 조정할 것인지 확정 (플랫폼 제시값 $25~47은 해외 지원자 기준)
-- 영문 요약본 준비 시점 — 지원 접수와 병행 가능
