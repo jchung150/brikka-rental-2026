@@ -164,8 +164,7 @@ This is a first-class deliverable, not an afterthought. It's how the project sur
 - **README.md** — everything needed to go from a fresh machine to a running local environment. Environment variables, database setup, how to run and deploy. Written for someone who is not a developer.
 - **CLAUDE.md** (or AGENTS.md) — a rules file for AI coding tools. Project conventions, naming, the patterns to follow, and the things that must never be done (bypassing tenant isolation, mutating ledger records, and so on). I'll be building with AI assistance, so this file does real work.
 - **Architecture decisions** — short notes on why the schema is shaped the way it is. What you considered and rejected. Enough that a future developer doesn't undo your reasoning by accident.
-- **Seed data script** — three operating companies, a few buildings, units, and leases. Enough to develop and test against.
-- **Type generation** — a scripted path from schema to TypeScript types, so types stay in sync when the schema changes.
+- **Type generation** — a scripted path from schema to TypeScript types, so they stay in sync when the schema changes. This matters more than usual: accurate types are what keep an AI assistant from inventing columns that don't exist.
 - **Isolation tests** — automated tests proving that one operating company cannot read another's data. I need to be able to run these myself after adding new screens.
 - **Walkthrough recording** — one screen-share video (an hour is plenty) walking through the schema, the reference slice, and the reasoning.
 
