@@ -45,15 +45,40 @@ svg{flex:none}
 .bt .n{font-weight:700;font-size:14.5px}
 .bt .s{font-size:11.5px;color:var(--muted)}
 .navsc{flex:1;overflow-y:auto;padding:4px 10px 16px}
-.navg{padding:14px 8px 5px;font-size:11px;color:var(--faint);font-weight:500;letter-spacing:.02em}
-.nav a{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:var(--r-sm);
-  cursor:pointer;color:var(--ink-2);font-size:13.5px;margin-bottom:1px}
-.nav a:hover{background:var(--side-hov)}
+.navg{padding:16px 10px 6px;font-size:11px;color:var(--faint);font-weight:500;letter-spacing:.02em}
+.nav a,.nav .gh{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:var(--r-sm);
+  cursor:pointer;color:var(--ink-2);font-size:13.5px;margin-bottom:1px;border:0;background:none;
+  width:100%;text-align:left;font-family:inherit}
+.nav a:hover,.nav .gh:hover{background:var(--side-hov)}
 .nav a.on{background:var(--side-on);color:var(--ink);font-weight:500}
 .nav a .sid{margin-left:auto;font-size:10.5px;color:var(--faint);font-variant-numeric:tabular-nums}
-.nav a svg{color:var(--muted)}
+.nav a svg,.nav .gh svg{color:var(--muted)}
 .nav a.on svg{color:var(--pri)}
-.sf{border-top:1px solid var(--line);padding:10px}
+.nav .gh .cv{margin-left:auto;transition:transform .16s;color:var(--faint)}
+.nav .gh.open .cv{transform:rotate(90deg)}
+.nav .gh.hasOn{color:var(--ink);font-weight:500}
+.nsub{overflow:hidden}
+.nsub a{padding-left:38px;font-size:13px}
+.nsub a .sid{font-size:10px}
+.sf{border-top:1px solid var(--line);padding:10px;display:flex;flex-direction:column;gap:2px}
+.fold{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:var(--r-sm);cursor:pointer;
+  color:var(--muted);font-size:13px;border:0;background:none;width:100%;text-align:left;font-family:inherit}
+.fold:hover{background:var(--side-hov);color:var(--ink-2)}
+
+/* 접힘 상태 */
+.app.fold .side{width:62px}
+.app.fold{grid-template-columns:62px 1fr}
+.app.fold .bh{padding:16px 0;justify-content:center}
+.app.fold .bt,.app.fold .navg,.app.fold .op .ot,.app.fold .fold span{display:none}
+.app.fold .nav a,.app.fold .nav .gh{justify-content:center;padding:9px 0;gap:0}
+.app.fold .nav a span,.app.fold .nav .gh span,.app.fold .nav .cv{display:none}
+.app.fold .nsub a{padding-left:0}
+.app.fold .op{justify-content:center;padding:8px 0}
+.app.fold .fold{justify-content:center;padding:9px 0}
+.app.fold .nav a{position:relative}
+.app.fold .nav a:hover::after{content:attr(data-n);position:absolute;left:54px;top:50%;transform:translateY(-50%);
+  background:var(--ink);color:var(--bg);padding:5px 10px;border-radius:var(--r-sm);font-size:12.5px;
+  white-space:nowrap;z-index:20;pointer-events:none}
 .op{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:var(--r-sm);cursor:pointer}
 .op:hover{background:var(--side-hov)}
 .op .av{width:28px;height:28px;border-radius:var(--r-sm);background:var(--neutral-bg);color:var(--ink-2);
@@ -177,7 +202,7 @@ td.c,th.c{text-align:center}
 }
 </style>
 
-<div class="app">
+<div class="app" id="app">
   <aside class="side">
     <div class="bh">
       <div class="bi">B</div>
@@ -185,6 +210,7 @@ td.c,th.c{text-align:center}
     </div>
     <div class="navsc"><nav class="nav" id="nav"></nav></div>
     <div class="sf">
+      <button class="fold" onclick="toggleFold()" id="foldBtn"></button>
       <div class="op" id="opBox" onclick="cycleOp()">
         <div class="av" id="opAv">테</div>
         <div class="ot"><div class="a" id="opName">테온하우스</div><div class="b">김영준 · 슈퍼관리자</div></div>
@@ -223,16 +249,17 @@ const I={
  user:'<circle cx="12" cy="8" r="4"/><path d="M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1"/>',
  srch:'<circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/>',
  filt:'<path d="M3 5h18l-7 8v6l-4 2v-8z"/>',
+ chev:'<path d="M9 18l6-6-6-6"/>',
+ panel:'<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18"/>',
 };
 const ic=(k,s=17)=>`<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${I[k]||''}</svg>`;
 
 /* ═══ 메뉴 ═══ */
 const MENU=[
- {g:'',items:[{id:'dash-1',n:'대시보드',sid:'DASH-1',i:'dash'}]},
- {g:'자산 · 계약',items:[
-   {id:'pro-1',n:'건물 관리',sid:'PRO-1',i:'bldg'},
-   {id:'ctr-1',n:'계약 관리',sid:'CTR-1',i:'file'}]},
- {g:'청구 · 수납',items:[
+ {id:'dash-1',n:'대시보드',sid:'DASH-1',i:'dash'},
+ {id:'pro-1',n:'건물 관리',sid:'PRO-1',i:'bldg'},
+ {id:'ctr-1',n:'계약 관리',sid:'CTR-1',i:'file'},
+ {k:'청구',g:'청구 · 수납',i:'wallet',items:[
    {id:'pay-10',n:'관리비 정산',sid:'PAY-10',i:'calc'},
    {id:'pay-1',n:'청구 스케줄',sid:'PAY-1',i:'clock'},
    {id:'pay-2',n:'청구 · 수납 현황',sid:'PAY-2',i:'wallet'},
@@ -240,19 +267,25 @@ const MENU=[
    {id:'pay-8',n:'수납 내역',sid:'PAY-8',i:'list'},
    {id:'pay-4',n:'청구 항목 관리',sid:'PAY-4',i:'list'},
    {id:'pay-11',n:'월 마감',sid:'PAY-11',i:'lock'}]},
- {g:'거래 상대',items:[
+ {k:'상대',g:'거래 상대',i:'users',items:[
    {id:'user-6',n:'임차인',sid:'USER-6',i:'users'},
    {id:'user-8',n:'임대인',sid:'USER-8',i:'home'}]},
- {g:'문서 · 보고',items:[
+ {k:'문서',g:'문서 · 보고',i:'folder',items:[
    {id:'doc-1',n:'문서 보관함',sid:'DOC-1',i:'folder'},
    {id:'rep-1',n:'임대인 보고서',sid:'REP-1',i:'chart'},
    {id:'rec-1',n:'변경 이력',sid:'REC-1',i:'hist'},
    {id:'ntf-6',n:'발송 내역',sid:'NTF-6',i:'mail'}]},
- {g:'설정',items:[
+ {k:'설정',g:'설정',i:'cog',items:[
    {id:'user-2',n:'사용자 관리',sid:'USER-2',i:'users'},
    {id:'sys-1',n:'운영사 관리',sid:'SYS-1',i:'cog'},
    {id:'user-1',n:'프로필',sid:'USER-1',i:'user'}]},
 ];
+const ALL=MENU.flatMap(m=>m.items||[m]);
+/* 열림 상태 · 접힘 상태 — 브라우저에 기억시킨다 */
+const LS={get(k,d){try{const v=localStorage.getItem(k);return v===null?d:JSON.parse(v)}catch(e){return d}},
+          set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+let OPEN=LS.get('brikka.open',{청구:true,상대:true,문서:true,설정:true});
+let FOLD=LS.get('brikka.fold',false);
 
 /* ═══ 데이터 ═══ */
 const OPS=[{n:'테온하우스',av:'테',t:false},{n:'제일에스테이트',av:'제',t:true},{n:'그린빌딩관리',av:'그',t:true}];
@@ -353,11 +386,26 @@ function ddBadge(end){
 }
 
 /* ═══ 네비 ═══ */
-function paintNav(){
-  $('#nav').innerHTML=MENU.map(g=>(g.g?`<div class="navg">${g.g}</div>`:'')+
-    g.items.map(i=>`<a onclick="go('${i.id}')" data-id="${i.id}">${ic(i.i)}<span>${i.n}</span><span class="sid">${i.sid}</span></a>`).join('')).join('');
+const navLink=i=>`<a onclick="go('${i.id}')" data-id="${i.id}" data-n="${i.n}">${ic(i.i)}<span>${i.n}</span><span class="sid">${i.sid}</span></a>`;
+function paintNav(cur){
+  const active=(cur||'').split('/')[0];
+  $('#nav').innerHTML=MENU.map(m=>{
+    if(!m.items) return navLink(m);
+    const hasOn=m.items.some(i=>i.id===active);
+    const open=OPEN[m.k]||hasOn;
+    return `<button class="gh ${open?'open':''} ${hasOn?'hasOn':''}" onclick="toggleG('${m.k}')" data-n="${m.g}">
+        ${ic(m.i)}<span>${m.g}</span><span class="cv">${ic('chev',14)}</span></button>
+      <div class="nsub" style="${open?'':'display:none'}">${m.items.map(navLink).join('')}</div>`;
+  }).join('');
+  document.querySelectorAll('.nav a').forEach(a=>a.classList.toggle('on',a.dataset.id===active));
 }
-const markNav=h=>document.querySelectorAll('.nav a').forEach(a=>a.classList.toggle('on',a.dataset.id===h.split('/')[0]));
+function toggleG(k){OPEN[k]=!(OPEN[k]);LS.set('brikka.open',OPEN);
+  paintNav((location.hash||'#/pro-1').replace(/^#\//,''));}
+function toggleFold(){FOLD=!FOLD;LS.set('brikka.fold',FOLD);paintFold();}
+function paintFold(){
+  $('#app').classList.toggle('fold',FOLD);
+  $('#foldBtn').innerHTML=ic('panel',17)+`<span>${FOLD?'메뉴 펼치기':'메뉴 접기'}</span>`;
+}
 
 /* ═══ PRO-1 ═══ */
 function PRO1(){
@@ -530,7 +578,7 @@ function t청구(b){
 
 /* ═══ 미구현 ═══ */
 function TODO(id){
-  const m=MENU.flatMap(g=>g.items).find(i=>i.id===id);
+  const m=ALL.find(i=>i.id===id);
   return `<div class="ph"><h1>${m?m.n:id}</h1>${m?`<span class="sid">${m.sid}</span>`:''}</div>
   <div class="tbl"><div class="empty"><div class="t">아직 만들지 않은 화면입니다</div>
     현재 <b>PRO-1 건물 목록</b>과 <b>PRO-3 건물 상세</b>만 구현되어 있습니다.</div></div>`;
@@ -540,16 +588,16 @@ function TODO(id){
 function render(){
   const h=(location.hash||'#/pro-1').replace(/^#\//,'');
   const [id,arg]=h.split('/');
-  markNav(h);
+  paintNav(h);
   let html,crumb;
-  if(id==='pro-1'){html=PRO1();crumb='자산 · 계약 <span>›</span> <b>건물 관리</b>';}
+  if(id==='pro-1'){html=PRO1();crumb='<b>건물 관리</b>';}
   else if(id==='pro-3'){const b=BUILDINGS.find(x=>x.id===arg)||BUILDINGS[0];
-    html=PRO3(arg);crumb=`자산 · 계약 <span>›</span> <span class="c" onclick="go('pro-1')">건물 관리</span> <span>›</span> <b>${b.name}</b>`;}
-  else{html=TODO(id);const g=MENU.find(g=>g.items.some(i=>i.id===id));
-    const m=g&&g.items.find(i=>i.id===id);
-    crumb=(g&&g.g?g.g+' <span>›</span> ':'')+`<b>${m?m.n:'—'}</b>`;}
+    html=PRO3(arg);crumb=`<span class="c" onclick="go('pro-1')">건물 관리</span> <span>›</span> <b>${b.name}</b>`;}
+  else{html=TODO(id);const g=MENU.find(m=>m.items&&m.items.some(i=>i.id===id));
+    const m=ALL.find(i=>i.id===id);
+    crumb=(g?g.g+' <span>›</span> ':'')+`<b>${m?m.n:'—'}</b>`;}
   $('#crumb').innerHTML=crumb;$('#view').innerHTML=html;window.scrollTo(0,0);
 }
 addEventListener('hashchange',render);
-paintNav();paintOp();render();
+paintOp();paintFold();render();
 </script>
