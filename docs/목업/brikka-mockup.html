@@ -91,6 +91,45 @@ svg{flex:none}
 .nw .ni .nd{font-size:11px;color:var(--muted);line-height:1.5}
 .nw .ni .ng{font-size:10.5px;color:var(--faint);white-space:nowrap}
 
+/* PAY-10 정산 */
+.fbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:16px}
+.fbar select{border:1px solid var(--line);background:var(--bg);padding:8px 11px;border-radius:var(--r-sm);
+  font-size:12.5px;min-width:150px}
+.stepv{display:flex;gap:0;margin-bottom:18px;border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
+.stepv .sp2{flex:1;padding:11px 14px;border-right:1px solid var(--line);cursor:pointer;background:var(--bg)}
+.stepv .sp2:last-child{border-right:0}
+.stepv .sp2:hover{background:var(--side-hov)}
+.stepv .sp2.on{background:var(--pri-bg)}
+.stepv .sp2 .t{font-size:12.5px;font-weight:500;display:flex;align-items:center;gap:6px}
+.stepv .sp2.on .t{color:var(--pri)}
+.stepv .sp2 .d{font-size:11.5px;color:var(--muted);margin-top:2px}
+.stepv .sp2 .nm{width:17px;height:17px;border-radius:50%;background:var(--neutral-bg);color:var(--muted);
+  font-size:10.5px;display:inline-flex;align-items:center;justify-content:center;flex:none}
+.stepv .sp2.on .nm{background:var(--pri);color:#fff}
+.stepv .sp2.dn .nm{background:var(--ok-bg);color:var(--ok)}
+.itab{display:flex;gap:6px;margin-bottom:14px}
+.itab button{border:1px solid var(--line);background:var(--bg);padding:6px 13px;border-radius:99px;
+  cursor:pointer;font-size:12.5px;color:var(--ink-2);font-family:inherit}
+.itab button.on{background:var(--ink);border-color:var(--ink);color:var(--bg);font-weight:500}
+.inp{border:1px solid var(--line);background:var(--bg);border-radius:var(--r-sm);padding:5px 9px;
+  font-size:12.5px;width:92px;text-align:right;font-variant-numeric:tabular-nums}
+.inp:focus{outline:0;border-color:var(--pri)}
+.inp.w{width:72px}
+tr.dim td{color:var(--muted)}
+tr.sumr td{background:var(--head);font-weight:700;border-top:1px solid var(--line)}
+tr.vacr td{background:var(--warn-bg)}
+.vfy{display:flex;align-items:center;gap:12px;padding:13px 16px;border-radius:var(--r);
+  border:1px solid var(--line);margin-top:14px;font-size:12.5px;flex-wrap:wrap}
+.vfy.ok{background:var(--ok-bg);border-color:var(--ok)}
+.vfy.no{background:var(--warn-bg);border-color:var(--warn)}
+.vfy b{font-variant-numeric:tabular-nums}
+.vfy .ttl{font-weight:700}
+.vfy.ok .ttl{color:var(--ok)} .vfy.no .ttl{color:var(--warn)}
+.fnd{background:var(--pri-bg);border:1px solid var(--pri);border-left-width:3px;border-radius:var(--r);
+  padding:12px 15px;font-size:12.5px;color:var(--ink-2);margin:14px 0;line-height:1.65}
+.fnd b{color:var(--pri)}
+.fnd .h{font-weight:700;color:var(--pri);display:block;margin-bottom:4px}
+
 /* 접힘 상태 */
 .app.fold .side{width:62px}
 .app.fold{grid-template-columns:62px 1fr}
@@ -413,6 +452,68 @@ const BUILDINGS=[
   fac:['회의실','샤워실'],units:[],parks:[],docs:[],charge:[],billDay:'매월 19일',dueDay:'매월 말일'},
 ];
 
+/* ═══ PAY-10 정산 데이터 ═══ */
+const UNITS_B1=[
+ {no:'201호',st:'사용중',ten:'(주)한빛',ar:198.4},
+ {no:'202호',st:'사용중',ten:'(주)비씨에이',ar:165.2},
+ {no:'301호',st:'사용중',ten:'디자인스튜디오 온',ar:264.0},
+ {no:'401호',st:'공실',ten:'',ar:198.4},
+ {no:'402호',st:'공실',ten:'(주)메디플랜',ar:165.2},
+ {no:'501호',st:'사용중',ten:'법무법인 정도',ar:363.6},
+ {no:'601호',st:'사용중',ten:'(주)엔코어테크',ar:363.6},
+ {no:'701호',st:'사용중',ten:'(주)한빛',ar:363.6},
+ {no:'801호',st:'사용중',ten:'코어스페이스',ar:363.6},
+ {no:'B101',st:'비운영중',ten:'',ar:88.2},
+];
+const SETTLE={
+ ym:'2026-09', status:'작성중',
+ items:[
+  {code:'elec',name:'전기요금',unit:'kWh',totUse:12400,totAmt:2180000,
+   detail:{공급가액:1981818,부가세:198182,전력기금:80600,'TV수신료':2500},
+   meterCharge:true, restTarget:'전체 유닛', restBasis:'사용량', billDate:'2026-09-08',
+   read:{'201호':[45230,46180],'202호':[32100,32890],'301호':[28450,29720],'401호':[11200,11215],
+         '402호':[9840,9860],'501호':[51300,53140],'601호':[47890,49560],'701호':[38220,39850],
+         '801호':[42670,44390],'B101':[5120,5340]},
+   readDate:'2026-09-05',
+   adj:{'501호':{mul:1.15,why:'계량기 노후로 저계측 확인. 검교정 전까지 보정',by:'김영준',at:'2026-09-06 11:20'}}},
+  {code:'water',name:'상하수도요금',unit:'톤',totAmt:1240000,totUse:620,
+   detail:{공급가액:1127273,부가세:112727},
+   meterCharge:true, restTarget:'전체 유닛', restBasis:'면적', billDate:'2026-09-11',
+   read:null, readDate:null, adj:{}},
+ ]};
+let pItem=0, pStep=0;
+const setPStep=i=>{pStep=i;render()};
+const setPItem=i=>{pItem=i;render()};
+function setMul(no,v){
+  const it=SETTLE.items[pItem]; const m=parseFloat(v);
+  if(!m||m<=0){delete it.adj[no];}
+  else if(m===1 && !it.adj[no]){/* 변화 없음 */}
+  else it.adj[no]={mul:m,why:(it.adj[no]&&it.adj[no].why)||'담당자 조정',by:'김영준',at:'2026-09-23 14:02'};
+  render();
+}
+/* 안분 계산 — 4.1.2 */
+function calc(it){
+  const rows=UNITS_B1.map(u=>{
+    const r=it.read&&it.read[u.no];
+    const use=r?r[1]-r[0]:0;
+    const mul=(it.adj[u.no]&&it.adj[u.no].mul)||1;
+    return {...u, pm:r?r[0]:null, cm:r?r[1]:null, use, mul, adj:use*mul};
+  });
+  const sumAdj=rows.reduce((a,r)=>a+r.adj,0);
+  const rest=it.meterCharge? it.totUse-sumAdj : it.totUse;
+  const wSum=rows.reduce((a,r)=>a+(it.restBasis==='사용량'?r.adj:r.ar*r.mul),0);
+  rows.forEach(r=>{
+    const w=it.restBasis==='사용량'?r.adj:r.ar*r.mul;
+    r.w=w;
+    r.rest=wSum?rest*w/wSum:0;
+    r.tot=(it.meterCharge?r.adj:0)+r.rest;
+    r.amt=Math.floor(it.totAmt*r.tot/it.totUse);
+  });
+  const bill=rows.filter(r=>r.st==='사용중').reduce((a,r)=>a+r.amt,0);
+  const vac =rows.filter(r=>r.st!=='사용중').reduce((a,r)=>a+r.amt,0);
+  return {rows,sumAdj,rest,wSum,bill,vac,diff:it.totAmt-(bill+vac)};
+}
+
 /* ═══ 유틸 ═══ */
 const $=s=>document.querySelector(s);
 const num=n=>n.toLocaleString('ko-KR');
@@ -636,6 +737,158 @@ function t청구(b){
     </div></div>`;
 }
 
+/* ═══ PAY-10 관리비 정산 ═══ */
+const fx=(n,d=1)=>n.toLocaleString('ko-KR',{minimumFractionDigits:d,maximumFractionDigits:d});
+function PAY10(){
+  const it=SETTLE.items[pItem], R=calc(it);
+  const steps=[
+    ['고지서 입력', `${SETTLE.items.length}개 항목 입력됨`, true],
+    ['검침 입력', it.read?`${Object.keys(it.read).length}개 유닛`:'계량기 없음', true],
+    ['조정', `${Object.keys(it.adj).length}건`, true],
+    ['산출 결과', R.diff===0?'검증 일치':`차액 ${num(R.diff)}원`, R.diff===0],
+  ];
+  const body=[stBill,stRead,stAdj,stResult][pStep](it,R);
+  return `
+  <div class="ph"><h1>건물 관리비 정산</h1><span class="sid">PAY-10</span>
+    <span class="bd wa">작성중</span>
+    <div class="act"><button class="btn">엑셀 다운로드</button>
+      <button class="btn pri" onclick="alert('정산 확정 → 계약별 청구서 생성\n\n확정 시 청구항목별로\n(임차인 청구액 + 공실·미청구분 = 고지서 총금액)을 검증합니다.')">정산 확정</button></div>
+  </div>
+  <div class="fbar">
+    <select><option>동교동 영준빌딩</option><option>역삼 제이타워</option><option>성수 더블유센터</option></select>
+    <select><option>2026년 9월</option><option>2026년 8월</option><option>2026년 7월</option></select>
+    <span style="color:var(--muted);font-size:12px">청구일 매월 19일 · 남은 일수 <b style="color:var(--warn)">4일</b></span>
+  </div>
+  <div class="stepv">${steps.map((st,i)=>`
+    <div class="sp2 ${i===pStep?'on':''} ${st[2]&&i!==pStep?'dn':''}" onclick="setPStep(${i})">
+      <div class="t"><span class="nm">${i+1}</span>${st[0]}</div><div class="d">${st[1]}</div></div>`).join('')}
+  </div>
+  <div class="itab">${SETTLE.items.map((x,i)=>
+    `<button class="${i===pItem?'on':''}" onclick="setPItem(${i})">${x.name}</button>`).join('')}
+  </div>
+  ${body}`;
+}
+
+function stBill(it,R){
+  return `
+  <div class="card"><div class="ct">고지서 <span class="sub">${it.name} · 수령일 ${it.billDate}</span>
+    <span class="ca"><button class="btn sm">수정</button></span></div>
+    <div class="cc"><div class="two" style="gap:0 40px">
+      <dl class="dl"><dt>고지서 총사용량</dt><dd><b>${num(it.totUse)}</b> ${it.unit}</dd>
+        <dt>고지서 총금액</dt><dd><b>${won(it.totAmt)}</b> <span class="lock">부가세 포함</span></dd></dl>
+      <dl class="dl">${Object.entries(it.detail).map(([k,v])=>`<dt>${k}</dt><dd>${won(v)}</dd>`).join('')}</dl>
+    </div></div>
+  </div>
+  <div class="card"><div class="ct">건물 설정 <span class="sub">PRO-3 청구설정탭에서 정의한다</span></div>
+    <div class="cc"><dl class="dl" style="max-width:520px">
+      <dt>검침분 청구여부</dt><dd>${it.meterCharge?'청구함':'임차인 직접 납부'}</dd>
+      <dt>잔여분 부담대상</dt><dd>${it.restTarget}</dd>
+      <dt>잔여분 배분기준</dt><dd>${it.restBasis} 비율</dd>
+    </dl></div>
+  </div>
+  <div class="card"><div class="ct">이번 회차 정산 항목 <span class="sub">항목마다 주기가 다르다</span>
+    <span class="ca"><button class="btn sm">+ 항목 추가</button></span></div>
+    <div class="tw"><table><thead><tr><th>청구항목</th><th>주기</th><th class="n">총사용량</th><th class="n">총금액</th><th>상태</th></tr></thead>
+      <tbody>
+        <tr><td class="c1">전기요금</td><td>매월</td><td class="n">12,400 kWh</td><td class="n">2,180,000원</td><td><span class="bd ok">입력 완료</span></td></tr>
+        <tr><td class="c1">상하수도요금</td><td>격월 (홀수월)</td><td class="n">620 톤</td><td class="n">1,240,000원</td><td><span class="bd ok">입력 완료</span></td></tr>
+        <tr class="dim"><td class="c1">교통유발부담금</td><td>연 1회 (10월)</td><td class="n">—</td><td class="n">—</td><td><span class="bd mu">해당 없음</span></td></tr>
+        <tr class="dim"><td class="c1">정화조청소비</td><td>반기 (6·12월)</td><td class="n">—</td><td class="n">—</td><td><span class="bd mu">해당 없음</span></td></tr>
+      </tbody></table></div>
+  </div>`;
+}
+
+function stRead(it,R){
+  if(!it.read) return `<div class="tbl"><div class="empty"><div class="t">계량기가 없는 항목입니다</div>
+    ${it.name}은 유닛별 계량기가 없어 전체를 ${it.restBasis} 비율로 배분합니다.</div></div>`;
+  return `
+  <div class="card"><div class="ct">검침 기록 <span class="sub">${it.name} · 검침일 ${it.readDate}</span>
+    <span class="ca"><button class="btn sm">엑셀 업로드</button><button class="btn pri sm">검침 입력</button></span></div>
+    <div class="tw"><table>
+      <thead><tr><th>유닛</th><th>임차인</th><th>유닛상태</th><th class="n">전월 검침값</th><th class="n">당월 검침값</th><th class="n">검침 사용량</th></tr></thead>
+      <tbody>${R.rows.map(r=>`<tr class="${r.st!=='사용중'?'dim':''}">
+        <td class="c1">${r.no}</td><td>${r.ten||'<span style="color:var(--faint)">—</span>'}</td>
+        <td>${stb(r.st)}</td>
+        <td class="n">${num(r.pm)}</td><td class="n">${num(r.cm)}</td>
+        <td class="n"><b>${num(r.use)}</b> ${it.unit}</td></tr>`).join('')}
+        <tr class="sumr"><td colspan="5">검침 사용량 합계</td><td class="n">${num(R.rows.reduce((a,r)=>a+r.use,0))} ${it.unit}</td></tr>
+      </tbody></table></div>
+  </div>
+  <div class="hint">검침 기록은 원본이며 수정하지 않는다. 보정이 필요하면 다음 단계에서 조정 배수를 기록한다.</div>`;
+}
+
+function stAdj(it,R){
+  return `
+  <div class="card"><div class="ct">조정 <span class="sub">검침값을 고치지 않고 배수로 보정한다. 기본값 1.0</span></div>
+    <div class="tw"><table>
+      <thead><tr><th>유닛</th><th class="n">원본 사용량</th><th class="c">조정 배수</th><th class="n">정산 사용량</th><th>사유</th><th>작성자</th><th>작성일시</th></tr></thead>
+      <tbody>${R.rows.map(r=>{const a=it.adj[r.no];return `<tr class="${r.st!=='사용중'?'dim':''}">
+        <td class="c1">${r.no}</td>
+        <td class="n">${it.read?num(r.use)+' '+it.unit:'<span style="color:var(--faint)">계량기 없음</span>'}</td>
+        <td class="c"><input class="inp w" value="${r.mul}" step="0.05" type="number"
+             onchange="setMul('${r.no}',this.value)"></td>
+        <td class="n">${it.read?`<b>${fx(r.adj)}</b> ${it.unit}`:'—'}</td>
+        <td style="white-space:normal;max-width:320px;color:${a?'var(--ink-2)':'var(--faint)'}">${a?a.why:'—'}</td>
+        <td>${a?a.by:'—'}</td><td style="color:var(--muted)">${a?a.at:'—'}</td></tr>`}).join('')}
+      </tbody></table></div>
+  </div>
+  <div class="fnd"><span class="h">조정 배수를 바꿔보세요</span>
+    501호 배수를 <b>1.15 → 1.0</b>으로 바꾸면 501호 청구액이 줄고 <b>나머지 유닛 부담이 늘어납니다.</b>
+    총액은 항상 고지서와 일치합니다. 4단계 산출 결과에서 확인하세요.</div>`;
+}
+
+function stResult(it,R){
+  const unitPrice=it.totAmt/it.totUse;
+  return `
+  <div class="card"><div class="ct">산출 결과 <span class="sub">${it.name} · ${it.restBasis} 비율 배분</span></div>
+    <div class="tw"><table>
+      <thead><tr><th>유닛</th><th>임차인</th>
+        <th class="n">정산 사용량</th><th class="n">잔여 배분</th><th class="n">유닛 총사용량</th><th class="n">청구금액</th></tr></thead>
+      <tbody>${R.rows.filter(r=>r.st==='사용중').map(r=>`<tr>
+        <td class="c1">${r.no}</td><td>${r.ten}</td>
+        <td class="n">${it.meterCharge&&it.read?fx(r.adj):'—'}</td>
+        <td class="n">${fx(r.rest)}</td>
+        <td class="n"><b>${fx(r.tot)}</b></td>
+        <td class="n"><b>${won(r.amt)}</b></td></tr>`).join('')}
+        ${R.rows.filter(r=>r.st!=='사용중').map(r=>`<tr class="vacr">
+        <td class="c1">${r.no}</td><td>${stb(r.st)}${r.ten?' '+r.ten:''}</td>
+        <td class="n">${it.meterCharge&&it.read?fx(r.adj):'—'}</td>
+        <td class="n">${fx(r.rest)}</td><td class="n">${fx(r.tot)}</td>
+        <td class="n">${won(r.amt)}</td></tr>`).join('')}
+        <tr class="sumr"><td colspan="2">합계</td>
+          <td class="n">${fx(R.sumAdj)}</td><td class="n">${fx(R.rest)}</td>
+          <td class="n">${fx(R.rows.reduce((a,r)=>a+r.tot,0))}</td>
+          <td class="n">${won(R.bill+R.vac)}</td></tr>
+      </tbody></table></div>
+  </div>
+  <div class="two">
+    <div class="card"><div class="ct">청구 구분</div><div class="cc"><dl class="dl">
+      <dt>임차인 청구액</dt><dd><b>${won(R.bill)}</b> <span class="lock">${R.rows.filter(r=>r.st==='사용중').length}개 유닛</span></dd>
+      <dt>공실 · 미청구분</dt><dd><b style="color:var(--warn)">${won(R.vac)}</b> <span class="lock">건축주 부담</span></dd>
+      <dt>단가</dt><dd>${fx(unitPrice,2)}원 / ${it.unit}</dd>
+    </dl></div></div>
+    <div class="card"><div class="ct">계산 근거</div><div class="cc"><dl class="dl">
+      <dt>고지서 총사용량</dt><dd>${num(it.totUse)} ${it.unit}</dd>
+      <dt>Σ 정산 사용량</dt><dd>${fx(R.sumAdj)} ${it.unit}</dd>
+      <dt>잔여 사용량</dt><dd>${fx(R.rest)} ${it.unit} <span class="lock">공용부</span></dd>
+      <dt>배분 가중치 합</dt><dd>${fx(R.wSum)}</dd>
+    </dl></div></div>
+  </div>
+  <div class="vfy ${R.diff===0?'ok':'no'}">
+    <span class="ttl">${R.diff===0?'검증 일치':'검증 불일치'}</span>
+    <span>임차인 청구액 <b>${won(R.bill)}</b></span><span style="color:var(--muted)">+</span>
+    <span>공실·미청구분 <b>${won(R.vac)}</b></span><span style="color:var(--muted)">=</span>
+    <span><b>${won(R.bill+R.vac)}</b></span>
+    <span style="color:var(--muted)">고지서 <b>${won(it.totAmt)}</b></span>
+    ${R.diff?`<span style="margin-left:auto;font-weight:700;color:var(--warn)">차액 ${num(R.diff)}원</span>`:''}
+  </div>
+  ${R.diff?`<div class="fnd"><span class="h">명세에서 정해지지 않은 사항</span>
+    유닛별로 <b>원 미만을 절사</b>하기 때문에 합계가 고지서 총금액과 정확히 맞지 않습니다
+    (이번 회차 <b>${num(R.diff)}원</b>). 유닛이 10개면 최대 9원까지 벌어집니다.<br>
+    그런데 명세 4.1.8은 <b>"불일치 시 확정할 수 없다"</b>고 정하고 있어, 그대로 두면
+    <b>영원히 확정이 불가능합니다.</b> 차액을 어디에 흡수시킬지 결정이 필요합니다.</div>`:''}`;
+}
+
 /* ═══ 미구현 ═══ */
 function TODO(id){
   const m=ALL.find(i=>i.id===id);
@@ -653,6 +906,7 @@ function render(){
   if(id==='pro-1'){html=PRO1();crumb='<b>건물 관리</b>';}
   else if(id==='pro-3'){const b=BUILDINGS.find(x=>x.id===arg)||BUILDINGS[0];
     html=PRO3(arg);crumb=`<span class="c" onclick="go('pro-1')">건물 관리</span> <span>›</span> <b>${b.name}</b>`;}
+  else if(id==='pay-10'){html=PAY10();crumb='청구 · 수납 <span>›</span> <b>관리비 정산</b>';}
   else{html=TODO(id);const g=MENU.find(m=>m.items&&m.items.some(i=>i.id===id));
     const m=ALL.find(i=>i.id===id);
     crumb=(g?g.g+' <span>›</span> ':'')+`<b>${m?m.n:'—'}</b>`;}
