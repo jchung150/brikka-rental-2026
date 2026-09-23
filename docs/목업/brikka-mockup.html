@@ -59,7 +59,9 @@ svg{flex:none}
 .nav .gh.hasOn{color:var(--ink);font-weight:500}
 .nsub{overflow:hidden;position:relative}
 .nsub::before{content:'';position:absolute;left:19px;top:2px;bottom:2px;width:1px;background:var(--line)}
-.nsub a{padding-left:34px;font-size:12.5px}
+.nsub a{padding-left:34px;font-size:12px;color:var(--muted)}
+.nsub a:hover{color:var(--ink-2)}
+.nsub a.on{color:var(--ink)}
 .nsub a .sid{font-size:10px}
 .sf{border-top:1px solid var(--line);padding:8px 10px 10px;position:relative}
 .sfi{display:flex;align-items:center;justify-content:space-between;padding:0 2px 6px}
@@ -100,10 +102,11 @@ svg{flex:none}
 .app.fold .nw{left:calc(100% + 8px);bottom:10px}
 .app.fold .nav a,.app.fold .nav .gh{justify-content:center;padding:9px 0;gap:0}
 .app.fold .nav a span,.app.fold .nav .gh span,.app.fold .nav .cv{display:none}
-.app.fold .nsub a{padding-left:0}
-.app.fold .nav a{position:relative}
-.app.fold .nav a:hover::after{content:attr(data-n);position:absolute;left:54px;top:50%;transform:translateY(-50%);
-  background:var(--ink);color:var(--bg);padding:5px 10px;border-radius:var(--r-sm);font-size:12.5px;
+.app.fold .nsub{display:none!important}
+.app.fold .nav a,.app.fold .nav .gh{position:relative}
+.app.fold .nav a:hover::after,.app.fold .nav .gh:hover::after{
+  content:attr(data-n);position:absolute;left:52px;top:50%;transform:translateY(-50%);
+  background:var(--ink);color:var(--bg);padding:5px 10px;border-radius:var(--r-sm);font-size:12px;
   white-space:nowrap;z-index:20;pointer-events:none}
 .op{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:var(--r-sm);cursor:pointer}
 .op:hover{background:var(--side-hov)}
@@ -266,7 +269,6 @@ td.c,th.c{text-align:center}
     <header class="top">
       <div class="crumb" id="crumb"></div>
       <div class="sp"></div>
-      <span class="mock">목업 · 예시 데이터</span>
     </header>
     <div class="wrap" id="view"></div>
   </div>
@@ -333,7 +335,10 @@ let OPEN=LS.get('brikka.open',{청구:true,상대:true,문서:true,설정:true})
 let FOLD=LS.get('brikka.fold',false);
 
 /* ═══ 데이터 ═══ */
-const OPS=[{n:'테온하우스',av:'T',t:false},{n:'제일에스테이트',av:'J',t:true},{n:'그린빌딩관리',av:'G',t:true}];
+const OPS=[
+ {n:'테온하우스',en:'THEON HOUSE',av:'T',t:false},
+ {n:'제일에스테이트',en:'JEIL ESTATE',av:'J',t:true},
+ {n:'그린빌딩관리',en:'GREEN BUILDING',av:'G',t:true}];
 let opIdx=0;
 
 const BUILDINGS=[
@@ -424,7 +429,8 @@ function cycleOp(){opIdx=(opIdx+1)%OPS.length;paintOp();render();}
 function paintOp(){
   const o=OPS[opIdx];
   $('#opName').textContent=o.n; $('#opAv').textContent=o.av;
-  $('#opSub').textContent=o.t?'BRIKKA · 검증용':'BRIKKA';
+  $('#opSub').textContent=o.t?o.en+' · 검증용':o.en;
+  $('#opSub').style.letterSpacing='.04em';
   $('#opAv').style.background=o.t?'var(--warn)':'var(--pri)';
   $('#opName').style.color=o.t?'var(--warn)':'';
 }
@@ -440,7 +446,7 @@ function ddBadge(end){
 }
 
 /* ═══ 네비 ═══ */
-const navLink=i=>`<a onclick="go('${i.id}')" data-id="${i.id}" data-n="${i.n}">${ic(i.i)}<span>${i.n}</span><span class="sid">${i.sid}</span></a>`;
+const navLink=(i,sub)=>`<a onclick="go('${i.id}')" data-id="${i.id}" data-n="${i.n}">${sub?'':ic(i.i)}<span>${i.n}</span><span class="sid">${i.sid}</span></a>`;
 function paintNav(cur){
   const active=(cur||'').split('/')[0];
   $('#nav').innerHTML=MENU.map(m=>{
@@ -449,11 +455,14 @@ function paintNav(cur){
     const open=OPEN[m.k]||hasOn;
     return `<button class="gh ${open?'open':''} ${hasOn?'hasOn':''}" onclick="toggleG('${m.k}')" data-n="${m.g}">
         ${ic(m.i)}<span>${m.g}</span><span class="cv">${ic('chev',14)}</span></button>
-      <div class="nsub" style="${open?'':'display:none'}">${m.items.map(navLink).join('')}</div>`;
+      <div class="nsub" style="${open?'':'display:none'}">${m.items.map(i=>navLink(i,true)).join('')}</div>`;
   }).join('');
   document.querySelectorAll('.nav a').forEach(a=>a.classList.toggle('on',a.dataset.id===active));
 }
-function toggleG(k){OPEN[k]=!(OPEN[k]);LS.set('brikka.open',OPEN);
+function toggleG(k){
+  if(FOLD){FOLD=false;LS.set('brikka.fold',false);paintFold();OPEN[k]=true;}
+  else OPEN[k]=!OPEN[k];
+  LS.set('brikka.open',OPEN);
   paintNav((location.hash||'#/pro-1').replace(/^#\//,''));}
 function toggleFold(){FOLD=!FOLD;LS.set('brikka.fold',FOLD);paintFold();closeNoti();}
 function paintFold(){$('#app').classList.toggle('fold',FOLD);}
