@@ -1,0 +1,505 @@
+<title>BRIKKA 백오피스</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap">
+<style>
+:root{
+  --bg:#F4F5F7; --panel:#FFFFFF; --sidebar:#1E2530; --sidebar-ink:#A9B2C0; --sidebar-active:#2C3644;
+  --ink:#1B1F27; --ink-2:#4A515E; --muted:#7C8698;
+  --line:#DFE3E8; --line-2:#EDEFF2; --head:#F7F8FA;
+  --accent:#1B5E8C; --accent-bg:#E8F1F7;
+  --ok:#0F7B4F; --ok-bg:#E6F4EC; --warn:#A15C00; --warn-bg:#FDF2E0; --danger:#B3261E; --danger-bg:#FBEAE9;
+  --radius:4px;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#12151A; --panel:#1A1E25; --sidebar:#14181F; --sidebar-ink:#8A94A6; --sidebar-active:#242B36;
+  --ink:#E6E9ED; --ink-2:#C0C6D0; --muted:#8A94A6;
+  --line:#2E343E; --line-2:#242A33; --head:#20252D;
+  --accent:#6FA8CE; --accent-bg:#17242E;
+  --ok:#5CBF8F; --ok-bg:#15271E; --warn:#D9A24A; --warn-bg:#2A2115; --danger:#E08076; --danger-bg:#2C1917;
+}}
+:root[data-theme="dark"]{
+  --bg:#12151A; --panel:#1A1E25; --sidebar:#14181F; --sidebar-ink:#8A94A6; --sidebar-active:#242B36;
+  --ink:#E6E9ED; --ink-2:#C0C6D0; --muted:#8A94A6;
+  --line:#2E343E; --line-2:#242A33; --head:#20252D;
+  --accent:#6FA8CE; --accent-bg:#17242E;
+  --ok:#5CBF8F; --ok-bg:#15271E; --warn:#D9A24A; --warn-bg:#2A2115; --danger:#E08076; --danger-bg:#2C1917;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);
+  font-family:"Noto Sans KR",system-ui,-apple-system,sans-serif;font-size:13.5px;line-height:1.6;
+  -webkit-font-smoothing:antialiased}
+button,input,select{font-family:inherit;font-size:inherit;color:inherit}
+a{color:inherit;text-decoration:none}
+
+/* ── 레이아웃 ── */
+.app{display:grid;grid-template-columns:232px 1fr;min-height:100vh}
+.side{background:var(--sidebar);color:var(--sidebar-ink);padding:0 0 32px;position:sticky;top:0;height:100vh;overflow-y:auto}
+.brand{padding:18px 18px 14px;border-bottom:1px solid rgba(255,255,255,.07);margin-bottom:8px}
+.brand .bn{color:#fff;font-weight:700;font-size:16px;letter-spacing:.02em}
+.brand .bs{font-size:11px;color:#6E7A8C;margin-top:1px}
+.op{margin:0 12px 10px;padding:8px 10px;border-radius:var(--radius);background:rgba(255,255,255,.05);
+  border:1px solid rgba(255,255,255,.08);cursor:pointer}
+.op .ol{font-size:10.5px;color:#6E7A8C;letter-spacing:.04em}
+.op .ov{color:#fff;font-weight:500;font-size:12.5px;display:flex;justify-content:space-between;align-items:center;gap:6px}
+.op.test{background:rgba(217,162,74,.14);border-color:rgba(217,162,74,.4)}
+.op.test .ov{color:#E8B765}
+.navg{margin:14px 0 4px;padding:0 18px;font-size:10.5px;color:#5A6474;letter-spacing:.08em;font-weight:500}
+.nav a{display:flex;align-items:center;gap:8px;padding:7px 18px;font-size:13px;cursor:pointer;border-left:2px solid transparent}
+.nav a:hover{background:rgba(255,255,255,.04);color:#D6DCE5}
+.nav a.on{background:var(--sidebar-active);color:#fff;border-left-color:var(--accent);font-weight:500}
+.nav a .id{margin-left:auto;font-size:10px;color:#5A6474;font-variant-numeric:tabular-nums}
+.nav a.on .id{color:#8A94A6}
+
+.main{min-width:0;display:flex;flex-direction:column}
+.top{background:var(--panel);border-bottom:1px solid var(--line);padding:0 24px;height:52px;
+  display:flex;align-items:center;gap:14px;position:sticky;top:0;z-index:5}
+.crumb{color:var(--muted);font-size:12.5px}
+.crumb b{color:var(--ink);font-weight:500}
+.top .sp{flex:1}
+.mock{font-size:11px;color:var(--warn);background:var(--warn-bg);border:1px solid var(--warn);
+  padding:3px 8px;border-radius:var(--radius);font-weight:500}
+.me{font-size:12.5px;color:var(--ink-2)}
+.me b{font-weight:500;color:var(--ink)}
+
+.wrap{padding:22px 24px 60px;max-width:1500px;width:100%}
+.ph{display:flex;align-items:flex-start;gap:12px;margin-bottom:16px;flex-wrap:wrap}
+.ph h1{margin:0;font-size:19px;font-weight:700;line-height:1.4}
+.ph .sid{font-size:11px;color:var(--accent);background:var(--accent-bg);border:1px solid var(--accent);
+  padding:2px 7px;border-radius:var(--radius);font-weight:700;margin-top:3px}
+.ph .desc{width:100%;color:var(--muted);font-size:12.5px;margin-top:-4px}
+.ph .act{margin-left:auto;display:flex;gap:8px}
+
+/* ── 부품 ── */
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);margin-bottom:14px}
+.card > .ct{padding:11px 16px;border-bottom:1px solid var(--line-2);font-weight:700;font-size:13px;
+  display:flex;align-items:center;gap:8px}
+.card > .ct .sub{font-weight:400;color:var(--muted);font-size:12px}
+.card > .ct .ca{margin-left:auto;display:flex;gap:6px}
+.cb{padding:14px 16px}
+
+.btn{border:1px solid var(--line);background:var(--panel);color:var(--ink-2);padding:6px 12px;
+  border-radius:var(--radius);cursor:pointer;font-size:12.5px;white-space:nowrap}
+.btn:hover{border-color:var(--muted);color:var(--ink)}
+.btn.pri{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:500}
+.btn.pri:hover{opacity:.9;color:#fff}
+.btn.sm{padding:4px 9px;font-size:12px}
+
+.filt{display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:12px 16px;background:var(--panel);
+  border:1px solid var(--line);border-radius:var(--radius);margin-bottom:12px}
+.filt label{font-size:12px;color:var(--muted)}
+.filt select,.filt input{border:1px solid var(--line);background:var(--panel);padding:5px 9px;
+  border-radius:var(--radius);min-width:130px}
+.chk{display:flex;gap:10px;align-items:center;font-size:12.5px;color:var(--ink-2)}
+.chk label{display:flex;align-items:center;gap:4px;cursor:pointer;color:var(--ink-2)}
+
+.tw{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:12.5px}
+th,td{padding:8px 12px;text-align:left;border-bottom:1px solid var(--line-2);vertical-align:middle;white-space:nowrap}
+th{background:var(--head);font-weight:500;color:var(--ink-2);font-size:11.5px;border-bottom:1px solid var(--line);
+  position:sticky;top:52px}
+tbody tr{cursor:pointer}
+tbody tr:hover{background:var(--head)}
+td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
+td.c,th.c{text-align:center}
+td.strong{font-weight:500;color:var(--ink)}
+.kebab{color:var(--muted);padding:2px 6px;border-radius:var(--radius);cursor:pointer}
+.kebab:hover{background:var(--line-2);color:var(--ink)}
+
+.bd{display:inline-block;font-size:11px;padding:2px 7px;border-radius:9px;font-weight:500;white-space:nowrap}
+.bd.ok{background:var(--ok-bg);color:var(--ok)} .bd.wa{background:var(--warn-bg);color:var(--warn)}
+.bd.da{background:var(--danger-bg);color:var(--danger)} .bd.mu{background:var(--line-2);color:var(--muted)}
+.bd.ac{background:var(--accent-bg);color:var(--accent)}
+
+.pg{display:flex;align-items:center;gap:6px;padding:10px 16px;justify-content:flex-end;color:var(--muted);font-size:12px}
+.pg b{color:var(--ink);font-weight:500}
+.pgb{border:1px solid var(--line);background:var(--panel);padding:3px 8px;border-radius:var(--radius);cursor:pointer}
+.pgb.on{background:var(--accent);border-color:var(--accent);color:#fff}
+
+.tabs{display:flex;gap:2px;border-bottom:1px solid var(--line);margin-bottom:14px;overflow-x:auto}
+.tabs button{border:0;background:none;padding:9px 16px;cursor:pointer;color:var(--muted);font-size:13px;
+  border-bottom:2px solid transparent;margin-bottom:-1px;white-space:nowrap}
+.tabs button:hover{color:var(--ink-2)}
+.tabs button.on{color:var(--accent);border-bottom-color:var(--accent);font-weight:700}
+
+.dl{display:grid;grid-template-columns:130px 1fr;gap:0;font-size:12.5px}
+.dl dt{padding:7px 0;color:var(--muted);border-bottom:1px solid var(--line-2)}
+.dl dd{padding:7px 0;margin:0;border-bottom:1px solid var(--line-2);color:var(--ink)}
+.dl dd .lock{color:var(--muted);font-size:11px;margin-left:5px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:980px){.two{grid-template-columns:1fr}}
+
+.tag{display:inline-block;background:var(--line-2);color:var(--ink-2);padding:3px 9px;border-radius:12px;
+  font-size:12px;margin:0 5px 5px 0}
+.units{display:grid;grid-template-columns:repeat(auto-fill,minmax(216px,1fr));gap:10px}
+.unit{border:1px solid var(--line);border-radius:var(--radius);padding:11px 13px;cursor:pointer;background:var(--panel)}
+.unit:hover{border-color:var(--accent)}
+.unit .uh{display:flex;justify-content:space-between;align-items:center;gap:6px;margin-bottom:5px}
+.unit .un{font-weight:700;font-size:13.5px}
+.unit .um{font-size:12px;color:var(--muted);line-height:1.7}
+.unit .ut{color:var(--ink-2)}
+
+.empty{padding:40px 16px;text-align:center;color:var(--muted);font-size:12.5px}
+.note{background:var(--accent-bg);border:1px solid var(--accent);border-left-width:3px;border-radius:var(--radius);
+  padding:10px 14px;font-size:12.5px;color:var(--ink-2);margin-bottom:14px}
+.note b{color:var(--accent)}
+
+@media(max-width:860px){
+  .app{grid-template-columns:1fr}
+  .side{position:static;height:auto;padding-bottom:12px}
+  .nav{display:flex;flex-wrap:wrap;gap:2px;padding:0 10px}
+  .nav a{border-left:0;border-radius:var(--radius);padding:6px 10px}
+  .navg{padding:8px 12px 2px;width:100%}
+  .wrap{padding:16px}
+  th{position:static}
+}
+</style>
+
+<div class="app">
+  <aside class="side">
+    <div class="brand"><div class="bn">BRIKKA</div><div class="bs">상업용 임대관리</div></div>
+    <div class="op" id="opBox" onclick="cycleOp()">
+      <div class="ol">운영사</div>
+      <div class="ov"><span id="opName">테온하우스</span><span style="font-size:10px">⇅</span></div>
+    </div>
+    <nav class="nav" id="nav"></nav>
+  </aside>
+  <div class="main">
+    <header class="top">
+      <div class="crumb" id="crumb"></div>
+      <div class="sp"></div>
+      <span class="mock">목업 · 데이터는 예시</span>
+      <span class="me"><b>김영준</b> 슈퍼관리자</span>
+    </header>
+    <div class="wrap" id="view"></div>
+  </div>
+</div>
+
+<script>
+/* ═══════ 메뉴 ═══════ */
+const MENU=[
+ {g:'',items:[{id:'dash-1',n:'대시보드',sid:'DASH-1'}]},
+ {g:'자산',items:[{id:'pro-1',n:'건물 관리',sid:'PRO-1'}]},
+ {g:'계약',items:[{id:'ctr-1',n:'계약 관리',sid:'CTR-1'}]},
+ {g:'청구 · 수납',items:[
+   {id:'pay-10',n:'관리비 정산',sid:'PAY-10'},
+   {id:'pay-1',n:'청구 스케줄',sid:'PAY-1'},
+   {id:'pay-2',n:'청구 · 수납 현황',sid:'PAY-2'},
+   {id:'pay-6',n:'수납 기록',sid:'PAY-6'},
+   {id:'pay-8',n:'수납 내역',sid:'PAY-8'},
+   {id:'pay-4',n:'청구 항목 관리',sid:'PAY-4'},
+   {id:'pay-11',n:'월 마감',sid:'PAY-11'}]},
+ {g:'거래 상대',items:[
+   {id:'user-6',n:'임차인',sid:'USER-6'},
+   {id:'user-8',n:'임대인',sid:'USER-8'}]},
+ {g:'문서 · 보고',items:[
+   {id:'doc-1',n:'문서 보관함',sid:'DOC-1'},
+   {id:'rep-1',n:'임대인 보고서',sid:'REP-1'},
+   {id:'rec-1',n:'변경 이력',sid:'REC-1'},
+   {id:'ntf-6',n:'발송 내역',sid:'NTF-6'}]},
+ {g:'설정',items:[
+   {id:'user-2',n:'사용자 관리',sid:'USER-2'},
+   {id:'sys-1',n:'운영사 관리',sid:'SYS-1'},
+   {id:'user-1',n:'프로필',sid:'USER-1'}]},
+];
+
+/* ═══════ 예시 데이터 ═══════ */
+const OPS=[{n:'테온하우스',t:false},{n:'제일에스테이트 (검증용)',t:true},{n:'그린빌딩관리 (검증용)',t:true}];
+let opIdx=0;
+
+const BUILDINGS=[
+ {id:'b1',name:'동교동 영준빌딩',addr:'서울 마포구 동교동 156-12',owner:'(주)영준개발',mgr:'김영준',
+  kind:'오피스빌딩',area:4820.5,vac:10.0, gross:6240.8, up:8, down:2, park:24, hvac:'EHP(시스템에어컨)',
+  acct:'국민은행 812-01-0455-118', ownerName:'(주)영준개발',
+  mgmtStart:'2025-03-01',mgmtEnd:'2027-02-28',fee:'임대료의 5%',mode:'임대인 직수취',
+  bondBank:'국민은행 서교동지점',bondMax:'1,800,000,000',bondNow:'1,240,000,000',
+  fac:['회의실','옥상정원','샤워실','무인택배함'],
+  units:[
+   {no:'201호',st:'사용중',use:'사무실',ten:'(주)한빛',fl:2,area:198.4,net:121.6},
+   {no:'202호',st:'사용중',use:'사무실',ten:'(주)비씨에이',fl:2,area:165.2,net:101.3},
+   {no:'301호',st:'사용중',use:'사무실',ten:'디자인스튜디오 온',fl:3,area:264.0,net:161.8},
+   {no:'401호',st:'공실',use:'사무실',ten:'',fl:4,area:198.4,net:121.6},
+   {no:'402호',st:'공실',use:'사무실',ten:'(주)메디플랜',fl:4,area:165.2,net:101.3},
+   {no:'501호',st:'사용중',use:'사무실',ten:'법무법인 정도',fl:5,area:363.6,net:222.9},
+   {no:'601호',st:'사용중',use:'사무실',ten:'(주)엔코어테크',fl:6,area:363.6,net:222.9},
+   {no:'701호',st:'사용중',use:'사무실',ten:'(주)한빛',fl:7,area:363.6,net:222.9},
+   {no:'801호',st:'사용중',use:'사무실',ten:'코어스페이스',fl:8,area:363.6,net:222.9},
+   {no:'B101',st:'비운영중',use:'기타',ten:'',fl:-1,area:88.2,net:88.2},
+  ],
+  park_list:[
+   {n:'B1-01',t:'일반',memo:'',as:'(주)한빛 · 201호'},{n:'B1-02',t:'일반',memo:'',as:'(주)한빛 · 201호'},
+   {n:'B1-03',t:'일반',memo:'',as:'(주)비씨에이 · 202호'},{n:'B1-04',t:'소형',memo:'경차 전용',as:''},
+   {n:'B1-05',t:'장애인',memo:'',as:''},{n:'B2-01',t:'일반',memo:'',as:'법무법인 정도 · 501호'},
+  ],
+  docs:[
+   {t:'관리위임계약서_영준빌딩_2025.pdf',c:'관리위임계약서',by:'김영준',at:'2025-02-24 14:20'},
+   {t:'등기부등본_20260901.pdf',c:'등기부등본',by:'김영준',at:'2026-09-01 09:12'},
+   {t:'건축물대장.pdf',c:'건축물대장',by:'김영준',at:'2025-03-02 11:40'},
+   {t:'2026년 화재보험증권.pdf',c:'기타',by:'박수민',at:'2026-01-08 16:05'},
+  ],
+  charge:[
+   {it:'전기요금',use:'사용',grp:'관리비-세금계산서분',mtr:'청구함',rest:'자동',basis:'검침 사용량 비율'},
+   {it:'상하수도요금',use:'사용',grp:'관리비-계산서분',mtr:'청구함',rest:'전체 유닛',basis:'임대면적 비율'},
+   {it:'가스·난방요금',use:'미사용',grp:'—',mtr:'—',rest:'—',basis:'—'},
+   {it:'주차요금',use:'사용',grp:'기타-일반내역서',mtr:'—',rest:'—',basis:'—'},
+   {it:'교통유발부담금',use:'사용',grp:'관리비-계산서분',mtr:'—',rest:'전체 유닛',basis:'임대면적 비율'},
+   {it:'정화조청소비',use:'사용',grp:'관리비-계산서분',mtr:'—',rest:'전체 유닛',basis:'임대면적 비율'},
+  ],
+  billDay:'매월 19일',dueDay:'매월 말일'},
+
+ {id:'b2',name:'역삼 제이타워',addr:'서울 강남구 역삼동 737-19',owner:'정미경',mgr:'박수민',
+  kind:'오피스빌딩',area:7240.0,vac:4.5,gross:9820.4,up:12,down:3,park:48,hvac:'중앙공조',
+  acct:'신한은행 140-012-772301',ownerName:'정미경',
+  mgmtStart:'2024-11-01',mgmtEnd:'2026-10-31',fee:'월 2,400,000원',mode:'임대인 직수취',
+  bondBank:'신한은행 역삼지점',bondMax:'4,200,000,000',bondNow:'3,100,000,000',
+  fac:['회의실','카페테리아','피트니스'],units:[],park_list:[],docs:[],charge:[],billDay:'매월 25일',dueDay:'매월 10일'},
+
+ {id:'b3',name:'성수 더블유센터',addr:'서울 성동구 성수동2가 302-11',owner:'(주)성수개발',mgr:'김영준',
+  kind:'지식산업센터',area:11450.2,vac:12.5,gross:15200.0,up:15,down:4,park:120,hvac:'개별냉난방',
+  acct:'하나은행 220-910033-40105',ownerName:'(주)성수개발',
+  mgmtStart:'2025-07-01',mgmtEnd:'2027-06-30',fee:'임대료의 4.5%',mode:'임대인 직수취',
+  bondBank:'하나은행 성수지점',bondMax:'8,000,000,000',bondNow:'5,600,000,000',
+  fac:['회의실','옥상정원'],units:[],park_list:[],docs:[],charge:[],billDay:'매월 19일',dueDay:'매월 말일'},
+
+ {id:'b4',name:'문래 창업허브',addr:'서울 영등포구 문래동3가 55-7',owner:'(주)영준개발',mgr:'박수민',
+  kind:'복합상가',area:3120.8,vac:0.0,gross:4010.2,up:6,down:1,park:16,hvac:'개별냉난방',
+  acct:'국민은행 812-01-0455-118',ownerName:'(주)영준개발',
+  mgmtStart:'2026-01-01',mgmtEnd:'2027-12-31',fee:'임대료의 5%',mode:'임대인 직수취',
+  bondBank:'—',bondMax:'—',bondNow:'—',
+  fac:['무인택배함'],units:[],park_list:[],docs:[],charge:[],billDay:'매월 19일',dueDay:'매월 말일'},
+
+ {id:'b5',name:'상암 미디어플렉스',addr:'서울 마포구 상암동 1602',owner:'한도영',mgr:'김영준',
+  kind:'오피스빌딩',area:5980.0,vac:7.7,gross:7740.5,up:10,down:2,park:35,hvac:'중앙공조',
+  acct:'우리은행 1005-403-882014',ownerName:'한도영',
+  mgmtStart:'2025-05-01',mgmtEnd:'2026-11-30',fee:'월 1,800,000원',mode:'임대인 직수취',
+  bondBank:'우리은행 상암지점',bondMax:'3,000,000,000',bondNow:'2,450,000,000',
+  fac:['회의실','샤워실'],units:[],park_list:[],docs:[],charge:[],billDay:'매월 19일',dueDay:'매월 말일'},
+];
+
+/* ═══════ 유틸 ═══════ */
+const $=s=>document.querySelector(s);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const num=n=>n.toLocaleString('ko-KR');
+const m2=n=>num(n)+' ㎡';
+const pct=n=>n.toFixed(1)+'%';
+const dday=(end)=>{const d=Math.ceil((new Date(end)-new Date('2026-09-23'))/864e5);return d;};
+function stBadge(s){const m={'사용중':'ok','공실':'mu','비운영중':'wa'};return `<span class="bd ${m[s]||'mu'}">${s}</span>`;}
+function go(h){location.hash='#/'+h;}
+function cycleOp(){opIdx=(opIdx+1)%OPS.length;paintOp();render();}
+function paintOp(){
+  const o=OPS[opIdx];$('#opName').textContent=o.n;$('#opBox').className='op'+(o.t?' test':'');
+}
+
+/* ═══════ 네비 ═══════ */
+function paintNav(){
+  $('#nav').innerHTML=MENU.map(g=>
+    (g.g?`<div class="navg">${g.g}</div>`:'')+
+    g.items.map(i=>`<a onclick="go('${i.id}')" data-id="${i.id}">${i.n}<span class="id">${i.sid}</span></a>`).join('')
+  ).join('');
+}
+function markNav(id){
+  document.querySelectorAll('.nav a').forEach(a=>a.classList.toggle('on',a.dataset.id===id.split('/')[0]));
+}
+
+/* ═══════ 화면: PRO-1 건물 목록 ═══════ */
+function PRO1(){
+  const rows=BUILDINGS.map(b=>`
+    <tr onclick="go('pro-3/${b.id}')">
+      <td class="strong">${b.name}</td>
+      <td>${b.addr}</td>
+      <td>${b.owner}</td>
+      <td>${b.mgr}</td>
+      <td>${b.kind}</td>
+      <td class="n">${m2(b.area)}</td>
+      <td class="n">${b.vac===0?'<span class="bd ok">0.0%</span>':pct(b.vac)}</td>
+      <td class="c" onclick="event.stopPropagation()"><span class="kebab">⋯</span></td>
+    </tr>`).join('');
+  return `
+  <div class="ph">
+    <h1>건물 정보 조회</h1><span class="sid">PRO-1</span>
+    <div class="act"><button class="btn pri">새로운 건물 등록</button></div>
+    <div class="desc">등록된 모든 건물을 목록으로 조회한다. 행을 클릭하면 상세로 이동한다.</div>
+  </div>
+  <div class="filt">
+    <label>건물고유이름</label>
+    <select><option>전체</option>${BUILDINGS.map(b=>`<option>${b.name}</option>`).join('')}</select>
+    <button class="btn sm">조회</button>
+  </div>
+  <div class="card">
+    <div class="tw"><table>
+      <thead><tr>
+        <th>건물고유이름</th><th>건물주소</th><th>건물주이름</th><th>건물관리자</th>
+        <th>건물구분</th><th class="n">임대가능면적</th><th class="n">공실률</th><th class="c" style="width:44px"></th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table></div>
+    <div class="pg"><span>전체 <b>5</b>건</span>
+      <button class="pgb on">1</button></div>
+  </div>
+  <div class="note">
+    <b>확인 필요</b> — 공실률은 유닛 수 기준이다(공실 유닛 ÷ (전체 − 비운영중)). 면적 기준이 아니다.
+    목록에 <b>관리위임계약 남은 일수</b>를 넣을지 검토가 필요하다. 만료 90일 전부터 대시보드에 뜨지만,
+    건물 목록에서 한눈에 보이는 편이 나을 수 있다.
+  </div>`;
+}
+
+/* ═══════ 화면: PRO-3 건물 상세 ═══════ */
+let tab3='요약';
+function PRO3(id){
+  const b=BUILDINGS.find(x=>x.id===id)||BUILDINGS[0];
+  const tabs=['요약','유닛','자료보관','청구설정'];
+  const body={요약:t요약,유닛:t유닛,자료보관:t자료,청구설정:t청구}[tab3](b);
+  return `
+  <div class="ph">
+    <h1>${b.name}</h1><span class="sid">PRO-3</span>
+    <span class="bd ac" style="margin-top:4px">${b.kind}</span>
+    <div class="act"><button class="btn" onclick="go('pro-1')">목록</button><button class="btn pri">수정</button></div>
+  </div>
+  <div class="tabs">${tabs.map(t=>`<button class="${t===tab3?'on':''}" onclick="setTab('${t}')">${t}</button>`).join('')}
+    <button style="color:var(--muted)" disabled>요청 <span style="font-size:10px">2차</span></button>
+    <button style="color:var(--muted)" disabled>메시지 이력 <span style="font-size:10px">2차</span></button>
+  </div>
+  ${body}`;
+}
+function setTab(t){tab3=t;render();}
+
+function t요약(b){
+  const d=dday(b.mgmtEnd);
+  const dtxt=d<0?`<span class="bd da">만료됨</span>`:(d<=90?`<span class="bd wa">${num(d)}일</span>`:`${num(d)}일`);
+  return `
+  <div class="two">
+    <div class="card"><div class="ct">기본 정보</div><div class="cb">
+      <dl class="dl">
+        <dt>건물주소</dt><dd>${b.addr}</dd>
+        <dt>건물주</dt><dd>${b.ownerName}</dd>
+        <dt>건물관리자</dt><dd>${b.mgr}</dd>
+        <dt>건물운영계좌</dt><dd>${b.acct}</dd>
+      </dl></div></div>
+    <div class="card"><div class="ct">건물 제원</div><div class="cb">
+      <dl class="dl">
+        <dt>연면적</dt><dd>${m2(b.gross)}</dd>
+        <dt>임대가능면적</dt><dd>${m2(b.area)}</dd>
+        <dt>층수</dt><dd>지상 ${b.up}층 / 지하 ${b.down}층</dd>
+        <dt>총 주차면수</dt><dd>${b.park}면</dd>
+        <dt>냉난방 방식</dt><dd>${b.hvac}</dd>
+      </dl></div></div>
+  </div>
+  <div class="two">
+    <div class="card"><div class="ct">관리위임계약<span class="ca"><button class="btn sm">수정</button></span></div><div class="cb">
+      <dl class="dl">
+        <dt>계약 기간</dt><dd>${b.mgmtStart} ~ ${b.mgmtEnd}</dd>
+        <dt>남은 일수</dt><dd>${dtxt}</dd>
+        <dt>관리 수수료</dt><dd>${b.fee}</dd>
+        <dt>운영방식</dt><dd>${b.mode} <span class="lock">🔒 위탁사 수취는 2차</span></dd>
+      </dl></div></div>
+    <div class="card"><div class="ct">채권 정보</div><div class="cb">
+      <dl class="dl">
+        <dt>은행 · 지점</dt><dd>${b.bondBank}</dd>
+        <dt>채권최고금액</dt><dd>${b.bondMax==='—'?'—':b.bondMax+'원'}</dd>
+        <dt>실제채권금액</dt><dd>${b.bondNow==='—'?'—':b.bondNow+'원'}</dd>
+      </dl>
+      <div style="color:var(--muted);font-size:11.5px;margin-top:8px">등기부등본 기준. 등기 변동 시 담당자가 직접 갱신한다.</div>
+    </div></div>
+  </div>
+  <div class="two">
+    <div class="card"><div class="ct">공용시설<span class="ca"><button class="btn sm">추가</button></span></div><div class="cb">
+      ${b.fac.map(f=>`<span class="tag">${f} ×</span>`).join('')||'<span style="color:var(--muted)">등록된 공용시설이 없습니다.</span>'}
+    </div></div>
+    <div class="card"><div class="ct">주차장 <span class="sub">${b.park_list.length?`${b.park_list.filter(p=>p.as).length} / ${b.park}면 배정`:`총 ${b.park}면`}</span>
+      <span class="ca"><button class="btn sm">추가</button></span></div>
+      ${b.park_list.length?`<div class="tw"><table>
+        <thead><tr><th>주차면</th><th>유형</th><th>메모</th><th>배정 현황</th></tr></thead>
+        <tbody>${b.park_list.map(p=>`<tr><td class="strong">${p.n}</td><td>${p.t}</td><td>${p.memo||'—'}</td>
+          <td>${p.as?p.as:'<span class="bd mu">미배정</span>'}</td></tr>`).join('')}</tbody>
+      </table></div>`:'<div class="empty">등록된 주차면이 없습니다.</div>'}
+    </div>
+  </div>`;
+}
+
+function t유닛(b){
+  if(!b.units.length) return '<div class="card"><div class="empty">등록된 유닛이 없습니다.</div></div>';
+  return `
+  <div class="card">
+    <div class="ct">유닛 <span class="sub">${b.units.length}개 · 사용중 ${b.units.filter(u=>u.st==='사용중').length} · 공실 ${b.units.filter(u=>u.st==='공실').length} · 비운영중 ${b.units.filter(u=>u.st==='비운영중').length}</span>
+      <span class="ca"><button class="btn pri sm">유닛 등록</button></span></div>
+    <div class="cb"><div class="units">
+      ${b.units.map(u=>`<div class="unit" onclick="alert('PRO-4 유닛 상세 — 같은 탭 안에서 전환됩니다. 아직 미구현.')">
+        <div class="uh"><span class="un">${u.no}</span>${stBadge(u.st)}</div>
+        <div class="um">
+          <div class="ut">${u.use} · ${u.fl>0?u.fl+'층':'지하 '+Math.abs(u.fl)+'층'}</div>
+          <div>${m2(u.area)} <span style="color:var(--muted)">(전용 ${num(u.net)})</span></div>
+          <div>${u.ten?`<b style="color:var(--ink)">${u.ten}</b>`:'<span style="color:var(--muted)">임차인 없음</span>'}</div>
+        </div></div>`).join('')}
+    </div></div>
+  </div>
+  <div class="note">
+    <b>확인 필요</b> — 402호는 <b>공실 + 임차인명 있음</b> 상태다. 계약 준비중(보증금 일부만 입금)이라는 뜻인데,
+    카드만 보면 왜 임차인이 있는데 공실인지 알기 어렵다. 별도 표시가 필요한지 판단이 필요하다.
+  </div>`;
+}
+
+function t자료(b){
+  if(!b.docs.length) return '<div class="card"><div class="empty">등록된 자료가 없습니다.</div></div>';
+  return `<div class="card">
+    <div class="ct">자료보관 <span class="sub">${b.docs.length}건</span>
+      <span class="ca"><button class="btn pri sm">파일 업로드</button></span></div>
+    <div class="tw"><table>
+      <thead><tr><th>제목</th><th>카테고리</th><th>업로드한 사람</th><th>등록일시</th><th class="c" style="width:44px"></th></tr></thead>
+      <tbody>${b.docs.map(d=>`<tr><td class="strong">${d.t}</td><td><span class="bd mu">${d.c}</span></td>
+        <td>${d.by}</td><td>${d.at}</td><td class="c"><span class="kebab">⋯</span></td></tr>`).join('')}</tbody>
+    </table></div></div>`;
+}
+
+function t청구(b){
+  if(!b.charge.length) return '<div class="card"><div class="empty">청구 항목 설정이 없습니다.</div></div>';
+  return `
+  <div class="card">
+    <div class="ct">청구 항목 설정 <span class="sub">건물마다 공과금 부과 방식이 다르므로 건물 단위로 설정한다</span>
+      <span class="ca"><button class="btn pri sm">항목 추가</button></span></div>
+    <div class="tw"><table>
+      <thead><tr><th>청구항목</th><th>사용여부</th><th>묶음</th><th>검침분 청구여부</th><th>잔여분 부담대상</th><th>잔여분 배분기준</th><th class="c" style="width:44px"></th></tr></thead>
+      <tbody>${b.charge.map(c=>`<tr>
+        <td class="strong">${c.it}</td>
+        <td>${c.use==='사용'?'<span class="bd ok">사용</span>':'<span class="bd mu">미사용</span>'}</td>
+        <td>${c.grp}</td><td>${c.mtr}</td><td>${c.rest}</td><td>${c.basis}</td>
+        <td class="c"><span class="kebab">⋯</span></td></tr>`).join('')}</tbody>
+    </table></div>
+  </div>
+  <div class="card">
+    <div class="ct">청구 주기 기본값 <span class="ca"><button class="btn sm">수정</button></span></div>
+    <div class="cb"><dl class="dl" style="max-width:420px">
+      <dt>청구일</dt><dd>${b.billDay}</dd>
+      <dt>납부마감일</dt><dd>${b.dueDay}</dd>
+    </dl>
+    <div style="color:var(--muted);font-size:11.5px;margin-top:8px">
+      계약 등록 시 상속된다. 기본값을 바꿔도 <b style="color:var(--ink-2)">기존 계약은 유지</b>되고 이후 등록되는 계약부터 적용된다.
+    </div></div>
+  </div>`;
+}
+
+/* ═══════ 미구현 ═══════ */
+function TODO(id){
+  const m=MENU.flatMap(g=>g.items).find(i=>i.id===id);
+  return `<div class="ph"><h1>${m?m.n:id}</h1>${m?`<span class="sid">${m.sid}</span>`:''}</div>
+  <div class="card"><div class="empty">
+    아직 만들지 않은 화면입니다.<br><br>
+    <span style="font-size:12px">현재 <b>PRO-1 건물 목록</b>과 <b>PRO-3 건물 상세</b>만 구현되어 있습니다.</span>
+  </div></div>`;
+}
+
+/* ═══════ 라우터 ═══════ */
+function render(){
+  const h=(location.hash||'#/pro-1').replace(/^#\//,'');
+  const [id,arg]=h.split('/');
+  markNav(h);
+  let html,crumb;
+  if(id==='pro-1'){html=PRO1();crumb='자산 · <b>건물 관리</b>';}
+  else if(id==='pro-3'){const b=BUILDINGS.find(x=>x.id===arg)||BUILDINGS[0];
+    html=PRO3(arg);crumb=`자산 · <a onclick="go('pro-1')" style="cursor:pointer">건물 관리</a> · <b>${b.name}</b>`;}
+  else {html=TODO(id);const g=MENU.find(g=>g.items.some(i=>i.id===id));
+    const m=g&&g.items.find(i=>i.id===id);crumb=(g&&g.g?g.g+' · ':'')+`<b>${m?m.n:'—'}</b>`;}
+  $('#crumb').innerHTML=crumb;
+  $('#view').innerHTML=html;
+  window.scrollTo(0,0);
+}
+window.addEventListener('hashchange',render);
+paintNav();paintOp();render();
+</script>
