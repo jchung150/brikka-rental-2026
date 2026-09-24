@@ -118,6 +118,7 @@ svg{flex:none}
 tr.dim td{color:var(--muted)}
 tr.sumr td{background:var(--head);font-weight:700;border-top:1px solid var(--line)}
 tr.vacr td{background:var(--warn-bg)}
+tr.exr td{background:var(--line-2);color:var(--muted)}
 .vfy{display:flex;align-items:center;gap:12px;padding:13px 16px;border-radius:var(--r);
   border:1px solid var(--line);margin-top:14px;font-size:12.5px;flex-wrap:wrap}
 .vfy.ok{background:var(--ok-bg);border-color:var(--ok)}
@@ -419,12 +420,13 @@ const BUILDINGS=[
   addr:'서울특별시 마포구 양화로 156',addr2:'서울 마포구 동교동 156-12',
   owner:'(주)영준개발',ownerBiz:'105-81-42117',mgr:'김영준',mgrTel:'010-3341-2205',
   area:4820.5,gross:6240.8,up:8,down:2,park:24,hvac:'EHP(시스템에어컨)',
-  unitCnt:10,vacCnt:2,opCnt:1,vac:22.2,
+  unitCnt:11,vacCnt:2,opCnt:1,vac:20.0,
   acct:'국민은행 812-01-0455-118',acctName:'(주)영준개발',
   mgmtStart:'2025-03-01',mgmtEnd:'2027-02-28',fee:'임대료의 5%',mode:'임대인 직수취',
   bondBank:'국민은행 서교동지점',bondTel:'02-334-8820',bondMax:1800000000,bondNow:1240000000,
   fac:['회의실','옥상정원','샤워실','무인택배함'],
   units:[
+   {no:'101호',st:'사용중',use:'근린생활',ten:'커피 로스터리 담',fl:1,area:142.8,net:96.4},
    {no:'201호',st:'사용중',use:'사무실',ten:'(주)한빛',fl:2,area:198.4,net:121.6},
    {no:'202호',st:'사용중',use:'사무실',ten:'(주)비씨에이',fl:2,area:165.2,net:101.3},
    {no:'301호',st:'사용중',use:'사무실',ten:'디자인스튜디오 온',fl:3,area:264.0,net:161.8},
@@ -488,6 +490,7 @@ const BUILDINGS=[
 
 /* ═══ PAY-10 정산 데이터 ═══ */
 const UNITS_B1=[
+ {no:'101호',st:'사용중',ten:'커피 로스터리 담',ar:142.8},
  {no:'201호',st:'사용중',ten:'(주)한빛',ar:198.4},
  {no:'202호',st:'사용중',ten:'(주)비씨에이',ar:165.2},
  {no:'301호',st:'사용중',ten:'디자인스튜디오 온',ar:264.0},
@@ -514,7 +517,7 @@ const M=c=>MASTER.find(x=>x.code===c);
 /* 이번 회차 입력값 — 기본은 전기·수도 2종 */
 const BILL={
  elec:{on:true,date:'2026-09-08',use:12400,supply:1920000,vat:192000,
-   read:{'201호':[45230,46180],'202호':[32100,32890],'301호':[28450,29720],'401호':[11200,11215],
+   read:{'101호':[22840,24110],'201호':[45230,46180],'202호':[32100,32890],'301호':[28450,29720],'401호':[11200,11215],
          '402호':[9840,9860],'501호':[51300,53140],'601호':[47890,49560],'701호':[38220,39850],
          '801호':[42670,44390],'B101':[5120,5340]},
    readDate:'2026-09-05',
@@ -535,12 +538,13 @@ const setPItem=i=>{pItem=i;render()};
 /* 건물별 항목 설정 — 정본은 PRO-3 청구설정탭 */
 const BSET={
  elec:{meterCharge:'청구함',target:'전체 유닛',basis:'검침 사용량',ref:'elec'},
- water:{meterCharge:'—',target:'전체 유닛',basis:'임대면적',ref:null},
+ water:{meterCharge:'—',target:'전체 유닛',basis:'임대면적',ref:null,
+   excl:{'101호':{why:'상수도사업본부 직접 계약 (별도 수용가)',from:'2026-03-01'}}},
  fund:{meterCharge:'—',target:'전체 유닛',basis:'검침 사용량',ref:'elec'},
  tv:{meterCharge:'—',target:'전체 유닛',basis:'검침 사용량',ref:'elec'},
  gas:null, traffic:null, septic:null, parking:null,
 };
-const DEFSET={meterCharge:'—',target:'전체 유닛',basis:'임대면적',ref:null};
+const DEFSET={meterCharge:'—',target:'전체 유닛',basis:'임대면적',ref:null,excl:{}};
 let DRAWER=null, dPick=[];
 function openDrawer(k){DRAWER=k;dPick=[];render();}
 function closeDrawer(){DRAWER=null;render();}
@@ -577,16 +581,18 @@ function ratios(m){
     const mul=(b.adj[u.no]&&b.adj[u.no].mul)||1;
     return {...u,pm:r?r[0]:null,cm:r?r[1]:null,use,mul,adj:use*mul};
   });
-  const sumAdj=rows.reduce((a,r)=>a+r.adj,0);
+  const sumAdj=rows.reduce((a,r)=>a+((st.excl&&st.excl[r.no])?0:r.adj),0);
   const totUse=b.use||0;
   const rest=m.meter? totUse-sumAdj : totUse;
   const byUse=(st.basis||'').includes('사용량');
-  const wSum=rows.reduce((a,r)=>a+(byUse?r.adj:r.ar*r.mul),0);
+  const ex=st.excl||{};
+  rows.forEach(r=>{r.excl=ex[r.no]||null;});
+  const wSum=rows.reduce((a,r)=>a+(r.excl?0:(byUse?r.adj:r.ar*r.mul)),0);
   rows.forEach(r=>{
-    const w=byUse?r.adj:r.ar*r.mul;
+    const w=r.excl?0:(byUse?r.adj:r.ar*r.mul);
     r.w=w; r.rest=wSum?rest*w/wSum:0;
-    r.tot=(m.meter?r.adj:0)+r.rest;
-    r.ratio=totUse?r.tot/totUse:(wSum?w/wSum:0);
+    r.tot=r.excl?0:((m.meter?r.adj:0)+r.rest);
+    r.ratio=r.excl?0:(totUse?r.tot/totUse:(wSum?w/wSum:0));
   });
   return {rows,sumAdj,rest,wSum,totUse};
 }
@@ -594,8 +600,8 @@ function ratios(m){
 function calc(m){
   const base=ratios(m), amt=billTotal(m);
   const rows=base.rows.map(r=>({...r, amt:Math.floor(amt*r.ratio)}));
-  const bill=rows.filter(r=>r.st==='사용중').reduce((a,r)=>a+r.amt,0);
-  const vac =rows.filter(r=>r.st!=='사용중').reduce((a,r)=>a+r.amt,0);
+  const bill=rows.filter(r=>r.st==='사용중'&&!r.excl).reduce((a,r)=>a+r.amt,0);
+  const vac =rows.filter(r=>r.st!=='사용중'&&!r.excl).reduce((a,r)=>a+r.amt,0);
   return {...base,rows,bill,vac,total:amt,diff:amt-(bill+vac)};
 }
 
@@ -913,7 +919,9 @@ function billRow(m){
   const b=BILL[m.code];
   return `<tr>
     <td><div class="c1">${m.name}</div><div class="c2">${m.grp} · ${m.src}</div></td>
-    <td><span class="bd mu">${BSET[m.code]?BSET[m.code].basis:'임대면적'}</span></td>
+    <td><span class="bd mu">${BSET[m.code]?BSET[m.code].basis:'임대면적'}</span>${
+      (BSET[m.code]&&BSET[m.code].excl&&Object.keys(BSET[m.code].excl).length)
+      ? `<div class="c2">제외 ${Object.keys(BSET[m.code].excl).length}개 유닛</div>`:''}</td>
     <td><input class="inp d" type="date" value="${b.date}" onchange="setBill('${m.code}','date',this.value)"></td>
     <td class="n">${m.unit
       ? `<input class="inp" type="number" value="${b.use||0}" onchange="setBill('${m.code}','use',this.value)"> <span class="u">${m.unit}</span>`
@@ -999,6 +1007,8 @@ function stResult(m,R){
     <div class="card"><div class="ct">청구 구분</div><div class="cc"><dl class="dl">
       <dt>임차인 청구액</dt><dd><b>${won(R.bill)}</b> <span class="lock">${R.rows.filter(r=>r.st==='사용중').length}개 유닛</span></dd>
       <dt>공실 · 미청구분</dt><dd><b style="color:var(--warn)">${won(R.vac)}</b> <span class="lock">건축주 부담</span></dd>
+      ${R.rows.some(r=>r.excl)?`<dt>안분 제외</dt><dd>${R.rows.filter(r=>r.excl).map(r=>r.no).join(', ')}
+        <span class="lock">직접 계약. 모수에서 제외</span></dd>`:''}
       <dt>묶음 · 발행 문서</dt><dd>${m.grp} <span class="lock">${m.grp==='관리비-과세'?'세금계산서':m.grp==='관리비-면세'?'계산서':'내역서'}</span></dd>
     </dl></div></div>
     <div class="card"><div class="ct">계산 근거</div><div class="cc"><dl class="dl">
@@ -1023,6 +1033,12 @@ function stResult(m,R){
     → 검토사항 #1</div>`:''}`;
 }
 function row4(r,m,cls){
+  if(r.excl) return `<tr class="exr">
+    <td class="c1">${r.no}</td><td>${r.ten}</td>
+    ${m.meter?'<td class="n">—</td>':''}<td class="n">—</td>
+    ${m.unit?'<td class="n">—</td>':''}<td class="n">—</td>
+    <td class="n"><span class="bd mu">안분 제외</span>
+      <div class="c2" style="text-align:right">${r.excl.why}</div></td></tr>`;
   return `<tr class="${cls||''}">
     <td class="c1">${r.no}</td><td>${cls?stb(r.st)+(r.ten?' '+r.ten:''):r.ten}</td>
     ${m.meter?`<td class="n">${fx(r.adj)}</td>`:''}
