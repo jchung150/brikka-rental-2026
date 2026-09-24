@@ -625,6 +625,32 @@ function calc(m){
   return {...base,rows,bill,vac,total:amt,diff:amt-(bill+vac)};
 }
 
+function drawerHTML(){
+  if(DRAWER!=='additem') return '';
+  const rest=MASTER.filter(m=>!BILL[m.code].on);
+  const doc=g=>g==='관리비-과세'?'세금계산서':g==='관리비-면세'?'계산서':'내역서';
+  const card=m=>{
+    const on=dPick.includes(m.code);
+    return `<div class="pick ${on?'on':''}" onclick="dToggle('${m.code}')">
+      <div class="ck">${on?'✓':''}</div><div class="pn2">${m.name}</div></div>`;
+  };
+  return `<div class="dro"><div class="ov" onclick="closeDrawer()"></div><div class="pn">
+    <div class="dh"><div><div class="t">청구 항목 추가</div>
+      <div class="s">2026년 9월 · 동교동 영준빌딩</div></div>
+      <button class="x" onclick="closeDrawer()">✕</button></div>
+    <div class="db">
+      ${rest.length? rest.map(card).join('')
+        : '<div class="empty"><div class="t">추가할 항목이 없습니다</div>모든 항목이 이미 선택되어 있습니다.</div>'}
+      ${rest.length?`<div class="hint" style="margin-top:16px">
+        배분 설정은 <b>건물 청구설정(PRO-3)</b>에서 정합니다.</div>`:''}
+    </div>
+    <div class="df">
+      <button class="btn" onclick="closeDrawer()">취소</button>
+      <button class="btn pri" onclick="dApply()" ${dPick.length?'':'disabled style="opacity:.5"'}>
+        ${dPick.length?`${dPick.length}개 추가`:'추가'}</button></div>
+  </div></div>`;
+}
+
 /* ═══ 유틸 ═══ */
 const $=s=>document.querySelector(s);
 const num=n=>n.toLocaleString('ko-KR');
