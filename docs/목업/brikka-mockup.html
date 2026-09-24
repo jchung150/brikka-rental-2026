@@ -130,6 +130,34 @@ tr.vacr td{background:var(--warn-bg)}
 .fnd b{color:var(--pri)}
 .fnd .h{font-weight:700;color:var(--pri);display:block;margin-bottom:4px}
 
+/* 우측 슬라이드 패널 */
+.dro{position:fixed;inset:0;z-index:100}
+.dro .ov{position:absolute;inset:0;background:rgba(15,20,28,.35);animation:fadein .16s}
+.dro .pn{position:absolute;right:0;top:0;bottom:0;width:440px;max-width:100%;background:var(--bg);
+  border-left:1px solid var(--line);box-shadow:-10px 0 36px rgba(0,0,0,.16);
+  display:flex;flex-direction:column;animation:slidein .2s cubic-bezier(.32,.72,0,1)}
+@keyframes slidein{from{transform:translateX(100%)}to{transform:translateX(0)}}
+@keyframes fadein{from{opacity:0}to{opacity:1}}
+.dro .dh{padding:18px 20px 14px;border-bottom:1px solid var(--line);display:flex;align-items:flex-start;gap:12px}
+.dro .dh .t{font-size:15px;font-weight:700}
+.dro .dh .s{font-size:12px;color:var(--muted);margin-top:3px}
+.dro .dh .x{margin-left:auto;border:0;background:none;color:var(--muted);cursor:pointer;
+  font-size:19px;line-height:1;padding:2px 6px;border-radius:var(--r-sm)}
+.dro .dh .x:hover{background:var(--side-hov);color:var(--ink)}
+.dro .db{flex:1;overflow-y:auto;padding:14px 20px 20px}
+.dro .df{padding:14px 20px;border-top:1px solid var(--line);display:flex;gap:8px;justify-content:flex-end}
+.pick{display:flex;gap:11px;padding:12px 13px;border:1px solid var(--line);border-radius:var(--r);
+  margin-bottom:8px;cursor:pointer}
+.pick:hover{border-color:var(--muted)}
+.pick.on{border-color:var(--pri);background:var(--pri-bg)}
+.pick .ck{width:17px;height:17px;border:1.5px solid var(--line);border-radius:4px;flex:none;margin-top:1px;
+  display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px}
+.pick.on .ck{background:var(--pri);border-color:var(--pri)}
+.pick .pb{flex:1;min-width:0}
+.pick .pn2{font-weight:500;font-size:13px;margin-bottom:3px}
+.pick .pm2{font-size:11.5px;color:var(--muted);line-height:1.6}
+.pick .pm2 b{color:var(--ink-2);font-weight:500}
+
 /* 고지서 입력 표 */
 table.bt2 td{padding:9px 12px}
 .inp.lg{width:120px;font-weight:500}
@@ -137,8 +165,6 @@ table.bt2 td{padding:9px 12px}
 .inp .u,.n .u{color:var(--muted);font-size:11.5px}
 .kx{color:var(--faint);cursor:pointer;font-size:15px;padding:2px 6px;border-radius:4px;display:inline-block;line-height:1}
 .kx:hover{background:var(--danger-bg);color:var(--danger)}
-.addsel{border:1px solid var(--line);background:var(--bg);padding:5px 10px;border-radius:var(--r-sm);
-  font-size:12px;cursor:pointer;font-family:inherit}
 
 /* 접힘 상태 */
 .app.fold .side{width:62px}
@@ -479,8 +505,8 @@ const UNITS_B1=[
 const MASTER=[
  {code:'elec', name:'전기요금',      grp:'관리비-과세', unit:'kWh', cycle:'매월',   meter:true,  tax:true,  basis:'검침 사용량', src:'한국전력'},
  {code:'water',name:'수도요금',      grp:'관리비-면세', unit:'톤',  cycle:'격월',   meter:false, tax:false, basis:'임대면적',   src:'상수도사업본부'},
- {code:'fund', name:'전력기금',      grp:'기타-일반내역서', unit:null, cycle:'매월', meter:false, tax:false, basis:'전기요금과 동일', follow:'elec', src:'한국전력'},
- {code:'tv',   name:'TV수신료',      grp:'기타-일반내역서', unit:null, cycle:'매월', meter:false, tax:false, basis:'전기요금과 동일', follow:'elec', src:'한국전력'},
+ {code:'fund', name:'전력기금',      grp:'기타-일반내역서', unit:null, cycle:'매월', meter:false, tax:false, basis:'검침 사용량', follow:'elec', src:'한국전력'},
+ {code:'tv',   name:'TV수신료',      grp:'기타-일반내역서', unit:null, cycle:'매월', meter:false, tax:false, basis:'검침 사용량', follow:'elec', src:'한국전력'},
  {code:'gas',  name:'가스요금',      grp:'관리비-과세', unit:'㎥',  cycle:'매월',   meter:true,  tax:true,  basis:'검침 사용량', src:'도시가스'},
  {code:'traffic',name:'교통유발부담금',grp:'관리비-면세', unit:null, cycle:'연1회', meter:false, tax:false, basis:'임대면적',   src:'구청'},
  {code:'septic',name:'정화조청소비',  grp:'관리비-면세', unit:null, cycle:'반기',   meter:false, tax:false, basis:'임대면적',   src:'청소업체'},
@@ -508,7 +534,40 @@ const selItems=()=>MASTER.filter(m=>BILL[m.code].on);
 let pItem=0, pStep=0;
 const setPStep=i=>{pStep=i;render()};
 const setPItem=i=>{pItem=i;render()};
-function addItem(code){if(!code)return;BILL[code].on=true;render();}
+let DRAWER=null, dPick=[];
+function openDrawer(k){DRAWER=k;dPick=[];render();}
+function closeDrawer(){DRAWER=null;render();}
+function dToggle(c){dPick.includes(c)?dPick=dPick.filter(x=>x!==c):dPick.push(c);render();}
+function dApply(){dPick.forEach(c=>BILL[c].on=true);DRAWER=null;dPick=[];render();}
+function drawerHTML(){
+  if(DRAWER!=='additem') return '';
+  const rest=MASTER.filter(m=>!BILL[m.code].on);
+  const doc=g=>g==='관리비-과세'?'세금계산서':g==='관리비-면세'?'계산서':'내역서';
+  return `<div class="dro"><div class="ov" onclick="closeDrawer()"></div><div class="pn">
+    <div class="dh"><div><div class="t">정산 항목 추가</div>
+      <div class="s">2026년 9월 · 동교동 영준빌딩</div></div>
+      <button class="x" onclick="closeDrawer()">✕</button></div>
+    <div class="db">
+      ${rest.length? rest.map(m=>`
+        <div class="pick ${dPick.includes(m.code)?'on':''}" onclick="dToggle('${m.code}')">
+          <div class="ck">${dPick.includes(m.code)?'✓':''}</div>
+          <div class="pb"><div class="pn2">${m.name}</div>
+            <div class="pm2">
+              ${m.grp} · <b>${doc(m.grp)}</b> 발행<br>
+              배분 기준 <b>${m.basis}</b>${m.unit?` · 단위 ${m.unit}`:' · 사용량 없음'}<br>
+              주기 ${m.cycle} · 고지서 ${m.src}
+            </div></div></div>`).join('')
+      : '<div class="empty"><div class="t">추가할 항목이 없습니다</div>모든 정산 항목이 이미 선택되어 있습니다.</div>'}
+      ${rest.length?`<div class="hint" style="margin-top:14px">
+        여기 없는 항목은 <b>청구 항목 관리(PAY-4)</b>에서 먼저 등록한 뒤
+        건물 청구설정(PRO-3)에서 이 건물에 적용하세요.</div>`:''}
+    </div>
+    <div class="df">
+      <button class="btn" onclick="closeDrawer()">취소</button>
+      <button class="btn pri" onclick="dApply()" ${dPick.length?'':'disabled style="opacity:.5"'}>
+        ${dPick.length?`${dPick.length}개 추가`:'추가'}</button></div>
+  </div></div>`;
+}
 function delItem(code){BILL[code].on=false;if(pItem>=selItems().length)pItem=0;render();}
 function setMul(code,no,v){
   const b=BILL[code],m=parseFloat(v);
@@ -823,16 +882,16 @@ function PAY10(){
 
 /* ── 1단계 · 항목 선택 + 고지서 입력 (단일 표) ── */
 function stBill(){
-  const sel=selItems(), rest=MASTER.filter(m=>!BILL[m.code].on);
+  const sel=selItems();
   if(!sel.length) return `
     <div class="tbl"><div class="empty"><div class="t">이번 회차에 정산할 항목이 없습니다</div>
       고정관리비만 받는 건물은 정산 없이 청구할 수 있습니다.<br><br>
-      ${addSel(rest)}</div></div>`;
+      <button class="btn pri" onclick="openDrawer('additem')">+ 정산 항목 추가</button></div></div>`;
   return `
   <div class="card">
     <div class="ct">이번 회차 정산 항목 · 고지서 입력
       <span class="sub">임대료·고정관리비는 계약 약정액이므로 여기서 다루지 않는다</span>
-      <span class="ca">${addSel(rest)}</span></div>
+      <span class="ca"><button class="btn pri sm" onclick="openDrawer('additem')">+ 정산 항목 추가</button></span></div>
     <div class="tw"><table class="bt2">
       <thead><tr>
         <th>청구항목</th><th>배분 기준</th><th>수령일</th>
@@ -843,33 +902,13 @@ function stBill(){
         <tr class="sumr"><td colspan="6">고지서 합계</td>
           <td class="n">${won(grandTotal())}</td><td></td></tr>
       </tbody></table></div>
-  </div>
-  <div class="two">
-    <div class="card"><div class="ct">묶음별 발행 문서 <span class="sub">묶음이 다르면 문서가 나뉜다</span></div>
-      <div class="tw"><table>
-        <thead><tr><th>묶음</th><th>발행 문서</th><th>해당 항목</th><th class="n">금액</th></tr></thead>
-        <tbody>${grpRows(sel)}</tbody></table></div></div>
-    <div class="card"><div class="ct">입력 도우미</div><div class="cc">
-      <div class="hint" style="margin-top:4px">
-      · <b>부가세</b>는 공급가액의 10%로 자동 계산됩니다. 고지서와 다르면 직접 고치세요.<br>
-      · <b>면세 항목</b>(수도·전력기금·TV수신료·교통유발부담금·정화조청소비)은 부가세란이 잠깁니다.<br>
-      · <b>사용량이 없는 항목</b>은 금액만 입력하고, 배분은 기준 항목이나 면적 비율을 따릅니다.<br>
-      · 행 우측 <b>×</b>로 이번 회차에서 항목을 뺄 수 있습니다.</div>
-    </div></div>
   </div>`;
-}
-function addSel(rest){
-  if(!rest.length) return '<span style="color:var(--muted);font-size:12px">모든 항목이 선택됨</span>';
-  return `<select class="addsel" onchange="addItem(this.value);this.value=''">
-    <option value="">+ 항목 추가</option>
-    ${rest.map(m=>`<option value="${m.code}">${m.name} · ${m.cycle}</option>`).join('')}</select>`;
 }
 function billRow(m){
   const b=BILL[m.code];
   return `<tr>
     <td><div class="c1">${m.name}</div><div class="c2">${m.grp} · ${m.src}</div></td>
-    <td>${m.follow?`<span class="bd ac">${m.basis}</span>`:`<span class="bd mu">${m.basis}</span>`}
-        <div class="c2">${m.cycle}</div></td>
+    <td><span class="bd mu">${m.basis}</span></td>
     <td><input class="inp d" type="date" value="${b.date}" onchange="setBill('${m.code}','date',this.value)"></td>
     <td class="n">${m.unit
       ? `<input class="inp" type="number" value="${b.use||0}" onchange="setBill('${m.code}','use',this.value)"> <span class="u">${m.unit}</span>`
@@ -882,15 +921,6 @@ function billRow(m){
     <td class="n"><b>${won(billTotal(m))}</b></td>
     <td class="c"><span class="kx" onclick="delItem('${m.code}')" title="이번 회차에서 제외">×</span></td>
   </tr>`;
-}
-function grpRows(sel){
-  const g={};
-  sel.forEach(m=>{g[m.grp]=g[m.grp]||{items:[],amt:0};g[m.grp].items.push(m.name);g[m.grp].amt+=billTotal(m);});
-  const doc={'관리비-과세':'세금계산서','관리비-면세':'계산서','기타-일반내역서':'별도 발행 없음 · 내역서'};
-  return Object.entries(g).map(([k,v])=>`<tr>
-    <td class="c1">${k}</td><td>${doc[k]||'—'}</td>
-    <td style="color:var(--muted)">${v.items.join(' · ')}</td>
-    <td class="n">${won(v.amt)}</td></tr>`).join('');
 }
 
 /* ── 2단계 · 검침 ── */
@@ -1018,7 +1048,8 @@ function render(){
   else{html=TODO(id);const g=MENU.find(m=>m.items&&m.items.some(i=>i.id===id));
     const m=ALL.find(i=>i.id===id);
     crumb=(g?g.g+' <span>›</span> ':'')+`<b>${m?m.n:'—'}</b>`;}
-  $('#crumb').innerHTML=crumb;$('#view').innerHTML=html;window.scrollTo(0,0);
+  $('#crumb').innerHTML=crumb;$('#view').innerHTML=html+drawerHTML();
+  if(!DRAWER) window.scrollTo(0,0);
 }
 addEventListener('hashchange',render);
 paintOp();paintFold();render();
