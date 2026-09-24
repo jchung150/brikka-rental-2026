@@ -896,16 +896,15 @@ function stBill(){
   return `
   <div class="card">
     <div class="ct">이번 회차 청구 항목 · 고지서 입력
-      <span class="sub">임대료·고정관리비는 계약 약정액이므로 여기서 다루지 않는다</span>
       <span class="ca"><button class="btn pri sm" onclick="openDrawer('additem')">+ 청구 항목 추가</button></span></div>
     <div class="tw"><table class="bt2">
       <thead><tr>
         <th>청구항목</th><th>배분 기준</th><th>수령일</th>
-        <th class="n">고지서 총사용량</th><th class="n">공급가액 · 금액</th><th class="n">부가세</th>
+        <th class="n">고지서 총사용량</th><th class="n">공급가액</th><th class="n">부가세</th>
         <th class="n">소계</th><th class="c" style="width:64px"></th></tr></thead>
       <tbody>
         ${sel.map(m=>billRow(m)).join('')}
-        <tr class="sumr"><td colspan="6">고지서 합계</td>
+        <tr class="sumr"><td colspan="6">합계</td>
           <td class="n">${won(grandTotal())}</td><td></td></tr>
       </tbody></table></div>
   </div>`;
@@ -914,9 +913,7 @@ function billRow(m){
   const b=BILL[m.code];
   return `<tr>
     <td><div class="c1">${m.name}</div><div class="c2">${m.grp} · ${m.src}</div></td>
-    <td>${BSET[m.code]
-      ? `<span class="bd mu">${BSET[m.code].basis}</span>${(BSET[m.code].ref&&BSET[m.code].ref!==m.code)?`<div class="c2">${M(BSET[m.code].ref).name} 검침값</div>`:''}`
-      : `<span class="bd wa">임대면적</span><div class="c2">건물 미설정 · 기본값</div>`}</td>
+    <td><span class="bd mu">${BSET[m.code]?BSET[m.code].basis:'임대면적'}</span></td>
     <td><input class="inp d" type="date" value="${b.date}" onchange="setBill('${m.code}','date',this.value)"></td>
     <td class="n">${m.unit
       ? `<input class="inp" type="number" value="${b.use||0}" onchange="setBill('${m.code}','use',this.value)"> <span class="u">${m.unit}</span>`
