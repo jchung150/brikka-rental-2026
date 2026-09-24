@@ -532,9 +532,18 @@ const BILL={
 };
 const SETTLE={ym:'2026-09',status:'작성중'};
 const selItems=()=>MASTER.filter(m=>BILL[m.code].on);
-let pItem=0, pStep=0;
+let pCode='elec', pStep=0;
 const setPStep=i=>{pStep=i;render()};
-const setPItem=i=>{pItem=i;render()};
+const setPItem=c=>{pCode=c;render()};
+/* 단계별 대상 항목 — 검침은 자체 계량기가 있는 항목만 */
+function stepItems(step){
+  const sel=selItems();
+  return step===1 ? sel.filter(m=>m.meter) : sel;
+}
+function curItem(step){
+  const list=stepItems(step);
+  return list.find(m=>m.code===pCode) || list[0] || null;
+}
 /* 건물별 항목 설정 — 정본은 PRO-3 청구설정탭 */
 const BSET={
  elec:{meterCharge:'청구함',target:'전체 유닛',basis:'검침 사용량',ref:'elec'},
@@ -550,7 +559,7 @@ function openDrawer(k){DRAWER=k;dPick=[];render();}
 function closeDrawer(){DRAWER=null;render();}
 function dToggle(c){dPick.includes(c)?dPick=dPick.filter(x=>x!==c):dPick.push(c);render();}
 function dApply(){dPick.forEach(c=>BILL[c].on=true);DRAWER=null;dPick=[];render();}
-function delItem(code){BILL[code].on=false;if(pItem>=selItems().length)pItem=0;render();}
+function delItem(code){BILL[code].on=false;render();}
 function setMul(code,no,v){
   const b=BILL[code],m=parseFloat(v);
   if(!m||m===1)delete b.adj[no];
@@ -858,19 +867,22 @@ function t청구(b){
 const fx=(n,d=1)=>n.toLocaleString('ko-KR',{minimumFractionDigits:d,maximumFractionDigits:d});
 function PAY10(){
   const sel=selItems();
-  if(pItem>=sel.length) pItem=0;
-  const m=sel[pItem];
+  const meterN=sel.filter(m=>m.meter).length;
+  const m=curItem(pStep);
   const R=m?calc(m):null;
   const allDiff=sel.reduce((a,x)=>a+Math.abs(calc(x).diff),0);
   const steps=[
-    ['항목 · 고지서', sel.length?`${sel.length}개 항목`:'선택된 항목 없음'],
-    ['검침 입력', !m?'—':(m.meter?`${Object.keys(BILL[m.code].read||{}).length}개 유닛`:'계량기 없음')],
+    ['청구 항목 · 고지서', sel.length?`${sel.length}개 항목`:'선택된 항목 없음'],
+    ['검침 입력', meterN?`${meterN}개 항목`:'검침 대상 없음'],
     ['조정', !m?'—':`${Object.keys(BILL[m.code].adj).length}건`],
     ['산출 결과', !sel.length?'—':(allDiff===0?'검증 일치':`차액 ${num(allDiff)}원`)],
   ];
-  const body = !sel.length&&pStep>0
+  const body = (!sel.length&&pStep>0)
     ? `<div class="tbl"><div class="empty"><div class="t">이번 회차에 정산할 항목이 없습니다</div>
-       1단계에서 항목을 선택하세요. 고정관리비만 받는 건물은 정산 없이 청구할 수 있습니다.</div></div>`
+       1단계에서 청구 항목을 선택하세요. 고정관리비만 받는 건물은 정산 없이 청구할 수 있습니다.</div></div>`
+    : (pStep===1&&!meterN)
+    ? `<div class="tbl"><div class="empty"><div class="t">검침할 항목이 없습니다</div>
+       계량기로 사용량을 재는 항목이 없습니다. 검침 없이 3단계로 진행하세요.</div></div>`
     : [stBill,stRead,stAdj,stResult][pStep](m,R);
   return `
   <div class="ph"><h1>건물 관리비 정산</h1><span class="sid">PAY-10</span>
@@ -887,8 +899,8 @@ function PAY10(){
     <div class="sp2 ${i===pStep?'on':''}" onclick="setPStep(${i})">
       <div class="t"><span class="nm">${i+1}</span>${st[0]}</div><div class="d">${st[1]}</div></div>`).join('')}
   </div>
-  ${pStep>0&&sel.length?`<div class="itab">${sel.map((x,i)=>
-    `<button class="${i===pItem?'on':''}" onclick="setPItem(${i})">${x.name}</button>`).join('')}</div>`:''}
+  ${pStep>0&&stepItems(pStep).length>1?`<div class="itab">${stepItems(pStep).map(x=>
+    `<button class="${m&&x.code===m.code?'on':''}" onclick="setPItem('${x.code}')">${x.name}</button>`).join('')}</div>`:''}
   ${body}`;
 }
 
@@ -939,8 +951,6 @@ function billRow(m){
 /* ── 2단계 · 검침 ── */
 function stRead(m,R){
   const b=BILL[m.code];
-  if(!m.meter) return `<div class="tbl"><div class="empty"><div class="t">계량기가 없는 항목입니다</div>
-    ${m.name}은 유닛별 계량기가 없어 전체를 ${m.basis} 비율로 배분합니다.</div></div>`;
   return `
   <div class="card"><div class="ct">검침 기록 <span class="sub">${m.name} · 검침일 ${b.readDate}</span>
     <span class="ca"><button class="btn sm">엑셀 업로드</button><button class="btn pri sm">검침 입력</button></span></div>
