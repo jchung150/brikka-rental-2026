@@ -504,14 +504,14 @@ const UNITS_B1=[
 ];
 /* 정산 대상 항목 — 기준표 3.3 중 산정방식이 「정산」인 것 */
 const MASTER=[
- {code:'elec', name:'전기요금',      grp:'관리비-과세', unit:'kWh', cycle:'매월',   meter:true,  tax:true,  basis:'검침 사용량', src:'한국전력'},
- {code:'water',name:'수도요금',      grp:'관리비-면세', unit:'톤',  cycle:'격월',   meter:false, tax:false, basis:'임대면적',   src:'상수도사업본부'},
- {code:'fund', name:'전력기금',      grp:'기타-일반내역서', unit:null, cycle:'매월', meter:false, tax:false, basis:'검침 사용량', follow:'elec', src:'한국전력'},
- {code:'tv',   name:'TV수신료',      grp:'기타-일반내역서', unit:null, cycle:'매월', meter:false, tax:false, basis:'검침 사용량', follow:'elec', src:'한국전력'},
- {code:'gas',  name:'가스요금',      grp:'관리비-과세', unit:'㎥',  cycle:'매월',   meter:true,  tax:true,  basis:'검침 사용량', src:'도시가스'},
- {code:'traffic',name:'교통유발부담금',grp:'관리비-면세', unit:null, cycle:'연1회', meter:false, tax:false, basis:'임대면적',   src:'구청'},
- {code:'septic',name:'정화조청소비',  grp:'관리비-면세', unit:null, cycle:'반기',   meter:false, tax:false, basis:'임대면적',   src:'청소업체'},
- {code:'parking',name:'주차비',      grp:'관리비-과세', unit:null, cycle:'매월',   meter:false, tax:true,  basis:'직접 입력',  src:'경비 집계표'},
+ {code:'elec', name:'전기요금',      grp:'관리비-과세', unit:'kWh', cycle:'매월',   tax:true,  src:'한국전력'},
+ {code:'water',name:'수도요금',      grp:'관리비-면세', unit:'톤',  cycle:'격월',   tax:false, src:'상수도사업본부'},
+ {code:'fund', name:'전력기금',      grp:'기타-일반내역서', unit:null, cycle:'매월', tax:false, src:'한국전력'},
+ {code:'tv',   name:'TV수신료',      grp:'기타-일반내역서', unit:null, cycle:'매월', tax:false, src:'한국전력'},
+ {code:'gas',  name:'가스요금',      grp:'관리비-과세', unit:'㎥',  cycle:'매월',   tax:true,  src:'도시가스'},
+ {code:'traffic',name:'교통유발부담금',grp:'관리비-면세', unit:null, cycle:'연1회', tax:false, src:'구청'},
+ {code:'septic',name:'정화조청소비',  grp:'관리비-면세', unit:null, cycle:'반기',   tax:false, src:'청소업체'},
+ {code:'parking',name:'주차비',      grp:'관리비-과세', unit:null, cycle:'매월',   tax:true,  src:'경비 집계표'},
 ];
 const M=c=>MASTER.find(x=>x.code===c);
 /* 이번 회차 입력값 — 기본은 전기·수도 2종 */
@@ -522,7 +522,8 @@ const BILL={
          '801호':[42670,44390],'B101':[5120,5340]},
    readDate:'2026-09-05',
    adj:{'501호':{mul:1.15,why:'계량기 노후로 저계측 확인. 검교정 전까지 보정',by:'김영준',at:'2026-09-06 11:20'}}},
- water:{on:true,date:'2026-09-11',use:620,supply:1240000,vat:0,read:null,readDate:null,adj:{}},
+ water:{on:true,date:'2026-09-11',use:620,supply:1240000,vat:0,
+   read:{'101호':[1240,1318]},readDate:'2026-09-10',adj:{}},
  fund:{on:false,date:'2026-09-08',use:null,supply:71040,vat:0,read:null,adj:{}},
  tv:{on:false,date:'2026-09-08',use:null,supply:2500,vat:0,read:null,adj:{}},
  gas:{on:false,date:'',use:0,supply:0,vat:0,read:null,adj:{}},
@@ -538,7 +539,7 @@ const setPItem=c=>{pCode=c;render()};
 /* 단계별 대상 항목 — 검침은 자체 계량기가 있는 항목만 */
 function stepItems(step){
   const sel=selItems();
-  return step===1 ? sel.filter(m=>m.meter) : sel;
+  return step===1 ? sel.filter(m=>isMetered(m.code)) : sel;
 }
 function curItem(step){
   const list=stepItems(step);
@@ -546,11 +547,10 @@ function curItem(step){
 }
 /* 건물별 항목 설정 — 정본은 PRO-3 청구설정탭 */
 const BSET={
- elec:{meterCharge:'청구함',target:'전체 유닛',basis:'검침 사용량',ref:'elec'},
- water:{meterCharge:'—',target:'전체 유닛',basis:'임대면적',ref:null,
-   excl:{'101호':{why:'상수도사업본부 직접 계약 (별도 수용가)',from:'2026-03-01'}}},
- fund:{meterCharge:'—',target:'전체 유닛',basis:'검침 사용량',ref:'elec'},
- tv:{meterCharge:'—',target:'전체 유닛',basis:'검침 사용량',ref:'elec'},
+ elec:{meterCharge:'청구함',target:'전체 유닛',basis:'검침 사용량',ref:'elec',excl:{}},
+ water:{meterCharge:'청구함',target:'검침기 없는 유닛만',basis:'임대면적',ref:null,excl:{}},
+ fund:{meterCharge:'—',target:'전체 유닛',basis:'검침 사용량',ref:'elec',excl:{}},
+ tv:{meterCharge:'—',target:'전체 유닛',basis:'검침 사용량',ref:'elec',excl:{}},
  gas:null, traffic:null, septic:null, parking:null,
 };
 const DEFSET={meterCharge:'—',target:'전체 유닛',basis:'임대면적',ref:null,excl:{}};
@@ -578,66 +578,51 @@ function setBill(code,key,v){
 const billTotal=m=>(BILL[m.code].supply||0)+(BILL[m.code].vat||0);
 const grandTotal=()=>selItems().reduce((a,m)=>a+billTotal(m),0);
 
-/* 배분 비율 — follow 항목은 기준 항목의 비율을 그대로 쓴다 (4.1.2 8단계) */
+/* 계량기 보유 판정 — 유닛 × 항목 */
+const hasMeter=(code,no)=>!!(BILL[code].read&&BILL[code].read[no]);
+const meterUnits=code=>Object.keys(BILL[code].read||{});
+const isMetered=code=>meterUnits(code).length>0;
+
+/* 배분 비율 — 4.1.2 산정 규칙, 4.1.3 건물 설정 */
 function ratios(m){
   const st=BSET[m.code]||DEFSET;
   const ref=(st.ref&&st.ref!==m.code)?st.ref:null;
-  if(ref) return ratios(M(ref));
-  const b=BILL[m.code];
+  if(ref) return ratios(M(ref));          /* 참조 항목의 비율을 그대로 쓴다 */
+  const b=BILL[m.code], ex=st.excl||{};
+  const charge=st.meterCharge==='청구함';   /* 검침분 청구 여부 */
+  const byUse=(st.basis||'').includes('사용량');
+  const onlyNoMeter=st.target==='검침기 없는 유닛만';
+
   const rows=UNITS_B1.map(u=>{
     const r=b.read&&b.read[u.no];
     const use=r?r[1]-r[0]:0;
     const mul=(b.adj[u.no]&&b.adj[u.no].mul)||1;
-    return {...u,pm:r?r[0]:null,cm:r?r[1]:null,use,mul,adj:use*mul};
+    return {...u,pm:r?r[0]:null,cm:r?r[1]:null,hasM:!!r,use,mul,adj:use*mul,excl:ex[u.no]||null};
   });
-  const sumAdj=rows.reduce((a,r)=>a+((st.excl&&st.excl[r.no])?0:r.adj),0);
+  /* 2) Σ정산 사용량 — 제외 유닛 제외 */
+  const sumAdj=rows.reduce((a,r)=>a+(r.excl?0:r.adj),0);
   const totUse=b.use||0;
-  const rest=m.meter? totUse-sumAdj : totUse;
-  const byUse=(st.basis||'').includes('사용량');
-  const ex=st.excl||{};
-  rows.forEach(r=>{r.excl=ex[r.no]||null;});
-  const wSum=rows.reduce((a,r)=>a+(r.excl?0:(byUse?r.adj:r.ar*r.mul)),0);
+  /* 3) 잔여 사용량 */
+  const rest=charge? totUse-sumAdj : totUse;
+  /* 4) 가중치 — 잔여분 부담 대상만 */
+  const inTarget=r=>!r.excl && (onlyNoMeter? !r.hasM : true);
+  const wSum=rows.reduce((a,r)=>a+(inTarget(r)?(byUse?r.adj:r.ar*r.mul):0),0);
   rows.forEach(r=>{
-    const w=r.excl?0:(byUse?r.adj:r.ar*r.mul);
-    r.w=w; r.rest=wSum?rest*w/wSum:0;
-    r.tot=r.excl?0:((m.meter?r.adj:0)+r.rest);
+    const w=inTarget(r)?(byUse?r.adj:r.ar*r.mul):0;
+    r.w=w;
+    r.rest=wSum?rest*w/wSum:0;                    /* 5) 잔여 배분 */
+    r.tot=r.excl?0:((charge&&r.hasM?r.adj:0)+r.rest);  /* 6) 유닛 총사용량 */
     r.ratio=r.excl?0:(totUse?r.tot/totUse:(wSum?w/wSum:0));
   });
-  return {rows,sumAdj,rest,wSum,totUse};
+  return {rows,sumAdj,rest,wSum,totUse,charge,onlyNoMeter,byUse};
 }
-/* 안분 계산 — 4.1.2 */
+/* 7) 유닛 청구금액 */
 function calc(m){
   const base=ratios(m), amt=billTotal(m);
   const rows=base.rows.map(r=>({...r, amt:Math.floor(amt*r.ratio)}));
   const bill=rows.filter(r=>r.st==='사용중'&&!r.excl).reduce((a,r)=>a+r.amt,0);
   const vac =rows.filter(r=>r.st!=='사용중'&&!r.excl).reduce((a,r)=>a+r.amt,0);
   return {...base,rows,bill,vac,total:amt,diff:amt-(bill+vac)};
-}
-
-function drawerHTML(){
-  if(DRAWER!=='additem') return '';
-  const rest=MASTER.filter(m=>!BILL[m.code].on);
-  const doc=g=>g==='관리비-과세'?'세금계산서':g==='관리비-면세'?'계산서':'내역서';
-  const card=m=>{
-    const on=dPick.includes(m.code);
-    return `<div class="pick ${on?'on':''}" onclick="dToggle('${m.code}')">
-      <div class="ck">${on?'✓':''}</div><div class="pn2">${m.name}</div></div>`;
-  };
-  return `<div class="dro"><div class="ov" onclick="closeDrawer()"></div><div class="pn">
-    <div class="dh"><div><div class="t">청구 항목 추가</div>
-      <div class="s">2026년 9월 · 동교동 영준빌딩</div></div>
-      <button class="x" onclick="closeDrawer()">✕</button></div>
-    <div class="db">
-      ${rest.length? rest.map(card).join('')
-        : '<div class="empty"><div class="t">추가할 항목이 없습니다</div>모든 항목이 이미 선택되어 있습니다.</div>'}
-      ${rest.length?`<div class="hint" style="margin-top:16px">
-        배분 설정은 <b>건물 청구설정(PRO-3)</b>에서 정합니다.</div>`:''}
-    </div>
-    <div class="df">
-      <button class="btn" onclick="closeDrawer()">취소</button>
-      <button class="btn pri" onclick="dApply()" ${dPick.length?'':'disabled style="opacity:.5"'}>
-        ${dPick.length?`${dPick.length}개 추가`:'추가'}</button></div>
-  </div></div>`;
 }
 
 /* ═══ 유틸 ═══ */
@@ -867,7 +852,7 @@ function t청구(b){
 const fx=(n,d=1)=>n.toLocaleString('ko-KR',{minimumFractionDigits:d,maximumFractionDigits:d});
 function PAY10(){
   const sel=selItems();
-  const meterN=sel.filter(m=>m.meter).length;
+  const meterN=sel.filter(m=>isMetered(m.code)).length;
   const m=curItem(pStep);
   const R=m?calc(m):null;
   const allDiff=sel.reduce((a,x)=>a+Math.abs(calc(x).diff),0);
@@ -949,22 +934,48 @@ function billRow(m){
 }
 
 /* ── 2단계 · 검침 ── */
+function setRead(code,no,v){
+  const b=BILL[code], n=Math.max(0,Math.round(parseFloat(String(v).replace(/[,\s]/g,''))||0));
+  if(b.read&&b.read[no]) b.read[no][1]=n;
+  render();
+}
+function setReadDate(code,v){BILL[code].readDate=v;render();}
 function stRead(m,R){
   const b=BILL[m.code];
+  const mUnits=meterUnits(m.code);
+  const st=BSET[m.code]||DEFSET;
+  const rows=R.rows.filter(r=>r.hasM);
+  const noM=R.rows.filter(r=>!r.hasM);
   return `
-  <div class="card"><div class="ct">검침 기록 <span class="sub">${m.name} · 검침일 ${b.readDate}</span>
-    <span class="ca"><button class="btn sm">엑셀 업로드</button><button class="btn pri sm">검침 입력</button></span></div>
+  <div class="card"><div class="ct">검침 기록
+    <span class="sub">${m.name} · 계량기 보유 ${mUnits.length}개 유닛</span>
+    <span class="ca">
+      <span style="font-size:12px;color:var(--muted);margin-right:6px">검침일</span>
+      <input class="inp d" type="date" value="${b.readDate||''}" onchange="setReadDate('${m.code}',this.value)">
+      <button class="btn sm">엑셀 업로드</button></span></div>
     <div class="tw"><table>
-      <thead><tr><th>유닛</th><th>임차인</th><th>유닛상태</th><th class="n">전월 검침값</th><th class="n">당월 검침값</th><th class="n">검침 사용량</th></tr></thead>
-      <tbody>${R.rows.map(r=>`<tr class="${r.st!=='사용중'?'dim':''}">
+      <thead><tr><th>유닛</th><th>임차인</th><th>유닛상태</th>
+        <th class="n">전월 검침값</th><th class="n">당월 검침값</th><th class="n">검침 사용량</th></tr></thead>
+      <tbody>${rows.map(r=>`<tr class="${r.st!=='사용중'?'dim':''}">
         <td class="c1">${r.no}</td><td>${r.ten||'<span style="color:var(--faint)">—</span>'}</td>
-        <td>${stb(r.st)}</td><td class="n">${num(r.pm)}</td><td class="n">${num(r.cm)}</td>
-        <td class="n"><b>${num(r.use)}</b> ${m.unit}</td></tr>`).join('')}
+        <td>${stb(r.st)}</td>
+        <td class="n" style="color:var(--muted)">${num(r.pm)}</td>
+        <td class="n"><input class="inp" type="number" value="${r.cm}"
+            onchange="setRead('${m.code}','${r.no}',this.value)"></td>
+        <td class="n"><b>${num(r.use)}</b> <span class="u">${m.unit}</span></td></tr>`).join('')}
         <tr class="sumr"><td colspan="5">검침 사용량 합계</td>
-          <td class="n">${num(R.rows.reduce((a,r)=>a+r.use,0))} ${m.unit}</td></tr>
+          <td class="n">${num(rows.reduce((a,r)=>a+r.use,0))} ${m.unit}</td></tr>
       </tbody></table></div>
   </div>
-  <div class="hint">검침 기록은 원본이며 수정하지 않는다. 보정이 필요하면 다음 단계에서 조정 배수를 기록한다.</div>`;
+  ${noM.length?`<div class="card"><div class="ct">계량기 없는 유닛
+    <span class="sub">${noM.length}개 · 검침하지 않는다</span></div>
+    <div class="cc" style="padding-top:12px">
+      ${noM.map(r=>`<span class="tag">${r.no}${r.ten?' · '+r.ten:''}</span>`).join('')}
+      <div class="hint">${st.target==='검침기 없는 유닛만'
+        ? `잔여 사용량 <b>${fx(R.rest)} ${m.unit}</b>을 이 유닛들에 ${st.basis} 비율로 배분한다.`
+        : `잔여 사용량을 전체 유닛에 ${st.basis} 비율로 배분한다.`}</div>
+    </div></div>`:''}
+  <div class="hint">검침 기록은 원본이며 수정하지 않는다. 보정이 필요하면 3단계에서 조정 배수를 기록한다.</div>`;
 }
 
 /* ── 3단계 · 조정 ── */
@@ -976,18 +987,17 @@ function stAdj(m,R){
       <thead><tr><th>유닛</th><th class="n">원본 사용량</th><th class="c">조정 배수</th><th class="n">정산 사용량</th><th>사유</th><th>작성자</th><th>작성일시</th></tr></thead>
       <tbody>${R.rows.map(r=>{const a=b.adj[r.no];return `<tr class="${r.st!=='사용중'?'dim':''}">
         <td class="c1">${r.no}</td>
-        <td class="n">${m.meter?num(r.use)+' '+m.unit:'<span style="color:var(--faint)">계량기 없음</span>'}</td>
+        <td class="n">${r.hasM?num(r.use)+' '+m.unit:'<span style="color:var(--faint)">계량기 없음</span>'}</td>
         <td class="c"><input class="inp w" value="${r.mul}" step="0.05" type="number"
              onchange="setMul('${m.code}','${r.no}',this.value)"></td>
-        <td class="n">${m.meter?`<b>${fx(r.adj)}</b> ${m.unit}`:'—'}</td>
+        <td class="n">${r.hasM?`<b>${fx(r.adj)}</b> ${m.unit}`:'—'}</td>
         <td style="white-space:normal;max-width:320px;color:${a?'var(--ink-2)':'var(--faint)'}">${a?a.why:'—'}</td>
         <td>${a?a.by:'—'}</td><td style="color:var(--muted)">${a?a.at:'—'}</td></tr>`}).join('')}
       </tbody></table></div>
   </div>
-  <div class="fnd"><span class="h">조정 배수를 바꿔보세요</span>
-    ${m.meter?`501호 배수를 <b>1.15 → 1.0</b>으로 바꾸면 501호 청구액이 줄고 <b>나머지 유닛 부담이 늘어납니다.</b>`
-    :`이 항목은 계량기가 없어 <b>면적 × 배수</b>가 가중치입니다. 배수를 올리면 그 유닛 부담이 커집니다.`}
-    총액은 항상 고지서와 일치합니다.</div>`;
+  <div class="fnd"><span class="h">조정 배수</span>
+    계량기가 있는 유닛은 <b>검침 사용량 × 배수</b>, 없는 유닛은 <b>면적 × 배수</b>가 가중치입니다.
+    배수를 올리면 그 유닛 부담이 커지고 나머지 유닛 부담이 줄어듭니다. 총액은 항상 고지서와 일치합니다.</div>`;
 }
 
 /* ── 4단계 · 산출 결과 ── */
@@ -995,18 +1005,19 @@ function stResult(m,R){
   const b=BILL[m.code];
   return `
   <div class="card"><div class="ct">산출 결과
-    <span class="sub">${m.name} · ${m.basis} 비율 배분${m.follow?` · 기준 항목 ${M(m.follow).name}`:''}</span></div>
+    <span class="sub">${m.name} · ${(BSET[m.code]||DEFSET).basis} 비율 배분${
+      ((BSET[m.code]||{}).ref&&BSET[m.code].ref!==m.code)?` · 기준 ${M(BSET[m.code].ref).name}`:''}</span></div>
     <div class="tw"><table>
       <thead><tr><th>유닛</th><th>임차인</th>
-        ${m.meter?'<th class="n">정산 사용량</th>':''}
-        <th class="n">${m.meter?'잔여 배분':'배분 사용량'}</th>
+        ${R.charge&&isMetered(m.code)?'<th class="n">검침 사용량</th>':''}
+        <th class="n">잔여 배분</th>
         ${m.unit?'<th class="n">유닛 총사용량</th>':''}
         <th class="n">배분 비율</th><th class="n">청구금액</th></tr></thead>
       <tbody>
         ${R.rows.filter(r=>r.st==='사용중').map(r=>row4(r,m)).join('')}
         ${R.rows.filter(r=>r.st!=='사용중').map(r=>row4(r,m,'vacr')).join('')}
         <tr class="sumr"><td colspan="2">합계</td>
-          ${m.meter?`<td class="n">${fx(R.sumAdj)}</td>`:''}
+          ${R.charge&&isMetered(m.code)?`<td class="n">${fx(R.sumAdj)}</td>`:''}
           <td class="n">${fx(R.rest)}</td>
           ${m.unit?`<td class="n">${fx(R.rows.reduce((a,r)=>a+r.tot,0))}</td>`:''}
           <td class="n">100.0%</td>
@@ -1023,9 +1034,11 @@ function stResult(m,R){
     </dl></div></div>
     <div class="card"><div class="ct">계산 근거</div><div class="cc"><dl class="dl">
       ${m.unit?`<dt>고지서 총사용량</dt><dd>${num(b.use||0)} ${m.unit}</dd>`:''}
-      ${m.meter?`<dt>Σ 정산 사용량</dt><dd>${fx(R.sumAdj)} ${m.unit}</dd>
-                 <dt>잔여 사용량</dt><dd>${fx(R.rest)} ${m.unit} <span class="lock">공용부</span></dd>`:''}
-      <dt>배분 가중치 합</dt><dd>${fx(R.wSum)} <span class="lock">${m.basis}</span></dd>
+      ${R.charge&&isMetered(m.code)?`<dt>Σ 검침 사용량</dt><dd>${fx(R.sumAdj)} ${m.unit}
+        <span class="lock">계량기 ${meterUnits(m.code).length}개 유닛</span></dd>`:''}
+      <dt>잔여 사용량</dt><dd>${fx(R.rest)} ${m.unit||''}
+        <span class="lock">${R.onlyNoMeter?'계량기 없는 유닛에만 배분':'전체 유닛에 배분'}</span></dd>
+      <dt>배분 가중치 합</dt><dd>${fx(R.wSum)} <span class="lock">${(BSET[m.code]||DEFSET).basis}</span></dd>
       <dt>고지서 금액</dt><dd>${won(R.total)}</dd>
     </dl></div></div>
   </div>
@@ -1043,16 +1056,18 @@ function stResult(m,R){
     → 검토사항 #1</div>`:''}`;
 }
 function row4(r,m,cls){
+  const R=ratios(m), showM=R.charge&&isMetered(m.code);
   if(r.excl) return `<tr class="exr">
     <td class="c1">${r.no}</td><td>${r.ten}</td>
-    ${m.meter?'<td class="n">—</td>':''}<td class="n">—</td>
+    ${showM?'<td class="n">—</td>':''}<td class="n">—</td>
     ${m.unit?'<td class="n">—</td>':''}<td class="n">—</td>
     <td class="n"><span class="bd mu">안분 제외</span>
       <div class="c2" style="text-align:right">${r.excl.why}</div></td></tr>`;
   return `<tr class="${cls||''}">
-    <td class="c1">${r.no}</td><td>${cls?stb(r.st)+(r.ten?' '+r.ten:''):r.ten}</td>
-    ${m.meter?`<td class="n">${fx(r.adj)}</td>`:''}
-    <td class="n">${fx(r.rest)}</td>
+    <td class="c1">${r.no}${r.hasM?' <span class="bd ac" style="font-size:10px">계량기</span>':''}</td>
+    <td>${cls?stb(r.st)+(r.ten?' '+r.ten:''):r.ten}</td>
+    ${showM?`<td class="n">${r.hasM?fx(r.adj):'—'}</td>`:''}
+    <td class="n">${r.rest?fx(r.rest):'<span style="color:var(--faint)">—</span>'}</td>
     ${m.unit?`<td class="n"><b>${fx(r.tot)}</b></td>`:''}
     <td class="n">${(r.ratio*100).toFixed(2)}%</td>
     <td class="n"><b>${won(r.amt)}</b></td></tr>`;
