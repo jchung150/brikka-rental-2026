@@ -158,23 +158,13 @@ tr.vacr td{background:var(--warn-bg)}
 .pick .pm2{font-size:11.5px;color:var(--muted);line-height:1.6}
 .pick .pm2 b{color:var(--ink-2);font-weight:500}
 
-.pset{margin:10px 0 0;padding:12px 13px;background:var(--side-hov);border-radius:var(--r-sm)}
-.pset .pr{display:flex;align-items:center;gap:8px;margin-bottom:7px;font-size:12px}
-.pset .pr:last-child{margin-bottom:0}
-.pset .pl{width:96px;color:var(--muted);flex:none}
-.pset select{flex:1;border:1px solid var(--line);background:var(--bg);padding:5px 8px;
-  border-radius:var(--r-sm);font-size:12px;font-family:inherit}
-.pset .rd{display:flex;gap:12px;flex:1}
-.pset .rd label{display:flex;align-items:center;gap:5px;cursor:pointer;color:var(--ink-2)}
-.pset .nw2{color:var(--warn);font-size:11.5px;margin-top:7px;line-height:1.5}
-
 /* 고지서 입력 표 */
 table.bt2 td{padding:9px 12px}
 .inp.lg{width:120px;font-weight:500}
 .inp.d{width:130px;text-align:left;font-size:12px}
 .inp .u,.n .u{color:var(--muted);font-size:11.5px}
-.kx{color:var(--faint);cursor:pointer;font-size:15px;padding:2px 6px;border-radius:4px;display:inline-block;line-height:1}
-.kx:hover{background:var(--danger-bg);color:var(--danger)}
+.btn.ex{color:var(--muted);padding:4px 10px;font-size:11.5px}
+.btn.ex:hover{background:var(--danger-bg);border-color:var(--danger);color:var(--danger)}
 
 /* 접힘 상태 */
 .app.fold .side{width:62px}
@@ -553,25 +543,11 @@ const BSET={
  gas:null, traffic:null, septic:null, parking:null,
 };
 const DEFSET={meterCharge:'—',target:'전체 유닛',basis:'임대면적',ref:null};
-let DRAWER=null, dPick=[], dSet={}, dScope={};
-function openDrawer(k){DRAWER=k;dPick=[];dSet={};dScope={};render();}
+let DRAWER=null, dPick=[];
+function openDrawer(k){DRAWER=k;dPick=[];render();}
 function closeDrawer(){DRAWER=null;render();}
-function dToggle(c){
-  if(dPick.includes(c)) dPick=dPick.filter(x=>x!==c);
-  else{dPick.push(c);dSet[c]={...(BSET[c]||DEFSET)};dScope[c]=BSET[c]?'회차':'건물';}
-  render();
-}
-function dSetV(c,k,v){dSet[c][k]=v;if(k==='basis'&&v!=='검침 사용량')dSet[c].ref=null;render();}
-function dSetScope(c,v){dScope[c]=v;render();}
-function dApply(){
-  dPick.forEach(c=>{
-    BILL[c].on=true;
-    const m=M(c); m.basis=dSet[c].basis;
-    if(dScope[c]==='건물') BSET[c]={...dSet[c]};
-    m.follow=(dSet[c].ref&&dSet[c].ref!==c)?dSet[c].ref:null;
-  });
-  DRAWER=null;dPick=[];render();
-}
+function dToggle(c){dPick.includes(c)?dPick=dPick.filter(x=>x!==c):dPick.push(c);render();}
+function dApply(){dPick.forEach(c=>BILL[c].on=true);DRAWER=null;dPick=[];render();}
 function delItem(code){BILL[code].on=false;if(pItem>=selItems().length)pItem=0;render();}
 function setMul(code,no,v){
   const b=BILL[code],m=parseFloat(v);
@@ -593,7 +569,9 @@ const grandTotal=()=>selItems().reduce((a,m)=>a+billTotal(m),0);
 
 /* 배분 비율 — follow 항목은 기준 항목의 비율을 그대로 쓴다 (4.1.2 8단계) */
 function ratios(m){
-  if(m.follow) return ratios(M(m.follow));
+  const st=BSET[m.code]||DEFSET;
+  const ref=(st.ref&&st.ref!==m.code)?st.ref:null;
+  if(ref) return ratios(M(ref));
   const b=BILL[m.code];
   const rows=UNITS_B1.map(u=>{
     const r=b.read&&b.read[u.no];
@@ -604,7 +582,7 @@ function ratios(m){
   const sumAdj=rows.reduce((a,r)=>a+r.adj,0);
   const totUse=b.use||0;
   const rest=m.meter? totUse-sumAdj : totUse;
-  const byUse=m.basis.includes('사용량');
+  const byUse=(st.basis||'').includes('사용량');
   const wSum=rows.reduce((a,r)=>a+(byUse?r.adj:r.ar*r.mul),0);
   rows.forEach(r=>{
     const w=byUse?r.adj:r.ar*r.mul;
@@ -627,58 +605,28 @@ function drawerHTML(){
   if(DRAWER!=='additem') return '';
   const rest=MASTER.filter(m=>!BILL[m.code].on);
   const doc=g=>g==='관리비-과세'?'세금계산서':g==='관리비-면세'?'계산서':'내역서';
-  const meterItems=MASTER.filter(x=>x.meter);
   const card=m=>{
-    const on=dPick.includes(m.code), st=dSet[m.code];
-    return `<div class="pick ${on?'on':''}">
-      <div class="ck" onclick="dToggle('${m.code}')">${on?'✓':''}</div>
+    const on=dPick.includes(m.code), st=BSET[m.code];
+    return `<div class="pick ${on?'on':''}" onclick="dToggle('${m.code}')">
+      <div class="ck">${on?'✓':''}</div>
       <div class="pb">
-        <div onclick="dToggle('${m.code}')">
-          <div class="pn2">${m.name}</div>
-          <div class="pm2">${m.grp} · <b>${doc(m.grp)}</b> 발행 · 주기 ${m.cycle}<br>
-            ${m.unit?`계량기 <b>${m.meter?'있음':'없음'}</b> · 단위 ${m.unit}`:'사용량 없음'} · 고지서 ${m.src}</div>
-        </div>
-        ${on?`<div class="pset" onclick="event.stopPropagation()">
-          ${m.meter?`<div class="pr"><span class="pl">검침분 청구</span>
-            <select onchange="dSetV('${m.code}','meterCharge',this.value)">
-              ${['청구함','임차인 직접 납부'].map(o=>`<option ${st.meterCharge===o?'selected':''}>${o}</option>`).join('')}
-            </select></div>`:''}
-          <div class="pr"><span class="pl">잔여분 부담</span>
-            <select onchange="dSetV('${m.code}','target',this.value)">
-              ${['전체 유닛','검침기 없는 유닛만'].map(o=>`<option ${st.target===o?'selected':''}>${o}</option>`).join('')}
-            </select></div>
-          <div class="pr"><span class="pl">배분 기준</span>
-            <select onchange="dSetV('${m.code}','basis',this.value)">
-              ${['검침 사용량','임대면적','직접 입력'].map(o=>`<option ${st.basis===o?'selected':''}>${o}</option>`).join('')}
-            </select></div>
-          ${(st.basis==='검침 사용량'&&!m.meter)?`<div class="pr"><span class="pl">참조 항목</span>
-            <select onchange="dSetV('${m.code}','ref',this.value)">
-              <option value="">선택</option>
-              ${meterItems.map(x=>`<option value="${x.code}" ${st.ref===x.code?'selected':''}>${x.name} 검침값</option>`).join('')}
-            </select></div>
-            ${!st.ref?'<div class="nw2">계량기가 없는 항목입니다. 어느 항목의 검침값으로 배분할지 지정하세요.</div>':''}`:''}
-          <div class="pr" style="margin-top:9px"><span class="pl">적용 범위</span>
-            <div class="rd">
-              <label><input type="radio" name="sc_${m.code}" ${dScope[m.code]==='회차'?'checked':''}
-                onchange="dSetScope('${m.code}','회차')">이번 회차만</label>
-              <label><input type="radio" name="sc_${m.code}" ${dScope[m.code]==='건물'?'checked':''}
-                onchange="dSetScope('${m.code}','건물')">건물 기본값으로 저장</label>
-            </div></div>
-          ${!BSET[m.code]?'<div class="nw2">이 건물에 설정된 적이 없는 항목입니다. 기본값을 확인하고 필요하면 고치세요.</div>':''}
-        </div>`:''}
+        <div class="pn2">${m.name}${st?'':' <span class="bd wa" style="margin-left:5px">건물 미설정</span>'}</div>
+        <div class="pm2">${m.grp} · <b>${doc(m.grp)}</b> 발행 · 주기 ${m.cycle}<br>
+          배분 기준 <b>${st?st.basis:'임대면적'}</b>${st&&st.ref&&st.ref!==m.code?` <span style="color:var(--pri)">(${M(st.ref).name} 검침값)</span>`:''}
+          ${m.unit?` · 계량기 ${m.meter?'있음':'없음'}`:' · 사용량 없음'}<br>
+          고지서 ${m.src}</div>
       </div></div>`;
   };
   return `<div class="dro"><div class="ov" onclick="closeDrawer()"></div><div class="pn">
-    <div class="dh"><div><div class="t">정산 대상 항목 추가</div>
+    <div class="dh"><div><div class="t">정산 대상 추가</div>
       <div class="s">2026년 9월 · 동교동 영준빌딩</div></div>
       <button class="x" onclick="closeDrawer()">✕</button></div>
     <div class="db">
       ${rest.length? rest.map(card).join('')
-        : '<div class="empty"><div class="t">추가할 항목이 없습니다</div>정산 대상 항목이 모두 선택되어 있습니다.</div>'}
+        : '<div class="empty"><div class="t">추가할 항목이 없습니다</div>정산 대상이 모두 선택되어 있습니다.</div>'}
       ${rest.length?`<div class="hint" style="margin-top:14px">
-        · 항목 자체(이름·묶음·부가세)는 <b>청구 항목 관리(PAY-4)</b>에서 정의합니다.<br>
-        · 건물별 배분 설정의 정본은 <b>건물 청구설정(PRO-3)</b>입니다.
-        여기서 고친 값은 「건물 기본값으로 저장」을 선택해야 반영됩니다.</div>`:''}
+        배분 설정은 <b>건물 청구설정(PRO-3)</b>에서 정합니다.
+        <span class="bd wa">건물 미설정</span> 항목은 임대면적 비율로 배분되며, 바꾸려면 PRO-3에서 설정하세요.</div>`:''}
     </div>
     <div class="df">
       <button class="btn" onclick="closeDrawer()">취소</button>
@@ -964,7 +912,7 @@ function stBill(){
       <thead><tr>
         <th>청구항목</th><th>배분 기준</th><th>수령일</th>
         <th class="n">고지서 총사용량</th><th class="n">공급가액 · 금액</th><th class="n">부가세</th>
-        <th class="n">소계</th><th class="c" style="width:40px"></th></tr></thead>
+        <th class="n">소계</th><th class="c" style="width:64px"></th></tr></thead>
       <tbody>
         ${sel.map(m=>billRow(m)).join('')}
         <tr class="sumr"><td colspan="6">고지서 합계</td>
@@ -976,7 +924,9 @@ function billRow(m){
   const b=BILL[m.code];
   return `<tr>
     <td><div class="c1">${m.name}</div><div class="c2">${m.grp} · ${m.src}</div></td>
-    <td><span class="bd mu">${m.basis}</span></td>
+    <td>${BSET[m.code]
+      ? `<span class="bd mu">${BSET[m.code].basis}</span>${(BSET[m.code].ref&&BSET[m.code].ref!==m.code)?`<div class="c2">${M(BSET[m.code].ref).name} 검침값</div>`:''}`
+      : `<span class="bd wa">임대면적</span><div class="c2">건물 미설정 · 기본값</div>`}</td>
     <td><input class="inp d" type="date" value="${b.date}" onchange="setBill('${m.code}','date',this.value)"></td>
     <td class="n">${m.unit
       ? `<input class="inp" type="number" value="${b.use||0}" onchange="setBill('${m.code}','use',this.value)"> <span class="u">${m.unit}</span>`
@@ -987,7 +937,7 @@ function billRow(m){
       ? `<input class="inp" type="text" value="${num(b.vat||0)}" onchange="setBill('${m.code}','vat',this.value)">`
       : '<span class="bd mu">면세</span>'}</td>
     <td class="n"><b>${won(billTotal(m))}</b></td>
-    <td class="c"><span class="kx" onclick="delItem('${m.code}')" title="이번 회차에서 제외">×</span></td>
+    <td class="c"><button class="btn ex" onclick="delItem('${m.code}')">제외</button></td>
   </tr>`;
 }
 
