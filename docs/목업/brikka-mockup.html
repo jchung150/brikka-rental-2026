@@ -572,6 +572,57 @@ function dApply(){
   });
   DRAWER=null;dPick=[];render();
 }
+function delItem(code){BILL[code].on=false;if(pItem>=selItems().length)pItem=0;render();}
+function setMul(code,no,v){
+  const b=BILL[code],m=parseFloat(v);
+  if(!m||m===1)delete b.adj[no];
+  else b.adj[no]={mul:m,why:(b.adj[no]&&b.adj[no].why)||'담당자 조정',by:'김영준',at:'2026-09-24 09:41'};
+  render();
+}
+function setBill(code,key,v){
+  const b=BILL[code];
+  if(key==='date'){b.date=v;render();return;}
+  const n=Math.max(0,Math.round(parseFloat(String(v).replace(/[,\s]/g,''))||0));
+  b[key]=n;
+  if(key==='supply'&&M(code).tax&&!b.vatManual) b.vat=Math.round(n*0.1);
+  if(key==='vat') b.vatManual=true;
+  render();
+}
+const billTotal=m=>(BILL[m.code].supply||0)+(BILL[m.code].vat||0);
+const grandTotal=()=>selItems().reduce((a,m)=>a+billTotal(m),0);
+
+/* 배분 비율 — follow 항목은 기준 항목의 비율을 그대로 쓴다 (4.1.2 8단계) */
+function ratios(m){
+  if(m.follow) return ratios(M(m.follow));
+  const b=BILL[m.code];
+  const rows=UNITS_B1.map(u=>{
+    const r=b.read&&b.read[u.no];
+    const use=r?r[1]-r[0]:0;
+    const mul=(b.adj[u.no]&&b.adj[u.no].mul)||1;
+    return {...u,pm:r?r[0]:null,cm:r?r[1]:null,use,mul,adj:use*mul};
+  });
+  const sumAdj=rows.reduce((a,r)=>a+r.adj,0);
+  const totUse=b.use||0;
+  const rest=m.meter? totUse-sumAdj : totUse;
+  const byUse=m.basis.includes('사용량');
+  const wSum=rows.reduce((a,r)=>a+(byUse?r.adj:r.ar*r.mul),0);
+  rows.forEach(r=>{
+    const w=byUse?r.adj:r.ar*r.mul;
+    r.w=w; r.rest=wSum?rest*w/wSum:0;
+    r.tot=(m.meter?r.adj:0)+r.rest;
+    r.ratio=totUse?r.tot/totUse:(wSum?w/wSum:0);
+  });
+  return {rows,sumAdj,rest,wSum,totUse};
+}
+/* 안분 계산 — 4.1.2 */
+function calc(m){
+  const base=ratios(m), amt=billTotal(m);
+  const rows=base.rows.map(r=>({...r, amt:Math.floor(amt*r.ratio)}));
+  const bill=rows.filter(r=>r.st==='사용중').reduce((a,r)=>a+r.amt,0);
+  const vac =rows.filter(r=>r.st!=='사용중').reduce((a,r)=>a+r.amt,0);
+  return {...base,rows,bill,vac,total:amt,diff:amt-(bill+vac)};
+}
+
 function drawerHTML(){
   if(DRAWER!=='additem') return '';
   const rest=MASTER.filter(m=>!BILL[m.code].on);
