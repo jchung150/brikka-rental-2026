@@ -146,17 +146,15 @@ tr.vacr td{background:var(--warn-bg)}
 .dro .dh .x:hover{background:var(--side-hov);color:var(--ink)}
 .dro .db{flex:1;overflow-y:auto;padding:14px 20px 20px}
 .dro .df{padding:14px 20px;border-top:1px solid var(--line);display:flex;gap:8px;justify-content:flex-end}
-.pick{display:flex;gap:11px;padding:12px 13px;border:1px solid var(--line);border-radius:var(--r);
-  margin-bottom:8px;cursor:pointer}
+.pick{display:flex;align-items:center;gap:11px;padding:11px 13px;border:1px solid var(--line);
+  border-radius:var(--r);margin-bottom:6px;cursor:pointer}
 .pick:hover{border-color:var(--muted)}
 .pick.on{border-color:var(--pri);background:var(--pri-bg)}
-.pick .ck{width:17px;height:17px;border:1.5px solid var(--line);border-radius:4px;flex:none;margin-top:1px;
+.pick .ck{width:17px;height:17px;border:1.5px solid var(--line);border-radius:4px;flex:none;
   display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px}
 .pick.on .ck{background:var(--pri);border-color:var(--pri)}
 .pick .pb{flex:1;min-width:0}
-.pick .pn2{font-weight:500;font-size:13px;margin-bottom:3px}
-.pick .pm2{font-size:11.5px;color:var(--muted);line-height:1.6}
-.pick .pm2 b{color:var(--ink-2);font-weight:500}
+.pick .pn2{font-weight:500;font-size:13px}
 
 /* 고지서 입력 표 */
 table.bt2 td{padding:9px 12px}
@@ -606,27 +604,19 @@ function drawerHTML(){
   const rest=MASTER.filter(m=>!BILL[m.code].on);
   const doc=g=>g==='관리비-과세'?'세금계산서':g==='관리비-면세'?'계산서':'내역서';
   const card=m=>{
-    const on=dPick.includes(m.code), st=BSET[m.code];
+    const on=dPick.includes(m.code);
     return `<div class="pick ${on?'on':''}" onclick="dToggle('${m.code}')">
-      <div class="ck">${on?'✓':''}</div>
-      <div class="pb">
-        <div class="pn2">${m.name}${st?'':' <span class="bd wa" style="margin-left:5px">건물 미설정</span>'}</div>
-        <div class="pm2">${m.grp} · <b>${doc(m.grp)}</b> 발행 · 주기 ${m.cycle}<br>
-          배분 기준 <b>${st?st.basis:'임대면적'}</b>${st&&st.ref&&st.ref!==m.code?` <span style="color:var(--pri)">(${M(st.ref).name} 검침값)</span>`:''}
-          ${m.unit?` · 계량기 ${m.meter?'있음':'없음'}`:' · 사용량 없음'}<br>
-          고지서 ${m.src}</div>
-      </div></div>`;
+      <div class="ck">${on?'✓':''}</div><div class="pn2">${m.name}</div></div>`;
   };
   return `<div class="dro"><div class="ov" onclick="closeDrawer()"></div><div class="pn">
-    <div class="dh"><div><div class="t">정산 대상 추가</div>
+    <div class="dh"><div><div class="t">청구 항목 추가</div>
       <div class="s">2026년 9월 · 동교동 영준빌딩</div></div>
       <button class="x" onclick="closeDrawer()">✕</button></div>
     <div class="db">
       ${rest.length? rest.map(card).join('')
-        : '<div class="empty"><div class="t">추가할 항목이 없습니다</div>정산 대상이 모두 선택되어 있습니다.</div>'}
-      ${rest.length?`<div class="hint" style="margin-top:14px">
-        배분 설정은 <b>건물 청구설정(PRO-3)</b>에서 정합니다.
-        <span class="bd wa">건물 미설정</span> 항목은 임대면적 비율로 배분되며, 바꾸려면 PRO-3에서 설정하세요.</div>`:''}
+        : '<div class="empty"><div class="t">추가할 항목이 없습니다</div>모든 항목이 이미 선택되어 있습니다.</div>'}
+      ${rest.length?`<div class="hint" style="margin-top:16px">
+        배분 설정은 <b>건물 청구설정(PRO-3)</b>에서 정합니다.</div>`:''}
     </div>
     <div class="df">
       <button class="btn" onclick="closeDrawer()">취소</button>
@@ -902,12 +892,12 @@ function stBill(){
   if(!sel.length) return `
     <div class="tbl"><div class="empty"><div class="t">이번 회차에 정산할 항목이 없습니다</div>
       고정관리비만 받는 건물은 정산 없이 청구할 수 있습니다.<br><br>
-      <button class="btn pri" onclick="openDrawer('additem')">+ 정산 대상 추가</button></div></div>`;
+      <button class="btn pri" onclick="openDrawer('additem')">+ 청구 항목 추가</button></div></div>`;
   return `
   <div class="card">
-    <div class="ct">이번 회차 정산 대상 · 고지서 입력
+    <div class="ct">이번 회차 청구 항목 · 고지서 입력
       <span class="sub">임대료·고정관리비는 계약 약정액이므로 여기서 다루지 않는다</span>
-      <span class="ca"><button class="btn pri sm" onclick="openDrawer('additem')">+ 정산 대상 추가</button></span></div>
+      <span class="ca"><button class="btn pri sm" onclick="openDrawer('additem')">+ 청구 항목 추가</button></span></div>
     <div class="tw"><table class="bt2">
       <thead><tr>
         <th>청구항목</th><th>배분 기준</th><th>수령일</th>
