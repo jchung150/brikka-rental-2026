@@ -601,20 +601,31 @@ const DEFSET={meterCharge:'—',target:'전체 유닛',basis:'임대면적',ref:
 let DRAWER=null, dPick=[];
 /* PRO-3 청구 항목 설정 */
 let cs=null;
+const GRPS=['임대료','관리비-과세','관리비-면세','기타-일반내역서'];
+const CYCLES=['이번만','매월','격월','분기','반기','연1회'];
+function loadCS(code){
+  const m=M(code), b=BSET[code]||{};
+  const row=BUILDINGS[0].charge.find(c=>c.it===m.name);
+  cs={neu:false, item:code, name:m.name, grp:m.grp, cycle:m.cycle,
+      meters:[...(METER[code]||[])],
+      mtrCharge:b.meterCharge||'청구함', target:b.target||'전체 유닛',
+      basis:b.basis||'임대면적', ref:b.ref||null, editing:!!row};
+}
 function openCS(code){
-  const m=code?M(code):MASTER.find(x=>!BUILDINGS[0].charge.some(c=>c.it===x.name))||MASTER[0];
-  cs={item:m.code, meters:[...(METER[m.code]||[])],
-      mtrCharge:(BSET[m.code]||{}).meterCharge||'청구함',
-      target:(BSET[m.code]||{}).target||'전체 유닛',
-      basis:(BSET[m.code]||{}).basis||'임대면적',
-      ref:(BSET[m.code]||{}).ref||null, excl:[]};
+  if(code) loadCS(code);
+  else{
+    const m=MASTER.find(x=>!BUILDINGS[0].charge.some(c=>c.it===x.name));
+    m? loadCS(m.code) : csNew();
+  }
   DRAWER='chargeset'; render();
 }
+function csNew(){
+  cs={neu:true, item:null, name:'', grp:'관리비-과세', cycle:'매월',
+      meters:[], mtrCharge:'청구함', target:'전체 유닛', basis:'임대면적', ref:null, editing:false};
+}
 function csSet(k,v){
+  if(k==='item'){ v==='__new'? csNew() : loadCS(v); render(); return; }
   cs[k]=v;
-  if(k==='item'){const m=M(v); cs.meters=[...(METER[v]||[])];
-    const b=BSET[v]||{}; cs.mtrCharge=b.meterCharge||'청구함'; cs.target=b.target||'전체 유닛';
-    cs.basis=b.basis||'임대면적'; cs.ref=b.ref||null;}
   if(k==='basis'&&v!=='검침 사용량') cs.ref=null;
   render();
 }
@@ -625,15 +636,41 @@ function csUnit(no){
 }
 function csAll(v){cs.meters=v?UNITS_B1.map(u=>u.no):[];if(!v)cs.target='전체 유닛';render();}
 function csApply(){
-  METER[cs.item]=[...cs.meters];
-  BSET[cs.item]={meterCharge:cs.mtrCharge,target:cs.target,basis:cs.basis,
-    ref:cs.ref,excl:(BSET[cs.item]||{}).excl||{}};
-  const m=M(cs.item), bc=BUILDINGS[0].charge, row=bc.find(c=>c.it===m.name);
+  let code=cs.item;
+  if(cs.neu){
+    const nm=(cs.name||'').trim();
+    if(!nm){alert('항목명을 입력하세요.');return;}
+    if(MASTER.some(x=>x.name===nm)){alert('이미 있는 항목명입니다.');return;}
+    code='c'+Date.now().toString(36);
+    MASTER.push({code,name:nm,grp:cs.grp,unit:null,cycle:cs.cycle,
+      tax:cs.grp==='관리비-과세'||cs.grp==='임대료',src:'직접 입력',custom:true});
+    BILL[code]={on:false,date:'',use:null,supply:0,vat:0,read:null,adj:{}};
+    METER[code]=[];
+  }else{
+    const m=M(code); m.grp=cs.grp; m.cycle=cs.cycle;
+    m.tax=cs.grp==='관리비-과세'||cs.grp==='임대료';
+  }
+  METER[code]=[...cs.meters];
+  if(cs.meters.length) BILL[code].read=BILL[code].read||{};
+  BSET[code]={meterCharge:cs.mtrCharge,target:cs.target,basis:cs.basis,
+    ref:cs.ref,excl:(BSET[code]||{}).excl||{}};
+  const m=M(code), bc=BUILDINGS[0].charge, row=bc.find(c=>c.it===m.name);
   const mt=cs.meters.length===0?'없음':cs.meters.length===UNITS_B1.length?`전체 ${cs.meters.length}개`
     :cs.meters.length<=2?cs.meters.join(', '):`${cs.meters.length}개 유닛`;
-  const data={it:m.name,use:1,grp:m.grp,meter:mt,mtr:cs.meters.length?cs.mtrCharge:'—',
-    rest:cs.target,basis:cs.basis+' 비율'+(cs.ref&&cs.ref!==cs.item?` · ${M(cs.ref).name} 참조`:'')};
+  const data={it:m.name,use:1,grp:m.grp,cycle:m.cycle,meter:mt,mtr:cs.meters.length?cs.mtrCharge:'—',
+    rest:cs.target,basis:cs.basis+' 비율'+(cs.ref&&cs.ref!==code?` · ${M(cs.ref).name} 참조`:'')};
   if(row) Object.assign(row,data); else bc.push(data);
+  DRAWER=null; cs=null; render();
+}
+function csDrop(){
+  const m=M(cs.item);
+  if(!confirm(m.name+'을 이 건물의 청구 항목에서 제외합니다.\n\n'+
+    '· 마스터에서 삭제되지 않으며 다른 건물에는 영향이 없습니다\n'+
+    '· 과거 회차의 정산 결과와 원장 기록은 그대로 유지됩니다\n'+
+    '· 이후 회차부터 이 건물에서 청구되지 않습니다')) return;
+  const bc=BUILDINGS[0].charge, i=bc.findIndex(c=>c.it===m.name);
+  if(i>=0) bc.splice(i,1);
+  BILL[cs.item].on=false;
   DRAWER=null; cs=null; render();
 }
 function openDrawer(k){DRAWER=k;dPick=[];render();}
@@ -711,15 +748,16 @@ function calc(m){
 
 function csHTML(){
   if(DRAWER!=='chargeset'||!cs) return '';
-  const m=M(cs.item), U=UNITS_B1;
+  const U=UNITS_B1;
   const nM=cs.meters.length, nAll=U.length, nNo=nAll-nM;
-  const doc=g=>g==='관리비-과세'?'세금계산서':g==='관리비-면세'?'계산서':'내역서';
+  const doc=g=>g==='관리비-면세'?'계산서':g==='기타-일반내역서'?'내역서':'세금계산서';
   const byUse=cs.basis==='검침 사용량';
   const onlyNo=cs.target==='검침기 없는 유닛만';
   const targetN=onlyNo?nNo:nAll;
-  /* 설정 조합 검사 */
+  const used=BUILDINGS[0].charge.map(c=>c.it);
   let warn='';
-  if(byUse&&nM===0&&!cs.ref) warn='계량기가 없고 참조 항목도 지정하지 않았습니다. 사용량 비율로 배분할 근거가 없습니다.';
+  if(cs.neu&&!(cs.name||'').trim()) warn='항목명을 입력하세요.';
+  else if(byUse&&nM===0&&!cs.ref) warn='계량기가 없고 참조 항목도 지정하지 않았습니다. 사용량 비율로 배분할 근거가 없습니다.';
   else if(onlyNo&&nNo===0) warn='전 유닛이 계량기를 보유해 잔여를 배분할 대상이 없습니다. 잔여분 부담을 「전체 유닛」으로 바꾸세요.';
   const prev = warn ? `<div class="prev warn2"><div class="pt">설정을 확인하세요</div>${warn}</div>`
    : `<div class="prev"><div class="pt">이 설정의 결과</div>
@@ -728,20 +766,37 @@ function csHTML(){
         : nM?`계량기 보유 ${nM}개 유닛의 검침분은 임차인이 직접 납부합니다.<br>`:''}
       ${nM&&cs.mtrCharge==='청구함'?'잔여 사용량':'고지서 전액'}을
       <b>${nM?targetN:nAll}개 유닛</b>${nM?`(${onlyNo?'계량기 없는 유닛만':'전체 유닛'})`:''}에
-      <b>${cs.basis}${cs.ref&&cs.ref!==cs.item?` · ${M(cs.ref).name} 검침값`:''} 비율</b>로 배분합니다.</div>`;
+      <b>${cs.basis}${cs.ref&&cs.ref!==cs.item?` · ${M(cs.ref).name} 검침값`:''} 비율</b>로 배분하며,
+      <b>${cs.cycle}</b> 발생합니다.</div>`;
   return `<div class="dro"><div class="ov" onclick="closeDrawer()"></div><div class="pn">
-    <div class="dh"><div><div class="t">청구 항목 설정</div>
-      <div class="s">동교동 영준빌딩</div></div>
+    <div class="dh"><div>
+      <div class="t">청구 항목 설정 <span class="bd ac" style="font-size:10px;vertical-align:2px">슈퍼관리자</span></div>
+      <div class="s">동교동 영준빌딩${cs.editing?' · 수정':''}</div></div>
       <button class="x" onclick="closeDrawer()">✕</button></div>
     <div class="db">
       <div class="fg"><div class="fl">항목</div>
         <div class="fr"><span class="fk">청구 항목</span>
           <select onchange="csSet('item',this.value)">
-            ${MASTER.map(x=>`<option value="${x.code}" ${x.code===cs.item?'selected':''}>${x.name}</option>`).join('')}
+            ${MASTER.map(x=>`<option value="${x.code}" ${!cs.neu&&x.code===cs.item?'selected':''}
+              ${used.includes(x.name)&&x.code!==cs.item?'disabled':''}>${x.name}${
+              used.includes(x.name)&&x.code!==cs.item?' (사용 중)':''}</option>`).join('')}
+            <option value="__new" ${cs.neu?'selected':''}>+ 새 청구 항목 만들기</option>
           </select></div>
+        ${cs.neu?`<div class="fr"><span class="fk">항목명</span>
+          <input type="text" value="${cs.name}" placeholder="예: 공용 회의실 사용료"
+            oninput="cs.name=this.value" onchange="csSet('name',this.value)"></div>
+          <div class="hint" style="margin:-3px 0 9px 114px">운영사 전체 공통 마스터에 등록되며 다른 건물에서도 선택할 수 있습니다.</div>`:''}
         <div class="fr"><span class="fk">묶음</span>
-          <span class="fv">${m.grp} <span class="lock">${doc(m.grp)} 발행</span></span></div>
-        <div class="fr"><span class="fk">반복 주기</span><span class="fv">${m.cycle}</span></div>
+          <select onchange="csSet('grp',this.value)">
+            ${GRPS.map(g=>`<option ${cs.grp===g?'selected':''}>${g}</option>`).join('')}
+          </select></div>
+        <div class="fr"><span class="fk">발행 문서</span>
+          <span class="fv">${doc(cs.grp)} <span class="lock">${
+            cs.grp==='관리비-면세'||cs.grp==='기타-일반내역서'?'면세':'과세'}</span></span></div>
+        <div class="fr"><span class="fk">반복 주기</span>
+          <select onchange="csSet('cycle',this.value)">
+            ${CYCLES.map(c=>`<option ${cs.cycle===c?'selected':''}>${c}</option>`).join('')}
+          </select></div>
       </div>
 
       <div class="fg"><div class="fl">계량기 보유 유닛</div>
@@ -778,10 +833,10 @@ function csHTML(){
               `<option value="${x.code}" ${cs.ref===x.code?'selected':''}>${x.name} 검침값</option>`).join('')}
           </select></div>`:''}
       </div>
-
       ${prev}
     </div>
     <div class="df">
+      ${cs.editing?`<button class="btn ex" style="margin-right:auto" onclick="csDrop()">이 건물에서 제외</button>`:''}
       <button class="btn" onclick="closeDrawer()">취소</button>
       <button class="btn pri" onclick="csApply()">저장</button></div>
   </div></div>`;
@@ -1021,11 +1076,12 @@ function t청구(b){
     <span class="sub">계량기 보유 유닛과 배분 방식을 항목별로 정한다</span>
     <span class="ca"><button class="btn pri sm" onclick="openCS()">+ 항목 추가</button></span></div>
     <div class="tw"><table>
-      <thead><tr><th>청구항목</th><th>사용여부</th><th>묶음</th><th>계량기 보유 유닛</th><th>검침분 청구여부</th><th>잔여분 부담대상</th><th>잔여분 배분기준</th><th class="c" style="width:70px"></th></tr></thead>
+      <thead><tr><th>청구항목</th><th>사용여부</th><th>묶음</th><th>반복주기</th><th>계량기 보유 유닛</th><th>검침분 청구여부</th><th>잔여분 부담대상</th><th>잔여분 배분기준</th><th class="c" style="width:70px"></th></tr></thead>
       <tbody>${b.charge.map(c=>`<tr style="${c.use?'':'opacity:.55'}">
         <td class="c1">${c.it}</td>
         <td>${c.use?'<span class="bd ok">사용</span>':'<span class="bd mu">미사용</span>'}</td>
         <td>${c.grp||'—'}</td>
+        <td>${c.cycle||M(codeOf(c.it)).cycle||'—'}</td>
         <td>${!c.meter?'—':c.meter==='없음'?'<span style="color:var(--faint)">없음</span>':`<b>${c.meter}</b>`}</td>
         <td>${c.mtr||'—'}</td><td>${c.rest||'—'}</td><td>${c.basis||'—'}</td>
         <td class="c"><span class="det" onclick="openCS(codeOf('${c.it}'))">수정</span></td></tr>`).join('')}</tbody>
