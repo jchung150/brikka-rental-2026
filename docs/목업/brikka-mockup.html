@@ -480,7 +480,7 @@ const BUILDINGS=[
    {t:'건축물대장.pdf',sz:'2.1 MB',c:'건축물대장',by:'김영준',at:'2025-03-02 11:40'},
    {t:'2026년 화재보험증권.pdf',sz:'880 KB',c:'기타',by:'박수민',at:'2026-01-08 16:05'}],
   charge:[
-   {it:'전기요금',use:1,grp:'관리비-과세',meter:'전체 11개',mtr:'청구함',rest:'전체 유닛',basis:'검침 사용량 비율'},
+   {it:'전기요금',use:1,grp:'관리비-과세',meter:'전체 11개',mtr:'청구함',rest:'전체 유닛',basis:'사용량 비율'},
    {it:'수도요금',use:1,grp:'관리비-면세',meter:'101호',mtr:'청구함',rest:'검침기 없는 유닛만',basis:'임대면적 비율'},
    {it:'전력기금',use:1,grp:'기타-일반내역서',meter:'없음',mtr:'—',rest:'전체 유닛',basis:'검침 사용량 비율 · 전기요금 참조'},
    {it:'TV수신료',use:1,grp:'기타-일반내역서',meter:'없음',mtr:'—',rest:'전체 유닛',basis:'검침 사용량 비율 · 전기요금 참조'},
@@ -591,13 +591,21 @@ const METER={
 };
 /* 건물별 항목 설정 — 정본은 PRO-3 청구설정탭 */
 const BSET={
- elec:{meterCharge:'청구함',target:'전체 유닛',basis:'검침 사용량',ref:'elec',excl:{}},
- water:{meterCharge:'청구함',target:'검침기 없는 유닛만',basis:'임대면적',ref:null,excl:{}},
- fund:{meterCharge:'—',target:'전체 유닛',basis:'검침 사용량',ref:'elec',excl:{}},
- tv:{meterCharge:'—',target:'전체 유닛',basis:'검침 사용량',ref:'elec',excl:{}},
+ elec:{meterCharge:'자동',target:'자동',basis:'사용량',ref:null,excl:{}},
+ water:{meterCharge:'자동',target:'자동',basis:'임대면적',ref:null,excl:{}},
+ fund:{meterCharge:'자동',target:'자동',basis:'사용량',ref:'elec',excl:{}},
+ tv:{meterCharge:'자동',target:'자동',basis:'사용량',ref:'elec',excl:{}},
  gas:null, traffic:null, septic:null, parking:null,
 };
-const DEFSET={meterCharge:'—',target:'전체 유닛',basis:'임대면적',ref:null,excl:{}};
+const DEFSET={meterCharge:'자동',target:'자동',basis:'임대면적',ref:null,excl:{}};
+/* 자동 규칙 해석 — 4.1.3 */
+function resolve(code){
+  const st=BSET[code]||DEFSET;
+  const nM=(METER[code]||[]).length, nAll=UNITS_B1.length;
+  return {...st,
+    meterCharge: st.meterCharge!=='자동'?st.meterCharge:(nM?'청구함':'—'),
+    target: st.target!=='자동'?st.target:(nM&&nM<nAll?'검침기 없는 유닛만':'전체 유닛')};
+}
 let DRAWER=null, dPick=[];
 /* PRO-3 청구 항목 설정 */
 let cs=null;
@@ -606,10 +614,11 @@ const CYCLES=['이번만','매월','격월','분기','반기','연1회'];
 function loadCS(code){
   const m=M(code), b=BSET[code]||{};
   const row=BUILDINGS[0].charge.find(c=>c.it===m.name);
+  const mt=[...(METER[code]||[])];
   cs={neu:false, item:code, name:m.name, grp:m.grp, cycle:m.cycle,
-      meters:[...(METER[code]||[])],
-      mtrCharge:b.meterCharge||'청구함', target:b.target||'전체 유닛',
-      basis:b.basis||'임대면적', ref:b.ref||null, editing:!!row};
+      useMeter:mt.length>0, meters:mt,
+      mtrCharge:b.meterCharge||'자동', target:b.target||'자동',
+      basis:b.basis||'임대면적', ref:b.ref||null, editing:!!row, adv:false};
 }
 function openCS(code){
   if(code) loadCS(code);
@@ -621,20 +630,36 @@ function openCS(code){
 }
 function csNew(){
   cs={neu:true, item:null, name:'', grp:'관리비-과세', cycle:'매월',
-      meters:[], mtrCharge:'청구함', target:'전체 유닛', basis:'임대면적', ref:null, editing:false};
+      useMeter:false, meters:[], mtrCharge:'자동', target:'자동',
+      basis:'임대면적', ref:null, editing:false, adv:false};
 }
+/* 자동 규칙 — 4.1.3 */
+function csAuto(){
+  const nM=cs.useMeter?cs.meters.length:0, nAll=UNITS_B1.length;
+  return {
+    charge: cs.mtrCharge!=='자동' ? cs.mtrCharge : (nM?'청구함':'—'),
+    target: cs.target!=='자동' ? cs.target : (nM&&nM<nAll?'검침기 없는 유닛만':'전체 유닛'),
+    autoCharge: cs.mtrCharge==='자동', autoTarget: cs.target==='자동',
+  };
+}
+function csUseMeter(v){
+  cs.useMeter=(v==='사용');
+  if(!cs.useMeter) cs.meters=[];
+  else if(!cs.meters.length) cs.meters=UNITS_B1.map(u=>u.no);
+  render();
+}
+function csAdv(){cs.adv=!cs.adv;render();}
 function csSet(k,v){
   if(k==='item'){ v==='__new'? csNew() : loadCS(v); render(); return; }
   cs[k]=v;
-  if(k==='basis'&&v!=='검침 사용량') cs.ref=null;
+  if(k==='basis'&&v!=='사용량') cs.ref=null;
   render();
 }
 function csUnit(no){
   cs.meters.includes(no)?cs.meters=cs.meters.filter(x=>x!==no):cs.meters.push(no);
-  if(!cs.meters.length) cs.target='전체 유닛';
   render();
 }
-function csAll(v){cs.meters=v?UNITS_B1.map(u=>u.no):[];if(!v)cs.target='전체 유닛';render();}
+function csAll(v){cs.meters=v?UNITS_B1.map(u=>u.no):[];render();}
 function csApply(){
   let code=cs.item;
   if(cs.neu){
@@ -650,26 +675,29 @@ function csApply(){
     const m=M(code); m.grp=cs.grp; m.cycle=cs.cycle;
     m.tax=cs.grp==='관리비-과세'||cs.grp==='임대료';
   }
-  METER[code]=[...cs.meters];
-  if(cs.meters.length) BILL[code].read=BILL[code].read||{};
+  const A=csAuto();
+  METER[code]=cs.useMeter?[...cs.meters]:[];
+  if(METER[code].length) BILL[code].read=BILL[code].read||{};
   BSET[code]={meterCharge:cs.mtrCharge,target:cs.target,basis:cs.basis,
     ref:cs.ref,excl:(BSET[code]||{}).excl||{}};
   const m=M(code), bc=BUILDINGS[0].charge, row=bc.find(c=>c.it===m.name);
-  const mt=cs.meters.length===0?'없음':cs.meters.length===UNITS_B1.length?`전체 ${cs.meters.length}개`
-    :cs.meters.length<=2?cs.meters.join(', '):`${cs.meters.length}개 유닛`;
-  const data={it:m.name,use:1,grp:m.grp,cycle:m.cycle,meter:mt,mtr:cs.meters.length?cs.mtrCharge:'—',
-    rest:cs.target,basis:cs.basis+' 비율'+(cs.ref&&cs.ref!==code?` · ${M(cs.ref).name} 참조`:'')};
+  const mm=METER[code];
+  const mt=mm.length===0?'없음':mm.length===UNITS_B1.length?`전체 ${mm.length}개`
+    :mm.length<=2?mm.join(', '):`${mm.length}개 유닛`;
+  const data={it:m.name,use:1,grp:m.grp,cycle:m.cycle,meter:mt,mtr:A.charge,
+    rest:mm.length?A.target:'전체 유닛',
+    basis:cs.basis+' 비율'+(cs.ref&&cs.ref!==code?` · ${M(cs.ref).name} 참조`:'')};
   if(row) Object.assign(row,data); else bc.push(data);
   DRAWER=null; cs=null; render();
 }
 function csDrop(){
   const m=M(cs.item);
-  if(!confirm(m.name+'을 이 건물의 청구 항목에서 제외합니다.\n\n'+
-    '· 마스터에서 삭제되지 않으며 다른 건물에는 영향이 없습니다\n'+
+  if(!confirm(m.name+'을 미사용으로 전환합니다.\n\n'+
+    '· 이후 회차부터 이 건물에서 청구되지 않습니다\n'+
     '· 과거 회차의 정산 결과와 원장 기록은 그대로 유지됩니다\n'+
-    '· 이후 회차부터 이 건물에서 청구되지 않습니다')) return;
-  const bc=BUILDINGS[0].charge, i=bc.findIndex(c=>c.it===m.name);
-  if(i>=0) bc.splice(i,1);
+    '· 항목 자체는 남아 있으며 언제든 다시 사용할 수 있습니다')) return;
+  const row=BUILDINGS[0].charge.find(c=>c.it===m.name);
+  if(row){row.use=0;}
   BILL[cs.item].on=false;
   DRAWER=null; cs=null; render();
 }
@@ -705,7 +733,7 @@ const reading=(code,no)=>hasMeter(code,no)?(BILL[code].read||{})[no]:null;
 
 /* 배분 비율 — 4.1.2 산정 규칙, 4.1.3 건물 설정 */
 function ratios(m){
-  const st=BSET[m.code]||DEFSET;
+  const st=resolve(m.code);
   const ref=(st.ref&&st.ref!==m.code)?st.ref:null;
   if(ref) return ratios(M(ref));          /* 참조 항목의 비율을 그대로 쓴다 */
   const b=BILL[m.code], ex=st.excl||{};
@@ -748,29 +776,29 @@ function calc(m){
 
 function csHTML(){
   if(DRAWER!=='chargeset'||!cs) return '';
-  const U=UNITS_B1;
-  const nM=cs.meters.length, nAll=U.length, nNo=nAll-nM;
+  const U=UNITS_B1, A=csAuto();
+  const nM=cs.useMeter?cs.meters.length:0, nAll=U.length, nNo=nAll-nM;
   const doc=g=>g==='관리비-면세'?'계산서':g==='기타-일반내역서'?'내역서':'세금계산서';
-  const byUse=cs.basis==='검침 사용량';
-  const onlyNo=cs.target==='검침기 없는 유닛만';
+  const byUse=cs.basis==='사용량';
+  const onlyNo=A.target==='검침기 없는 유닛만';
   const targetN=onlyNo?nNo:nAll;
-  const used=BUILDINGS[0].charge.map(c=>c.it);
+  const used=BUILDINGS[0].charge.filter(c=>c.use).map(c=>c.it);
   let warn='';
   if(cs.neu&&!(cs.name||'').trim()) warn='항목명을 입력하세요.';
-  else if(byUse&&nM===0&&!cs.ref) warn='계량기가 없고 참조 항목도 지정하지 않았습니다. 사용량 비율로 배분할 근거가 없습니다.';
-  else if(onlyNo&&nNo===0) warn='전 유닛이 계량기를 보유해 잔여를 배분할 대상이 없습니다. 잔여분 부담을 「전체 유닛」으로 바꾸세요.';
+  else if(byUse&&nM===0&&!cs.ref) warn='사용량 기준인데 계량기를 사용하지 않습니다. 계량기를 켜거나 참조 항목을 지정하세요.';
+  else if(cs.useMeter&&!nM) warn='계량기를 사용하지만 보유 유닛을 선택하지 않았습니다.';
+  else if(onlyNo&&nNo===0) warn='전 유닛이 계량기를 보유해 잔여를 배분할 대상이 없습니다.';
   const prev = warn ? `<div class="prev warn2"><div class="pt">설정을 확인하세요</div>${warn}</div>`
    : `<div class="prev"><div class="pt">이 설정의 결과</div>
-      ${nM&&cs.mtrCharge==='청구함'
-        ? `계량기 보유 <b>${nM}개 유닛</b>은 자기 검침 사용량만큼 청구받습니다.<br>`
-        : nM?`계량기 보유 ${nM}개 유닛의 검침분은 임차인이 직접 납부합니다.<br>`:''}
-      ${nM&&cs.mtrCharge==='청구함'?'잔여 사용량':'고지서 전액'}을
-      <b>${nM?targetN:nAll}개 유닛</b>${nM?`(${onlyNo?'계량기 없는 유닛만':'전체 유닛'})`:''}에
-      <b>${cs.basis}${cs.ref&&cs.ref!==cs.item?` · ${M(cs.ref).name} 검침값`:''} 비율</b>로 배분하며,
+      ${nM&&A.charge==='청구함'
+        ? `계량기 보유 <b>${nM}개 유닛</b>은 자기 사용량만큼 청구받습니다.<br>`
+        : nM?`계량기 보유 ${nM}개 유닛의 사용분은 임차인이 직접 납부합니다.<br>`:''}
+      ${nM&&A.charge==='청구함'?'남은 금액':'고지서 전액'}을
+      <b>${nM?targetN:nAll}개 유닛</b>${nM?`(${onlyNo?'계량기 없는 유닛':'전체 유닛'})`:''}에
+      <b>${cs.basis}${cs.ref&&cs.ref!==cs.item?` · ${M(cs.ref).name} 검침값`:''} 비율</b>로 나눕니다.<br>
       <b>${cs.cycle}</b> 발생합니다.</div>`;
   return `<div class="dro"><div class="ov" onclick="closeDrawer()"></div><div class="pn">
-    <div class="dh"><div>
-      <div class="t">청구 항목 설정 <span class="bd ac" style="font-size:10px;vertical-align:2px">슈퍼관리자</span></div>
+    <div class="dh"><div><div class="t">청구 항목 설정</div>
       <div class="s">동교동 영준빌딩${cs.editing?' · 수정':''}</div></div>
       <button class="x" onclick="closeDrawer()">✕</button></div>
     <div class="db">
@@ -799,7 +827,25 @@ function csHTML(){
           </select></div>
       </div>
 
-      <div class="fg"><div class="fl">계량기 보유 유닛</div>
+      <div class="fg"><div class="fl">배분 방식</div>
+        <div class="fr"><span class="fk">배분 기준</span>
+          <select onchange="csSet('basis',this.value)">
+            ${['임대면적','사용량'].map(o=>`<option ${cs.basis===o?'selected':''}>${o}</option>`).join('')}
+          </select></div>
+        <div class="fr"><span class="fk">계량기</span>
+          <select onchange="csUseMeter(this.value)">
+            ${['사용 안 함','사용'].map(o=>`<option ${(cs.useMeter?'사용':'사용 안 함')===o?'selected':''}>${o}</option>`).join('')}
+          </select></div>
+        ${byUse&&!cs.useMeter?`<div class="fr"><span class="fk">참조 항목</span>
+          <select onchange="csSet('ref',this.value||null)">
+            <option value="">선택</option>
+            ${MASTER.filter(x=>(METER[x.code]||[]).length).map(x=>
+              `<option value="${x.code}" ${cs.ref===x.code?'selected':''}>${x.name} 검침값</option>`).join('')}
+          </select></div>
+          <div class="hint" style="margin:-3px 0 0 114px">계량기가 없으므로 다른 항목의 검침값으로 나눕니다.</div>`:''}
+      </div>
+
+      ${cs.useMeter?`<div class="fg"><div class="fl">계량기 보유 유닛</div>
         <div class="utool">
           <button onclick="csAll(true)">전체 선택</button>
           <button onclick="csAll(false)">전체 해제</button>
@@ -811,32 +857,32 @@ function csHTML(){
             <span class="ut2">${u.ten||'<span style="color:var(--faint)">공실</span>'}</span>
             <span class="ua2">${fx(u.ar)} ㎡</span></div>`).join('')}
         </div>
-      </div>
+      </div>`:''}
 
-      <div class="fg"><div class="fl">배분 방식</div>
-        ${nM?`<div class="fr"><span class="fk">검침분 청구</span>
-          <select onchange="csSet('mtrCharge',this.value)">
-            ${['청구함','임차인 직접 납부'].map(o=>`<option ${cs.mtrCharge===o?'selected':''}>${o}</option>`).join('')}
-          </select></div>`:''}
-        <div class="fr"><span class="fk">${nM?'잔여분 부담':'배분 대상'}</span>
-          ${nM?`<select onchange="csSet('target',this.value)">
-            ${['전체 유닛','검침기 없는 유닛만'].map(o=>`<option ${cs.target===o?'selected':''}>${o}</option>`).join('')}
-          </select>`:'<span class="fv">전체 유닛 <span class="lock">계량기가 없어 전체가 대상</span></span>'}</div>
-        <div class="fr"><span class="fk">배분 기준</span>
-          <select onchange="csSet('basis',this.value)">
-            ${['검침 사용량','임대면적','직접 입력'].map(o=>`<option ${cs.basis===o?'selected':''}>${o}</option>`).join('')}
-          </select></div>
-        ${byUse&&nM===0?`<div class="fr"><span class="fk">참조 항목</span>
-          <select onchange="csSet('ref',this.value||null)">
-            <option value="">선택</option>
-            ${MASTER.filter(x=>(METER[x.code]||[]).length).map(x=>
-              `<option value="${x.code}" ${cs.ref===x.code?'selected':''}>${x.name} 검침값</option>`).join('')}
-          </select></div>`:''}
-      </div>
       ${prev}
+
+      <div style="margin-top:14px">
+        <button class="btn" style="width:100%;justify-content:center;color:var(--muted)"
+          onclick="csAdv()">고급 설정 ${cs.adv?'▴':'▾'}</button>
+        ${cs.adv?`<div class="fg" style="margin-top:12px">
+          <div class="fr"><span class="fk">사용분 청구</span>
+            <select onchange="csSet('mtrCharge',this.value)">
+              ${['자동','청구함','임차인 직접 납부'].map(o=>`<option ${cs.mtrCharge===o?'selected':''}>${o}${
+                o==='자동'?` — ${A.charge}`:''}</option>`).join('')}
+            </select></div>
+          <div class="fr"><span class="fk">남은 금액 부담</span>
+            <select onchange="csSet('target',this.value)">
+              ${['자동','전체 유닛','검침기 없는 유닛만'].map(o=>`<option ${cs.target===o?'selected':''}>${o}${
+                o==='자동'?` — ${A.target}`:''}</option>`).join('')}
+            </select></div>
+          <div class="hint" style="margin-top:2px">
+            계량기 설정에 따라 자동으로 정해집니다. 건물 전체가 공급자에게 직접 납부하는 등
+            예외적인 경우에만 바꾸세요.</div>
+        </div>`:''}
+      </div>
     </div>
     <div class="df">
-      ${cs.editing?`<button class="btn ex" style="margin-right:auto" onclick="csDrop()">이 건물에서 제외</button>`:''}
+      ${cs.editing?`<button class="btn ex" style="margin-right:auto" onclick="csDrop()">이 청구항목 미사용</button>`:''}
       <button class="btn" onclick="closeDrawer()">취소</button>
       <button class="btn pri" onclick="csApply()">저장</button></div>
   </div></div>`;
@@ -1162,7 +1208,7 @@ function billRow(m){
   const b=BILL[m.code];
   return `<tr>
     <td><div class="c1">${m.name}</div><div class="c2">${m.grp} · ${m.src}</div></td>
-    <td><span class="bd mu">${BSET[m.code]?BSET[m.code].basis:'임대면적'}</span>${
+    <td><span class="bd mu">${resolve(m.code).basis}</span>${
       (BSET[m.code]&&BSET[m.code].excl&&Object.keys(BSET[m.code].excl).length)
       ? `<div class="c2">제외 ${Object.keys(BSET[m.code].excl).length}개 유닛</div>`:''}</td>
     <td><input class="inp d" type="date" value="${b.date}" onchange="setBill('${m.code}','date',this.value)"></td>
@@ -1187,7 +1233,7 @@ function setRead(code,no,v){
 }
 function setReadDate(code,v){BILL[code].readDate=v;render();}
 function stRead(m,R){
-  const b=BILL[m.code], st=BSET[m.code]||DEFSET;
+  const b=BILL[m.code], st=resolve(m.code);
   const rows=R.rows.filter(r=>r.hasM);
   const noM=R.rows.filter(r=>!r.hasM);
   const todo=rows.filter(r=>!r.typed).length;
@@ -1265,8 +1311,8 @@ function stResult(m,R){
   const b=BILL[m.code];
   return `
   <div class="card"><div class="ct">산출 결과
-    <span class="sub">${m.name} · ${(BSET[m.code]||DEFSET).basis} 비율 배분${
-      ((BSET[m.code]||{}).ref&&BSET[m.code].ref!==m.code)?` · 기준 ${M(BSET[m.code].ref).name}`:''}</span></div>
+    <span class="sub">${m.name} · ${resolve(m.code).basis} 비율 배분${
+      (resolve(m.code).ref&&resolve(m.code).ref!==m.code)?` · 기준 ${M(resolve(m.code).ref).name}`:''}</span></div>
     <div class="tw"><table>
       <thead><tr><th>유닛</th><th>임차인</th>
         ${R.charge&&isMetered(m.code)?'<th class="n">검침 사용량</th>':''}
@@ -1298,7 +1344,7 @@ function stResult(m,R){
         <span class="lock">계량기 ${meterUnits(m.code).length}개 유닛</span></dd>`:''}
       <dt>잔여 사용량</dt><dd>${fx(R.rest)} ${m.unit||''}
         <span class="lock">${R.onlyNoMeter?'계량기 없는 유닛에만 배분':'전체 유닛에 배분'}</span></dd>
-      <dt>배분 가중치 합</dt><dd>${fx(R.wSum)} <span class="lock">${(BSET[m.code]||DEFSET).basis}</span></dd>
+      <dt>배분 가중치 합</dt><dd>${fx(R.wSum)} <span class="lock">${resolve(m.code).basis}</span></dd>
       <dt>고지서 금액</dt><dd>${won(R.total)}</dd>
     </dl></div></div>
   </div>
