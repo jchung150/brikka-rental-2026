@@ -130,6 +130,16 @@ tr.vacr td{background:var(--warn-bg)}
 .fnd b{color:var(--pri)}
 .fnd .h{font-weight:700;color:var(--pri);display:block;margin-bottom:4px}
 
+/* 고지서 입력 표 */
+table.bt2 td{padding:9px 12px}
+.inp.lg{width:120px;font-weight:500}
+.inp.d{width:130px;text-align:left;font-size:12px}
+.inp .u,.n .u{color:var(--muted);font-size:11.5px}
+.kx{color:var(--faint);cursor:pointer;font-size:15px;padding:2px 6px;border-radius:4px;display:inline-block;line-height:1}
+.kx:hover{background:var(--danger-bg);color:var(--danger)}
+.addsel{border:1px solid var(--line);background:var(--bg);padding:5px 10px;border-radius:var(--r-sm);
+  font-size:12px;cursor:pointer;font-family:inherit}
+
 /* 접힘 상태 */
 .app.fold .side{width:62px}
 .app.fold{grid-template-columns:62px 1fr}
@@ -467,74 +477,60 @@ const UNITS_B1=[
 ];
 /* 정산 대상 항목 — 기준표 3.3 중 산정방식이 「정산」인 것 */
 const MASTER=[
- {code:'elec',name:'전기요금',grp:'관리비-과세',unit:'kWh',cycle:'매월',meter:true,
-  basis:'사용량',target:'전체 유닛',src:'한국전력 고지서',
-  parts:[{k:'supply',n:'전기요금 공급가액',item:'전기요금',grp:'관리비-과세'},
-         {k:'vat',n:'부가세',item:'전기요금',grp:'관리비-과세'},
-         {k:'fund',n:'전력산업기반기금',item:'전력기금',grp:'기타-일반내역서'},
-         {k:'tv',n:'TV수신료',item:'TV수신료',grp:'기타-일반내역서'}]},
- {code:'water',name:'수도요금',grp:'관리비-면세',unit:'톤',cycle:'격월',meter:false,
-  basis:'면적',target:'전체 유닛',src:'상수도사업본부 고지서',
-  parts:[{k:'amt',n:'요금 (면세)',item:'수도요금',grp:'관리비-면세'}]},
- {code:'gas',name:'가스요금',grp:'관리비-과세',unit:'㎥',cycle:'매월',meter:true,
-  basis:'사용량',target:'전체 유닛',src:'도시가스 고지서',
-  parts:[{k:'supply',n:'공급가액',item:'가스요금',grp:'관리비-과세'},{k:'vat',n:'부가세',item:'가스요금',grp:'관리비-과세'}]},
- {code:'traffic',name:'교통유발부담금',grp:'관리비-면세',unit:null,cycle:'연1회',meter:false,
-  basis:'면적',target:'전체 유닛',src:'구청 고지서',
-  parts:[{k:'amt',n:'부담금 (면세)',item:'교통유발부담금',grp:'관리비-면세'}]},
- {code:'septic',name:'정화조청소비',grp:'관리비-면세',unit:null,cycle:'반기',meter:false,
-  basis:'면적',target:'전체 유닛',src:'청소업체 청구서',
-  parts:[{k:'amt',n:'청소비 (면세)',item:'정화조청소비',grp:'관리비-면세'}]},
- {code:'parking',name:'주차비',grp:'관리비-과세',unit:null,cycle:'매월',meter:false,
-  basis:'직접 입력',target:'—',src:'경비 집계표',
-  parts:[{k:'supply',n:'공급가액',item:'주차비',grp:'관리비-과세'},{k:'vat',n:'부가세',item:'주차비',grp:'관리비-과세'}]},
+ {code:'elec', name:'전기요금',      grp:'관리비-과세', unit:'kWh', cycle:'매월',   meter:true,  tax:true,  basis:'검침 사용량', src:'한국전력'},
+ {code:'water',name:'수도요금',      grp:'관리비-면세', unit:'톤',  cycle:'격월',   meter:false, tax:false, basis:'임대면적',   src:'상수도사업본부'},
+ {code:'fund', name:'전력기금',      grp:'기타-일반내역서', unit:null, cycle:'매월', meter:false, tax:false, basis:'전기요금과 동일', follow:'elec', src:'한국전력'},
+ {code:'tv',   name:'TV수신료',      grp:'기타-일반내역서', unit:null, cycle:'매월', meter:false, tax:false, basis:'전기요금과 동일', follow:'elec', src:'한국전력'},
+ {code:'gas',  name:'가스요금',      grp:'관리비-과세', unit:'㎥',  cycle:'매월',   meter:true,  tax:true,  basis:'검침 사용량', src:'도시가스'},
+ {code:'traffic',name:'교통유발부담금',grp:'관리비-면세', unit:null, cycle:'연1회', meter:false, tax:false, basis:'임대면적',   src:'구청'},
+ {code:'septic',name:'정화조청소비',  grp:'관리비-면세', unit:null, cycle:'반기',   meter:false, tax:false, basis:'임대면적',   src:'청소업체'},
+ {code:'parking',name:'주차비',      grp:'관리비-과세', unit:null, cycle:'매월',   meter:false, tax:true,  basis:'직접 입력',  src:'경비 집계표'},
 ];
-/* 이번 회차 입력값 */
+const M=c=>MASTER.find(x=>x.code===c);
+/* 이번 회차 입력값 — 기본은 전기·수도 2종 */
 const BILL={
- elec:{on:true,date:'2026-09-08',use:12400,supply:1920000,vat:192000,fund:71040,tv:2500,
+ elec:{on:true,date:'2026-09-08',use:12400,supply:1920000,vat:192000,
    read:{'201호':[45230,46180],'202호':[32100,32890],'301호':[28450,29720],'401호':[11200,11215],
          '402호':[9840,9860],'501호':[51300,53140],'601호':[47890,49560],'701호':[38220,39850],
          '801호':[42670,44390],'B101':[5120,5340]},
    readDate:'2026-09-05',
    adj:{'501호':{mul:1.15,why:'계량기 노후로 저계측 확인. 검교정 전까지 보정',by:'김영준',at:'2026-09-06 11:20'}}},
- water:{on:true,date:'2026-09-11',use:620,amt:1240000,read:null,readDate:null,adj:{}},
- gas:{on:false,use:0,supply:0,vat:0,read:null,adj:{}},
- traffic:{on:false,use:null,amt:0,read:null,adj:{}},
- septic:{on:false,use:null,amt:0,read:null,adj:{}},
- parking:{on:false,use:null,supply:0,vat:0,read:null,adj:{}},
+ water:{on:true,date:'2026-09-11',use:620,supply:1240000,vat:0,read:null,readDate:null,adj:{}},
+ fund:{on:false,date:'2026-09-08',use:null,supply:71040,vat:0,read:null,adj:{}},
+ tv:{on:false,date:'2026-09-08',use:null,supply:2500,vat:0,read:null,adj:{}},
+ gas:{on:false,date:'',use:0,supply:0,vat:0,read:null,adj:{}},
+ traffic:{on:false,date:'',use:null,supply:0,vat:0,read:null,adj:{}},
+ septic:{on:false,date:'',use:null,supply:0,vat:0,read:null,adj:{}},
+ parking:{on:false,date:'',use:null,supply:0,vat:0,read:null,adj:{}},
 };
 const SETTLE={ym:'2026-09',status:'작성중'};
 const selItems=()=>MASTER.filter(m=>BILL[m.code].on);
 let pItem=0, pStep=0;
 const setPStep=i=>{pStep=i;render()};
 const setPItem=i=>{pItem=i;render()};
-function toggleItem(code){
-  BILL[code].on=!BILL[code].on;
-  if(pItem>=selItems().length) pItem=0;
-  render();
-}
+function addItem(code){if(!code)return;BILL[code].on=true;render();}
+function delItem(code){BILL[code].on=false;if(pItem>=selItems().length)pItem=0;render();}
 function setMul(code,no,v){
-  const b=BILL[code]; const m=parseFloat(v);
-  if(!m||m===1){delete b.adj[no];}
+  const b=BILL[code],m=parseFloat(v);
+  if(!m||m===1)delete b.adj[no];
   else b.adj[no]={mul:m,why:(b.adj[no]&&b.adj[no].why)||'담당자 조정',by:'김영준',at:'2026-09-24 09:41'};
   render();
 }
 function setBill(code,key,v){
-  BILL[code][key]=Math.max(0,parseFloat(String(v).replace(/,/g,''))||0);
+  const b=BILL[code];
+  if(key==='date'){b.date=v;render();return;}
+  const n=Math.max(0,Math.round(parseFloat(String(v).replace(/[,\s]/g,''))||0));
+  b[key]=n;
+  if(key==='supply'&&M(code).tax&&!b.vatManual) b.vat=Math.round(n*0.1);
+  if(key==='vat') b.vatManual=true;
   render();
 }
-const billTotal=m=>m.parts.reduce((a,p)=>a+(BILL[m.code][p.k]||0),0);
-/* 청구 항목별 금액 — 같은 고지서라도 묶음이 다르면 분리된다 */
-function billItems(m){
-  const b=BILL[m.code], out=[];
-  m.parts.forEach(p=>{
-    const f=out.find(o=>o.item===p.item);
-    if(f) f.amt+=b[p.k]||0; else out.push({item:p.item,grp:p.grp,amt:b[p.k]||0});
-  });
-  return out;
-}
-/* 안분 계산 — 4.1.2 */
-function calc(m){
+const billTotal=m=>(BILL[m.code].supply||0)+(BILL[m.code].vat||0);
+const grandTotal=()=>selItems().reduce((a,m)=>a+billTotal(m),0);
+
+/* 배분 비율 — follow 항목은 기준 항목의 비율을 그대로 쓴다 (4.1.2 8단계) */
+function ratios(m){
+  if(m.follow) return ratios(M(m.follow));
   const b=BILL[m.code];
   const rows=UNITS_B1.map(u=>{
     const r=b.read&&b.read[u.no];
@@ -545,19 +541,23 @@ function calc(m){
   const sumAdj=rows.reduce((a,r)=>a+r.adj,0);
   const totUse=b.use||0;
   const rest=m.meter? totUse-sumAdj : totUse;
-  const wSum=rows.reduce((a,r)=>a+(m.basis==='사용량'?r.adj:r.ar*r.mul),0);
-  const items=billItems(m);
+  const byUse=m.basis.includes('사용량');
+  const wSum=rows.reduce((a,r)=>a+(byUse?r.adj:r.ar*r.mul),0);
   rows.forEach(r=>{
-    const w=m.basis==='사용량'?r.adj:r.ar*r.mul;
+    const w=byUse?r.adj:r.ar*r.mul;
     r.w=w; r.rest=wSum?rest*w/wSum:0;
     r.tot=(m.meter?r.adj:0)+r.rest;
-    const ratio=totUse?r.tot/totUse:0;
-    r.amts=items.map(it=>Math.floor(it.amt*ratio));
-    r.amt=r.amts.reduce((a,x)=>a+x,0);
+    r.ratio=totUse?r.tot/totUse:(wSum?w/wSum:0);
   });
+  return {rows,sumAdj,rest,wSum,totUse};
+}
+/* 안분 계산 — 4.1.2 */
+function calc(m){
+  const base=ratios(m), amt=billTotal(m);
+  const rows=base.rows.map(r=>({...r, amt:Math.floor(amt*r.ratio)}));
   const bill=rows.filter(r=>r.st==='사용중').reduce((a,r)=>a+r.amt,0);
-  const vac=rows.filter(r=>r.st!=='사용중').reduce((a,r)=>a+r.amt,0);
-  return {rows,sumAdj,rest,wSum,items,bill,vac,total:billTotal(m),diff:billTotal(m)-(bill+vac)};
+  const vac =rows.filter(r=>r.st!=='사용중').reduce((a,r)=>a+r.amt,0);
+  return {...base,rows,bill,vac,total:amt,diff:amt-(bill+vac)};
 }
 
 /* ═══ 유틸 ═══ */
@@ -821,56 +821,76 @@ function PAY10(){
   ${body}`;
 }
 
-/* ── 1단계 · 항목 선택 + 고지서 입력 ── */
+/* ── 1단계 · 항목 선택 + 고지서 입력 (단일 표) ── */
 function stBill(){
-  const sel=selItems();
+  const sel=selItems(), rest=MASTER.filter(m=>!BILL[m.code].on);
+  if(!sel.length) return `
+    <div class="tbl"><div class="empty"><div class="t">이번 회차에 정산할 항목이 없습니다</div>
+      고정관리비만 받는 건물은 정산 없이 청구할 수 있습니다.<br><br>
+      ${addSel(rest)}</div></div>`;
   return `
-  <div class="card"><div class="ct">이번 회차 정산 항목
-    <span class="sub">임대료·고정관리비는 계약 약정액이므로 여기서 다루지 않는다</span>
-    <span class="ca"><button class="btn sm">+ 항목 추가</button></span></div>
-    <div class="tw"><table>
-      <thead><tr><th class="c" style="width:52px">정산</th><th>청구항목</th><th>묶음 · 발행 문서</th>
-        <th>주기</th><th>고지서 출처</th><th>배분 기준</th></tr></thead>
-      <tbody>${MASTER.map(m=>{const on=BILL[m.code].on;return `
-        <tr onclick="toggleItem('${m.code}')" class="${on?'':'dim'}">
-          <td class="c"><span class="cb" style="${on?'background:var(--pri);border-color:var(--pri)':''}"></span></td>
-          <td class="c1">${m.name}</td>
-          <td>${m.grp} <span class="lock">${m.grp.includes('면세')?'계산서':m.grp.includes('일반')?'내역서':'세금계산서'}</span></td>
-          <td>${m.cycle}</td><td style="color:var(--muted)">${m.src}</td>
-          <td>${m.basis}${m.meter?' <span class="lock">계량기</span>':''}</td>
-        </tr>`}).join('')}
+  <div class="card">
+    <div class="ct">이번 회차 정산 항목 · 고지서 입력
+      <span class="sub">임대료·고정관리비는 계약 약정액이므로 여기서 다루지 않는다</span>
+      <span class="ca">${addSel(rest)}</span></div>
+    <div class="tw"><table class="bt2">
+      <thead><tr>
+        <th>청구항목</th><th>배분 기준</th><th>수령일</th>
+        <th class="n">고지서 총사용량</th><th class="n">공급가액 · 금액</th><th class="n">부가세</th>
+        <th class="n">소계</th><th class="c" style="width:40px"></th></tr></thead>
+      <tbody>
+        ${sel.map(m=>billRow(m)).join('')}
+        <tr class="sumr"><td colspan="6">고지서 합계</td>
+          <td class="n">${won(grandTotal())}</td><td></td></tr>
       </tbody></table></div>
   </div>
-  ${sel.length? sel.map(m=>billCard(m)).join('') :
-    `<div class="tbl"><div class="empty"><div class="t">선택된 항목이 없습니다</div>
-      위 표에서 이번 회차에 정산할 항목을 고르세요.</div></div>`}
-  ${sel.length?`<div class="fnd"><span class="h">확인 필요 — 전기 고지서 하나에서 청구 항목 3개가 나옵니다</span>
-    한국전력 고지서에는 전기요금·전력기금·TV수신료가 함께 찍히지만, 기준표(3.3)에서 <b>전력기금과 TV수신료는
-    별도 청구 항목</b>이고 묶음도 <b>기타-일반내역서</b>라 발행 문서가 다릅니다.
-    입력은 고지서 단위로 한 번, 청구는 항목별로 나뉩니다. 명세에는 이 관계가 적혀 있지 않습니다.</div>`:''}`;
-}
-function billCard(m){
-  const b=BILL[m.code], tot=billTotal(m), items=billItems(m);
-  return `
-  <div class="card"><div class="ct">${m.name} 고지서 <span class="sub">${m.src}</span>
-    <span class="ca"><button class="btn sm">고지서 첨부</button></span></div>
-    <div class="cc"><div class="two" style="gap:0 40px">
-      <dl class="dl">
-        <dt>고지서 수령일</dt><dd>${b.date||'—'}</dd>
-        ${m.unit?`<dt>고지서 총사용량</dt><dd><input class="inp" value="${b.use}" type="number"
-           onchange="setBill('${m.code}','use',this.value)"> ${m.unit}</dd>`:''}
-      </dl>
-      <dl class="dl">
-        ${m.parts.map(p=>`<dt>${p.n}</dt><dd><input class="inp" value="${b[p.k]||0}" type="number"
-           onchange="setBill('${m.code}','${p.k}',this.value)"> 원</dd>`).join('')}
-        <dt style="font-weight:700;color:var(--ink)">고지서 합계</dt>
-        <dd style="font-weight:700">${won(tot)} <span class="lock">자동 계산</span></dd>
-      </dl>
-    </div>
-    ${items.length>1?`<div class="hint">이 고지서는 청구 항목 ${items.length}개로 나뉩니다 —
-      ${items.map(i=>`<b>${i.item}</b> ${won(i.amt)}`).join(' · ')}</div>`:''}
-    </div>
+  <div class="two">
+    <div class="card"><div class="ct">묶음별 발행 문서 <span class="sub">묶음이 다르면 문서가 나뉜다</span></div>
+      <div class="tw"><table>
+        <thead><tr><th>묶음</th><th>발행 문서</th><th>해당 항목</th><th class="n">금액</th></tr></thead>
+        <tbody>${grpRows(sel)}</tbody></table></div></div>
+    <div class="card"><div class="ct">입력 도우미</div><div class="cc">
+      <div class="hint" style="margin-top:4px">
+      · <b>부가세</b>는 공급가액의 10%로 자동 계산됩니다. 고지서와 다르면 직접 고치세요.<br>
+      · <b>면세 항목</b>(수도·전력기금·TV수신료·교통유발부담금·정화조청소비)은 부가세란이 잠깁니다.<br>
+      · <b>사용량이 없는 항목</b>은 금액만 입력하고, 배분은 기준 항목이나 면적 비율을 따릅니다.<br>
+      · 행 우측 <b>×</b>로 이번 회차에서 항목을 뺄 수 있습니다.</div>
+    </div></div>
   </div>`;
+}
+function addSel(rest){
+  if(!rest.length) return '<span style="color:var(--muted);font-size:12px">모든 항목이 선택됨</span>';
+  return `<select class="addsel" onchange="addItem(this.value);this.value=''">
+    <option value="">+ 항목 추가</option>
+    ${rest.map(m=>`<option value="${m.code}">${m.name} · ${m.cycle}</option>`).join('')}</select>`;
+}
+function billRow(m){
+  const b=BILL[m.code];
+  return `<tr>
+    <td><div class="c1">${m.name}</div><div class="c2">${m.grp} · ${m.src}</div></td>
+    <td>${m.follow?`<span class="bd ac">${m.basis}</span>`:`<span class="bd mu">${m.basis}</span>`}
+        <div class="c2">${m.cycle}</div></td>
+    <td><input class="inp d" type="date" value="${b.date}" onchange="setBill('${m.code}','date',this.value)"></td>
+    <td class="n">${m.unit
+      ? `<input class="inp" type="number" value="${b.use||0}" onchange="setBill('${m.code}','use',this.value)"> <span class="u">${m.unit}</span>`
+      : '<span style="color:var(--faint)">—</span>'}</td>
+    <td class="n"><input class="inp lg" type="text" value="${num(b.supply||0)}"
+        onchange="setBill('${m.code}','supply',this.value)"></td>
+    <td class="n">${m.tax
+      ? `<input class="inp" type="text" value="${num(b.vat||0)}" onchange="setBill('${m.code}','vat',this.value)">`
+      : '<span class="bd mu">면세</span>'}</td>
+    <td class="n"><b>${won(billTotal(m))}</b></td>
+    <td class="c"><span class="kx" onclick="delItem('${m.code}')" title="이번 회차에서 제외">×</span></td>
+  </tr>`;
+}
+function grpRows(sel){
+  const g={};
+  sel.forEach(m=>{g[m.grp]=g[m.grp]||{items:[],amt:0};g[m.grp].items.push(m.name);g[m.grp].amt+=billTotal(m);});
+  const doc={'관리비-과세':'세금계산서','관리비-면세':'계산서','기타-일반내역서':'별도 발행 없음 · 내역서'};
+  return Object.entries(g).map(([k,v])=>`<tr>
+    <td class="c1">${k}</td><td>${doc[k]||'—'}</td>
+    <td style="color:var(--muted)">${v.items.join(' · ')}</td>
+    <td class="n">${won(v.amt)}</td></tr>`).join('');
 }
 
 /* ── 2단계 · 검침 ── */
@@ -919,35 +939,39 @@ function stAdj(m,R){
 
 /* ── 4단계 · 산출 결과 ── */
 function stResult(m,R){
-  const its=R.items;
+  const b=BILL[m.code];
   return `
-  <div class="card"><div class="ct">산출 결과 <span class="sub">${m.name} · ${m.basis} 비율 배분</span></div>
+  <div class="card"><div class="ct">산출 결과
+    <span class="sub">${m.name} · ${m.basis} 비율 배분${m.follow?` · 기준 항목 ${M(m.follow).name}`:''}</span></div>
     <div class="tw"><table>
       <thead><tr><th>유닛</th><th>임차인</th>
-        <th class="n">정산 사용량</th><th class="n">잔여 배분</th><th class="n">총사용량</th>
-        ${its.map(i=>`<th class="n">${i.item}</th>`).join('')}
-        ${its.length>1?'<th class="n">합계</th>':''}</tr></thead>
+        ${m.meter?'<th class="n">정산 사용량</th>':''}
+        <th class="n">${m.meter?'잔여 배분':'배분 사용량'}</th>
+        ${m.unit?'<th class="n">유닛 총사용량</th>':''}
+        <th class="n">배분 비율</th><th class="n">청구금액</th></tr></thead>
       <tbody>
-        ${R.rows.filter(r=>r.st==='사용중').map(r=>row4(r,m,its)).join('')}
-        ${R.rows.filter(r=>r.st!=='사용중').map(r=>row4(r,m,its,'vacr')).join('')}
+        ${R.rows.filter(r=>r.st==='사용중').map(r=>row4(r,m)).join('')}
+        ${R.rows.filter(r=>r.st!=='사용중').map(r=>row4(r,m,'vacr')).join('')}
         <tr class="sumr"><td colspan="2">합계</td>
-          <td class="n">${m.meter?fx(R.sumAdj):'—'}</td><td class="n">${fx(R.rest)}</td>
-          <td class="n">${fx(R.rows.reduce((a,r)=>a+r.tot,0))}</td>
-          ${its.map((it,i)=>`<td class="n">${won(R.rows.reduce((a,r)=>a+r.amts[i],0))}</td>`).join('')}
-          ${its.length>1?`<td class="n">${won(R.bill+R.vac)}</td>`:''}</tr>
+          ${m.meter?`<td class="n">${fx(R.sumAdj)}</td>`:''}
+          <td class="n">${fx(R.rest)}</td>
+          ${m.unit?`<td class="n">${fx(R.rows.reduce((a,r)=>a+r.tot,0))}</td>`:''}
+          <td class="n">100.0%</td>
+          <td class="n">${won(R.bill+R.vac)}</td></tr>
       </tbody></table></div>
   </div>
   <div class="two">
     <div class="card"><div class="ct">청구 구분</div><div class="cc"><dl class="dl">
       <dt>임차인 청구액</dt><dd><b>${won(R.bill)}</b> <span class="lock">${R.rows.filter(r=>r.st==='사용중').length}개 유닛</span></dd>
       <dt>공실 · 미청구분</dt><dd><b style="color:var(--warn)">${won(R.vac)}</b> <span class="lock">건축주 부담</span></dd>
-      <dt>단가</dt><dd>${BILL[m.code].use?fx(R.total/BILL[m.code].use,2)+'원 / '+m.unit:'—'}</dd>
+      <dt>묶음 · 발행 문서</dt><dd>${m.grp} <span class="lock">${m.grp==='관리비-과세'?'세금계산서':m.grp==='관리비-면세'?'계산서':'내역서'}</span></dd>
     </dl></div></div>
     <div class="card"><div class="ct">계산 근거</div><div class="cc"><dl class="dl">
-      <dt>고지서 총사용량</dt><dd>${num(BILL[m.code].use||0)} ${m.unit||''}</dd>
-      <dt>Σ 정산 사용량</dt><dd>${m.meter?fx(R.sumAdj)+' '+m.unit:'— <span class="lock">계량기 없음</span>'}</dd>
-      <dt>잔여 사용량</dt><dd>${fx(R.rest)} ${m.unit||''} <span class="lock">${m.meter?'공용부':'전체'}</span></dd>
+      ${m.unit?`<dt>고지서 총사용량</dt><dd>${num(b.use||0)} ${m.unit}</dd>`:''}
+      ${m.meter?`<dt>Σ 정산 사용량</dt><dd>${fx(R.sumAdj)} ${m.unit}</dd>
+                 <dt>잔여 사용량</dt><dd>${fx(R.rest)} ${m.unit} <span class="lock">공용부</span></dd>`:''}
       <dt>배분 가중치 합</dt><dd>${fx(R.wSum)} <span class="lock">${m.basis}</span></dd>
+      <dt>고지서 금액</dt><dd>${won(R.total)}</dd>
     </dl></div></div>
   </div>
   <div class="vfy ${R.diff===0?'ok':'no'}">
@@ -959,17 +983,18 @@ function stResult(m,R){
     ${R.diff?`<span style="margin-left:auto;font-weight:700;color:var(--warn)">차액 ${num(R.diff)}원</span>`:''}
   </div>
   ${R.diff?`<div class="fnd"><span class="h">명세에서 정해지지 않은 사항</span>
-    유닛별로 <b>원 미만을 절사</b>하기 때문에 합계가 고지서와 맞지 않습니다 (이번 항목 <b>${num(R.diff)}원</b>).
-    청구 항목이 여럿이면 항목마다 절사가 일어나 차액이 커집니다.<br>
-    명세 4.1.8은 <b>"불일치 시 확정할 수 없다"</b>고 정하고 있어, 그대로 두면 <b>확정이 영구 차단됩니다.</b></div>`:''}`;
+    유닛별로 <b>원 미만을 절사</b>하기 때문에 합계가 고지서와 맞지 않습니다 (<b>${num(R.diff)}원</b>).
+    명세 4.1.8은 <b>"불일치 시 확정할 수 없다"</b>고 정하고 있어, 그대로 두면 <b>확정이 영구 차단됩니다.</b>
+    → 검토사항 #1</div>`:''}`;
 }
-function row4(r,m,its,cls){
+function row4(r,m,cls){
   return `<tr class="${cls||''}">
     <td class="c1">${r.no}</td><td>${cls?stb(r.st)+(r.ten?' '+r.ten:''):r.ten}</td>
-    <td class="n">${m.meter?fx(r.adj):'—'}</td><td class="n">${fx(r.rest)}</td>
-    <td class="n"><b>${fx(r.tot)}</b></td>
-    ${r.amts.map(a=>`<td class="n">${won(a)}</td>`).join('')}
-    ${its.length>1?`<td class="n"><b>${won(r.amt)}</b></td>`:''}</tr>`;
+    ${m.meter?`<td class="n">${fx(r.adj)}</td>`:''}
+    <td class="n">${fx(r.rest)}</td>
+    ${m.unit?`<td class="n"><b>${fx(r.tot)}</b></td>`:''}
+    <td class="n">${(r.ratio*100).toFixed(2)}%</td>
+    <td class="n"><b>${won(r.amt)}</b></td></tr>`;
 }
 
 /* ═══ 미구현 ═══ */
