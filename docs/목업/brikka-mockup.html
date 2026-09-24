@@ -157,6 +157,39 @@ tr.exr td{background:var(--line-2);color:var(--muted)}
 .pick .pb{flex:1;min-width:0}
 .pick .pn2{font-weight:500;font-size:13px}
 
+/* 설정 패널 */
+.fg{margin-bottom:18px}
+.fg .fl{font-size:11px;color:var(--faint);font-weight:500;letter-spacing:.02em;
+  padding-bottom:7px;margin-bottom:10px;border-bottom:1px solid var(--line)}
+.fr{display:flex;align-items:center;gap:10px;margin-bottom:9px;font-size:12.5px}
+.fr .fk{width:104px;color:var(--muted);flex:none}
+.fr select,.fr input[type=text],.fr input[type=date]{flex:1;border:1px solid var(--line);
+  background:var(--bg);padding:6px 9px;border-radius:var(--r-sm);font-size:12.5px;font-family:inherit}
+.fr .fv{flex:1}
+.ulist{border:1px solid var(--line);border-radius:var(--r-sm);max-height:196px;overflow-y:auto}
+.ulist .ur{display:flex;align-items:center;gap:9px;padding:7px 11px;cursor:pointer;
+  border-bottom:1px solid var(--line-2);font-size:12.5px}
+.ulist .ur:last-child{border-bottom:0}
+.ulist .ur:hover{background:var(--side-hov)}
+.ulist .ur.on{background:var(--pri-bg)}
+.ulist .ur .ck2{width:15px;height:15px;border:1.5px solid var(--line);border-radius:3px;flex:none;
+  display:flex;align-items:center;justify-content:center;color:#fff;font-size:10px}
+.ulist .ur.on .ck2{background:var(--pri);border-color:var(--pri)}
+.ulist .ur .un2{font-weight:500;width:52px;flex:none}
+.ulist .ur .ut2{color:var(--muted);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ulist .ur .ua2{color:var(--faint);font-variant-numeric:tabular-nums}
+.utool{display:flex;gap:6px;align-items:center;margin-bottom:7px;font-size:11.5px;color:var(--muted)}
+.utool button{border:1px solid var(--line);background:var(--bg);padding:3px 9px;border-radius:99px;
+  cursor:pointer;font-size:11.5px;color:var(--ink-2);font-family:inherit}
+.utool button:hover{background:var(--side-hov)}
+.utool .cnt2{margin-left:auto}
+.prev{background:var(--pri-bg);border:1px solid var(--pri);border-left-width:3px;
+  border-radius:var(--r-sm);padding:11px 13px;font-size:12px;line-height:1.7;color:var(--ink-2)}
+.prev .pt{font-weight:700;color:var(--pri);font-size:11.5px;margin-bottom:5px}
+.prev b{color:var(--ink)}
+.warn2{background:var(--warn-bg);border-color:var(--warn)}
+.warn2 .pt{color:var(--warn)}
+
 /* 고지서 입력 표 */
 table.bt2 td{padding:9px 12px}
 .inp.lg{width:120px;font-weight:500}
@@ -516,6 +549,7 @@ const MASTER=[
  {code:'parking',name:'주차비',      grp:'관리비-과세', unit:null, cycle:'매월',   tax:true,  src:'경비 집계표'},
 ];
 const M=c=>MASTER.find(x=>x.code===c);
+const codeOf=name=>{const m=MASTER.find(x=>x.name===name);return m?m.code:'elec';};
 /* 이번 회차 입력값 — 기본은 전기·수도 2종 */
 const BILL={
  elec:{on:true,date:'2026-09-08',use:12400,supply:1920000,vat:192000,
@@ -565,8 +599,45 @@ const BSET={
 };
 const DEFSET={meterCharge:'—',target:'전체 유닛',basis:'임대면적',ref:null,excl:{}};
 let DRAWER=null, dPick=[];
+/* PRO-3 청구 항목 설정 */
+let cs=null;
+function openCS(code){
+  const m=code?M(code):MASTER.find(x=>!BUILDINGS[0].charge.some(c=>c.it===x.name))||MASTER[0];
+  cs={item:m.code, meters:[...(METER[m.code]||[])],
+      mtrCharge:(BSET[m.code]||{}).meterCharge||'청구함',
+      target:(BSET[m.code]||{}).target||'전체 유닛',
+      basis:(BSET[m.code]||{}).basis||'임대면적',
+      ref:(BSET[m.code]||{}).ref||null, excl:[]};
+  DRAWER='chargeset'; render();
+}
+function csSet(k,v){
+  cs[k]=v;
+  if(k==='item'){const m=M(v); cs.meters=[...(METER[v]||[])];
+    const b=BSET[v]||{}; cs.mtrCharge=b.meterCharge||'청구함'; cs.target=b.target||'전체 유닛';
+    cs.basis=b.basis||'임대면적'; cs.ref=b.ref||null;}
+  if(k==='basis'&&v!=='검침 사용량') cs.ref=null;
+  render();
+}
+function csUnit(no){
+  cs.meters.includes(no)?cs.meters=cs.meters.filter(x=>x!==no):cs.meters.push(no);
+  if(!cs.meters.length) cs.target='전체 유닛';
+  render();
+}
+function csAll(v){cs.meters=v?UNITS_B1.map(u=>u.no):[];if(!v)cs.target='전체 유닛';render();}
+function csApply(){
+  METER[cs.item]=[...cs.meters];
+  BSET[cs.item]={meterCharge:cs.mtrCharge,target:cs.target,basis:cs.basis,
+    ref:cs.ref,excl:(BSET[cs.item]||{}).excl||{}};
+  const m=M(cs.item), bc=BUILDINGS[0].charge, row=bc.find(c=>c.it===m.name);
+  const mt=cs.meters.length===0?'없음':cs.meters.length===UNITS_B1.length?`전체 ${cs.meters.length}개`
+    :cs.meters.length<=2?cs.meters.join(', '):`${cs.meters.length}개 유닛`;
+  const data={it:m.name,use:1,grp:m.grp,meter:mt,mtr:cs.meters.length?cs.mtrCharge:'—',
+    rest:cs.target,basis:cs.basis+' 비율'+(cs.ref&&cs.ref!==cs.item?` · ${M(cs.ref).name} 참조`:'')};
+  if(row) Object.assign(row,data); else bc.push(data);
+  DRAWER=null; cs=null; render();
+}
 function openDrawer(k){DRAWER=k;dPick=[];render();}
-function closeDrawer(){DRAWER=null;render();}
+function closeDrawer(){DRAWER=null;cs=null;render();}
 function dToggle(c){dPick.includes(c)?dPick=dPick.filter(x=>x!==c):dPick.push(c);render();}
 function dApply(){dPick.forEach(c=>BILL[c].on=true);DRAWER=null;dPick=[];render();}
 function delItem(code){BILL[code].on=false;render();}
@@ -638,7 +709,85 @@ function calc(m){
   return {...base,rows,bill,vac,total:amt,diff:amt-(bill+vac)};
 }
 
+function csHTML(){
+  if(DRAWER!=='chargeset'||!cs) return '';
+  const m=M(cs.item), U=UNITS_B1;
+  const nM=cs.meters.length, nAll=U.length, nNo=nAll-nM;
+  const doc=g=>g==='관리비-과세'?'세금계산서':g==='관리비-면세'?'계산서':'내역서';
+  const byUse=cs.basis==='검침 사용량';
+  const onlyNo=cs.target==='검침기 없는 유닛만';
+  const targetN=onlyNo?nNo:nAll;
+  /* 설정 조합 검사 */
+  let warn='';
+  if(byUse&&nM===0&&!cs.ref) warn='계량기가 없고 참조 항목도 지정하지 않았습니다. 사용량 비율로 배분할 근거가 없습니다.';
+  else if(onlyNo&&nNo===0) warn='전 유닛이 계량기를 보유해 잔여를 배분할 대상이 없습니다. 잔여분 부담을 「전체 유닛」으로 바꾸세요.';
+  const prev = warn ? `<div class="prev warn2"><div class="pt">설정을 확인하세요</div>${warn}</div>`
+   : `<div class="prev"><div class="pt">이 설정의 결과</div>
+      ${nM&&cs.mtrCharge==='청구함'
+        ? `계량기 보유 <b>${nM}개 유닛</b>은 자기 검침 사용량만큼 청구받습니다.<br>`
+        : nM?`계량기 보유 ${nM}개 유닛의 검침분은 임차인이 직접 납부합니다.<br>`:''}
+      ${nM&&cs.mtrCharge==='청구함'?'잔여 사용량':'고지서 전액'}을
+      <b>${nM?targetN:nAll}개 유닛</b>${nM?`(${onlyNo?'계량기 없는 유닛만':'전체 유닛'})`:''}에
+      <b>${cs.basis}${cs.ref&&cs.ref!==cs.item?` · ${M(cs.ref).name} 검침값`:''} 비율</b>로 배분합니다.</div>`;
+  return `<div class="dro"><div class="ov" onclick="closeDrawer()"></div><div class="pn">
+    <div class="dh"><div><div class="t">청구 항목 설정</div>
+      <div class="s">동교동 영준빌딩</div></div>
+      <button class="x" onclick="closeDrawer()">✕</button></div>
+    <div class="db">
+      <div class="fg"><div class="fl">항목</div>
+        <div class="fr"><span class="fk">청구 항목</span>
+          <select onchange="csSet('item',this.value)">
+            ${MASTER.map(x=>`<option value="${x.code}" ${x.code===cs.item?'selected':''}>${x.name}</option>`).join('')}
+          </select></div>
+        <div class="fr"><span class="fk">묶음</span>
+          <span class="fv">${m.grp} <span class="lock">${doc(m.grp)} 발행</span></span></div>
+        <div class="fr"><span class="fk">반복 주기</span><span class="fv">${m.cycle}</span></div>
+      </div>
+
+      <div class="fg"><div class="fl">계량기 보유 유닛</div>
+        <div class="utool">
+          <button onclick="csAll(true)">전체 선택</button>
+          <button onclick="csAll(false)">전체 해제</button>
+          <span class="cnt2">${nM} / ${nAll}개 선택</span></div>
+        <div class="ulist">${U.map(u=>`
+          <div class="ur ${cs.meters.includes(u.no)?'on':''}" onclick="csUnit('${u.no}')">
+            <div class="ck2">${cs.meters.includes(u.no)?'✓':''}</div>
+            <span class="un2">${u.no}</span>
+            <span class="ut2">${u.ten||'<span style="color:var(--faint)">공실</span>'}</span>
+            <span class="ua2">${fx(u.ar)} ㎡</span></div>`).join('')}
+        </div>
+      </div>
+
+      <div class="fg"><div class="fl">배분 방식</div>
+        ${nM?`<div class="fr"><span class="fk">검침분 청구</span>
+          <select onchange="csSet('mtrCharge',this.value)">
+            ${['청구함','임차인 직접 납부'].map(o=>`<option ${cs.mtrCharge===o?'selected':''}>${o}</option>`).join('')}
+          </select></div>`:''}
+        <div class="fr"><span class="fk">${nM?'잔여분 부담':'배분 대상'}</span>
+          ${nM?`<select onchange="csSet('target',this.value)">
+            ${['전체 유닛','검침기 없는 유닛만'].map(o=>`<option ${cs.target===o?'selected':''}>${o}</option>`).join('')}
+          </select>`:'<span class="fv">전체 유닛 <span class="lock">계량기가 없어 전체가 대상</span></span>'}</div>
+        <div class="fr"><span class="fk">배분 기준</span>
+          <select onchange="csSet('basis',this.value)">
+            ${['검침 사용량','임대면적','직접 입력'].map(o=>`<option ${cs.basis===o?'selected':''}>${o}</option>`).join('')}
+          </select></div>
+        ${byUse&&nM===0?`<div class="fr"><span class="fk">참조 항목</span>
+          <select onchange="csSet('ref',this.value||null)">
+            <option value="">선택</option>
+            ${MASTER.filter(x=>(METER[x.code]||[]).length).map(x=>
+              `<option value="${x.code}" ${cs.ref===x.code?'selected':''}>${x.name} 검침값</option>`).join('')}
+          </select></div>`:''}
+      </div>
+
+      ${prev}
+    </div>
+    <div class="df">
+      <button class="btn" onclick="closeDrawer()">취소</button>
+      <button class="btn pri" onclick="csApply()">저장</button></div>
+  </div></div>`;
+}
 function drawerHTML(){
+  if(DRAWER==='chargeset') return csHTML();
   if(DRAWER!=='additem') return '';
   const rest=MASTER.filter(m=>!BILL[m.code].on);
   const doc=g=>g==='관리비-과세'?'세금계산서':g==='관리비-면세'?'계산서':'내역서';
@@ -870,7 +1019,7 @@ function t청구(b){
   return `
   <div class="card"><div class="ct">청구 항목 설정
     <span class="sub">계량기 보유 유닛과 배분 방식을 항목별로 정한다</span>
-    <span class="ca"><button class="btn pri sm">+ 항목 추가</button></span></div>
+    <span class="ca"><button class="btn pri sm" onclick="openCS()">+ 항목 추가</button></span></div>
     <div class="tw"><table>
       <thead><tr><th>청구항목</th><th>사용여부</th><th>묶음</th><th>계량기 보유 유닛</th><th>검침분 청구여부</th><th>잔여분 부담대상</th><th>잔여분 배분기준</th><th class="c" style="width:70px"></th></tr></thead>
       <tbody>${b.charge.map(c=>`<tr style="${c.use?'':'opacity:.55'}">
@@ -879,7 +1028,7 @@ function t청구(b){
         <td>${c.grp||'—'}</td>
         <td>${!c.meter?'—':c.meter==='없음'?'<span style="color:var(--faint)">없음</span>':`<b>${c.meter}</b>`}</td>
         <td>${c.mtr||'—'}</td><td>${c.rest||'—'}</td><td>${c.basis||'—'}</td>
-        <td class="c"><span class="det">수정</span></td></tr>`).join('')}</tbody>
+        <td class="c"><span class="det" onclick="openCS(codeOf('${c.it}'))">수정</span></td></tr>`).join('')}</tbody>
     </table></div>
   </div>
   <div class="card"><div class="ct">청구 주기 기본값<span class="ca"><button class="btn sm">수정</button></span></div>
