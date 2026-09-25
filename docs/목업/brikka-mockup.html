@@ -1362,7 +1362,7 @@ function stAdj(m,R){
   return `
   <div class="card"><div class="ct">조정</div>
     <div class="tw"><table>
-      <thead><tr><th>계약고유명</th><th class="n">검침 사용량</th><th class="c">조정 배수</th><th class="n">정산 사용량</th><th>사유</th><th>작성자</th><th>작성일시</th></tr></thead>
+      <thead><tr><th>계약고유명</th><th class="n">검침 사용량</th><th class="c">조정 배수</th><th class="n">정산 사용량</th><th>사유</th></tr></thead>
       <tbody>${R.rows.filter(r=>r.hasM).map(r=>{const a=b.adj[r.no];return `<tr>
         <td>${cnameHTML(BUILDINGS[0].alias,r.no,r.ten)}</td>
         <td class="n">${num(r.use)} ${m.unit}</td>
@@ -1371,8 +1371,7 @@ function stAdj(m,R){
         <td class="n"><b>${fx(r.adj)}</b> ${m.unit}</td>
         <td style="min-width:260px"><input type="text" class="inp why" value="${a?a.why:''}"
              placeholder="${r.mul!==1?'사유를 입력하세요':''}"
-             onchange="setWhy('${m.code}','${r.no}',this.value)"></td>
-        <td>${a?a.by:'—'}</td><td style="color:var(--muted)">${a?a.at:'—'}</td></tr>`}).join('')}
+             onchange="setWhy('${m.code}','${r.no}',this.value)"></td></tr>`}).join('')}
       </tbody></table></div>
   </div>
   <div class="hint">
@@ -1392,7 +1391,7 @@ function stResult(m,R){
       (resolve(m.code).ref&&resolve(m.code).ref!==m.code)?` · 기준 ${M(resolve(m.code).ref).name}`:''}</span></div>
     <div class="tw"><table>
       <thead><tr><th>계약고유명</th>
-        ${R.charge&&isMetered(m.code)?'<th class="n">검침 사용량</th>':''}
+        ${R.charge&&isMetered(m.code)?'<th class="n">정산 사용량</th>':''}
         <th class="n">잔여 배분</th>
         ${m.unit?'<th class="n">유닛 총사용량</th>':''}
         <th class="n">배분 비율</th><th class="n">청구금액</th></tr></thead>
@@ -1417,7 +1416,7 @@ function stResult(m,R){
     </dl></div></div>
     <div class="card"><div class="ct">계산 근거</div><div class="cc"><dl class="dl">
       ${m.unit?`<dt>고지서 총사용량</dt><dd>${num(b.use||0)} ${m.unit}</dd>`:''}
-      ${R.charge&&isMetered(m.code)?`<dt>Σ 검침 사용량</dt><dd>${fx(R.sumAdj)} ${m.unit}
+      ${R.charge&&isMetered(m.code)?`<dt>Σ 정산 사용량</dt><dd>${fx(R.sumAdj)} ${m.unit}
         <span class="lock">계량기 ${meterUnits(m.code).length}개 유닛</span></dd>`:''}
       <dt>잔여 사용량</dt><dd>${fx(R.rest)} ${m.unit||''}
         <span class="lock">${R.onlyNoMeter?'계량기 없는 유닛에만 배분':'전체 유닛에 배분'}</span></dd>
@@ -1433,6 +1432,13 @@ function stResult(m,R){
     <span style="color:var(--muted)">고지서 <b>${won(R.total)}</b></span>
     ${R.diff?`<span style="margin-left:auto;font-weight:700;color:var(--warn)">차액 ${num(R.diff)}원</span>`:''}
   </div>
+  <div class="hint">
+    <b>정산 사용량</b> = 검침 사용량 × 조정 배수. 그 유닛이 직접 쓴 양이다.<br>
+    <b>잔여 사용량</b> = 고지서 총사용량 − Σ정산 사용량 = <b>${fx(R.rest)} ${m.unit||''}</b>.
+    복도·승강기·주차장 등 공용부에서 쓴 양이며 검침으로 잡히지 않는다.<br>
+    <b>잔여 배분</b> = 잔여 사용량 × (그 유닛 가중치 ÷ 전체 가중치). ${resolve(m.code).basis} 비율로 나눈다.<br>
+    <b>유닛 총사용량</b> = 정산 사용량 + 잔여 배분. 전용분과 공용 몫의 합이며
+    이 비율대로 고지서 금액을 나눈다.</div>
   ${R.diff?`<div class="fnd"><span class="h">명세에서 정해지지 않은 사항</span>
     유닛별로 <b>원 미만을 절사</b>하기 때문에 합계가 고지서와 맞지 않습니다 (<b>${num(R.diff)}원</b>).
     명세 4.1.8은 <b>"불일치 시 확정할 수 없다"</b>고 정하고 있어, 그대로 두면 <b>확정이 영구 차단됩니다.</b>
@@ -1448,8 +1454,7 @@ function row4(r,m,cls){
     <td class="n"><span class="bd mu">안분 제외</span>
       <div class="c2" style="text-align:right">${r.excl.why}</div></td></tr>`;
   return `<tr class="${cls||''}">
-    <td>${cnameHTML(A,r.no,r.ten)}${r.hasM?' <span class="bd ac" style="font-size:10px">계량기</span>':''}${
-      cls?' '+stb(r.st):''}</td>
+    <td>${cnameHTML(A,r.no,r.ten)}${cls?' '+stb(r.st):''}</td>
     ${showM?`<td class="n">${r.hasM?fx(r.adj):'—'}</td>`:''}
     <td class="n">${r.rest?fx(r.rest):'<span style="color:var(--faint)">—</span>'}</td>
     ${m.unit?`<td class="n"><b>${fx(r.tot)}</b></td>`:''}
