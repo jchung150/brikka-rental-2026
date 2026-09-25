@@ -982,9 +982,9 @@ const nospace=v=>String(v||'').replace(/\s+/g,'');
 const cname=(alias,no,ten)=>ten
   ? `${nospace(alias)}|${nospace(no)}|${nospace(ten)}`
   : `${nospace(alias)}|${nospace(no)}`;
-const cnameHTML=(alias,no,ten)=> ten
-  ? `<span class="cn"><b>${nospace(alias)}</b><i>|</i><b>${nospace(no)}</b><i>|</i><b>${nospace(ten)}</b></span>`
-  : '<span style="color:var(--faint)">—</span>';
+const cnameHTML=(alias,no,ten)=>
+  `<span class="cn ${ten?'':'nc'}"><b>${nospace(alias)}</b><i>|</i><b>${nospace(no)}</b>${
+    ten?`<i>|</i><b>${nospace(ten)}</b>`:''}</span>`;
 const go=h=>location.hash='#/'+h;
 function cycleOp(){opIdx=(opIdx+1)%OPS.length;paintOp();render();}
 function paintOp(){
@@ -1331,10 +1331,9 @@ function stRead(m,R){
       <input class="inp d" type="date" value="${b.readDate||''}" onchange="setReadDate('${m.code}',this.value)">
       <button class="btn sm">엑셀 업로드</button></span></div>
     <div class="tw"><table>
-      <thead><tr><th>유닛</th><th>계약고유명</th><th>유닛상태</th>
+      <thead><tr><th>계약고유명</th><th>유닛상태</th>
         <th class="n">전월 검침값</th><th class="n">당월 검침값</th><th class="n">검침 사용량</th></tr></thead>
       <tbody>${rows.map(r=>`<tr class="${r.st!=='사용중'?'dim':''}">
-        <td class="c1">${r.no}</td>
         <td>${cnameHTML(BUILDINGS[0].alias,r.no,r.ten)}</td>
         <td>${stb(r.st)}</td>
         <td class="n" style="color:var(--muted)">${r.pm!=null?num(r.pm):'—'}</td>
@@ -1342,7 +1341,7 @@ function stRead(m,R){
             onchange="setRead('${m.code}','${r.no}',this.value)"></td>
         <td class="n">${r.typed?`<b>${num(r.use)}</b> <span class="u">${m.unit}</span>`
             :'<span style="color:var(--faint)">—</span>'}</td></tr>`).join('')}
-        <tr class="sumr"><td colspan="5">검침 사용량 합계</td>
+        <tr class="sumr"><td colspan="4">검침 사용량 합계</td>
           <td class="n">${num(rows.reduce((a,r)=>a+r.use,0))} ${m.unit}</td></tr>
       </tbody></table></div>
   </div>
@@ -1359,9 +1358,8 @@ function stAdj(m,R){
   return `
   <div class="card"><div class="ct">조정 <span class="sub">${m.name} · 검침값을 고치지 않고 배수로 보정한다. 기본값 1.0</span></div>
     <div class="tw"><table>
-      <thead><tr><th>유닛</th><th>계약고유명</th><th class="n">검침 사용량</th><th class="c">조정 배수</th><th class="n">정산 사용량</th><th>사유</th><th>작성자</th><th>작성일시</th></tr></thead>
+      <thead><tr><th>계약고유명</th><th class="n">검침 사용량</th><th class="c">조정 배수</th><th class="n">정산 사용량</th><th>사유</th><th>작성자</th><th>작성일시</th></tr></thead>
       <tbody>${R.rows.map(r=>{const a=b.adj[r.no];return `<tr class="${r.st!=='사용중'?'dim':''}">
-        <td class="c1">${r.no}</td>
         <td>${cnameHTML(BUILDINGS[0].alias,r.no,r.ten)}</td>
         <td class="n">${r.hasM?num(r.use)+' '+m.unit:'<span style="color:var(--faint)">계량기 없음</span>'}</td>
         <td class="c"><input class="inp w" value="${r.mul}" step="0.1" min="0" type="number"
@@ -1387,7 +1385,7 @@ function stResult(m,R){
     <span class="sub">${m.name} · ${resolve(m.code).basis} 비율 배분${
       (resolve(m.code).ref&&resolve(m.code).ref!==m.code)?` · 기준 ${M(resolve(m.code).ref).name}`:''}</span></div>
     <div class="tw"><table>
-      <thead><tr><th>유닛</th><th>계약고유명</th>
+      <thead><tr><th>계약고유명</th>
         ${R.charge&&isMetered(m.code)?'<th class="n">검침 사용량</th>':''}
         <th class="n">잔여 배분</th>
         ${m.unit?'<th class="n">유닛 총사용량</th>':''}
@@ -1395,7 +1393,7 @@ function stResult(m,R){
       <tbody>
         ${R.rows.filter(r=>r.st==='사용중').map(r=>row4(r,m)).join('')}
         ${R.rows.filter(r=>r.st!=='사용중').map(r=>row4(r,m,'vacr')).join('')}
-        <tr class="sumr"><td colspan="2">합계</td>
+        <tr class="sumr"><td>합계</td>
           ${R.charge&&isMetered(m.code)?`<td class="n">${fx(R.sumAdj)}</td>`:''}
           <td class="n">${fx(R.rest)}</td>
           ${m.unit?`<td class="n">${fx(R.rows.reduce((a,r)=>a+r.tot,0))}</td>`:''}
@@ -1438,14 +1436,14 @@ function row4(r,m,cls){
   const R=ratios(m), showM=R.charge&&isMetered(m.code);
   const A=BUILDINGS[0].alias;
   if(r.excl) return `<tr class="exr">
-    <td class="c1">${r.no}</td><td>${cnameHTML(A,r.no,r.ten)}</td>
+    <td>${cnameHTML(A,r.no,r.ten)}</td>
     ${showM?'<td class="n">—</td>':''}<td class="n">—</td>
     ${m.unit?'<td class="n">—</td>':''}<td class="n">—</td>
     <td class="n"><span class="bd mu">안분 제외</span>
       <div class="c2" style="text-align:right">${r.excl.why}</div></td></tr>`;
   return `<tr class="${cls||''}">
-    <td class="c1">${r.no}${r.hasM?' <span class="bd ac" style="font-size:10px">계량기</span>':''}</td>
-    <td>${cls?`${cnameHTML(A,r.no,r.ten)} ${stb(r.st)}`:cnameHTML(A,r.no,r.ten)}</td>
+    <td>${cnameHTML(A,r.no,r.ten)}${r.hasM?' <span class="bd ac" style="font-size:10px">계량기</span>':''}${
+      cls?' '+stb(r.st):''}</td>
     ${showM?`<td class="n">${r.hasM?fx(r.adj):'—'}</td>`:''}
     <td class="n">${r.rest?fx(r.rest):'<span style="color:var(--faint)">—</span>'}</td>
     ${m.unit?`<td class="n"><b>${fx(r.tot)}</b></td>`:''}
