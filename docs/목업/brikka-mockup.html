@@ -157,6 +157,34 @@ tr.exr td{background:var(--line-2);color:var(--muted)}
 .pick .pb{flex:1;min-width:0}
 .pick .pn2{font-weight:500;font-size:13px}
 
+/* 건물 전환 */
+.bsw{position:relative;display:inline-block}
+.bsw > .bt2{display:inline-flex;align-items:center;gap:7px;cursor:pointer;border:0;background:none;
+  font-family:inherit;padding:2px 6px;margin-left:-6px;border-radius:var(--r-sm)}
+.bsw > .bt2:hover{background:var(--side-hov)}
+.bsw > .bt2 h1{margin:0}
+.bsw > .bt2 .cv2{color:var(--faint);font-size:12px}
+.bsw .menu{position:absolute;top:100%;left:0;margin-top:6px;min-width:280px;background:var(--bg);
+  border:1px solid var(--line);border-radius:var(--r);box-shadow:0 10px 30px rgba(0,0,0,.13);
+  z-index:30;overflow:hidden;padding:5px}
+.bsw .menu .mi{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:var(--r-sm);
+  cursor:pointer;font-size:12.5px}
+.bsw .menu .mi:hover{background:var(--side-hov)}
+.bsw .menu .mi.on{background:var(--pri-bg)}
+.bsw .menu .mi .mn{font-weight:500;flex:1}
+.bsw .menu .mi.on .mn{color:var(--pri)}
+.bsw .menu .mi .mk{font-size:11.5px;color:var(--muted)}
+.bsw .menu .hd{font-size:11px;color:var(--faint);padding:6px 10px 4px}
+
+/* 진행 현황 */
+.pgrid td.st{cursor:pointer}
+.pgrid td.st:hover{background:var(--pri-bg)}
+.stp{display:inline-flex;align-items:center;gap:5px;font-size:12px}
+.stp .dot2{width:6px;height:6px;border-radius:50%;flex:none}
+.bar{height:5px;background:var(--line-2);border-radius:99px;overflow:hidden;margin-top:4px;width:84px}
+.bar > i{display:block;height:100%;background:var(--ok);border-radius:99px}
+.bar.part > i{background:var(--warn)}
+
 /* 설정 패널 */
 .fg{margin-bottom:18px}
 .fg .fl{font-size:11px;color:var(--faint);font-weight:500;letter-spacing:.02em;
@@ -413,7 +441,8 @@ const MENU=[
  {id:'dash-1',n:'대시보드',sid:'DASH-1',i:'dash'},
  {id:'pro-1',n:'건물 관리',sid:'PRO-1',i:'bldg'},
  {id:'ctr-1',n:'계약 관리',sid:'CTR-1',i:'file'},
- {k:'청구',g:'청구 · 수납',i:'wallet',items:[
+ {k:'청구',g:'청구 · 수납',i:'wallet',over:'pay-12',items:[
+   {id:'pay-12',n:'진행 현황',sid:'PAY-12',i:'chart'},
    {id:'pay-10',n:'관리비 정산',sid:'PAY-10',i:'calc'},
    {id:'pay-1',n:'청구 스케줄',sid:'PAY-1',i:'clock'},
    {id:'pay-2',n:'청구 · 수납 현황',sid:'PAY-2',i:'wallet'},
@@ -568,6 +597,14 @@ const BILL={
  parking:{on:false,date:'',use:null,supply:0,vat:0,read:null,adj:{}},
 };
 const SETTLE={ym:'2026-09',status:'작성중'};
+/* 건물별 월 업무 진행 — PAY-12 */
+const PROG={
+ b1:{settle:'작성중',inv:0,invN:9,amt:0,paid:0,paidN:0,closed:false,due:'09-30'},
+ b2:{settle:'확정', inv:22,invN:22,amt:186420000,paid:151300000,paidN:18,closed:false,due:'10-10'},
+ b3:{settle:'확정', inv:40,invN:40,amt:312800000,paid:312800000,paidN:40,closed:true, due:'09-30'},
+ b4:{settle:'미착수',inv:0,invN:14,amt:0,paid:0,paidN:0,closed:false,due:'09-30'},
+ b5:{settle:'확정', inv:13,invN:13,amt:98640000,paid:71200000,paidN:9,closed:false,due:'09-30'},
+};
 const selItems=()=>MASTER.filter(m=>BILL[m.code].on);
 let pCode='elec', pStep=0;
 const setPStep=i=>{pStep=i;render()};
@@ -938,7 +975,8 @@ function paintOp(){
 function toggleNoti(e){e.stopPropagation();const n=$('#noti');
   n.style.display=n.style.display==='none'?'block':'none';}
 function closeNoti(){$('#noti').style.display='none';}
-addEventListener('click',e=>{if(!e.target.closest('.sf'))closeNoti();});
+addEventListener('click',e=>{if(!e.target.closest('.sf'))closeNoti();
+  if(BSW&&!e.target.closest('.bsw')){BSW=false;render();}});
 function ddBadge(end){
   const d=dday(end);
   if(d<0) return `<span class="bd da">만료됨 · ${num(-d)}일 경과</span>`;
@@ -955,15 +993,19 @@ function paintNav(cur){
     const hasOn=m.items.some(i=>i.id===active);
     const open=OPEN[m.k]||hasOn;
     return `<button class="gh ${open?'open':''} ${hasOn?'hasOn':''}" onclick="toggleG('${m.k}')" data-n="${m.g}">
-        ${ic(m.i)}<span>${m.g}</span><span class="cv">${ic('chev',14)}</span></button>
+        ${ic(m.i)}<span>${m.g}</span>
+        <span class="cv" onclick="event.stopPropagation();foldG('${m.k}')">${ic('chev',14)}</span></button>
       <div class="nsub" style="${open?'':'display:none'}">${m.items.map(i=>navLink(i,true)).join('')}</div>`;
   }).join('');
   document.querySelectorAll('.nav a').forEach(a=>a.classList.toggle('on',a.dataset.id===active));
 }
 function toggleG(k){
+  const g=MENU.find(x=>x.k===k);
   if(FOLD){FOLD=false;LS.set('brikka.fold',false);paintFold();OPEN[k]=true;}
-  else OPEN[k]=!OPEN[k];
+  else OPEN[k]=true;
   LS.set('brikka.open',OPEN);
+  go(g.over||g.items[0].id);}
+function foldG(k){OPEN[k]=!OPEN[k];LS.set('brikka.open',OPEN);
   paintNav((location.hash||'#/pro-1').replace(/^#\//,''));}
 function toggleFold(){FOLD=!FOLD;LS.set('brikka.fold',FOLD);paintFold();closeNoti();}
 function paintFold(){$('#app').classList.toggle('fold',FOLD);}
@@ -1011,15 +1053,26 @@ function PRO1(){
 }
 
 /* ═══ PRO-3 ═══ */
-let tab3='요약';
+let tab3='요약', BSW=false;
+function toggleBsw(){BSW=!BSW;render();}
+function switchB(id){BSW=false;go('pro-3/'+id);}
 const setTab=t=>{tab3=t;render();};
 function PRO3(id){
   const b=BUILDINGS.find(x=>x.id===id)||BUILDINGS[0];
   const T=[['요약',null],['유닛',b.unitCnt],['자료보관',b.docs.length],['청구설정',b.charge.filter(c=>c.use).length]];
   const body={요약:t요약,유닛:t유닛,자료보관:t자료,청구설정:t청구}[tab3](b);
   return `
-  <div class="ph"><h1>${b.name}</h1><span class="bd ac">${b.kind}</span>
-    <span class="sid">PRO-3</span>
+  <div class="ph">
+    <div class="bsw">
+      <button class="bt2" onclick="event.stopPropagation();toggleBsw()">
+        <h1>${b.name}</h1><span class="cv2">▾</span></button>
+      ${BSW?`<div class="menu" onclick="event.stopPropagation()">
+        <div class="hd">관리 중인 건물 ${BUILDINGS.length}개</div>
+        ${BUILDINGS.map(x=>`<div class="mi ${x.id===b.id?'on':''}" onclick="switchB('${x.id}')">
+          <span class="mn">${x.name}</span><span class="mk">${x.kind} · ${x.unitCnt}유닛</span></div>`).join('')}
+      </div>`:''}
+    </div>
+    <span class="bd ac">${b.kind}</span><span class="sid">PRO-3</span>
     <div class="act"><button class="btn" onclick="go('pro-1')">목록</button><button class="btn pri">수정</button></div>
   </div>
   <div class="tabs">
@@ -1379,6 +1432,63 @@ function row4(r,m,cls){
     <td class="n"><b>${won(r.amt)}</b></td></tr>`;
 }
 
+/* ═══ PAY-12 청구·수납 개요 ═══ */
+function PAY12(){
+  const S={설정:{c:'mu',t:'미착수'},미착수:{c:'mu'},작성중:{c:'wa'},확정:{c:'ok'}};
+  const rows=BUILDINGS.map(b=>{
+    const p=PROG[b.id];
+    const rate=p.invN?Math.round(p.paidN/p.invN*100):0;
+    const unpaid=p.amt-p.paid;
+    return `<tr>
+      <td><div class="c1">${b.name}</div><div class="c2">${b.kind} · ${b.unitCnt}유닛</div></td>
+      <td class="st c" onclick="go('pay-10')">
+        <span class="stp"><span class="dot2" style="background:var(--${p.settle==='확정'?'ok':p.settle==='작성중'?'warn':'faint'})"></span>
+        ${p.settle}</span></td>
+      <td class="st n" onclick="go('pay-2')">${p.inv?`<b>${p.inv}건</b><div class="c2">발행 완료</div>`
+        :`<span style="color:var(--faint)">미발행</span><div class="c2">대상 ${p.invN}건</div>`}</td>
+      <td class="n">${p.amt?won(p.amt):'—'}</td>
+      <td class="st n" onclick="go('pay-2')">${p.inv?`<b>${p.paidN} / ${p.invN}</b>
+        <div class="bar ${rate<100?'part':''}"><i style="width:${rate}%"></i></div>`:'—'}</td>
+      <td class="n">${unpaid>0?`<b style="color:var(--warn)">${won(unpaid)}</b>`
+        :p.inv?'<span class="bd ok">완납</span>':'—'}</td>
+      <td class="st c" onclick="go('pay-11')">${p.closed?'<span class="bd ok">마감</span>'
+        :'<span style="color:var(--faint)">—</span>'}</td>
+    </tr>`}).join('');
+  const T=BUILDINGS.reduce((a,b)=>{const p=PROG[b.id];
+    a.inv+=p.inv;a.invN+=p.invN;a.amt+=p.amt;a.paid+=p.paid;a.paidN+=p.paidN;
+    a.done+=(p.settle==='확정'?1:0);a.closed+=(p.closed?1:0);return a;},
+    {inv:0,invN:0,amt:0,paid:0,paidN:0,done:0,closed:0});
+  const rate=T.amt?Math.round(T.paid/T.amt*100):0;
+  return `
+  <div class="ph"><h1>청구 · 수납 진행</h1><span class="sid">PAY-12</span>
+    <div class="act"><button class="btn">엑셀 다운로드</button></div>
+  </div>
+  <div class="fbar">
+    <select><option>2026년 9월</option><option>2026년 8월</option><option>2026년 7월</option></select>
+    <span style="color:var(--muted);font-size:12px">건물 ${BUILDINGS.length}개 · 정산 확정 ${T.done} · 마감 ${T.closed}</span>
+  </div>
+  <div class="two" style="grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px">
+    ${[['청구 금액',won(T.amt),`${T.inv}건 발행`],
+       ['수납 금액',won(T.paid),`${T.paidN} / ${T.inv}건`],
+       ['미납 금액',won(T.amt-T.paid),`수납률 ${rate}%`],
+       ['정산 미확정',`${BUILDINGS.length-T.done}개 건물`,'청구 발행 불가']]
+      .map(([k,v,d],i)=>`<div class="card" style="margin:0"><div class="cc" style="padding:14px 16px">
+        <div style="font-size:11.5px;color:var(--muted)">${k}</div>
+        <div style="font-size:17px;font-weight:700;margin:3px 0 1px;${i===2&&T.amt>T.paid?'color:var(--warn)':''}${i===3&&T.done<BUILDINGS.length?'color:var(--warn)':''}">${v}</div>
+        <div class="c2">${d}</div></div></div>`).join('')}
+  </div>
+  <div class="tbl"><div class="tw"><table class="pgrid">
+    <thead><tr><th>건물</th><th class="c">정산</th><th class="n">청구서</th><th class="n">청구 금액</th>
+      <th class="n">수납</th><th class="n">미납 금액</th><th class="c">마감</th></tr></thead>
+    <tbody>${rows}
+      <tr class="sumr"><td>합계</td><td class="c">${T.done} / ${BUILDINGS.length}</td>
+        <td class="n">${T.inv}건</td><td class="n">${won(T.amt)}</td>
+        <td class="n">${T.paidN} / ${T.inv}</td><td class="n">${won(T.amt-T.paid)}</td>
+        <td class="c">${T.closed} / ${BUILDINGS.length}</td></tr>
+    </tbody></table></div></div>
+  <div class="hint">각 칸을 클릭하면 해당 화면으로 이동한다. 정산이 확정되어야 청구서를 발행할 수 있다.</div>`;
+}
+
 /* ═══ 미구현 ═══ */
 function TODO(id){
   const m=ALL.find(i=>i.id===id);
@@ -1397,6 +1507,7 @@ function render(){
   else if(id==='pro-3'){const b=BUILDINGS.find(x=>x.id===arg)||BUILDINGS[0];
     html=PRO3(arg);crumb=`<span class="c" onclick="go('pro-1')">건물 관리</span> <span>›</span> <b>${b.name}</b>`;}
   else if(id==='pay-10'){html=PAY10();crumb='청구 · 수납 <span>›</span> <b>관리비 정산</b>';}
+  else if(id==='pay-12'){html=PAY12();crumb='<b>청구 · 수납</b>';}
   else{html=TODO(id);const g=MENU.find(m=>m.items&&m.items.some(i=>i.id===id));
     const m=ALL.find(i=>i.id===id);
     crumb=(g?g.g+' <span>›</span> ':'')+`<b>${m?m.n:'—'}</b>`;}
