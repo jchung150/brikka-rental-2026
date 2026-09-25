@@ -601,11 +601,11 @@ const BILL={
 const SETTLE={ym:'2026-09',status:'작성중'};
 /* 건물별 월 업무 진행 — PAY-12 */
 const PROG={
- b1:{settle:'작성중',inv:0,invN:9,amt:0,paid:0,paidN:0,closed:false,due:'09-30'},
- b2:{settle:'확정', inv:22,invN:22,amt:186420000,paid:151300000,paidN:18,closed:false,due:'10-10'},
- b3:{settle:'확정', inv:40,invN:40,amt:312800000,paid:312800000,paidN:40,closed:true, due:'09-30'},
- b4:{settle:'미착수',inv:0,invN:14,amt:0,paid:0,paidN:0,closed:false,due:'09-30'},
- b5:{settle:'확정', inv:13,invN:13,amt:98640000,paid:71200000,paidN:9,closed:false,due:'09-30'},
+ b1:{settle:'작성중',inv:0,invN:9,amt:0,paid:0,paidN:0,closed:false,closedAt:null,due:'09-30'},
+ b2:{settle:'확정', inv:22,invN:22,amt:186420000,paid:151300000,paidN:18,closed:false,closedAt:null,due:'10-10'},
+ b3:{settle:'확정', inv:40,invN:40,amt:312800000,paid:312800000,paidN:40,closed:true, closedAt:'09-22',due:'09-30'},
+ b4:{settle:'미착수',inv:0,invN:14,amt:0,paid:0,paidN:0,closed:false,closedAt:null,due:'09-30'},
+ b5:{settle:'확정', inv:13,invN:13,amt:98640000,paid:71200000,paidN:9,closed:true, closedAt:'09-24',due:'09-30'},
 };
 const selItems=()=>MASTER.filter(m=>BILL[m.code].on);
 let pCode='elec', pStep=0;
@@ -1457,8 +1457,9 @@ function PAY12(){
         <div class="bar ${rate<100?'part':''}"><i style="width:${rate}%"></i></div>`:'—'}</td>
       <td class="n">${unpaid>0?`<b style="color:var(--warn)">${won(unpaid)}</b>`
         :p.inv?'<span class="bd ok">완납</span>':'—'}</td>
-      <td class="st c" onclick="go('pay-11')">${p.closed?'<span class="bd ok">마감</span>'
-        :'<span style="color:var(--faint)">—</span>'}</td>
+      <td class="st c" onclick="go('pay-11')">${p.closed
+        ?`<span class="bd ok">마감</span><div class="c2">${p.closedAt}</div>`
+        :'<span class="bd mu">열림</span>'}</td>
     </tr>`}).join('');
   const T=BUILDINGS.reduce((a,b)=>{const p=PROG[b.id];
     a.inv+=p.inv;a.invN+=p.invN;a.amt+=p.amt;a.paid+=p.paid;a.paidN+=p.paidN;
@@ -1471,7 +1472,7 @@ function PAY12(){
   </div>
   <div class="fbar">
     <select><option>2026년 9월</option><option>2026년 8월</option><option>2026년 7월</option></select>
-    <span style="color:var(--muted);font-size:12px">건물 ${BUILDINGS.length}개 · 정산 확정 ${T.done} · 마감 ${T.closed}</span>
+    <span style="color:var(--muted);font-size:12px">건물 ${BUILDINGS.length}개 · 정산 확정 ${T.done} · 월 마감 ${T.closed}</span>
   </div>
   <div class="two" style="grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px">
     ${[['청구 금액',won(T.amt),`${T.inv}건 발행`],
@@ -1485,14 +1486,17 @@ function PAY12(){
   </div>
   <div class="tbl"><div class="tw"><table class="pgrid">
     <thead><tr><th>건물</th><th class="c">정산</th><th class="n">청구서</th><th class="n">청구 금액</th>
-      <th class="n">수납</th><th class="n">미납 금액</th><th class="c">마감</th></tr></thead>
+      <th class="n">수납</th><th class="n">미납 금액</th><th class="c">월 마감</th></tr></thead>
     <tbody>${rows}
       <tr class="sumr"><td>합계</td><td class="c">${T.done} / ${BUILDINGS.length}</td>
         <td class="n">${T.inv}건</td><td class="n">${won(T.amt)}</td>
         <td class="n">${T.paidN} / ${T.inv}</td><td class="n">${won(T.amt-T.paid)}</td>
         <td class="c">${T.closed} / ${BUILDINGS.length}</td></tr>
     </tbody></table></div></div>
-  <div class="hint">각 칸을 클릭하면 해당 화면으로 이동한다. 정산이 확정되어야 청구서를 발행할 수 있다.</div>`;
+  <div class="hint">
+    각 칸을 클릭하면 해당 화면으로 이동한다. 정산이 확정되어야 청구서를 발행할 수 있다.<br>
+    <b>월 마감</b>은 그 달의 장부를 잠그는 것이다. 마감 후에는 청구·수납·정산을 수정할 수 없다.
+    <b>미납이 남아 있어도 마감한다.</b> 미납액은 채권으로 이월된다.</div>`;
 }
 
 /* ═══ 미구현 ═══ */
