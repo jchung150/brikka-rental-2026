@@ -306,7 +306,8 @@ td.c,th.c{text-align:center}
 .cn{white-space:nowrap;font-size:12.5px}
 .cn b{font-weight:500;color:var(--ink)}
 .cn i{color:var(--faint);font-style:normal;margin:0 1px}
-.cn em{font-style:normal;color:var(--faint)}
+.cn.nc b{color:var(--muted);font-weight:400}
+.cn.nc i{color:var(--line)}
 .c2{font-size:11.5px;color:var(--muted);margin-top:2px;white-space:nowrap}
 .det{color:var(--muted);font-size:12px;cursor:pointer}
 .det:hover{color:var(--pri)}
@@ -975,12 +976,15 @@ const TODAY=new Date('2026-09-23');
 const dday=e=>Math.ceil((new Date(e)-TODAY)/864e5);
 const ST={'사용중':'ok','공실':'mu','비운영중':'wa'};
 const stb=s=>`<span class="bd ${ST[s]||'mu'}">${s}</span>`;
-/* 계약고유명 — 건물별칭|유닛고유번호|대표임차인명. 공백 없이 결합한다 */
+/* 계약고유명 — 건물별칭|유닛고유번호|대표임차인명. 공백 없이 결합한다
+   계약이 없는 유닛은 계약고유명이 존재하지 않으므로 건물별칭|유닛고유번호로 표기한다 */
 const nospace=v=>String(v||'').replace(/\s+/g,'');
-const cname=(alias,no,ten)=>`${nospace(alias)}|${nospace(no)}|${ten?nospace(ten):'공실'}`;
+const cname=(alias,no,ten)=>ten
+  ? `${nospace(alias)}|${nospace(no)}|${nospace(ten)}`
+  : `${nospace(alias)}|${nospace(no)}`;
 const cnameHTML=(alias,no,ten)=>
-  `<span class="cn"><b>${nospace(alias)}</b><i>|</i><b>${nospace(no)}</b><i>|</i>${
-    ten?`<b>${nospace(ten)}</b>`:'<em>공실</em>'}</span>`;
+  `<span class="cn ${ten?'':'nc'}"><b>${nospace(alias)}</b><i>|</i><b>${nospace(no)}</b>${
+    ten?`<i>|</i><b>${nospace(ten)}</b>`:''}</span>`;
 const go=h=>location.hash='#/'+h;
 function cycleOp(){opIdx=(opIdx+1)%OPS.length;paintOp();render();}
 function paintOp(){
@@ -1110,6 +1114,7 @@ function t요약(b){
   <div class="two">
     <div class="card"><div class="ct">기본 정보
       <span class="ca"><button class="btn sm">수정</button></span></div><div class="cc"><dl class="dl">
+      <dt>건물명</dt><dd>${b.name}</dd>
       <dt>건물 별칭</dt><dd><b>${b.alias}</b>
         <span class="lock">계약고유명에 사용 — ${b.alias}|101호|임차인명</span></dd>
       <dt>건물구분</dt><dd>${b.kind}</dd>
@@ -1326,7 +1331,7 @@ function stRead(m,R){
       <input class="inp d" type="date" value="${b.readDate||''}" onchange="setReadDate('${m.code}',this.value)">
       <button class="btn sm">엑셀 업로드</button></span></div>
     <div class="tw"><table>
-      <thead><tr><th>계약고유명</th><th>유닛상태</th>
+      <thead><tr><th>계약 · 유닛</th><th>유닛상태</th>
         <th class="n">전월 검침값</th><th class="n">당월 검침값</th><th class="n">검침 사용량</th></tr></thead>
       <tbody>${rows.map(r=>`<tr class="${r.st!=='사용중'?'dim':''}">
         <td>${cnameHTML(BUILDINGS[0].alias,r.no,r.ten)}</td>
