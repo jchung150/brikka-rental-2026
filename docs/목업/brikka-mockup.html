@@ -1061,8 +1061,8 @@ function switchB(id){BSW=false;go('pro-3/'+id);}
 const setTab=t=>{tab3=t;render();};
 function PRO3(id){
   const b=BUILDINGS.find(x=>x.id===id)||BUILDINGS[0];
-  const T=['요약','유닛','자료보관','관리비 설정'];
-  const body={'요약':t요약,'유닛':t유닛,'자료보관':t자료,'관리비 설정':t청구}[tab3](b);
+  const T=['요약','유닛','관리비 설정','자료보관'];
+  const body={'요약':t요약,'유닛':t유닛,'관리비 설정':t청구,'자료보관':t자료}[tab3](b);
   return `
   <div class="ph">
     <div class="bsw">
@@ -1078,8 +1078,7 @@ function PRO3(id){
           <span class="mn">${x.name}</span><span class="mk">${x.kind} · ${x.unitCnt}유닛</span></div>`).join('')}
       </div>`:''}
     </div>
-    <span class="bd ac">${b.kind}</span><span class="sid">PRO-3</span>
-    <div class="act"><button class="btn" onclick="go('pro-1')">목록</button><button class="btn pri">수정</button></div>
+    <span class="sid">PRO-3</span>
   </div>
   <div class="tabs">
     ${T.map(t=>`<button class="${t===tab3?'on':''}" onclick="setTab('${t}')">${t}</button>`).join('')}
@@ -1092,7 +1091,9 @@ function t요약(b){
   const d=dday(b.mgmtEnd);
   return `
   <div class="two">
-    <div class="card"><div class="ct">기본 정보</div><div class="cc"><dl class="dl">
+    <div class="card"><div class="ct">기본 정보
+      <span class="ca"><button class="btn sm">수정</button></span></div><div class="cc"><dl class="dl">
+      <dt>건물구분</dt><dd>${b.kind}</dd>
       <dt>건물주소</dt><dd>${b.addr}<div class="c2">${b.addr2}</div></dd>
       <dt>청구일 · 납부마감일</dt><dd>${b.billDay} · ${b.dueDay}
         <div class="c2">계약 등록 시 상속. 변경해도 기존 계약은 유지</div></dd>
@@ -1100,7 +1101,8 @@ function t요약(b){
       <dt>건물관리자</dt><dd>${b.mgr}<span class="lock">${b.mgrTel}</span></dd>
       <dt>건물운영계좌</dt><dd>${b.acct}<div class="c2">예금주 ${b.acctName}</div></dd>
     </dl></div></div>
-    <div class="card"><div class="ct">건물 제원</div><div class="cc"><dl class="dl">
+    <div class="card"><div class="ct">건물 제원
+      <span class="ca"><button class="btn sm">수정</button></span></div><div class="cc"><dl class="dl">
       <dt>연면적</dt><dd>${m2(b.gross)}</dd>
       <dt>임대가능면적</dt><dd>${m2(b.area)}</dd>
       <dt>층수</dt><dd>지상 ${b.up}층 · 지하 ${b.down}층</dd>
@@ -1109,7 +1111,8 @@ function t요약(b){
     </dl></div></div>
   </div>
   <div class="two">
-    <div class="card"><div class="ct">채권 정보</div><div class="cc">
+    <div class="card"><div class="ct">채권 정보
+      <span class="ca"><button class="btn sm">수정</button></span></div><div class="cc">
       ${b.bondMax?`<dl class="dl">
         <dt>은행 · 지점</dt><dd>${b.bondBank}<span class="lock">${b.bondTel}</span></dd>
         <dt>채권최고금액</dt><dd>${won(b.bondMax)}<span class="lock">${eok(b.bondMax)}</span></dd>
