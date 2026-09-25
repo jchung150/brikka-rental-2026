@@ -620,7 +620,7 @@ function curItem(step){
   const list=stepItems(step);
   return list.find(m=>m.code===pCode) || list[0] || null;
 }
-/* 계량기 보유 유닛 (유닛 × 청구항목) — PRO-3 청구설정탭 / PRO-4 검침 설정 */
+/* 계량기 보유 유닛 (유닛 × 청구항목) — PRO-3 관리비 기준 / PRO-4 검침 설정 */
 const ALL_U=['101호','201호','202호','301호','401호','402호','501호','601호','701호','801호','B101'];
 const METER={
  elec: [...ALL_U],          /* 전 유닛 계량기 보유 */
@@ -628,7 +628,7 @@ const METER={
  gas:  [],
  fund: [], tv: [], traffic: [], septic: [], parking: [],
 };
-/* 건물별 항목 설정 — 정본은 PRO-3 청구설정탭 */
+/* 건물별 항목 설정 — 정본은 PRO-3 관리비 기준 */
 const BSET={
  elec:{meterCharge:'자동',target:'자동',basis:'사용량',ref:null,excl:{}},
  water:{meterCharge:'자동',target:'자동',basis:'임대면적',ref:null,excl:{}},
@@ -944,7 +944,7 @@ function drawerHTML(){
       ${rest.length? rest.map(card).join('')
         : '<div class="empty"><div class="t">추가할 항목이 없습니다</div>모든 항목이 이미 선택되어 있습니다.</div>'}
       ${rest.length?`<div class="hint" style="margin-top:16px">
-        배분 설정은 <b>건물 청구설정(PRO-3)</b>에서 정합니다.</div>`:''}
+        배분 설정은 <b>건물 관리비 기준(PRO-3)</b>에서 정합니다.</div>`:''}
     </div>
     <div class="df">
       <button class="btn" onclick="closeDrawer()">취소</button>
@@ -1061,8 +1061,8 @@ function switchB(id){BSW=false;go('pro-3/'+id);}
 const setTab=t=>{tab3=t;render();};
 function PRO3(id){
   const b=BUILDINGS.find(x=>x.id===id)||BUILDINGS[0];
-  const T=[['요약',null],['유닛',b.unitCnt],['자료보관',b.docs.length],['청구설정',b.charge.filter(c=>c.use).length]];
-  const body={요약:t요약,유닛:t유닛,자료보관:t자료,청구설정:t청구}[tab3](b);
+  const T=[['요약',null],['유닛',b.unitCnt],['자료보관',b.docs.length],['관리비 기준',b.charge.filter(c=>c.use).length]];
+  const body={'요약':t요약,'유닛':t유닛,'자료보관':t자료,'관리비 기준':t청구}[tab3](b);
   return `
   <div class="ph">
     <div class="bsw">
@@ -1106,6 +1106,8 @@ function t요약(b){
   <div class="two">
     <div class="card"><div class="ct">기본 정보</div><div class="cc"><dl class="dl">
       <dt>건물주소</dt><dd>${b.addr}<div class="c2">${b.addr2}</div></dd>
+      <dt>청구일 · 납부마감일</dt><dd>${b.billDay} · ${b.dueDay}
+        <div class="c2">계약 등록 시 상속. 변경해도 기존 계약은 유지</div></dd>
       <dt>건물주</dt><dd>${b.owner}<span class="lock">${b.ownerBiz}</span></dd>
       <dt>건물관리자</dt><dd>${b.mgr}<span class="lock">${b.mgrTel}</span></dd>
       <dt>건물운영계좌</dt><dd>${b.acct}<div class="c2">예금주 ${b.acctName}</div></dd>
@@ -1192,11 +1194,7 @@ function t청구(b){
         <td class="c"><span class="det" onclick="openCS(codeOf('${c.it}'))">수정</span></td></tr>`).join('')}</tbody>
     </table></div>
   </div>
-  <div class="card"><div class="ct">청구 주기 기본값<span class="ca"><button class="btn sm">수정</button></span></div>
-    <div class="cc"><dl class="dl" style="max-width:440px">
-      <dt>청구일</dt><dd>${b.billDay}</dd><dt>납부마감일</dt><dd>${b.dueDay}</dd></dl>
-      <div class="hint">계약 등록 시 상속된다. 기본값을 바꿔도 기존 계약은 유지되며 이후 등록되는 계약부터 적용된다.</div>
-    </div></div>`;
+`;
 }
 
 /* ═══ PAY-10 관리비 정산 ═══ */
@@ -1297,7 +1295,7 @@ function stRead(m,R){
   const noM=R.rows.filter(r=>!r.hasM);
   const todo=rows.filter(r=>!r.typed).length;
   return `
-  <div class="card"><div class="ct">검침 설정 <span class="sub">PRO-3 청구설정탭에서 정한다</span>
+  <div class="card"><div class="ct">검침 설정 <span class="sub">PRO-3 관리비 기준에서 정한다</span>
     <span class="ca"><button class="btn sm" onclick="go('pro-3/b1')">설정으로 이동</button></span></div>
     <div class="cc"><dl class="dl" style="max-width:640px">
       <dt>계량기 보유 유닛</dt><dd><b>${rows.length}개</b> — ${rows.map(r=>r.no).join(', ')||'없음'}
