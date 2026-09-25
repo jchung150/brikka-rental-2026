@@ -158,13 +158,16 @@ tr.exr td{background:var(--line-2);color:var(--muted)}
 .pick .pn2{font-weight:500;font-size:13px}
 
 /* 건물 전환 */
-.bsw{position:relative;display:inline-block}
-.bsw > .bt2{display:inline-flex;align-items:center;gap:7px;cursor:pointer;border:0;background:none;
-  font-family:inherit;padding:2px 6px;margin-left:-6px;border-radius:var(--r-sm)}
-.bsw > .bt2:hover{background:var(--side-hov)}
-.bsw > .bt2 h1{margin:0}
-.bsw > .bt2 .cv2{color:var(--faint);font-size:12px}
-.bsw .menu{position:absolute;top:100%;left:0;margin-top:6px;min-width:280px;background:var(--bg);
+.bsw{position:relative;display:inline-flex;align-items:center;gap:9px}
+.bsw h1{margin:0}
+.bsw .bt2{display:inline-flex;align-items:center;gap:5px;cursor:pointer;
+  border:1px solid var(--line);background:var(--bg);font-family:inherit;
+  padding:5px 9px 5px 10px;border-radius:99px;font-size:11.5px;color:var(--muted);font-weight:500}
+.bsw .bt2:hover{border-color:var(--pri);color:var(--pri);background:var(--pri-bg)}
+.bsw .bt2.open{border-color:var(--pri);color:var(--pri);background:var(--pri-bg)}
+.bsw .bt2 svg{transition:transform .15s}
+.bsw .bt2.open svg{transform:rotate(180deg)}
+.bsw .menu{position:absolute;top:100%;left:0;margin-top:8px;min-width:300px;background:var(--bg);
   border:1px solid var(--line);border-radius:var(--r);box-shadow:0 10px 30px rgba(0,0,0,.13);
   z-index:30;overflow:hidden;padding:5px}
 .bsw .menu .mi{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:var(--r-sm);
@@ -442,7 +445,6 @@ const MENU=[
  {id:'pro-1',n:'건물 관리',sid:'PRO-1',i:'bldg'},
  {id:'ctr-1',n:'계약 관리',sid:'CTR-1',i:'file'},
  {k:'청구',g:'청구 · 수납',i:'wallet',over:'pay-12',items:[
-   {id:'pay-12',n:'진행 현황',sid:'PAY-12',i:'chart'},
    {id:'pay-10',n:'관리비 정산',sid:'PAY-10',i:'calc'},
    {id:'pay-1',n:'청구 스케줄',sid:'PAY-1',i:'clock'},
    {id:'pay-2',n:'청구 · 수납 현황',sid:'PAY-2',i:'wallet'},
@@ -990,7 +992,7 @@ function paintNav(cur){
   const active=(cur||'').split('/')[0];
   $('#nav').innerHTML=MENU.map(m=>{
     if(!m.items) return navLink(m);
-    const hasOn=m.items.some(i=>i.id===active);
+    const hasOn=m.items.some(i=>i.id===active)||m.over===active;
     const open=OPEN[m.k]||hasOn;
     return `<button class="gh ${open?'open':''} ${hasOn?'hasOn':''}" onclick="toggleG('${m.k}')" data-n="${m.g}">
         ${ic(m.i)}<span>${m.g}</span>
@@ -1064,8 +1066,12 @@ function PRO3(id){
   return `
   <div class="ph">
     <div class="bsw">
-      <button class="bt2" onclick="event.stopPropagation();toggleBsw()">
-        <h1>${b.name}</h1><span class="cv2">▾</span></button>
+      <h1>${b.name}</h1>
+      <button class="bt2 ${BSW?'open':''}" onclick="event.stopPropagation();toggleBsw()"
+        title="다른 건물로 전환">건물 전환
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
       ${BSW?`<div class="menu" onclick="event.stopPropagation()">
         <div class="hd">관리 중인 건물 ${BUILDINGS.length}개</div>
         ${BUILDINGS.map(x=>`<div class="mi ${x.id===b.id?'on':''}" onclick="switchB('${x.id}')">
