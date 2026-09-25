@@ -114,7 +114,9 @@ svg{flex:none}
 .inp{border:1px solid var(--line);background:var(--bg);border-radius:var(--r-sm);padding:5px 9px;
   font-size:12.5px;width:92px;text-align:right;font-variant-numeric:tabular-nums}
 .inp:focus{outline:0;border-color:var(--pri)}
-.inp.w{width:72px}
+.inp.w{width:76px}
+.inp.why{width:100%;text-align:left;font-size:12px}
+.inp.why:disabled{background:var(--line-2);border-color:transparent;color:var(--faint)}
 tr.dim td{color:var(--muted)}
 tr.sumr td{background:var(--head);font-weight:700;border-top:1px solid var(--line)}
 tr.vacr td{background:var(--warn-bg)}
@@ -587,8 +589,7 @@ const BILL={
    read:{'101호':[22840,24110],'201호':[45230,46180],'202호':[32100,32890],'301호':[28450,29720],'401호':[11200,11215],
          '402호':[9840,9860],'501호':[51300,53140],'601호':[47890,49560],'701호':[38220,39850],
          '801호':[42670,44390],'B101':[5120,5340]},
-   readDate:'2026-09-05',
-   adj:{'501호':{mul:1.15,why:'계량기 노후로 저계측 확인. 검교정 전까지 보정',by:'김영준',at:'2026-09-06 11:20'}}},
+   readDate:'2026-09-05', adj:{}},
  water:{on:true,date:'2026-09-11',use:620,supply:1240000,vat:0,
    read:{'101호':[1240,1318]},readDate:'2026-09-10',adj:{}},
  fund:{on:false,date:'2026-09-08',use:null,supply:71040,vat:0,read:null,adj:{}},
@@ -746,9 +747,15 @@ function dToggle(c){dPick.includes(c)?dPick=dPick.filter(x=>x!==c):dPick.push(c)
 function dApply(){dPick.forEach(c=>BILL[c].on=true);DRAWER=null;dPick=[];render();}
 function delItem(code){BILL[code].on=false;render();}
 function setMul(code,no,v){
-  const b=BILL[code],m=parseFloat(v);
-  if(!m||m===1)delete b.adj[no];
-  else b.adj[no]={mul:m,why:(b.adj[no]&&b.adj[no].why)||'담당자 조정',by:'김영준',at:'2026-09-24 09:41'};
+  const b=BILL[code], m=parseFloat(v);
+  if(!m||m===1){delete b.adj[no];}
+  else b.adj[no]={mul:m, why:(b.adj[no]&&b.adj[no].why)||'',
+                  by:'김영준', at:'2026-09-25 10:14'};
+  render();
+}
+function setWhy(code,no,v){
+  const a=BILL[code].adj[no];
+  if(a){a.why=v; a.at='2026-09-25 10:14';}
   render();
 }
 function setBill(code,key,v){
@@ -1261,7 +1268,10 @@ function stBill(){
         <tr class="sumr"><td colspan="6">합계</td>
           <td class="n">${won(grandTotal())}</td><td></td></tr>
       </tbody></table></div>
-  </div>`;
+  </div>
+  <div class="hint">
+    청구 항목은 <b>건물 관리 › 관리비 설정</b>에서 정의한 목록에서 가져온다.
+    회차마다 제외하거나 다시 추가할 수 있으나 목록에 없는 항목은 선택할 수 없다.</div>`;
 }
 function billRow(m){
   const b=BILL[m.code];
@@ -1297,20 +1307,6 @@ function stRead(m,R){
   const noM=R.rows.filter(r=>!r.hasM);
   const todo=rows.filter(r=>!r.typed).length;
   return `
-  <div class="card"><div class="ct">검침 설정 <span class="sub">PRO-3 관리비 설정에서 정한다</span>
-    <span class="ca"><button class="btn sm" onclick="go('pro-3/b1')">설정으로 이동</button></span></div>
-    <div class="cc"><dl class="dl" style="max-width:640px">
-      <dt>계량기 보유 유닛</dt><dd><b>${rows.length}개</b> — ${rows.map(r=>r.no).join(', ')||'없음'}
-        <div class="c2">전체 ${R.rows.length}개 유닛 중</div></dd>
-      <dt>검침분 청구</dt><dd>${st.meterCharge==='청구함'
-        ? '<b>청구함</b> — 계량기 보유 유닛은 자기 검침 사용량만큼 청구받는다'
-        : '임차인 직접 납부'}</dd>
-      <dt>잔여분 부담</dt><dd><b>${st.target}</b> — ${st.target==='검침기 없는 유닛만'
-        ? `계량기 보유 유닛은 잔여 배분에서 빠진다`
-        : `계량기 유무와 무관하게 전체가 잔여를 나눈다`}</dd>
-      <dt>배분 기준</dt><dd>${st.basis} 비율</dd>
-    </dl></div>
-  </div>
   <div class="card"><div class="ct">검침 입력
     <span class="sub">${m.name} · ${rows.length}개 유닛${todo?` · <b style="color:var(--warn)">미입력 ${todo}개</b>`:' · 입력 완료'}</span>
     <span class="ca">
@@ -1332,15 +1328,11 @@ function stRead(m,R){
           <td class="n">${num(rows.reduce((a,r)=>a+r.use,0))} ${m.unit}</td></tr>
       </tbody></table></div>
   </div>
-  ${noM.length?`<div class="card"><div class="ct">계량기 없는 유닛
-    <span class="sub">${noM.length}개 · 검침하지 않는다</span></div>
-    <div class="cc" style="padding-top:12px">
-      ${noM.map(r=>`<span class="tag">${r.no}${r.ten?' · '+r.ten:''}</span>`).join('')}
-      <div class="hint">${st.target==='검침기 없는 유닛만'
-        ? `잔여 사용량 <b>${fx(R.rest)} ${m.unit}</b>을 이 유닛들에만 ${st.basis} 비율로 배분한다.`
-        : `잔여 사용량 <b>${fx(R.rest)} ${m.unit}</b>을 전체 유닛에 ${st.basis} 비율로 배분한다.`}</div>
-    </div></div>`:''}
-  <div class="hint">검침 기록은 원본이며 수정하지 않는다. 보정이 필요하면 3단계에서 조정 배수를 기록한다.</div>`;
+  <div class="hint">
+    계량기 보유 유닛은 <b>건물 관리 › 관리비 설정</b>에서 정한다. 현재 ${rows.length} / ${R.rows.length}개 유닛.
+    ${noM.length?`나머지 ${noM.length}개 유닛은 검침하지 않으며 잔여 사용량
+      <b>${fx(R.rest)} ${m.unit}</b>을 ${st.basis} 비율로 나눈다.`:''}<br>
+    검침 기록은 원본이며 수정하지 않는다. 보정이 필요하면 3단계에서 조정 배수를 기록한다.</div>`;
 }
 
 /* ── 3단계 · 조정 ── */
@@ -1349,20 +1341,23 @@ function stAdj(m,R){
   return `
   <div class="card"><div class="ct">조정 <span class="sub">${m.name} · 검침값을 고치지 않고 배수로 보정한다. 기본값 1.0</span></div>
     <div class="tw"><table>
-      <thead><tr><th>유닛</th><th class="n">원본 사용량</th><th class="c">조정 배수</th><th class="n">정산 사용량</th><th>사유</th><th>작성자</th><th>작성일시</th></tr></thead>
+      <thead><tr><th>유닛</th><th class="n">검침 사용량</th><th class="c">조정 배수</th><th class="n">정산 사용량</th><th>사유</th><th>작성자</th><th>작성일시</th></tr></thead>
       <tbody>${R.rows.map(r=>{const a=b.adj[r.no];return `<tr class="${r.st!=='사용중'?'dim':''}">
         <td class="c1">${r.no}</td>
         <td class="n">${r.hasM?num(r.use)+' '+m.unit:'<span style="color:var(--faint)">계량기 없음</span>'}</td>
-        <td class="c"><input class="inp w" value="${r.mul}" step="0.05" type="number"
+        <td class="c"><input class="inp w" value="${r.mul}" step="0.1" min="0" type="number"
              onchange="setMul('${m.code}','${r.no}',this.value)"></td>
         <td class="n">${r.hasM?`<b>${fx(r.adj)}</b> ${m.unit}`:'—'}</td>
-        <td style="white-space:normal;max-width:320px;color:${a?'var(--ink-2)':'var(--faint)'}">${a?a.why:'—'}</td>
+        <td style="min-width:260px"><input type="text" class="inp why" value="${a?a.why:''}"
+             placeholder="${r.mul!==1?'사유를 입력하세요':'—'}" ${r.mul===1?'disabled':''}
+             onchange="setWhy('${m.code}','${r.no}',this.value)"></td>
         <td>${a?a.by:'—'}</td><td style="color:var(--muted)">${a?a.at:'—'}</td></tr>`}).join('')}
       </tbody></table></div>
   </div>
-  <div class="fnd"><span class="h">조정 배수</span>
-    계량기가 있는 유닛은 <b>검침 사용량 × 배수</b>, 없는 유닛은 <b>면적 × 배수</b>가 가중치입니다.
-    배수를 올리면 그 유닛 부담이 커지고 나머지 유닛 부담이 줄어듭니다. 총액은 항상 고지서와 일치합니다.</div>`;
+  <div class="hint">
+    기본값은 <b>1.0</b>이며 0.1 단위로 조정한다. 1이 아닌 값을 입력하면 사유가 필수다.<br>
+    계량기가 있는 유닛은 <b>검침 사용량 × 배수</b>, 없는 유닛은 <b>임대면적 × 배수</b>가 가중치가 된다.
+    배수를 올리면 그 유닛 부담이 커지고 나머지 유닛 부담이 줄어든다. 총액은 항상 고지서와 일치한다.</div>`;
 }
 
 /* ── 4단계 · 산출 결과 ── */
