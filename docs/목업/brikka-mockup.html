@@ -782,13 +782,20 @@ const isMetered=code=>meterUnits(code).length>0;
 /* 검침값 — 계량기 보유 유닛만 유효하다 */
 const reading=(code,no)=>hasMeter(code,no)?(BILL[code].read||{})[no]:null;
 
-/* 배분 비율 — 4.1.2 산정 규칙, 4.1.3 건물 설정 */
+/* 배분 계산 — 4.1.2
+   ① 검침 사용량 = 당월 − 전월            (원본. 배수를 적용하지 않는다)
+   ② 공용 사용량 = 고지서 총사용량 − Σ검침 사용량
+   ③ 기본 가중치 = 검침 사용량 또는 임대면적   (배분 기준에 따름)
+   ④ 조정 가중치 = 기본 가중치 × 조정 배수     ← 배수는 여기서만 쓴다
+   ⑤ 공용 배분  = 공용 사용량 × (조정 가중치 ÷ Σ조정 가중치)   총량은 변하지 않는다
+   ⑥ 유닛 총사용량 = 검침 사용량 + 공용 배분
+   ⑦ 청구금액 = 고지서 총금액 × (유닛 총사용량 ÷ 고지서 총사용량) */
 function ratios(m){
   const st=resolve(m.code);
   const ref=(st.ref&&st.ref!==m.code)?st.ref:null;
-  if(ref) return ratios(M(ref));          /* 참조 항목의 비율을 그대로 쓴다 */
+  if(ref) return ratios(M(ref));
   const b=BILL[m.code], ex=st.excl||{};
-  const charge=st.meterCharge==='청구함';   /* 검침분 청구 여부 */
+  const charge=st.meterCharge==='청구함';
   const byUse=(st.basis||'').includes('사용량');
   const onlyNoMeter=st.target==='검침기 없는 유닛만';
 
@@ -797,26 +804,25 @@ function ratios(m){
     const r=reading(m.code,u.no);
     const use=r?r[1]-r[0]:0;
     const mul=(b.adj[u.no]&&b.adj[u.no].mul)||1;
-    return {...u,pm:r?r[0]:null,cm:r?r[1]:null,hasM,typed:!!r,use,mul,adj:use*mul,excl:ex[u.no]||null};
+    return {...u,pm:r?r[0]:null,cm:r?r[1]:null,hasM,typed:!!r,use,mul,excl:ex[u.no]||null};
   });
-  /* 2) Σ정산 사용량 — 제외 유닛 제외 */
-  const sumAdj=rows.reduce((a,r)=>a+(r.excl?0:r.adj),0);
+  /* ② 공용 사용량 — 검침 원본으로만 산출한다 */
+  const sumUse=rows.reduce((a,r)=>a+(r.excl?0:r.use),0);
   const totUse=b.use||0;
-  /* 3) 잔여 사용량 */
-  const rest=charge? totUse-sumAdj : totUse;
-  /* 4) 가중치 — 잔여분 부담 대상만 */
+  const common=charge? totUse-sumUse : totUse;
+  /* ③④ 가중치 */
   const inTarget=r=>!r.excl && (onlyNoMeter? !r.hasM : true);
-  const wSum=rows.reduce((a,r)=>a+(inTarget(r)?(byUse?r.adj:r.ar*r.mul):0),0);
+  const base=r=>byUse? r.use : r.ar;
+  const wSum=rows.reduce((a,r)=>a+(inTarget(r)? base(r)*r.mul : 0),0);
   rows.forEach(r=>{
-    const w=inTarget(r)?(byUse?r.adj:r.ar*r.mul):0;
-    r.w=w;
-    r.rest=wSum?rest*w/wSum:0;                    /* 5) 잔여 배분 */
-    r.tot=r.excl?0:((charge&&r.hasM?r.adj:0)+r.rest);  /* 6) 유닛 총사용량 */
-    r.ratio=r.excl?0:(totUse?r.tot/totUse:(wSum?w/wSum:0));
+    r.w=inTarget(r)? base(r)*r.mul : 0;
+    r.common=wSum? common*r.w/wSum : 0;         /* ⑤ */
+    r.tot=r.excl?0:((charge&&r.hasM?r.use:0)+r.common);  /* ⑥ */
+    r.ratio=r.excl?0:(totUse?r.tot/totUse:(wSum?r.w/wSum:0));
   });
-  return {rows,sumAdj,rest,wSum,totUse,charge,onlyNoMeter,byUse};
+  return {rows,sumUse,common,wSum,totUse,charge,onlyNoMeter,byUse};
 }
-/* 7) 유닛 청구금액 */
+/* ⑦ */
 function calc(m){
   const base=ratios(m), amt=billTotal(m);
   const rows=base.rows.map(r=>({...r, amt:Math.floor(amt*r.ratio)}));
@@ -1346,9 +1352,9 @@ function stRead(m,R){
   </div>
   <div class="hint">
     계량기 보유 유닛은 <b>건물 관리 › 관리비 설정</b>에서 정한다. 현재 ${rows.length} / ${R.rows.length}개 유닛.
-    ${noM.length?`나머지 ${noM.length}개 유닛은 검침하지 않으며 잔여 사용량
-      <b>${fx(R.rest)} ${m.unit}</b>을 ${st.basis} 비율로 나눈다.`:''}<br>
-    검침 기록은 원본이며 수정하지 않는다. 보정이 필요하면 3단계에서 조정 배수를 기록한다.</div>`;
+    ${noM.length?`나머지 ${noM.length}개 유닛은 검침하지 않으며 공용 사용량
+      <b>${fx(R.common)} ${m.unit}</b>을 ${st.basis} 비율로 나눈다.`:''}<br>
+    검침 기록은 원본이며 수정하지 않는다. 공용부 부담을 조정하려면 3단계에서 조정 배수를 기록한다.</div>`;
 }
 
 /* ── 3단계 · 조정 ── */
@@ -1362,23 +1368,28 @@ function stAdj(m,R){
   return `
   <div class="card"><div class="ct">조정</div>
     <div class="tw"><table>
-      <thead><tr><th>계약고유명</th><th class="n">검침 사용량</th><th class="c">조정 배수</th><th class="n">정산 사용량</th><th>사유</th></tr></thead>
+      <thead><tr><th>계약고유명</th><th class="n">검침 사용량</th><th class="c">조정 배수</th><th class="n">공용 배분</th><th>사유</th></tr></thead>
       <tbody>${R.rows.filter(r=>r.hasM).map(r=>{const a=b.adj[r.no];return `<tr>
         <td>${cnameHTML(BUILDINGS[0].alias,r.no,r.ten)}</td>
         <td class="n">${num(r.use)} ${m.unit}</td>
         <td class="c"><input class="inp w" value="${r.mul}" step="0.1" min="0" type="number"
+             ${R.onlyNoMeter?'disabled title="이 항목은 검침기 없는 유닛만 공용분을 부담하므로 배수가 적용되지 않습니다"':''}
              onchange="setMul('${m.code}','${r.no}',this.value)"></td>
-        <td class="n"><b>${fx(r.adj)}</b> ${m.unit}</td>
+        <td class="n">${R.onlyNoMeter?'<span style="color:var(--faint)">부담 대상 아님</span>'
+             :`<b>${fx(r.common)}</b> ${m.unit}`}</td>
         <td style="min-width:260px"><input type="text" class="inp why" value="${a?a.why:''}"
+             ${R.onlyNoMeter?'disabled':''}
              placeholder="${r.mul!==1?'사유를 입력하세요':''}"
              onchange="setWhy('${m.code}','${r.no}',this.value)"></td></tr>`}).join('')}
       </tbody></table></div>
   </div>
   <div class="hint">
-    검침값을 고치지 않고 배수로 보정한다. 기본값은 <b>1.0</b>이며 0.1 단위로 조정한다.
-    1이 아닌 값을 넣으면 사유를 입력한다.<br>
-    <b>정산 사용량 = 검침 사용량 × 배수</b>. 배수를 올리면 그 유닛 부담이 커지고
-    나머지 유닛 부담이 줄어든다. 총액은 항상 고지서와 일치한다.<br>
+    검침값은 실측이므로 고치지 않는다. 배수는 <b>공용 사용량을 나누는 비율에만</b> 적용한다.
+    기본값은 <b>1.0</b>이며 0.1 단위로 조정한다. 1이 아닌 값을 넣으면 사유를 입력한다.<br>
+    배수를 올리면 그 유닛의 <b>공용 배분</b>이 늘고 나머지 유닛의 공용 배분이 그만큼 줄어든다.
+    공용 사용량 총량 <b>${fx(R.common)} ${m.unit||''}</b>은 변하지 않는다.<br>
+    ${R.onlyNoMeter?`<b style="color:var(--warn)">이 항목은 검침기 없는 유닛만 공용분을 부담한다.</b>
+      계량기 보유 유닛은 검침분만 청구되므로 배수를 넣어도 산출이 달라지지 않아 입력을 막았다.<br>`:''}
     계량기 보유 유닛만 표시한다. 계량기를 추가하려면 <b>건물 관리 › 관리비 설정</b>에서 지정한다.</div>`;
 }
 
@@ -1391,16 +1402,16 @@ function stResult(m,R){
       (resolve(m.code).ref&&resolve(m.code).ref!==m.code)?` · 기준 ${M(resolve(m.code).ref).name}`:''}</span></div>
     <div class="tw"><table>
       <thead><tr><th>계약고유명</th>
-        ${R.charge&&isMetered(m.code)?'<th class="n">정산 사용량</th>':''}
-        <th class="n">잔여 배분</th>
+        ${R.charge&&isMetered(m.code)?'<th class="n">검침 사용량</th>':''}
+        <th class="n">공용 배분</th>
         ${m.unit?'<th class="n">유닛 총사용량</th>':''}
         <th class="n">배분 비율</th><th class="n">청구금액</th></tr></thead>
       <tbody>
         ${R.rows.filter(r=>r.st==='사용중').map(r=>row4(r,m)).join('')}
         ${R.rows.filter(r=>r.st!=='사용중').map(r=>row4(r,m,'vacr')).join('')}
         <tr class="sumr"><td>합계</td>
-          ${R.charge&&isMetered(m.code)?`<td class="n">${fx(R.sumAdj)}</td>`:''}
-          <td class="n">${fx(R.rest)}</td>
+          ${R.charge&&isMetered(m.code)?`<td class="n">${fx(R.sumUse)}</td>`:''}
+          <td class="n">${fx(R.common)}</td>
           ${m.unit?`<td class="n">${fx(R.rows.reduce((a,r)=>a+r.tot,0))}</td>`:''}
           <td class="n">100.0%</td>
           <td class="n">${won(R.bill+R.vac)}</td></tr>
@@ -1416,9 +1427,9 @@ function stResult(m,R){
     </dl></div></div>
     <div class="card"><div class="ct">계산 근거</div><div class="cc"><dl class="dl">
       ${m.unit?`<dt>고지서 총사용량</dt><dd>${num(b.use||0)} ${m.unit}</dd>`:''}
-      ${R.charge&&isMetered(m.code)?`<dt>Σ 정산 사용량</dt><dd>${fx(R.sumAdj)} ${m.unit}
+      ${R.charge&&isMetered(m.code)?`<dt>Σ 검침 사용량</dt><dd>${fx(R.sumUse)} ${m.unit}
         <span class="lock">계량기 ${meterUnits(m.code).length}개 유닛</span></dd>`:''}
-      <dt>잔여 사용량</dt><dd>${fx(R.rest)} ${m.unit||''}
+      <dt>공용 사용량</dt><dd>${fx(R.common)} ${m.unit||''}
         <span class="lock">${R.onlyNoMeter?'계량기 없는 유닛에만 배분':'전체 유닛에 배분'}</span></dd>
       <dt>배분 가중치 합</dt><dd>${fx(R.wSum)} <span class="lock">${resolve(m.code).basis}</span></dd>
       <dt>고지서 금액</dt><dd>${won(R.total)}</dd>
@@ -1433,12 +1444,13 @@ function stResult(m,R){
     ${R.diff?`<span style="margin-left:auto;font-weight:700;color:var(--warn)">차액 ${num(R.diff)}원</span>`:''}
   </div>
   <div class="hint">
-    <b>정산 사용량</b> = 검침 사용량 × 조정 배수. 그 유닛이 직접 쓴 양이다.<br>
-    <b>잔여 사용량</b> = 고지서 총사용량 − Σ정산 사용량 = <b>${fx(R.rest)} ${m.unit||''}</b>.
+    <b>검침 사용량</b> = 당월 − 전월. 그 유닛이 직접 쓴 양이며 배수를 곱하지 않는다.<br>
+    <b>공용 사용량</b> = 고지서 총사용량 − Σ검침 사용량 = <b>${fx(R.common)} ${m.unit||''}</b>.
     복도·승강기·주차장 등 공용부에서 쓴 양이며 검침으로 잡히지 않는다.<br>
-    <b>잔여 배분</b> = 잔여 사용량 × (그 유닛 가중치 ÷ 전체 가중치). ${resolve(m.code).basis} 비율로 나눈다.<br>
-    <b>유닛 총사용량</b> = 정산 사용량 + 잔여 배분. 전용분과 공용 몫의 합이며
-    이 비율대로 고지서 금액을 나눈다.</div>
+    <b>공용 배분</b> = 공용 사용량 × (그 유닛 가중치 ÷ 전체 가중치).
+    가중치는 <b>${resolve(m.code).basis} × 조정 배수</b>다. 배수를 올린 유닛의 몫이 커진 만큼
+    나머지 유닛의 몫이 줄어들며, 공용 사용량 총량은 변하지 않는다.<br>
+    <b>유닛 총사용량</b> = 검침 사용량 + 공용 배분. 이 비율대로 고지서 금액을 나눈다.</div>
   ${R.diff?`<div class="fnd"><span class="h">명세에서 정해지지 않은 사항</span>
     유닛별로 <b>원 미만을 절사</b>하기 때문에 합계가 고지서와 맞지 않습니다 (<b>${num(R.diff)}원</b>).
     명세 4.1.8은 <b>"불일치 시 확정할 수 없다"</b>고 정하고 있어, 그대로 두면 <b>확정이 영구 차단됩니다.</b>
@@ -1455,8 +1467,8 @@ function row4(r,m,cls){
       <div class="c2" style="text-align:right">${r.excl.why}</div></td></tr>`;
   return `<tr class="${cls||''}">
     <td>${cnameHTML(A,r.no,r.ten)}${cls?' '+stb(r.st):''}</td>
-    ${showM?`<td class="n">${r.hasM?fx(r.adj):'—'}</td>`:''}
-    <td class="n">${r.rest?fx(r.rest):'<span style="color:var(--faint)">—</span>'}</td>
+    ${showM?`<td class="n">${r.hasM?fx(r.use):'—'}</td>`:''}
+    <td class="n">${r.common?fx(r.common):'<span style="color:var(--faint)">—</span>'}</td>
     ${m.unit?`<td class="n"><b>${fx(r.tot)}</b></td>`:''}
     <td class="n">${(r.ratio*100).toFixed(2)}%</td>
     <td class="n"><b>${won(r.amt)}</b></td></tr>`;
