@@ -116,7 +116,7 @@ svg{flex:none}
 .inp:focus{outline:0;border-color:var(--pri)}
 .inp.w{width:76px}
 .inp.why{width:100%;text-align:left;font-size:12px}
-.inp.why:disabled{background:var(--line-2);border-color:transparent;color:var(--faint)}
+
 tr.dim td{color:var(--muted)}
 tr.sumr td{background:var(--head);font-weight:700;border-top:1px solid var(--line)}
 tr.vacr td{background:var(--warn-bg)}
@@ -754,12 +754,14 @@ function setMul(code,no,v){
   if(!m||m===1){delete b.adj[no];}
   else b.adj[no]={mul:m, why:(b.adj[no]&&b.adj[no].why)||'',
                   by:'김영준', at:'2026-09-25 10:14'};
-  render();
+  render(true);
 }
 function setWhy(code,no,v){
-  const a=BILL[code].adj[no];
-  if(a){a.why=v; a.at='2026-09-25 10:14';}
-  render();
+  const b=BILL[code];
+  if(!b.adj[no]) b.adj[no]={mul:1, why:'', by:'김영준', at:'2026-09-25 10:14'};
+  b.adj[no].why=v; b.adj[no].at='2026-09-25 10:14';
+  if(b.adj[no].mul===1 && !v) delete b.adj[no];
+  render(true);
 }
 function setBill(code,key,v){
   const b=BILL[code];
@@ -768,7 +770,7 @@ function setBill(code,key,v){
   b[key]=n;
   if(key==='supply'&&M(code).tax&&!b.vatManual) b.vat=Math.round(n*0.1);
   if(key==='vat') b.vatManual=true;
-  render();
+  render(true);
 }
 const billTotal=m=>(BILL[m.code].supply||0)+(BILL[m.code].vat||0);
 const grandTotal=()=>selItems().reduce((a,m)=>a+billTotal(m),0);
@@ -1313,17 +1315,16 @@ function billRow(m){
 function setRead(code,no,v){
   const b=BILL[code], n=Math.max(0,Math.round(parseFloat(String(v).replace(/[,\s]/g,''))||0));
   if(b.read&&b.read[no]) b.read[no][1]=n;
-  render();
+  render(true);
 }
-function setReadDate(code,v){BILL[code].readDate=v;render();}
+function setReadDate(code,v){BILL[code].readDate=v;render(true);}
 function stRead(m,R){
   const b=BILL[m.code], st=resolve(m.code);
   const rows=R.rows.filter(r=>r.hasM);
   const noM=R.rows.filter(r=>!r.hasM);
   const todo=rows.filter(r=>!r.typed).length;
   return `
-  <div class="card"><div class="ct">검침 입력
-    <span class="sub">${m.name} · ${rows.length}개 유닛${todo?` · <b style="color:var(--warn)">미입력 ${todo}개</b>`:' · 입력 완료'}</span>
+  <div class="card"><div class="ct">검침 입력${todo?` <span class="bd wa">미입력 ${todo}개</span>`:''}
     <span class="ca">
       <span style="font-size:12px;color:var(--muted);margin-right:6px">검침일</span>
       <input class="inp d" type="date" value="${b.readDate||''}" onchange="setReadDate('${m.code}',this.value)">
@@ -1353,26 +1354,33 @@ function stRead(m,R){
 /* ── 3단계 · 조정 ── */
 function stAdj(m,R){
   const b=BILL[m.code];
+  const mrows=R.rows.filter(r=>r.hasM);
+  if(!mrows.length) return `<div class="tbl"><div class="empty">
+    <div class="t">조정할 대상이 없습니다</div>
+    ${m.name}은 계량기를 사용하지 않아 검침 사용량이 없습니다.
+    배분은 ${resolve(m.code).basis} 비율로 이루어집니다.</div></div>`;
   return `
-  <div class="card"><div class="ct">조정 <span class="sub">${m.name} · 검침값을 고치지 않고 배수로 보정한다. 기본값 1.0</span></div>
+  <div class="card"><div class="ct">조정</div>
     <div class="tw"><table>
       <thead><tr><th>계약고유명</th><th class="n">검침 사용량</th><th class="c">조정 배수</th><th class="n">정산 사용량</th><th>사유</th><th>작성자</th><th>작성일시</th></tr></thead>
-      <tbody>${R.rows.map(r=>{const a=b.adj[r.no];return `<tr>
+      <tbody>${R.rows.filter(r=>r.hasM).map(r=>{const a=b.adj[r.no];return `<tr>
         <td>${cnameHTML(BUILDINGS[0].alias,r.no,r.ten)}</td>
-        <td class="n">${r.hasM?num(r.use)+' '+m.unit:'<span style="color:var(--faint)">계량기 없음</span>'}</td>
+        <td class="n">${num(r.use)} ${m.unit}</td>
         <td class="c"><input class="inp w" value="${r.mul}" step="0.1" min="0" type="number"
              onchange="setMul('${m.code}','${r.no}',this.value)"></td>
-        <td class="n">${r.hasM?`<b>${fx(r.adj)}</b> ${m.unit}`:'—'}</td>
+        <td class="n"><b>${fx(r.adj)}</b> ${m.unit}</td>
         <td style="min-width:260px"><input type="text" class="inp why" value="${a?a.why:''}"
-             placeholder="${r.mul!==1?'사유를 입력하세요':'—'}" ${r.mul===1?'disabled':''}
+             placeholder="${r.mul!==1?'사유를 입력하세요':''}"
              onchange="setWhy('${m.code}','${r.no}',this.value)"></td>
         <td>${a?a.by:'—'}</td><td style="color:var(--muted)">${a?a.at:'—'}</td></tr>`}).join('')}
       </tbody></table></div>
   </div>
   <div class="hint">
-    기본값은 <b>1.0</b>이며 0.1 단위로 조정한다. 1이 아닌 값을 입력하면 사유가 필수다.<br>
-    계량기가 있는 유닛은 <b>검침 사용량 × 배수</b>, 없는 유닛은 <b>임대면적 × 배수</b>가 가중치가 된다.
-    배수를 올리면 그 유닛 부담이 커지고 나머지 유닛 부담이 줄어든다. 총액은 항상 고지서와 일치한다.</div>`;
+    검침값을 고치지 않고 배수로 보정한다. 기본값은 <b>1.0</b>이며 0.1 단위로 조정한다.
+    1이 아닌 값을 넣으면 사유를 입력한다.<br>
+    <b>정산 사용량 = 검침 사용량 × 배수</b>. 배수를 올리면 그 유닛 부담이 커지고
+    나머지 유닛 부담이 줄어든다. 총액은 항상 고지서와 일치한다.<br>
+    계량기 보유 유닛만 표시한다. 계량기를 추가하려면 <b>건물 관리 › 관리비 설정</b>에서 지정한다.</div>`;
 }
 
 /* ── 4단계 · 산출 결과 ── */
@@ -1519,7 +1527,8 @@ function TODO(id){
 }
 
 /* ═══ 라우터 ═══ */
-function render(){
+function render(keep){
+  const y=window.scrollY||0;
   const h=(location.hash||'#/pro-1').replace(/^#\//,'');
   const [id,arg]=h.split('/');
   paintNav(h);
@@ -1533,7 +1542,7 @@ function render(){
     const m=ALL.find(i=>i.id===id);
     crumb=(g?g.g+' <span>›</span> ':'')+`<b>${m?m.n:'—'}</b>`;}
   $('#crumb').innerHTML=crumb;$('#view').innerHTML=html+drawerHTML();
-  if(!DRAWER) window.scrollTo(0,0);
+  if(keep) window.scrollTo(0,y); else if(!DRAWER) window.scrollTo(0,0);
 }
 addEventListener('hashchange',render);
 paintOp();paintFold();render();
