@@ -993,6 +993,11 @@ const cname=(alias,no,ten)=>ten
 const cnameHTML=(alias,no,ten)=>
   `<span class="cn"><b>${nospace(alias)}</b><i>|</i><b>${nospace(no)}</b>${
     ten?`<i>|</i><b>${nospace(ten)}</b>`:''}</span>`;
+/* 유닛상태 표기 규칙
+   목록·관리 화면(정렬·필터 대상)은 칼럼, 계산·작업 화면은 계약고유명 뒤 칩.
+   기본값 「사용중」은 표시하지 않는다. 칩이 없으면 사용중, 있으면 예외다. */
+const cnameST=(r,m)=>cnameHTML(BUILDINGS[0].alias,r.no,r.ten)
+  + (r.st!=='사용중'?' '+stb(r.st):'');
 const go=h=>location.hash='#/'+h;
 function cycleOp(){opIdx=(opIdx+1)%OPS.length;paintOp();render();}
 function paintOp(){
@@ -1325,7 +1330,11 @@ function setRead(code,no,v){
   if(b.read&&b.read[no]) b.read[no][1]=n;
   render(true);
 }
-function setReadDate(code,v){BILL[code].readDate=v;render(true);}
+const TODAY_ISO=TODAY.toISOString().slice(0,10);
+/* 검침일은 유닛별로 다를 수 있다. 기본값은 당일이며 일괄 적용으로 한 번에 맞춘다. */
+const readDateOf=(code,no)=>{const b=BILL[code];return (b.readDates&&b.readDates[no])||b.readDate||TODAY_ISO;};
+function setReadDate(code,v){const b=BILL[code];b.readDate=v;b.readDates={};render(true);}
+function setReadDateUnit(code,no,v){const b=BILL[code];(b.readDates=b.readDates||{})[no]=v;render(true);}
 function stRead(m,R){
   const b=BILL[m.code], st=resolve(m.code);
   const rows=R.rows.filter(r=>r.hasM);
@@ -1334,15 +1343,16 @@ function stRead(m,R){
   return `
   <div class="card"><div class="ct">검침 입력${todo?` <span class="bd wa">미입력 ${todo}개</span>`:''}
     <span class="ca">
-      <span style="font-size:12px;color:var(--muted);margin-right:6px">검침일</span>
-      <input class="inp d" type="date" value="${b.readDate||''}" onchange="setReadDate('${m.code}',this.value)">
+      <span style="font-size:12px;color:var(--muted);margin-right:6px">검침일 일괄 적용</span>
+      <input class="inp d" type="date" value="${b.readDate||TODAY_ISO}" onchange="setReadDate('${m.code}',this.value)">
       <button class="btn sm">엑셀 업로드</button></span></div>
     <div class="tw"><table>
-      <thead><tr><th>계약고유명</th><th>유닛상태</th>
+      <thead><tr><th>계약고유명</th><th>검침일</th>
         <th class="n">전월 검침값</th><th class="n">당월 검침값</th><th class="n">개별 사용량</th></tr></thead>
       <tbody>${rows.map(r=>`<tr>
-        <td>${cnameHTML(BUILDINGS[0].alias,r.no,r.ten)}</td>
-        <td>${stb(r.st)}</td>
+        <td>${cnameST(r,m)}</td>
+        <td><input class="inp d" type="date" value="${readDateOf(m.code,r.no)}"
+            onchange="setReadDateUnit('${m.code}','${r.no}',this.value)"></td>
         <td class="n" style="color:var(--muted)">${r.pm!=null?num(r.pm):'—'}</td>
         <td class="n"><input class="inp" type="number" value="${r.cm!=null?r.cm:''}" placeholder="미입력"
             onchange="setRead('${m.code}','${r.no}',this.value)"></td>
@@ -1356,7 +1366,9 @@ function stRead(m,R){
     계량기 보유 유닛은 <b>건물 관리 › 관리비 설정</b>에서 정한다. 현재 ${rows.length} / ${R.rows.length}개 유닛.
     ${noM.length?`나머지 ${noM.length}개 유닛은 검침하지 않으며 공용 사용량
       <b>${fx(R.common)} ${m.unit}</b>을 ${st.basis} 비율로 나눈다.`:''}<br>
-    검침 기록은 원본이며 수정하지 않는다. 공용부 부담을 조정하려면 3단계에서 조정 배수를 기록한다.</div>`;
+    검침 기록은 원본이며 수정하지 않는다. 공용부 부담을 조정하려면 3단계에서 조정 배수를 기록한다.<br>
+    <b>검침일</b>은 유닛마다 다를 수 있다. 기본값은 당일이며, 한 날에 몰아서 검침했다면
+    상단 <b>일괄 적용</b>으로 전 유닛을 한 번에 맞춘다.</div>`;
 }
 
 /* ── 3단계 · 조정 ── */
@@ -1383,7 +1395,7 @@ function stAdj(m,R){
         <th class="n">공용 사용량</th><th class="c">조정 배수</th>
         <th class="n">증감</th><th class="n">(조정후) 공용 사용량</th></tr></thead>
       <tbody>${tg.map(r=>{const p=pre(r), d=r.common-p;return `<tr>
-        <td>${cnameHTML(BUILDINGS[0].alias,r.no,r.ten)}</td>
+        <td>${cnameST(r,m)}</td>
         <td class="n">${R.byUse?num(base(r)):fx(base(r))} <span class="u">${R.byUse?U:'㎡'}</span></td>
         <td class="n" style="color:var(--muted)">${bSum?(base(r)/bSum*100).toFixed(2):'0.00'}%</td>
         <td class="n" style="color:var(--muted)">${fx(p)}</td>
@@ -1478,15 +1490,14 @@ function stResult(m,R){
 }
 function row4(r,m,cls){
   const R=ratios(m), showM=R.charge&&isMetered(m.code);
-  const A=BUILDINGS[0].alias;
   if(r.excl) return `<tr class="exr">
-    <td>${cnameHTML(A,r.no,r.ten)}</td>
+    <td>${cnameST(r,m)}</td>
     ${showM?'<td class="n">—</td>':''}<td class="n">—</td>
     ${m.unit?'<td class="n">—</td>':''}<td class="n">—</td>
     <td class="n"><span class="bd mu">안분 제외</span>
       <div class="c2" style="text-align:right">${r.excl.why}</div></td></tr>`;
   return `<tr class="${cls||''}">
-    <td>${cnameHTML(A,r.no,r.ten)}${cls?' '+stb(r.st):''}</td>
+    <td>${cnameST(r,m)}</td>
     ${showM?`<td class="n">${r.hasM?fx(r.use):'—'}</td>`:''}
     <td class="n">${r.common?fx(r.common):'<span style="color:var(--faint)">—</span>'}</td>
     ${m.unit?`<td class="n"><b>${fx(r.tot)}</b></td>`:''}
