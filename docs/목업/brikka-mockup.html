@@ -1358,39 +1358,49 @@ function stRead(m,R){
 }
 
 /* ── 3단계 · 조정 ── */
+/* 배수는 공용 사용량을 나누는 가중치에만 작용한다 → 4.1.2
+   따라서 대상은 계량기 보유 유닛이 아니라 「공용분을 부담하는 유닛」이다. */
 function stAdj(m,R){
-  const b=BILL[m.code];
-  const mrows=R.rows.filter(r=>r.hasM);
-  if(!mrows.length) return `<div class="tbl"><div class="empty">
+  const b=BILL[m.code], st=resolve(m.code);
+  const tg=R.rows.filter(r=>!r.excl && (R.onlyNoMeter? !r.hasM : true));
+  if(!tg.length) return `<div class="tbl"><div class="empty">
     <div class="t">조정할 대상이 없습니다</div>
-    ${m.name}은 계량기를 사용하지 않아 검침 사용량이 없습니다.
-    배분은 ${resolve(m.code).basis} 비율로 이루어집니다.</div></div>`;
+    ${m.name}은 공용분을 부담하는 유닛이 없습니다.</div></div>`;
+  const wCol=R.byUse?'검침 사용량':'임대면적';
+  const wVal=r=>R.byUse?`${num(r.use)} <span class="u">${m.unit}</span>`
+                       :`${num(r.ar)} <span class="u">㎡</span>`;
+  const off=R.rows.filter(r=>!r.excl && R.onlyNoMeter && r.hasM);
   return `
-  <div class="card"><div class="ct">조정</div>
+  <div class="card"><div class="ct">조정
+    <span class="sub">공용 사용량 <b>${fx(R.common)} ${m.unit||''}</b> · ${st.basis} 비율로 배분 · ${tg.length}개 유닛</span></div>
     <div class="tw"><table>
-      <thead><tr><th>계약고유명</th><th class="n">검침 사용량</th><th class="c">조정 배수</th><th class="n">공용 배분</th><th>사유</th></tr></thead>
-      <tbody>${R.rows.filter(r=>r.hasM).map(r=>{const a=b.adj[r.no];return `<tr>
+      <thead><tr><th>계약고유명</th><th class="n">${wCol}</th><th class="c">조정 배수</th>
+        <th class="n">가중치</th><th class="n">공용 배분</th><th>사유</th></tr></thead>
+      <tbody>${tg.map(r=>{const a=b.adj[r.no];const base=R.byUse?r.use:r.ar;return `<tr>
         <td>${cnameHTML(BUILDINGS[0].alias,r.no,r.ten)}</td>
-        <td class="n">${num(r.use)} ${m.unit}</td>
+        <td class="n">${wVal(r)}</td>
         <td class="c"><input class="inp w" value="${r.mul}" step="0.1" min="0" type="number"
-             ${R.onlyNoMeter?'disabled title="이 항목은 검침기 없는 유닛만 공용분을 부담하므로 배수가 적용되지 않습니다"':''}
              onchange="setMul('${m.code}','${r.no}',this.value)"></td>
-        <td class="n">${R.onlyNoMeter?'<span style="color:var(--faint)">부담 대상 아님</span>'
-             :`<b>${fx(r.common)}</b> ${m.unit}`}</td>
-        <td style="min-width:260px"><input type="text" class="inp why" value="${a?a.why:''}"
-             ${R.onlyNoMeter?'disabled':''}
+        <td class="n" style="color:var(--muted)">${fx(base*r.mul)}</td>
+        <td class="n"><b>${fx(r.common)}</b> ${m.unit||''}
+          <span class="lock">${R.wSum?(r.w/R.wSum*100).toFixed(1):'0.0'}%</span></td>
+        <td style="min-width:240px"><input type="text" class="inp why" value="${a?a.why:''}"
              placeholder="${r.mul!==1?'사유를 입력하세요':''}"
              onchange="setWhy('${m.code}','${r.no}',this.value)"></td></tr>`}).join('')}
+        <tr class="sumr"><td colspan="3">합계</td>
+          <td class="n">${fx(R.wSum)}</td>
+          <td class="n">${fx(R.common)} ${m.unit||''}</td><td></td></tr>
       </tbody></table></div>
   </div>
   <div class="hint">
-    검침값은 실측이므로 고치지 않는다. 배수는 <b>공용 사용량을 나누는 비율에만</b> 적용한다.
+    검침값은 실측이므로 고치지 않는다. 배수는 <b>공용 사용량을 나누는 가중치에만</b> 적용한다.
     기본값은 <b>1.0</b>이며 0.1 단위로 조정한다. 1이 아닌 값을 넣으면 사유를 입력한다.<br>
-    배수를 올리면 그 유닛의 <b>공용 배분</b>이 늘고 나머지 유닛의 공용 배분이 그만큼 줄어든다.
-    공용 사용량 총량 <b>${fx(R.common)} ${m.unit||''}</b>은 변하지 않는다.<br>
-    ${R.onlyNoMeter?`<b style="color:var(--warn)">이 항목은 검침기 없는 유닛만 공용분을 부담한다.</b>
-      계량기 보유 유닛은 검침분만 청구되므로 배수를 넣어도 산출이 달라지지 않아 입력을 막았다.<br>`:''}
-    계량기 보유 유닛만 표시한다. 계량기를 추가하려면 <b>건물 관리 › 관리비 설정</b>에서 지정한다.</div>`;
+    <b>가중치 = ${st.basis} × 배수</b>, <b>공용 배분 = ${fx(R.common)} ${m.unit||''} × (가중치 ÷ 합계)</b>.
+    배수를 올리면 그 유닛의 공용 배분이 늘고 나머지 유닛의 공용 배분이 그만큼 줄어든다.
+    합계 <b>${fx(R.common)} ${m.unit||''}</b>은 변하지 않는다.<br>
+    ${off.length?`이 항목은 <b>검침기 없는 유닛만</b> 공용분을 부담한다.
+      계량기 보유 유닛(${off.map(r=>r.no).join(', ')})은 검침분만 청구되므로 조정 대상이 아니다.<br>`:''}
+    부담 대상은 <b>건물 관리 › 관리비 설정</b>에서 정한다.</div>`;
 }
 
 /* ── 4단계 · 산출 결과 ── */
