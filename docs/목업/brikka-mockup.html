@@ -1381,33 +1381,33 @@ function stAdj(m,R){
     <div class="tw"><table>
       <thead><tr><th>계약고유명</th><th class="n">${c1}</th><th class="n">${c2}</th>
         <th class="n">공용 사용량</th><th class="c">조정 배수</th>
-        <th class="n">조정 후 공용 사용량</th><th>사유</th></tr></thead>
-      <tbody>${tg.map(r=>{const a=b.adj[r.no], p=pre(r), d=r.common-p;return `<tr>
+        <th class="n">증감</th><th class="n">(조정후) 공용 사용량</th></tr></thead>
+      <tbody>${tg.map(r=>{const p=pre(r), d=r.common-p;return `<tr>
         <td>${cnameHTML(BUILDINGS[0].alias,r.no,r.ten)}</td>
         <td class="n">${R.byUse?num(base(r)):fx(base(r))} <span class="u">${R.byUse?U:'㎡'}</span></td>
         <td class="n" style="color:var(--muted)">${bSum?(base(r)/bSum*100).toFixed(2):'0.00'}%</td>
         <td class="n" style="color:var(--muted)">${fx(p)}</td>
         <td class="c"><input class="inp w" value="${r.mul}" step="0.1" min="0" type="number"
              onchange="setMul('${m.code}','${r.no}',this.value)"></td>
-        <td class="n"><b>${fx(r.common)}</b> ${U}
-          ${Math.abs(d)>0.05?`<span class="dlt ${d>0?'up':'dn'}">${d>0?'+':'−'}${fx(Math.abs(d))}</span>`:''}</td>
-        <td style="min-width:220px"><input type="text" class="inp why" value="${a?a.why:''}"
-             placeholder="${r.mul!==1?'사유를 입력하세요':''}"
-             onchange="setWhy('${m.code}','${r.no}',this.value)"></td></tr>`}).join('')}
+        <td class="n">${Math.abs(d)>0.05?`<span class="dlt ${d>0?'up':'dn'}">${d>0?'+':'−'}${fx(Math.abs(d))}</span>`
+             :'<span style="color:var(--faint)">—</span>'}</td>
+        <td class="n"><b>${fx(r.common)}</b> ${U}</td></tr>`}).join('')}
         <tr class="sumr"><td>합계</td>
           <td class="n">${R.byUse?num(bSum):fx(bSum)}</td><td class="n">100.00%</td>
           <td class="n">${fx(R.common)}</td><td></td>
-          <td class="n">${fx(tg.reduce((a,r)=>a+r.common,0))} ${U}</td><td></td></tr>
+          <td class="n">${(v=>fx(Math.abs(v)<0.05?0:v))(tg.reduce((a,r)=>a+(r.common-pre(r)),0))}</td>
+          <td class="n">${fx(tg.reduce((a,r)=>a+r.common,0))} ${U}</td></tr>
       </tbody></table></div>
   </div>
   <div class="hint">
     검침값은 실측이므로 고치지 않는다. 배수는 <b>공용 사용량을 나누는 비율에만</b> 적용한다.
-    기본값은 <b>1.0</b>이며 0.1 단위로 조정한다. 1이 아닌 값을 넣으면 사유를 입력한다.<br>
+    기본값은 <b>1.0</b>이며 0.1 단위로 조정한다.<br>
     <b>공용 사용량</b>(조정 전) = 합계 ${fx(R.common)} ${U} × ${c2}.
-    <b>조정 후</b> = 합계 × (${c1} × 배수 ÷ Σ(${c1} × 배수)).<br>
+    <b>(조정후) 공용 사용량</b> = 합계 × (${c1} × 배수 ÷ Σ(${c1} × 배수)).
+    <b>증감</b>은 두 값의 차이다.<br>
     ${moved?`배수를 올린 유닛이 더 부담한 만큼 나머지 유닛이 덜 부담한다. `
            :`배수가 모두 1.0이면 조정 전과 후가 같다. `}
-    합계 <b>${fx(R.common)} ${U}</b>은 배수와 무관하게 변하지 않는다.<br>
+    합계 <b>${fx(R.common)} ${U}</b>은 배수와 무관하게 변하지 않으며, 증감 합계는 항상 0이다.<br>
     ${off.length?`이 항목은 <b>검침기 없는 유닛만</b> 공용분을 부담한다.
       계량기 보유 유닛(${off.map(r=>r.no).join(', ')})은 개별 사용량만 청구되므로 조정 대상이 아니다.<br>`:''}
     부담 대상은 <b>건물 관리 › 관리비 설정</b>에서 정한다.</div>`;
