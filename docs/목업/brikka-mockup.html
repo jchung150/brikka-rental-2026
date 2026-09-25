@@ -447,7 +447,7 @@ const MENU=[
  {k:'청구',g:'청구 · 수납',i:'wallet',over:'pay-12',items:[
    {id:'pay-10',n:'관리비 정산',sid:'PAY-10',i:'calc'},
    {id:'pay-1',n:'청구 스케줄',sid:'PAY-1',i:'clock'},
-   {id:'pay-2',n:'청구 · 수납 현황',sid:'PAY-2',i:'wallet'},
+   {id:'pay-2',n:'미납 관리',sid:'PAY-2',i:'wallet'},
    {id:'pay-6',n:'수납 기록',sid:'PAY-6',i:'card'},
    {id:'pay-8',n:'수납 내역',sid:'PAY-8',i:'list'},
    {id:'pay-4',n:'청구 항목 관리',sid:'PAY-4',i:'list'},
@@ -1467,7 +1467,7 @@ function PAY12(){
     {inv:0,invN:0,amt:0,paid:0,paidN:0,done:0,closed:0});
   const rate=T.amt?Math.round(T.paid/T.amt*100):0;
   return `
-  <div class="ph"><h1>청구 · 수납 진행</h1><span class="sid">PAY-12</span>
+  <div class="ph"><h1>청구 · 수납 현황</h1><span class="sid">PAY-12</span>
     <div class="act"><button class="btn">엑셀 다운로드</button></div>
   </div>
   <div class="fbar">
