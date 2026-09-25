@@ -32,7 +32,7 @@ const run = (label, code) => {
 for (let s = 0; s < 4; s++) run('PAY-10 ' + (s + 1) + '단계', 'pStep=' + s + ';PAY10()');
 run('PAY-10 패널', "DRAWER='additem';dPick=['fund'];drawerHTML()");
 run('PRO-1', 'PRO1()');
-for (const t of ['요약', '유닛', '자료보관', '관리비 기준'])
+for (const t of ['요약', '유닛', '자료보관', '관리비 설정'])
   run('PRO-3 ' + t, "tab3='" + t + "';PRO3('b1')");
 for (const b of ['b2', 'b3', 'b4', 'b5']) run('PRO-3 ' + b, "tab3='요약';PRO3('" + b + "')");
 run('미구현 화면', "TODO('pay-2')");
