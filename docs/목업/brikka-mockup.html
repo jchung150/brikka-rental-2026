@@ -1428,7 +1428,7 @@ function stAdj(m,R){
     <div class="tw"><table>
       <thead><tr><th>계약고유명</th>
         ${showUse?'<th class="n">개별 사용량</th>':''}
-        <th class="n">${c2}</th><th class="n">공용 사용량</th><th class="c">조정 배수</th>
+        <th class="n">공용 사용량</th><th class="n">${c2}</th><th class="c">조정 배수</th>
         <th class="n">증감</th><th class="n">(조정후) 공용 사용량</th></tr></thead>
       <tbody>${rows.map(r=>{
         const o=bb[r.no], t=inT(r);
@@ -1439,8 +1439,8 @@ function stAdj(m,R){
           ?`${fx(r.aUse)} <span class="u">${U}</span>${r.selfAdj&&r.mul!==1
              ?`<span class="lock">원본 ${num(r.use)}</span>`:''}`
           :'<span style="color:var(--faint)">—</span>'}</td>`:''}
-        <td class="n" style="color:var(--muted)">${t&&bSum?(base(r)/bSum*100).toFixed(2)+'%':'—'}</td>
         <td class="n" style="color:var(--muted)">${t?fx(o.common):'—'}</td>
+        <td class="n" style="color:var(--muted)">${t&&bSum?(base(r)/bSum*100).toFixed(2)+'%':'—'}</td>
         <td class="c"><input class="inp w" value="${r.mul}" step="0.1" min="0" type="number"
              onchange="setMul('${m.code}','${r.no}',this.value)"></td>
         <td class="n">${Math.abs(d)>0.05
@@ -1451,7 +1451,7 @@ function stAdj(m,R){
            :`<b>${fx(r.common)}</b> ${U}`}</td></tr>`}).join('')}
         <tr class="sumr"><td>합계</td>
           ${showUse?`<td class="n">${fx(rows.reduce((a,r)=>a+r.aUse,0))} ${U}</td>`:''}
-          <td class="n">100.00%</td><td class="n">${fx(B.common)}</td><td></td>
+          <td class="n">${fx(B.common)}</td><td class="n">100.00%</td><td></td>
           <td class="n">${(v=>fx(Math.abs(v)<0.05?0:v))(dSum)}</td>
           <td class="n">${fx(R.common)} ${U}</td></tr>
       </tbody></table></div>
