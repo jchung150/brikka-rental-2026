@@ -695,7 +695,7 @@ function loadCS(code){
   cs={neu:false, item:code, name:m.name, grp:m.grp, cycle:m.cycle,
       useMeter:mt.length>0, meters:mt,
       mtrCharge:b.meterCharge||'자동',
-      basis:b.basis||'임대면적', ref:b.ref||null, editing:!!row, adv:false,
+      basis:b.basis||'임대면적', ref:b.ref||null, editing:!!row,
       doc:b.doc||m.doc||'고지서', by:b.by||m.src||''};
 }
 function openCS(code){
@@ -709,7 +709,7 @@ function openCS(code){
 function csNew(){
   cs={neu:true, item:null, name:'', grp:'관리비-과세', cycle:'매월',
       useMeter:false, meters:[], mtrCharge:'자동',
-      basis:'임대면적', ref:null, editing:false, adv:false};
+      basis:'임대면적', ref:null, editing:false};
 }
 /* 자동 규칙 — 4.1.3 */
 function csAuto(){
@@ -725,7 +725,6 @@ function csUseMeter(v){
   else if(!cs.meters.length) cs.meters=UNITS_B1.map(u=>u.no);
   render();
 }
-function csAdv(){cs.adv=!cs.adv;render();}
 function csSet(k,v){
   if(k==='item'){ v==='__new'? csNew() : loadCS(v); render(); return; }
   cs[k]=v;
@@ -993,24 +992,20 @@ function csHTML(){
         </div>
       </div>`:''}
 
+      ${cs.basis==='직접 입력'?'':`
+      <div class="fg"><div class="fl">사용분 청구</div>
+        <div class="fr"><span class="fk">청구 여부</span>
+          <select onchange="csSet('mtrCharge',this.value)">
+            ${['자동','청구함','임차인 직접 납부'].map(o=>`<option ${cs.mtrCharge===o?'selected':''}>${o}${
+              o==='자동'?` — ${A.charge}`:''}</option>`).join('')}
+          </select></div>
+        <div class="hint" style="margin-top:2px">
+          계량기 설정에 따라 자동으로 정해집니다. 건물 전 유닛이 공급자에게 직접 납부해
+          고지서가 공용분만 발행되는 경우에만 <b>임차인 직접 납부</b>로 바꾸세요.<br>
+          <b>공용분은 언제나 전 유닛이 부담합니다.</b> 계량기가 있어도 복도·화장실을
+          쓰기 때문입니다. 특정 유닛을 빼려면 정산 시 조정 배수를 0으로 두세요.</div>
+      </div>`}
       ${prev}
-
-      <div style="margin-top:14px">
-        <button class="btn" style="width:100%;justify-content:center;color:var(--muted)"
-          onclick="csAdv()">고급 설정 ${cs.adv?'▴':'▾'}</button>
-        ${cs.adv?`<div class="fg" style="margin-top:12px">
-          <div class="fr"><span class="fk">사용분 청구</span>
-            <select onchange="csSet('mtrCharge',this.value)">
-              ${['자동','청구함','임차인 직접 납부'].map(o=>`<option ${cs.mtrCharge===o?'selected':''}>${o}${
-                o==='자동'?` — ${A.charge}`:''}</option>`).join('')}
-            </select></div>
-          <div class="hint" style="margin-top:2px">
-            사용분 청구는 계량기 설정에 따라 자동으로 정해집니다.
-            건물 전체가 공급자에게 직접 납부하는 등 예외적인 경우에만 바꾸세요.<br>
-            <b>공용분은 언제나 전 유닛이 부담합니다.</b> 계량기가 있어도 복도·화장실을
-            쓰기 때문입니다. 특정 유닛을 빼려면 정산 시 조정 배수를 0으로 두세요.
-        </div>`:''}
-      </div>
     </div>
     <div class="df">
       ${cs.editing?`<button class="btn ex" style="margin-right:auto" onclick="csDrop()">이 청구항목 미사용</button>`:''}
@@ -1480,20 +1475,19 @@ function stDirect(m,R){
   <div class="card"><div class="ct">금액 입력
     <span class="sub">${m.name} · 안분하지 않는다 · 입력 합계 <b>${won(tot)}</b></span></div>
     <div class="tw"><table>
-      <thead><tr><th>계약고유명</th><th class="n">금액</th><th class="n">배분 비율</th><th>비고</th></tr></thead>
+      <thead><tr><th>계약고유명</th><th class="n">청구 금액</th><th>비고</th></tr></thead>
       <tbody>${rows.map(r=>`<tr>
         <td>${cnameST(r,m)}</td>
         <td class="n"><input class="inp lg" type="text" value="${r.direct?num(r.direct):''}"
-            placeholder="0" onchange="setDirect('${m.code}','${r.no}',this.value)"></td>
-        <td class="n" style="color:var(--muted)">${r.direct?(r.ratio*100).toFixed(2)+'%':'—'}</td>
-        <td class="c2">${r.st!=='사용중'?'계약 없음 · 청구되지 않는다':''}</td></tr>`).join('')}
-        <tr class="sumr"><td>합계</td><td class="n">${won(tot)}</td>
-          <td class="n">100.00%</td><td></td></tr>
+            placeholder="0" ${r.st!=='사용중'?'disabled':''}
+            onchange="setDirect('${m.code}','${r.no}',this.value)"></td>
+        <td class="c2">${r.st!=='사용중'?'계약 없음 · 입력할 수 없다':''}</td></tr>`).join('')}
+        <tr class="sumr"><td>합계</td><td class="n">${won(tot)}</td><td></td></tr>
       </tbody></table></div>
   </div>
   <div class="hint">
-    배분 기준이 <b>직접 입력</b>인 항목이다. 면적·사용량으로 나누지 않고
-    <b>계약별 금액을 그대로 청구</b>한다.<br>
+    배분 기준이 <b>직접 입력</b>인 항목이다. 비율을 나누지 않는다.
+    <b>여기 입력한 금액이 그대로 그 계약에 청구</b>된다.<br>
     주차비가 대표적이다. 층별 무료 주차 대수를 넘는 만큼만 대당 요금을 매기므로
     면적이나 사용량과 관계가 없다.<br>
     <b>고지서가 없다.</b> 여기 입력한 금액의 합이 이 항목의 공급가액이 되며,
