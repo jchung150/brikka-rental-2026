@@ -607,14 +607,14 @@ const UNITS_B1=[
 ];
 /* 정산 대상 항목 — 기준표 3.3 중 산정방식이 「정산」인 것 */
 const MASTER=[
- {code:'elec', name:'전기요금',      grp:'관리비-과세', unit:'kWh', cycle:'매월',   tax:true,  src:'한국전력'},
- {code:'water',name:'수도요금',      grp:'관리비-면세', unit:'톤',  cycle:'격월',   tax:false, src:'상수도사업본부'},
- {code:'fund', name:'전력기금',      grp:'기타-일반내역서', unit:null, cycle:'매월', tax:false, src:'한국전력'},
- {code:'tv',   name:'TV수신료',      grp:'기타-일반내역서', unit:null, cycle:'매월', tax:false, src:'한국전력'},
- {code:'gas',  name:'가스요금',      grp:'관리비-과세', unit:'㎥',  cycle:'매월',   tax:true,  src:'도시가스'},
- {code:'traffic',name:'교통유발부담금',grp:'관리비-면세', unit:null, cycle:'연1회', tax:false, src:'구청'},
- {code:'septic',name:'정화조청소비',  grp:'관리비-면세', unit:null, cycle:'반기',   tax:false, src:'청소업체'},
- {code:'parking',name:'주차비',      grp:'관리비-과세', unit:null, cycle:'매월',   tax:true,  src:'경비 집계표'},
+ {code:'elec', name:'전기요금',      grp:'관리비-과세', unit:'kWh', cycle:'매월',   tax:true,  src:'한국전력', doc:'고지서'},
+ {code:'water',name:'수도요금',      grp:'관리비-면세', unit:'톤',  cycle:'격월',   tax:false, src:'상수도사업본부', doc:'고지서'},
+ {code:'fund', name:'전력기금',      grp:'기타-일반내역서', unit:null, cycle:'매월', tax:false, src:'한국전력', doc:'고지서'},
+ {code:'tv',   name:'TV수신료',      grp:'기타-일반내역서', unit:null, cycle:'매월', tax:false, src:'한국전력', doc:'고지서'},
+ {code:'gas',  name:'가스요금',      grp:'관리비-과세', unit:'㎥',  cycle:'매월',   tax:true,  src:'도시가스', doc:'고지서'},
+ {code:'traffic',name:'교통유발부담금',grp:'관리비-면세', unit:null, cycle:'연1회', tax:false, src:'구청', doc:'고지서'},
+ {code:'septic',name:'정화조청소비',  grp:'관리비-면세', unit:null, cycle:'반기',   tax:false, src:'청소업체', doc:'내역서'},
+ {code:'parking',name:'주차비',      grp:'관리비-과세', unit:null, cycle:'매월',   tax:true,  src:'경비실', doc:'내역서'},
 ];
 const M=c=>MASTER.find(x=>x.code===c);
 const codeOf=name=>{const m=MASTER.find(x=>x.name===name);return m?m.code:'elec';};
@@ -632,7 +632,8 @@ const BILL={
  gas:{on:false,date:'',use:0,supply:0,vat:0,read:null,adj:{}},
  traffic:{on:false,date:'',use:null,supply:0,vat:0,read:null,adj:{}},
  septic:{on:false,date:'',use:null,supply:0,vat:0,read:null,adj:{}},
- parking:{on:true,date:'',use:null,supply:0,vat:0,read:null,adj:{}},
+ parking:{on:true,date:'2026-09-30',use:null,supply:0,vat:0,read:null,adj:{},
+   direct:{'101호':100000,'301호':50000,'501호':150000}},
 };
 const SETTLE={ym:'2026-09',status:'작성중'};
 /* 건물별 월 업무 진행 — PAY-12 */
@@ -670,7 +671,8 @@ const BSET={
  water:{meterCharge:'자동',basis:'임대면적',ref:null,excl:{}},
  fund:{meterCharge:'자동',basis:'사용량',ref:'elec',excl:{}},
  tv:{meterCharge:'자동',basis:'사용량',ref:'elec',excl:{}},
- gas:null, traffic:null, septic:null, parking:null,
+ gas:null, traffic:null, septic:null,
+ parking:{meterCharge:'임차인 직접 납부',basis:'직접 입력',ref:null,excl:{}},
 };
 const DEFSET={meterCharge:'자동',basis:'임대면적',ref:null,excl:{}};
 /* 자동 규칙 해석 — 4.1.3 */
@@ -693,7 +695,8 @@ function loadCS(code){
   cs={neu:false, item:code, name:m.name, grp:m.grp, cycle:m.cycle,
       useMeter:mt.length>0, meters:mt,
       mtrCharge:b.meterCharge||'자동',
-      basis:b.basis||'임대면적', ref:b.ref||null, editing:!!row, adv:false};
+      basis:b.basis||'임대면적', ref:b.ref||null, editing:!!row, adv:false,
+      doc:b.doc||m.doc||'고지서', by:b.by||m.src||''};
 }
 function openCS(code){
   if(code) loadCS(code);
@@ -752,7 +755,7 @@ function csApply(){
   const A=csAuto();
   METER[code]=cs.useMeter?[...cs.meters]:[];
   if(METER[code].length) BILL[code].read=BILL[code].read||{};
-  BSET[code]={meterCharge:cs.mtrCharge,basis:cs.basis,
+  BSET[code]={meterCharge:cs.mtrCharge,basis:cs.basis,doc:cs.doc,by:cs.by,
     ref:cs.ref,excl:(BSET[code]||{}).excl||{}};
   const m=M(code), bc=BUILDINGS[0].charge, row=bc.find(c=>c.it===m.name);
   const mm=METER[code];
@@ -803,7 +806,12 @@ function setBill(code,key,v){
   if(key==='vat') b.vatManual=true;
   render(true);
 }
-const billTotal=m=>(BILL[m.code].supply||0)+(BILL[m.code].vat||0);
+const isDirect=code=>resolve(code).basis==='직접 입력';
+const directSum=code=>Object.values((BILL[code].direct)||{}).reduce((a,v)=>a+(+v||0),0);
+/* 직접 입력 항목은 고지서가 없다. 계약별 입력 금액의 합이 공급가액이다 */
+const billTotal=m=>isDirect(m.code)
+  ? directSum(m.code)+(BILL[m.code].vat||0)
+  : (BILL[m.code].supply||0)+(BILL[m.code].vat||0);
 const grandTotal=()=>selItems().reduce((a,m)=>a+billTotal(m),0);
 
 /* 계량기 보유 판정 — 유닛 × 항목 */
@@ -831,6 +839,16 @@ function ratios(m,raw){
   const charge=st.meterCharge==='청구함';
   const byUse=(st.basis||'').includes('사용량');
 
+  /* 직접 입력 — 안분하지 않는다. 계약별로 담당자가 넣은 금액이 그대로 청구된다 */
+  if(st.basis==='직접 입력'){
+    const dir=b.direct||{}, tot=directSum(m.code);
+    const rows=UNITS_B1.map(u=>{
+      const d=+dir[u.no]||0;
+      return {...u,hasM:false,typed:false,use:0,aUse:0,mul:1,excl:ex[u.no]||null,
+              direct:d,w:0,common:0,tot:0,ratio:tot?d/tot:0};
+    });
+    return {rows,sumUse:0,common:0,wSum:0,totUse:0,charge:false,byUse:false,direct:true};
+  }
   const rows=UNITS_B1.map(u=>{
     const hasM=hasMeter(m.code,u.no);
     const r=reading(m.code,u.no);
@@ -925,16 +943,34 @@ function csHTML(){
           </select></div>
       </div>
 
+      <div class="fg"><div class="fl">근거 문서</div>
+        <div class="fr"><span class="fk">문서 종류</span>
+          <select onchange="csSet('doc',this.value)">
+            ${['고지서','내역서','계약서','집계표'].map(o=>`<option ${cs.doc===o?'selected':''}>${o}</option>`).join('')}
+          </select></div>
+        <div class="fr"><span class="fk">발행처</span>
+          <input class="inp" style="flex:1" value="${cs.by||''}" placeholder="한국전력"
+            onchange="csSet('by',this.value)"></div>
+        <div class="hint" style="margin-top:2px">
+          이 항목의 금액을 뒷받침하는 문서다. 청구서 발행(PAY-1)의 <b>근거</b> 열에 표시되고,
+          임차인이 산출 근거를 물을 때 무엇을 보여줄지 정한다.</div>
+      </div>
+
       <div class="fg"><div class="fl">배분 방식</div>
         <div class="fr"><span class="fk">배분 기준</span>
           <select onchange="csSet('basis',this.value)">
-            ${['임대면적','사용량'].map(o=>`<option ${cs.basis===o?'selected':''}>${o}</option>`).join('')}
+            ${['임대면적','사용량','직접 입력'].map(o=>`<option ${cs.basis===o?'selected':''}>${o}</option>`).join('')}
           </select></div>
+        ${cs.basis==='직접 입력'?`<div class="hint" style="margin-top:2px">
+          안분하지 않는다. <b>관리비 정산 3단계에서 계약별 금액을 직접 입력</b>하며
+          입력 합계가 이 항목의 공급가액이 된다. 계량기·참조 항목·안분 제외를 쓰지 않는다.<br>
+          주차비가 대표적이다. 층별 무료 주차 대수를 넘는 만큼만 대당 요금을 매기므로
+          면적·사용량과 관계가 없다.</div>`:`
         <div class="fr"><span class="fk">계량기</span>
           <select onchange="csUseMeter(this.value)">
             ${['사용 안 함','사용'].map(o=>`<option ${(cs.useMeter?'사용':'사용 안 함')===o?'selected':''}>${o}</option>`).join('')}
-          </select></div>
-        ${byUse&&!cs.useMeter?`<div class="fr"><span class="fk">참조 항목</span>
+          </select></div>`}
+        ${cs.basis!=='직접 입력'&&byUse&&!cs.useMeter?`<div class="fr"><span class="fk">참조 항목</span>
           <select onchange="csSet('ref',this.value||null)">
             <option value="">선택</option>
             ${MASTER.filter(x=>(METER[x.code]||[]).length).map(x=>
@@ -1358,8 +1394,10 @@ function billRow(m){
     <td class="n">${m.unit
       ? `<input class="inp" type="number" value="${b.use||0}" onchange="setBill('${m.code}','use',this.value)"> <span class="u">${m.unit}</span>`
       : '<span style="color:var(--faint)">—</span>'}</td>
-    <td class="n"><input class="inp lg" type="text" value="${num(b.supply||0)}"
-        onchange="setBill('${m.code}','supply',this.value)"></td>
+    <td class="n">${isDirect(m.code)
+      ? `<b>${num(directSum(m.code))}</b><div class="c2">3단계 입력 합계</div>`
+      : `<input class="inp lg" type="text" value="${num(b.supply||0)}"
+          onchange="setBill('${m.code}','supply',this.value)">`}</td>
     <td class="n">${m.tax
       ? `<input class="inp" type="text" value="${num(b.vat||0)}" onchange="setBill('${m.code}','vat',this.value)">`
       : '<span class="bd mu">면세</span>'}</td>
@@ -1429,7 +1467,40 @@ function stRead(m,R){
 /* ── 3단계 · 조정 ── */
 /* 배수는 공용 사용량 배분 가중치에만 작용한다 → 4.1.2
    「증감」의 기준선은 전 유닛 배수 1.0인 상태이며, 그래서 증감 합계는 언제나 0이다. */
+function setDirect(code,no,v){
+  const b=BILL[code]; (b.direct=b.direct||{});
+  const n=Math.max(0,Math.round(parseFloat(String(v).replace(/[,\s]/g,''))||0));
+  if(n) b.direct[no]=n; else delete b.direct[no];
+  render(true);
+}
+/* 직접 입력 항목 — 안분하지 않고 계약별 금액을 담당자가 넣는다 → 4.1.3 */
+function stDirect(m,R){
+  const rows=R.rows.filter(r=>!r.excl), tot=directSum(m.code);
+  return `
+  <div class="card"><div class="ct">금액 입력
+    <span class="sub">${m.name} · 안분하지 않는다 · 입력 합계 <b>${won(tot)}</b></span></div>
+    <div class="tw"><table>
+      <thead><tr><th>계약고유명</th><th class="n">금액</th><th class="n">배분 비율</th><th>비고</th></tr></thead>
+      <tbody>${rows.map(r=>`<tr>
+        <td>${cnameST(r,m)}</td>
+        <td class="n"><input class="inp lg" type="text" value="${r.direct?num(r.direct):''}"
+            placeholder="0" onchange="setDirect('${m.code}','${r.no}',this.value)"></td>
+        <td class="n" style="color:var(--muted)">${r.direct?(r.ratio*100).toFixed(2)+'%':'—'}</td>
+        <td class="c2">${r.st!=='사용중'?'계약 없음 · 청구되지 않는다':''}</td></tr>`).join('')}
+        <tr class="sumr"><td>합계</td><td class="n">${won(tot)}</td>
+          <td class="n">100.00%</td><td></td></tr>
+      </tbody></table></div>
+  </div>
+  <div class="hint">
+    배분 기준이 <b>직접 입력</b>인 항목이다. 면적·사용량으로 나누지 않고
+    <b>계약별 금액을 그대로 청구</b>한다.<br>
+    주차비가 대표적이다. 층별 무료 주차 대수를 넘는 만큼만 대당 요금을 매기므로
+    면적이나 사용량과 관계가 없다.<br>
+    <b>고지서가 없다.</b> 여기 입력한 금액의 합이 이 항목의 공급가액이 되며,
+    1단계에서는 수정할 수 없다. 산출 근거는 <b>${m.src} ${m.doc}</b>에 남긴다.</div>`;
+}
 function stAdj(m,R){
+  if(R.direct) return stDirect(m,R);
   const U=m.unit||'', st=resolve(m.code), B=calc(m,true);   /* B = 배수 1.0 기준선 */
   const rows=R.rows.filter(r=>!r.excl);
   if(!rows.length) return `<div class="tbl"><div class="empty">
@@ -1677,15 +1748,16 @@ function ISSUE(){
       const d=CITEM[x[0]];
       /* 고정액 — 반복주기로 판정. 목업 데이터는 모두 매월이다 */
       if(d.calc==='고정액')
-        return d.cycle==='매월'?{n:x[0],calc:'고정액',src:'약정',amt:x[1],note:''}:null;
+        return d.cycle==='매월'?{n:x[0],calc:'약정',src:'임대차계약서',amt:x[1],note:''}:null;
       /* 정산 — 1단계에서 선택되지 않았으면 이번 회차 대상이 아니다 */
       const code=codeOf(x[0]), m=M(code), b=BILL[code];
       if(!(f1.b==='b1'&&b&&b.on)) return null;
-      if(!(billTotal(m)>0)) return {n:x[0],calc:'정산',src:'2026-09',amt:null,
-                                    note:'고지서 금액 미입력'};
+      const st=resolve(code), ev=`${st.by||m.src||''} ${st.doc||m.doc||''}`.trim();
+      if(!(billTotal(m)>0)) return {n:x[0],calc:'정산',src:ev,amt:null,
+                                    note:'금액 미입력'};
       const r=calc(m).rows.find(r=>r.no===c.no);
-      return {n:x[0],calc:'정산',src:'2026-09',amt:r?r.amt:null,
-              note:r?(fixed?'':'정산 미확정 · 잠정'):'산출 결과 없음'};
+      return {n:x[0],calc:'정산',src:ev,amt:r?r.amt:null,
+              note:r?(fixed?'2026-09 정산':'2026-09 · 잠정'):'산출 결과 없음'};
     }).filter(Boolean);
     const sum=lines.reduce((a,l)=>a+(l.amt||0),0);
     const miss=lines.filter(l=>l.amt==null).length;   /* 대상인데 금액이 없다 */
@@ -1760,8 +1832,10 @@ function PAY1(){
     </div>`}
   <div class="hint">
     이번 회차에 발행할 청구서다. <b>계약당 1장</b>이며 고정액 항목과 정산 항목을 함께 담는다 → 2부<br>
-    <b>고정액</b>(임대료·고정관리비)은 계약에 등록된 <b>청구 약정</b>에서, <b>정산</b> 항목은
-    <b>관리비 정산(PAY-10)</b> 확정 결과에서 가져온다. 약정 등록·수정은 계약 상세에서 한다.<br>
+    <b>약정</b>(임대료·고정관리비)은 계약에 등록된 청구 약정에서, <b>정산</b> 항목은
+    <b>관리비 정산(PAY-10)</b> 확정 결과에서 가져온다.<br>
+    <b>근거</b>는 그 금액을 뒷받침하는 문서다. 임차인이 산출 근거를 물으면 이 문서를 보여준다.
+    항목별 근거 문서는 <b>건물 관리 › 관리비 설정</b>에서 정한다.<br>
     <b>이번 회차 대상 항목만 올라온다.</b> 고정액은 약정의 반복주기로, 정산은
     <b>관리비 정산 1단계에서 선택한 항목</b>으로 정해진다. 격월·반기 항목의 비대상 회차는
     1단계에서 이미 빠졌으므로 여기에 나오지 않는다.<br>
