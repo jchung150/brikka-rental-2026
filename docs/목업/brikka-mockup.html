@@ -1243,10 +1243,10 @@ function PAY10(){
   const R=m?calc(m):null;
   const allDiff=sel.reduce((a,x)=>a+Math.abs(calc(x).diff),0);
   const steps=[
-    ['청구 항목 · 고지서', sel.length?`${sel.length}개 항목`:'선택된 항목 없음'],
-    ['검침 입력', meterN?`${meterN}개 항목`:'검침 대상 없음'],
-    ['조정', !m?'—':`${Object.keys(BILL[m.code].adj).length}건`],
-    ['산출 결과', !sel.length?'—':(allDiff===0?'검증 일치':`차액 ${num(allDiff)}원`)],
+    ['청구 항목 · 고지서', sel.length?'':'선택된 항목 없음'],
+    ['검침 입력', meterN?'':'검침 대상 없음'],
+    ['조정', ''],
+    ['산출 결과', !sel.length?'':(allDiff===0?'검증 일치':`차액 ${num(allDiff)}원`)],
   ];
   const body = (!sel.length&&pStep>0)
     ? `<div class="tbl"><div class="empty"><div class="t">이번 회차에 정산할 항목이 없습니다</div>
@@ -1268,7 +1268,8 @@ function PAY10(){
   </div>
   <div class="stepv">${steps.map((st,i)=>`
     <div class="sp2 ${i===pStep?'on':''}" onclick="setPStep(${i})">
-      <div class="t"><span class="nm">${i+1}</span>${st[0]}</div><div class="d">${st[1]}</div></div>`).join('')}
+      <div class="t"><span class="nm">${i+1}</span>${st[0]}</div>${
+        st[1]?`<div class="d">${st[1]}</div>`:''}</div>`).join('')}
   </div>
   ${pStep>0&&stepItems(pStep).length>1?`<div class="itab">${stepItems(pStep).map(x=>
     `<button class="${m&&x.code===m.code?'on':''}" onclick="setPItem('${x.code}')">${x.name}</button>`).join('')}</div>`:''}
@@ -1364,12 +1365,12 @@ function stRead(m,R){
         <td>${dash}</td><td class="n">${dash}</td>
         <td class="n"><input class="inp" type="text" value="" placeholder="계량기 없음" disabled></td>
         <td class="n">${dash}</td></tr>`).join('')}
-        <tr class="sumr"><td colspan="4">개별 사용량 합계 <span class="lock">계량기 ${mtr.length}개 유닛</span></td>
+        <tr class="sumr"><td colspan="4">개별 사용량 합계</td>
           <td class="n">${num(mtr.reduce((a,r)=>a+r.use,0))} ${U}</td></tr>
       </tbody></table></div>
   </div>
   <div class="hint">
-    계량기 보유 유닛은 <b>건물 관리 › 관리비 설정</b>에서 정한다. 현재 <b>${mtr.length} / ${rows.length}개</b>.
+    계량기 보유 유닛은 <b>건물 관리 › 관리비 설정</b>에서 정한다.
     계량기가 없는 유닛은 행은 보이되 입력이 잠긴다.
     공용 사용량 <b>${fx(R.common)} ${U}</b>은 계량기 유무와 무관하게
     <b>전 유닛</b>이 ${st.basis} 비율로 나눠 부담한다.<br>
@@ -1398,7 +1399,7 @@ function stAdj(m,R){
   return `
   <div class="card"><div class="ct">조정
     <span class="sub">공용 사용량 합계 <b>${fx(R.common)} ${U}</b>
-      · ${st.basis} 비율 · 전체 ${rows.length}개 유닛</span></div>
+      · ${st.basis} 비율</span></div>
     <div class="tw"><table>
       <thead><tr><th>계약고유명</th>
         ${showUse?'<th class="n">개별 사용량</th>':''}
