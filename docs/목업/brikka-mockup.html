@@ -582,8 +582,8 @@ const BUILDINGS=[
   bondBank:'우리은행 문래지점',bondTel:'02-2632-4410',bondMax:900000000,bondNow:640000000,
   fac:['옥상정원','무인택배함'],units:[],parks:[],docs:[],
   charge:[
-   {it:'전기요금',use:1,bill:'세금계산서',cycle:'매월',meter:'전체 14개',mtr:'임차인 직접 납부',
-    basis:'사용량',doc:'한국전력 고지서'},
+   {it:'전기요금',use:1,bill:'세금계산서',cycle:'매월',meter:'없음',mtr:'—',
+    basis:'임대면적',doc:'한국전력 고지서(공용부)'},
    {it:'수도요금',use:1,bill:'계산서',cycle:'격월',meter:'없음',mtr:'—',
     basis:'임대면적',doc:'상수도사업본부 고지서'},
    {it:'정화조청소비',use:1,bill:'계산서',cycle:'반기',meter:'없음',mtr:'—',
@@ -675,21 +675,18 @@ const METER={
 };
 /* 건물별 항목 설정 — 정본은 PRO-3 관리비 설정 */
 const BSET={
- elec:{meterCharge:'자동',basis:'사용량',ref:null,excl:{}},
- water:{meterCharge:'자동',basis:'사용량+임대면적',ref:null,excl:{}},
- fund:{meterCharge:'자동',basis:'사용량',ref:'elec',excl:{}},
- tv:{meterCharge:'자동',basis:'사용량',ref:'elec',excl:{}},
+ elec:{basis:'사용량',ref:null,excl:{}},
+ water:{basis:'사용량+임대면적',ref:null,excl:{}},
+ fund:{basis:'사용량',ref:'elec',excl:{}},
+ tv:{basis:'사용량',ref:'elec',excl:{}},
  gas:null, traffic:null, septic:null,
- parking:{meterCharge:'임차인 직접 납부',basis:'직접 입력',ref:null,excl:{}},
+ parking:{basis:'직접 입력',ref:null,excl:{}},
 };
-const DEFSET={meterCharge:'자동',basis:'임대면적',ref:null,excl:{}};
+const DEFSET={basis:'임대면적',ref:null,excl:{}};
 /* 자동 규칙 해석 — 4.1.3 */
 function resolve(code){
   const st=BSET[code]||DEFSET;
-  const nM=(METER[code]||[]).length;
-  return {...st,
-    meterCharge: st.meterCharge!=='자동'?st.meterCharge:(nM?'청구함':'—'),
-    };
+  return {...st};
 }
 let DRAWER=null, dPick=[];
 /* PRO-3 청구 항목 설정 */
@@ -708,7 +705,6 @@ function loadCS(code){
   const mt=[...(METER[code]||[])];
   cs={neu:false, item:code, name:m.name, bill:m.bill, cycle:m.cycle,
       useMeter:mt.length>0, meters:mt,
-      mtrCharge:b.meterCharge||'자동',
       basis:b.basis||'임대면적', ref:b.ref||null, editing:!!row,
       doc:b.doc||m.doc||'고지서', by:b.by||m.src||''};
 }
@@ -722,16 +718,13 @@ function openCS(code){
 }
 function csNew(){
   cs={neu:true, item:null, name:'', bill:'세금계산서', cycle:'매월',
-      useMeter:false, meters:[], mtrCharge:'자동',
+      useMeter:false, meters:[],
       basis:'임대면적', ref:null, editing:false};
 }
 /* 자동 규칙 — 4.1.3 */
 function csAuto(){
-  const nM=cs.useMeter?cs.meters.length:0, nAll=UNITS_B1.length;
-  return {
-    charge: cs.mtrCharge!=='자동' ? cs.mtrCharge : (nM?'청구함':'—'),
-    autoCharge: cs.mtrCharge==='자동',
-  };
+  const nM=cs.useMeter?cs.meters.length:0;
+  return {charge: nM?'청구함':'—'};
 }
 /* 배분 기준 4종 — 계량기 필요 여부가 기준에 포함된다 → 4.1.3 */
 const BASIS=[
@@ -782,7 +775,7 @@ function csApply(){
   const A=csAuto();
   METER[code]=cs.useMeter?[...cs.meters]:[];
   if(METER[code].length) BILL[code].read=BILL[code].read||{};
-  BSET[code]={meterCharge:cs.mtrCharge,basis:cs.basis,doc:cs.doc,by:cs.by,
+  BSET[code]={basis:cs.basis,doc:cs.doc,by:cs.by,
     ref:cs.ref,excl:(BSET[code]||{}).excl||{}};
   const m=M(code), bc=BUILDINGS[0].charge, row=bc.find(c=>c.it===m.name);
   const mm=METER[code];
@@ -863,7 +856,9 @@ function ratios(m,raw){
   const ref=(st.ref&&st.ref!==m.code)?st.ref:null;
   if(ref) return ratios(M(ref),raw);
   const b=BILL[m.code], ex=st.excl||{};
-  const charge=st.meterCharge==='청구함';
+  /* 계량기가 있으면 개별분을 청구한다. 배분 기준이 계량기 필요 여부를 정하므로
+     「계량기는 있는데 청구하지 않는다」는 조합이 존재하지 않는다 → 4.1.3-1 */
+  const charge=(METER[m.code]||[]).length>0;
   /* 공용분 배분 가중치 — 「사용량」만 사용량 비율이다.
      「사용량+임대면적」은 개별분은 검침, 공용분은 면적으로 나눈다 → 4.1.3 */
   const byUse=st.basis==='사용량';
@@ -1017,18 +1012,9 @@ function csHTML(){
       </div>`:''}
 
       ${cs.basis==='직접 입력'?'':`
-      <div class="fg"><div class="fl">사용분 청구</div>
-        <div class="fr"><span class="fk">청구 여부</span>
-          <select onchange="csSet('mtrCharge',this.value)">
-            ${['자동','청구함','임차인 직접 납부'].map(o=>`<option value="${o}" ${cs.mtrCharge===o?'selected':''}>${o}${
-              o==='자동'?` — ${A.charge}`:''}</option>`).join('')}
-          </select></div>
-        <div class="hint" style="margin-top:2px">
-          계량기 설정에 따라 자동으로 정해집니다. 건물 전 유닛이 공급자에게 직접 납부해
-          고지서가 공용분만 발행되는 경우에만 <b>임차인 직접 납부</b>로 바꾸세요.<br>
-          <b>공용분은 언제나 전 유닛이 부담합니다.</b> 계량기가 있어도 복도·화장실을
-          쓰기 때문입니다. 특정 유닛을 빼려면 정산 시 조정 배수를 0으로 두세요.</div>
-      </div>`}
+      <div class="hint" style="margin-top:-4px">
+        <b>공용분은 언제나 전 유닛이 부담합니다.</b> 계량기가 있어도 복도·화장실을
+        쓰기 때문입니다. 특정 유닛을 빼려면 정산 시 조정 배수를 0으로 두세요.</div>`}
       ${prev}
     </div>
     <div class="df">
@@ -1313,7 +1299,7 @@ function t청구(b){
     <span class="ca"><button class="btn pri sm" onclick="openCS()">+ 항목 추가</button></span></div>
     <div class="tw"><table>
       <thead><tr><th>청구항목</th><th>사용여부</th><th>발행 문서</th><th>반복주기</th>
-        <th>배분 기준</th><th>계량기 보유 유닛</th><th>사용분 청구</th><th>근거 문서</th>
+        <th>배분 기준</th><th>계량기 보유 유닛</th><th>근거 문서</th>
         <th class="c" style="width:70px"></th></tr></thead>
       <tbody>${b.charge.map(c=>{const m=M(codeOf(c.it)), st=resolve(codeOf(c.it));
         return `<tr style="${c.use?'':'opacity:.55'}">
@@ -1324,7 +1310,6 @@ function t청구(b){
         <td>${c.cycle||m.cycle||'—'}</td>
         <td>${c.basis||'—'}</td>
         <td>${!c.meter?'—':c.meter==='없음'?'<span style="color:var(--faint)">없음</span>':`<b>${c.meter}</b>`}</td>
-        <td>${c.mtr||'—'}</td>
         <td>${c.doc||`${st.by||m.src||''} ${st.doc||m.doc||''}`.trim()||'—'}</td>
         <td class="c"><span class="det" onclick="openCS(codeOf('${c.it}'))">수정</span></td></tr>`}).join('')}</tbody>
     </table></div>
