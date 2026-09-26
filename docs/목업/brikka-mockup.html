@@ -375,6 +375,16 @@ td.c,th.c{text-align:center}
 .nomr td{background:color-mix(in srgb,var(--bg) 60%,transparent)}
 /* 청구 약정 목록 — 표가 아니라 그리드다. 스타일은 기본 표(th/td)와 동일하게 맞춘다.
    그룹 행과 항목 행이 같은 grid-template-columns를 쓰므로 열이 어긋날 수 없다. */
+.isec{margin-bottom:26px}
+.ish{display:flex;align-items:center;gap:9px;font-size:14px;font-weight:600;margin-bottom:10px}
+.isn{display:inline-flex;align-items:center;justify-content:center;width:21px;height:21px;
+  border-radius:50%;background:var(--ink);color:var(--bg);font-size:11.5px;font-weight:600}
+.frow{display:flex;gap:22px;align-items:flex-end;flex-wrap:wrap}
+.frow label{display:flex;flex-direction:column;gap:5px;font-size:12px}
+.frow label > span{color:var(--muted);font-size:11.5px}
+.frow label > i{font-style:normal;color:var(--muted);font-size:11.5px;margin-left:4px}
+.frow label:last-child{margin-left:auto;text-align:right}
+.big{font-size:17px;font-weight:600}
 .schl{font-size:12.5px}
 .schr{display:grid;align-items:center;gap:0 10px;padding:11px 14px;
   grid-template-columns:minmax(210px,1fr) 104px 146px 110px 92px 118px 92px;
@@ -739,7 +749,7 @@ const BASIS=[
  {k:'사용량',        m:true,  d:'전 유닛 계량기 필수. 개별분은 검침 실측, 공용분도 사용량 비율로 나눈다.'},
  {k:'임대면적',      m:false, d:'계량기가 필요 없다. 고지서 전액을 임대면적 비율로 나눈다.'},
  {k:'사용량+임대면적', m:true,  d:'계량기 필수. 개별분은 검침 실측, 남은 공용분은 임대면적 비율로 나눈다. 일부 유닛만 계량기를 보유한 건물에 쓴다.'},
- {k:'직접 입력',     m:false, d:'안분하지 않는다. 관리비 정산 3단계에서 계약별 금액을 직접 입력하며 입력 합계가 공급가액이 된다. 주차비처럼 면적·사용량과 무관한 항목에 쓴다.'},
+ {k:'직접 입력',     m:false, d:'안분하지 않는다. 관리비 정산의 금액 입력 절에서 계약별 금액을 직접 입력하며 입력 합계가 공급가액이 된다. 주차비처럼 면적·사용량과 무관한 항목에 쓴다.'},
 ];
 const needMeter=b=>!!(BASIS.find(o=>o.k===b)||{}).m;
 function csBasis(v){
@@ -1337,24 +1347,53 @@ function t청구(b){
 
 /* ═══ PAY-10 관리비 정산 ═══ */
 const fx=(n,d=1)=>n.toLocaleString('ko-KR',{minimumFractionDigits:d,maximumFractionDigits:d});
+/* 청구 항목마다 거치는 단계가 다르다.
+     전기요금      고지서 → 검침 → 조정 → 산출
+     정화조청소비   고지서 → 조정 → 산출          검침이 없다
+     주차비        금액 입력 → 산출              고지서·검침·조정이 없다
+   단계를 가로 네비로 고정하면 항목마다 「이 단계엔 이 항목이 없음」이라는 예외가 생긴다.
+   항목당 한 페이지를 주고 그 항목이 실제로 거치는 단계만 세로로 쌓는다. */
+function itemSecs(m){
+  const R=calc(m), out=[];
+  if(isDirect(m.code)) out.push(['금액 입력',stDirect(m,R)]);
+  else{
+    out.push(['고지서',stBillOne(m)]);
+    if(isMetered(m.code)) out.push(['검침 입력',stRead(m,R)]);
+    out.push(['조정',stAdj(m,R)]);
+  }
+  out.push(['산출 결과',stResult(m,R)]);
+  return out;
+}
+/* 항목 탭의 상태 — 손봐야 할 것이 있으면 알린다 */
+function itemFlag(m){
+  const b=BILL[m.code];
+  if(isDirect(m.code)) return directSum(m.code)?null:{t:'미입력',c:'wa'};
+  if(!(billTotal(m)>0)) return {t:'고지서 미입력',c:'wa'};
+  if(isMetered(m.code)){
+    const R=ratios(m), no=R.rows.filter(r=>r.hasM&&!r.typed).length;
+    const neg=R.rows.filter(r=>r.neg).length;
+    if(neg) return {t:`검침 역전 ${neg}`,c:'wa2'};
+    if(no)  return {t:`미검침 ${no}`,c:'wa'};
+  }
+  return null;
+}
 function PAY10(){
   const sel=selItems();
-  const meterN=sel.filter(m=>isMetered(m.code)).length;
-  const m=curItem(pStep);
-  const R=m?calc(m):null;
-  const steps=[
-    ['청구 항목 · 고지서', sel.length?'':'선택된 항목 없음'],
-    ['검침 입력', meterN?'':'검침 대상 없음'],
-    ['조정', ''],
-    ['산출 결과', ''],
-  ];
-  const body = (!sel.length&&pStep>0)
-    ? `<div class="tbl"><div class="empty"><div class="t">이번 회차에 정산할 항목이 없습니다</div>
-       1단계에서 청구 항목을 선택하세요. 고정관리비만 받는 건물은 정산 없이 청구할 수 있습니다.</div></div>`
-    : (pStep===1&&!meterN)
-    ? `<div class="tbl"><div class="empty"><div class="t">검침할 항목이 없습니다</div>
-       계량기로 사용량을 재는 항목이 없습니다. 검침 없이 3단계로 진행하세요.</div></div>`
-    : [stBill,stRead,stAdj,stResult][pStep](m,R);
+  if(!sel.length) return `
+  ${pay10Head(null)}
+  <div class="tbl"><div class="empty"><div class="t">이번 회차에 정산할 항목이 없습니다</div>
+    고정관리비만 받는 건물은 정산 없이 청구할 수 있습니다.<br><br>
+    <button class="btn pri" onclick="openDrawer('additem')">+ 청구 항목 추가</button></div></div>`;
+  const m=pAll?null:(sel.find(x=>x.code===pCode)||sel[0]);
+  const body=m
+    ? itemSecs(m).map(([t,h],i)=>`
+      <div class="isec"><div class="ish"><span class="isn">${i+1}</span>${t}</div>${h}</div>`).join('')
+    : stBill();
+  return `
+  ${pay10Head(sel)}
+  ${body}`;
+}
+function pay10Head(sel){
   return `
   <div class="ph"><h1>건물 관리비 정산</h1><span class="sid">PAY-10</span>
     <span class="bd wa">작성중</span>
@@ -1362,20 +1401,43 @@ function PAY10(){
       <button class="btn pri" onclick="alert('정산 확정 → 계약별 청구서 생성')">정산 확정</button></div>
   </div>
   <div class="fbar">
-    <select><option>동교동 영준빌딩</option><option>역삼 제이타워</option><option>성수 더블유센터</option></select>
+    <select><option>동교동 영준빌딩</option><option>금악빌딩</option><option>역삼 제이타워</option></select>
     <select><option>2026년 9월</option><option>2026년 8월</option><option>2026년 7월</option></select>
   </div>
-  <div class="stepv">${steps.map((st,i)=>`
-    <div class="sp2 ${i===pStep?'on':''}" onclick="setPStep(${i})">
-      <div class="t"><span class="nm">${i+1}</span>${st[0]}</div>${
-        st[1]?`<div class="d">${st[1]}</div>`:''}</div>`).join('')}
+  ${!sel?'':`<div class="itab">
+    <button class="${pAll?'on':''}" onclick="setPItem('*')">전체</button>
+    ${sel.map(x=>{const f=itemFlag(x);return `
+    <button class="${!pAll&&x.code===pCode?'on':''}" onclick="setPItem('${x.code}')">${x.name}${
+      f?`<span class="bd ${f.c}" style="margin-left:5px">${f.t}</span>`:''}</button>`}).join('')}
+  </div>`}`;
+}
+/* 항목 하나의 고지서 입력 */
+function stBillOne(m){
+  const b=BILL[m.code], st=resolve(m.code);
+  return `
+  <div class="card"><div class="ct">고지서 입력
+    <span class="sub">${m.src} ${m.doc} · ${m.cycle} · ${m.bill}</span>
+    <span class="ca"><button class="btn ex sm" onclick="delItem('${m.code}')">이번 회차 제외</button></span></div>
+    <div class="cc"><div class="frow">
+      <label><span>수령일</span>
+        <input class="inp d" type="date" value="${b.date}" onchange="setBill('${m.code}','date',this.value)"></label>
+      ${m.unit?`<label><span>고지서 총사용량</span>
+        <input class="inp" type="number" value="${b.use||0}" onchange="setBill('${m.code}','use',this.value)">
+        <i>${m.unit}</i></label>`:''}
+      <label><span>공급가액</span>
+        <input class="inp lg" type="text" value="${num(b.supply||0)}"
+          onchange="setBill('${m.code}','supply',this.value)"><i>원</i></label>
+      <label><span>부가세</span>
+        ${m.tax?`<input class="inp" type="text" value="${num(b.vat||0)}"
+            onchange="setBill('${m.code}','vat',this.value)"><i>원</i>`
+          :'<span class="bd mu">면세</span>'}</label>
+      <label><span>소계</span><b class="big">${won(billTotal(m))}</b></label>
+    </div></div>
   </div>
-  ${stepItems(pStep).length>1?`<div class="itab">${
-    pStep===0?`<button class="${pAll?'on':''}" onclick="setPItem('*')">전체</button>`:''
-    }${stepItems(pStep).map(x=>
-    `<button class="${(pStep===0?!pAll&&x.code===pCode:m&&x.code===m.code)?'on':''}"
-       onclick="setPItem('${x.code}')">${x.name}</button>`).join('')}</div>`:''}
-  ${body}`;
+  <div class="hint">
+    배분 기준 <b>${st.basis}</b>${st.ref?` · ${M(st.ref).name} 검침값 참조`:''}.
+    설정은 <b>건물 관리 › 관리비 설정</b>에서 바꾼다.<br>
+    받은 고지서의 공급가액과 부가세를 그대로 옮겨 적는다. 이 금액을 아래 단계에서 나눈다.</div>`;
 }
 
 /* ── 1단계 · 항목 선택 + 고지서 입력 (단일 표) ── */
@@ -1905,8 +1967,8 @@ function PAY1(){
     <b>근거</b>는 그 금액을 뒷받침하는 문서다. 임차인이 산출 근거를 물으면 이 문서를 보여준다.
     항목별 근거 문서는 <b>건물 관리 › 관리비 설정</b>에서 정한다.<br>
     <b>이번 회차 대상 항목만 올라온다.</b> 고정액은 약정의 반복주기로, 정산은
-    <b>관리비 정산 1단계에서 선택한 항목</b>으로 정해진다. 격월·반기 항목의 비대상 회차는
-    1단계에서 이미 빠졌으므로 여기에 나오지 않는다.<br>
+    <b>관리비 정산에서 선택한 항목</b>으로 정해진다. 격월·반기 항목의 비대상 회차는
+    관리비 정산에서 이미 빠졌으므로 여기에 나오지 않는다.<br>
     <b>미납 잔액</b>은 원장에서 계산되는 값이며 이번 회차 청구와 별개다.
     청구서에는 <b>합계에 넣지 않고 별도 안내로</b> 표기한다. 세금계산서에는 넣지 않는다.<br>
     항목 상태는 셋이다. <b>약정</b>(계약서 금액이라 변하지 않는다) ·
