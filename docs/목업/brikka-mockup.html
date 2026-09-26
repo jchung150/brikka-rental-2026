@@ -375,8 +375,11 @@ td.c,th.c{text-align:center}
 .nomr td{background:color-mix(in srgb,var(--bg) 60%,transparent)}
 table.sch tr.grp{cursor:pointer} table.sch tr.grp:hover td{background:var(--line)}
 table.sch tr.grp .tg{display:inline-block;width:14px;color:var(--muted);font-size:11px}
-table.sch tr.grp .gsum{margin-left:14px;margin-top:3px}
+table.sch tr.grp .gsum,table.sch tr.grp .gsub{margin-left:14px;margin-top:3px}
+table.sch tr.grp td:first-child{white-space:normal}
+table.sch tr.grp .gsub{display:none}
 table.sch tr.grp.op .gsum{display:none}
+table.sch tr.grp.op .gsub{display:block}
 table.sch tr.grp td{background:var(--soft);border-top:2px solid var(--line);padding-top:11px;padding-bottom:11px}
 table.sch tr.sub{cursor:pointer} table.sch tr.sub:hover td{background:var(--soft)}
 table.sch td.ind{padding-left:26px}
@@ -1656,15 +1659,17 @@ function PAY1(){
     const nS=c.it.length-nF;
     return `
     <tr class="grp ${op?'op':''}" onclick="gTog('${c.k}')">
-      <td colspan="5">
+      <td>
         <span class="tg">${op?'▾':'▸'}</span>
         ${cnameHTML(BA(c.b),c.no,c.ten)}
         <span class="bd ${ST[c.st]||'mu'}">${c.st}</span>
-        <span class="lock">${BN(c.b)} · 기산일 ${c.base}</span>
-        <div class="c2 gsum">${nF?`고정액 ${nF}`:''}${nF&&nS?' · ':''}${nS?`정산 ${nS}`:''}
-          <span style="color:var(--faint)">· ${c.it.map(x=>x[0]).join(', ')}</span></div></td>
+        <div class="c2 gsum">${BN(c.b)} · 기산일 ${c.base}
+          <span style="color:var(--faint)">· ${nF?`고정액 ${nF}`:''}${nF&&nS?' · ':''}${nS?`정산 ${nS}`:''}
+          · ${c.it.map(x=>x[0]).join(', ')}</span></div>
+        <div class="c2 gsub">${BN(c.b)} · 기산일 ${c.base}</div></td>
+      <td></td><td></td><td></td><td></td>
       <td class="n">${fixed?`<b>${won(fixed)}</b>`:'<span style="color:var(--faint)">—</span>'}
-        <div class="c2">${fixed?'월 고정액 · VAT 별도':'고정액 없음'}</div></td>
+        <div class="c2">${fixed?'월 고정액':'고정액 없음'}</div></td>
       <td class="n c2">${nS?`정산 ${nS}건 별도`:''}</td>
     </tr>` + (!op?'':c.it.map(x=>{const d=CITEM[x[0]];return `
     <tr class="sub" onclick="go('ctr-3')">
@@ -1709,7 +1714,8 @@ function PAY1(){
       <thead><tr><th>청구항목</th><th>산정방식</th><th>반복주기</th><th>기산일</th>
         <th class="c">부가세</th><th class="n">청구액</th><th class="n"></th></tr></thead>
       <tbody>${body}
-        <tr class="sumr"><td colspan="5">합계 <span class="lock">계약 ${ctrs.length} · 항목 ${nI}</span></td>
+        <tr class="sumr"><td>합계 <span class="lock">계약 ${ctrs.length} · 항목 ${nI}</span></td>
+          <td></td><td></td><td></td><td></td>
           <td class="n">${won(mFix)}</td><td class="n c2">월 고정액만</td></tr>
       </tbody></table></div>`}
   <div class="hint">
