@@ -401,7 +401,6 @@ td.c,th.c{text-align:center}
 .schr .cb.on::after{content:'';position:absolute;left:4px;top:1px;width:4px;height:8px;
   border:solid #fff;border-width:0 2px 2px 0;transform:rotate(45deg)}
 .schr .cb.dis{opacity:.3}
-.schr.sub.na{background:var(--head)} .schr.sub.na .nm{color:var(--muted)}
 .lk{color:var(--pri);cursor:pointer;text-decoration:underline}
 .dlt{font-size:11px;font-weight:700;margin-left:4px}
 .dlt.up{color:var(--warn)} .dlt.dn{color:var(--muted)}
@@ -1665,31 +1664,32 @@ const pick=(k,e)=>{if(e)e.stopPropagation();sel1[k]=!sel1[k];render(true)};
 const pickAll=v=>{ISSUE().forEach(c=>sel1[c.k]=v&&c.st==='발행 대기');render(true)};
 
 /* 이번 회차에 발행할 청구서 — 고정액(약정)과 정산액(PAY-10)을 계약별로 합친다 → 2부
-   항목의 상태는 셋이다.
-     약정      고정액. 계약의 청구 약정에서 온다. 언제나 금액이 있다
-     정산      이번 회차 정산 대상. PAY-10 1단계에서 선택된 항목이다
-     해당 없음  이번 회차 정산 대상이 아니다. 격월·반기·연1회 항목의 비대상 회차
-   「이번 회차 대상인가」는 자동 판정하지 않고 PAY-10 1단계의 선택을 따른다 → 검토사항 #31 */
+
+   청구서에 올라오는 항목은 이번 회차 대상뿐이다. 대상 여부는 산정방식에 따라 다르게 정한다.
+     고정액   청구 약정의 반복주기·기산일로 판정한다. 금액이 약정에 있으므로 자동 판정된다
+     정산     PAY-10 1단계에서 담당자가 선택한 항목이다. 고지서 수령 여부를 시스템이 모른다
+              → 검토사항 #31
+   대상이 아닌 항목은 화면에 올리지 않는다. 그 판단은 1단계에서 이미 끝났다. */
 function ISSUE(){
   const P=PROG[f1.b]||{}, done=P.inv>0, fixed=P.settle==='확정';
   return CTRS.filter(c=>c.b===f1.b&&c.st==='진행중').map(c=>{
     const lines=c.it.map(x=>{
       const d=CITEM[x[0]];
-      if(d.calc==='고정액') return {n:x[0],calc:'고정액',src:'약정',amt:x[1],due:true,note:''};
+      /* 고정액 — 반복주기로 판정. 목업 데이터는 모두 매월이다 */
+      if(d.calc==='고정액')
+        return d.cycle==='매월'?{n:x[0],calc:'고정액',src:'약정',amt:x[1],note:''}:null;
+      /* 정산 — 1단계에서 선택되지 않았으면 이번 회차 대상이 아니다 */
       const code=codeOf(x[0]), m=M(code), b=BILL[code];
-      const due=f1.b==='b1'&&b&&b.on;
-      if(!due) return {n:x[0],calc:'해당 없음',src:'—',amt:null,due:false,
-                       note:`${d.cycle} 항목 · 이번 회차 대상 아님`};
-      if(!(billTotal(m)>0)) return {n:x[0],calc:'정산',src:'2026-09',amt:null,due:true,
+      if(!(f1.b==='b1'&&b&&b.on)) return null;
+      if(!(billTotal(m)>0)) return {n:x[0],calc:'정산',src:'2026-09',amt:null,
                                     note:'고지서 금액 미입력'};
       const r=calc(m).rows.find(r=>r.no===c.no);
-      return {n:x[0],calc:'정산',src:'2026-09',amt:r?r.amt:null,due:true,
+      return {n:x[0],calc:'정산',src:'2026-09',amt:r?r.amt:null,
               note:r?(fixed?'':'정산 미확정 · 잠정'):'산출 결과 없음'};
-    });
+    }).filter(Boolean);
     const sum=lines.reduce((a,l)=>a+(l.amt||0),0);
-    const miss=lines.filter(l=>l.due&&l.amt==null).length;   /* 대상인데 금액이 없다 */
-    const na  =lines.filter(l=>!l.due).length;               /* 대상이 아니다 */
-    return {...c,k:c.b+c.no,lines,sum,miss,na,st:done?'발행 완료':'발행 대기'};
+    const miss=lines.filter(l=>l.amt==null).length;   /* 대상인데 금액이 없다 */
+    return {...c,k:c.b+c.no,lines,sum,miss,st:done?'발행 완료':'발행 대기'};
   });
 }
 function PAY1(){
@@ -1709,20 +1709,19 @@ function PAY1(){
         <div>${can?`<span class="cb ${on?'on':''}" onclick="pick('${c.k}',event)"></span>`
               :'<span class="cb dis"></span>'}
           <span class="tg ${op?'op':''}">${ic('chev',16)}</span>${cnameHTML(BA(c.b),c.no,c.ten)}</div>
-        <div class="c2">${BN(c.b)} · 청구 ${c.lines.filter(l=>l.due).length}건${
-          c.miss?` · <b style="color:var(--warn)">미산출 ${c.miss}</b>`:''}${
-          c.na?` · <span style="color:var(--faint)">해당 없음 ${c.na}</span>`:''}</div></div>
+        <div class="c2">${BN(c.b)} · 청구 ${c.lines.length}건${
+          c.miss?` · <b style="color:var(--warn)">미산출 ${c.miss}</b>`:''}</div></div>
       <div></div><div></div>
       <div class="n"><b>${won(c.sum)}</b><div class="c2">VAT 별도</div></div>
       <div class="c">${c.st==='발행 완료'?'<span class="bd ok">발행 완료</span>'
         :'<span class="bd mu">발행 대기</span>'}</div>
     </div>` + (!op?'':c.lines.map(l=>`
-    <div class="schr sub ${l.due?'':'na'}">
+    <div class="schr sub">
       <div class="nm">${l.n}</div>
-      <div><span class="bd ${l.calc==='정산'?'wa':l.calc==='해당 없음'?'mu':'mu'}">${l.calc}</span></div>
+      <div><span class="bd ${l.calc==='정산'?'wa':'mu'}">${l.calc}</span></div>
       <div class="c2">${l.src}</div>
       <div class="n">${l.amt!=null?`<b>${won(l.amt)}</b>`:'<span style="color:var(--faint)">—</span>'}</div>
-      <div class="c c2" ${l.due&&l.amt==null?'style="color:var(--warn);font-weight:600"':''}>${l.note}</div>
+      <div class="c c2" ${l.amt==null?'style="color:var(--warn);font-weight:600"':''}>${l.note}</div>
     </div>`).join(''));
   }).join('');
   return `
@@ -1763,9 +1762,10 @@ function PAY1(){
     이번 회차에 발행할 청구서다. <b>계약당 1장</b>이며 고정액 항목과 정산 항목을 함께 담는다 → 2부<br>
     <b>고정액</b>(임대료·고정관리비)은 계약에 등록된 <b>청구 약정</b>에서, <b>정산</b> 항목은
     <b>관리비 정산(PAY-10)</b> 확정 결과에서 가져온다. 약정 등록·수정은 계약 상세에서 한다.<br>
-    항목 상태는 셋이다. <b>약정</b>(고정액) · <b>정산</b>(이번 회차 대상) ·
-    <b>해당 없음</b>(격월·반기·연1회 항목의 비대상 회차. 정상이며 청구서에 들어가지 않는다).<br>
-    <b style="color:var(--warn)">미산출</b>은 상태가 아니라 경고다. 이번 회차 대상인데 금액이 없다는 뜻이며
+    <b>이번 회차 대상 항목만 올라온다.</b> 고정액은 약정의 반복주기로, 정산은
+    <b>관리비 정산 1단계에서 선택한 항목</b>으로 정해진다. 격월·반기 항목의 비대상 회차는
+    1단계에서 이미 빠졌으므로 여기에 나오지 않는다.<br>
+    <b style="color:var(--warn)">미산출</b>은 이번 회차 대상인데 금액이 없다는 경고다.
     그대로 발행하면 <b>그 항목이 빠진 청구서</b>가 나간다.<br>
     발행하면 원장에 <b>청구</b> 거래로 기록되고 임차인 담당자에게 이메일이 발송된다.</div>`;
 }
