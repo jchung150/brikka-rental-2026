@@ -372,6 +372,7 @@ td.c,th.c{text-align:center}
   .navg{width:100%;padding:10px 8px 3px}
   .top,.wrap{padding-left:16px;padding-right:16px}
 }
+.nomr td{background:color-mix(in srgb,var(--bg) 60%,transparent)}
 .dlt{font-size:11px;font-weight:700;margin-left:4px}
 .dlt.up{color:var(--warn)} .dlt.dn{color:var(--muted)}
 </style>
@@ -1355,11 +1356,15 @@ const TODAY_ISO=TODAY.toISOString().slice(0,10);
 const readDateOf=(code,no)=>{const b=BILL[code];return (b.readDates&&b.readDates[no])||b.readDate||TODAY_ISO;};
 function setReadDate(code,v){const b=BILL[code];b.readDate=v;b.readDates={};render(true);}
 function setReadDateUnit(code,no,v){const b=BILL[code];(b.readDates=b.readDates||{})[no]=v;render(true);}
+/* 전 유닛을 나열한다. 계량기가 없는 유닛은 행은 보이되 입력이 잠긴다.
+   어느 유닛에 계량기가 있는지가 화면에서 그대로 읽히도록 한다. */
 function stRead(m,R){
-  const b=BILL[m.code], st=resolve(m.code);
-  const rows=R.rows.filter(r=>r.hasM);
-  const noM=R.rows.filter(r=>!r.hasM);
-  const todo=rows.filter(r=>!r.typed).length;
+  const b=BILL[m.code], st=resolve(m.code), U=m.unit||'';
+  const rows=R.rows.filter(r=>!r.excl);
+  const mtr=rows.filter(r=>r.hasM);
+  const noM=rows.filter(r=>!r.hasM);
+  const todo=mtr.filter(r=>!r.typed).length;
+  const dash='<span style="color:var(--faint)">—</span>';
   return `
   <div class="card"><div class="ct">검침 입력${todo?` <span class="bd wa">미입력 ${todo}개</span>`:''}
     <span class="ca">
@@ -1369,24 +1374,31 @@ function stRead(m,R){
     <div class="tw"><table>
       <thead><tr><th>계약고유명</th><th>검침일</th>
         <th class="n">직전 검침값</th><th class="n">당월 검침값</th><th class="n">개별 사용량</th></tr></thead>
-      <tbody>${rows.map(r=>`<tr>
+      <tbody>${rows.map(r=>r.hasM?`<tr>
         <td>${cnameST(r,m)}</td>
         <td><input class="inp d" type="date" value="${readDateOf(m.code,r.no)}"
             onchange="setReadDateUnit('${m.code}','${r.no}',this.value)"></td>
-        <td class="n" style="color:var(--muted)">${r.pm!=null?num(r.pm):'—'}</td>
+        <td class="n" style="color:var(--muted)">${r.pm!=null?num(r.pm):dash}</td>
         <td class="n"><input class="inp" type="number" value="${r.cm!=null?r.cm:''}" placeholder="미입력"
             onchange="setRead('${m.code}','${r.no}',this.value)"></td>
-        <td class="n">${r.typed?`<b>${num(r.use)}</b> <span class="u">${m.unit}</span>`
-            :'<span style="color:var(--faint)">—</span>'}</td></tr>`).join('')}
-        <tr class="sumr"><td colspan="4">개별 사용량 합계</td>
-          <td class="n">${num(rows.reduce((a,r)=>a+r.use,0))} ${m.unit}</td></tr>
+        <td class="n">${r.typed?`<b>${num(r.use)}</b> <span class="u">${U}</span>`:dash}</td></tr>`
+      :`<tr class="nomr">
+        <td>${cnameST(r,m)}</td>
+        <td>${dash}</td><td class="n">${dash}</td>
+        <td class="n"><input class="inp" type="text" value="" placeholder="계량기 없음" disabled></td>
+        <td class="n">${dash}</td></tr>`).join('')}
+        <tr class="sumr"><td colspan="4">개별 사용량 합계 <span class="lock">계량기 ${mtr.length}개 유닛</span></td>
+          <td class="n">${num(mtr.reduce((a,r)=>a+r.use,0))} ${U}</td></tr>
       </tbody></table></div>
   </div>
   <div class="hint">
-    계량기 보유 유닛은 <b>건물 관리 › 관리비 설정</b>에서 정한다. 현재 ${rows.length} / ${R.rows.length}개 유닛.
-    ${noM.length?`나머지 ${noM.length}개 유닛은 검침하지 않으며 공용 사용량
-      <b>${fx(R.common)} ${m.unit}</b>을 ${st.basis} 비율로 나눈다.`:''}<br>
-    검침 기록은 원본이며 수정하지 않는다. 공용부 부담을 조정하려면 3단계에서 조정 배수를 기록한다.<br>
+    계량기 보유 유닛은 <b>건물 관리 › 관리비 설정</b>에서 정한다. 현재 <b>${mtr.length} / ${rows.length}개</b>.
+    계량기가 없는 유닛은 행은 보이되 입력이 잠긴다.
+    ${noM.length?`이 ${noM.length}개 유닛은 공용 사용량 <b>${fx(R.common)} ${U}</b>을
+      ${st.basis} 비율로 나눠 부담한다.`:''}<br>
+    <b>직전 검침값</b>은 직전 정산 회차의 당월 검침값이며 수정할 수 없다.
+    격월·반기 항목은 직전 회차가 전월이 아니다.<br>
+    검침 기록은 원본이며 수정하지 않는다. 부담을 조정하려면 3단계에서 조정 배수를 기록한다.<br>
     <b>검침일</b>은 유닛마다 다를 수 있다. 기본값은 당일이며, 한 날에 몰아서 검침했다면
     상단 <b>일괄 적용</b>으로 전 유닛을 한 번에 맞춘다.</div>`;
 }
