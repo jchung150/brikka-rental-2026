@@ -35,6 +35,7 @@ run('PRO-1', 'PRO1()');
 for (const t of ['요약', '유닛', '자료보관', '관리비 설정'])
   run('PRO-3 ' + t, "tab3='" + t + "';PRO3('b1')");
 for (const b of ['b2', 'b3', 'b4', 'b5']) run('PRO-3 ' + b, "tab3='요약';PRO3('" + b + "')");
+run('PRO-3 금악빌딩 관리비 설정', "tab3='관리비 설정';PRO3('b4')");
 run('PAY-12', 'PAY12()');
 run('PAY-1', 'PAY1()');
 for (const f of ["f1.b='b2'", "f1.b='b4'", "f1.st='발행 대기'", "f1.st='발행 완료'", "f1.b='b3'"])

@@ -548,14 +548,14 @@ const BUILDINGS=[
    {t:'건축물대장.pdf',sz:'2.1 MB',c:'건축물대장',by:'김영준',at:'2025-03-02 11:40'},
    {t:'2026년 화재보험증권.pdf',sz:'880 KB',c:'기타',by:'박수민',at:'2026-01-08 16:05'}],
   charge:[
-   {it:'전기요금',use:1,bill:'세금계산서',meter:'전체 11개',mtr:'청구함',rest:'전체 유닛',basis:'사용량 비율'},
-   {it:'수도요금',use:1,bill:'계산서',meter:'101호',mtr:'청구함',rest:'전체 유닛',basis:'임대면적 비율'},
-   {it:'전력기금',use:1,bill:'일반내역서',meter:'없음',mtr:'—',rest:'전체 유닛',basis:'개별 사용량 비율 · 전기요금 참조'},
-   {it:'TV수신료',use:1,bill:'일반내역서',meter:'없음',mtr:'—',rest:'전체 유닛',basis:'개별 사용량 비율 · 전기요금 참조'},
+   {it:'전기요금',use:1,bill:'세금계산서',meter:'전체 11개',mtr:'청구함',rest:'전체 유닛',basis:'사용량',doc:'한국전력 고지서'},
+   {it:'수도요금',use:1,bill:'계산서',meter:'101호',mtr:'청구함',rest:'전체 유닛',basis:'사용량+임대면적',doc:'상수도사업본부 고지서'},
+   {it:'전력기금',use:1,bill:'일반내역서',meter:'없음',mtr:'—',rest:'전체 유닛',basis:'사용량 · 전기요금 참조',doc:'한국전력 고지서'},
+   {it:'TV수신료',use:1,bill:'일반내역서',meter:'없음',mtr:'—',rest:'전체 유닛',basis:'사용량 · 전기요금 참조',doc:'한국전력 고지서'},
    {it:'가스요금',use:0,bill:'',meter:'',mtr:'',rest:'',basis:''},
-   {it:'주차비',use:1,bill:'세금계산서',meter:'없음',mtr:'—',rest:'—',basis:'직접 입력'},
-   {it:'교통유발부담금',use:1,bill:'계산서',meter:'없음',mtr:'—',rest:'전체 유닛',basis:'임대면적 비율'},
-   {it:'정화조청소비',use:1,bill:'계산서',meter:'없음',mtr:'—',rest:'전체 유닛',basis:'임대면적 비율'}],
+   {it:'주차비',use:1,bill:'세금계산서',meter:'없음',mtr:'—',rest:'—',basis:'직접 입력',doc:'경비실 내역서'},
+   {it:'교통유발부담금',use:1,bill:'계산서',meter:'없음',mtr:'—',rest:'전체 유닛',basis:'임대면적',doc:'구청 고지서'},
+   {it:'정화조청소비',use:1,bill:'계산서',meter:'없음',mtr:'—',rest:'전체 유닛',basis:'임대면적',doc:'청소업체 내역서'}],
   billDay:'매월 19일',dueDay:'매월 말일'},
 
  {id:'b2',name:'역삼 제이타워',alias:'제이',kind:'오피스빌딩',addr:'서울특별시 강남구 테헤란로 208',addr2:'서울 강남구 역삼동 737-19',
@@ -574,13 +574,21 @@ const BUILDINGS=[
   bondBank:'하나은행 성수지점',bondTel:'02-464-7701',bondMax:8000000000,bondNow:5600000000,
   fac:['회의실','옥상정원'],units:[],parks:[],docs:[],charge:[],billDay:'매월 19일',dueDay:'매월 말일'},
 
- {id:'b4',name:'문래 창업허브',alias:'문래',kind:'복합상가',addr:'서울특별시 영등포구 도림로 128',addr2:'서울 영등포구 문래동3가 55-7',
-  owner:'(주)영준개발',ownerBiz:'105-81-42117',mgr:'박수민',mgrTel:'010-7720-3318',
-  area:3120.8,gross:4010.2,up:6,down:1,park:16,hvac:'개별냉난방',unitCnt:14,vacCnt:0,opCnt:0,vac:0,
-  acct:'국민은행 812-01-0455-118',acctName:'(주)영준개발',
-  mgmtStart:'2026-01-01',mgmtEnd:'2027-12-31',fee:'임대료의 5%',mode:'임대인 직수취',
-  bondBank:'',bondTel:'',bondMax:0,bondNow:0,
-  fac:['무인택배함'],units:[],parks:[],docs:[],charge:[],billDay:'매월 19일',dueDay:'매월 말일'},
+ {id:'b4',name:'금악빌딩',alias:'금악',kind:'복합상가',addr:'서울특별시 영등포구 도림로 128',addr2:'서울 영등포구 문래동3가 55-7',
+  owner:'(주)금악산업',ownerBiz:'113-86-20447',mgr:'이하늘',mgrTel:'010-2280-5517',
+  area:3180.6,gross:4120.2,up:6,down:1,park:14,hvac:'개별 EHP',unitCnt:14,vacCnt:2,opCnt:0,vac:12.4,
+  acct:'우리은행 1005-903-442118',acctName:'(주)금악산업',
+  mgmtStart:'2025-07-01',mgmtEnd:'2027-06-30',fee:'임대료의 4%',mode:'임대인 직수취',
+  bondBank:'우리은행 문래지점',bondTel:'02-2632-4410',bondMax:900000000,bondNow:640000000,
+  fac:['옥상정원','무인택배함'],units:[],parks:[],docs:[],
+  charge:[
+   {it:'전기요금',use:1,bill:'세금계산서',cycle:'매월',meter:'전체 14개',mtr:'임차인 직접 납부',
+    basis:'사용량',doc:'한국전력 고지서'},
+   {it:'수도요금',use:1,bill:'계산서',cycle:'격월',meter:'없음',mtr:'—',
+    basis:'임대면적',doc:'상수도사업본부 고지서'},
+   {it:'정화조청소비',use:1,bill:'계산서',cycle:'반기',meter:'없음',mtr:'—',
+    basis:'임대면적',doc:'청소업체 내역서'}],
+  billDay:'매월 20일',dueDay:'말일'},
 
  {id:'b5',name:'상암 미디어플렉스',alias:'상암',kind:'오피스빌딩',addr:'서울특별시 마포구 월드컵북로 400',addr2:'서울 마포구 상암동 1602',
   owner:'한도영',ownerBiz:'318-22-91045',mgr:'김영준',mgrTel:'010-3341-2205',
@@ -1317,7 +1325,7 @@ function t청구(b){
         <td>${c.basis||'—'}</td>
         <td>${!c.meter?'—':c.meter==='없음'?'<span style="color:var(--faint)">없음</span>':`<b>${c.meter}</b>`}</td>
         <td>${c.mtr||'—'}</td>
-        <td>${`${st.by||m.src||''} ${st.doc||m.doc||''}`.trim()||'—'}</td>
+        <td>${c.doc||`${st.by||m.src||''} ${st.doc||m.doc||''}`.trim()||'—'}</td>
         <td class="c"><span class="det" onclick="openCS(codeOf('${c.it}'))">수정</span></td></tr>`}).join('')}</tbody>
     </table></div>
   </div>
