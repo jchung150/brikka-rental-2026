@@ -520,7 +520,7 @@ const BUILDINGS=[
    {t:'2026년 화재보험증권.pdf',sz:'880 KB',c:'기타',by:'박수민',at:'2026-01-08 16:05'}],
   charge:[
    {it:'전기요금',use:1,grp:'관리비-과세',meter:'전체 11개',mtr:'청구함',rest:'전체 유닛',basis:'사용량 비율'},
-   {it:'수도요금',use:1,grp:'관리비-면세',meter:'101호',mtr:'청구함',rest:'검침기 없는 유닛만',basis:'임대면적 비율'},
+   {it:'수도요금',use:1,grp:'관리비-면세',meter:'101호',mtr:'청구함',rest:'전체 유닛',basis:'임대면적 비율'},
    {it:'전력기금',use:1,grp:'기타-일반내역서',meter:'없음',mtr:'—',rest:'전체 유닛',basis:'개별 사용량 비율 · 전기요금 참조'},
    {it:'TV수신료',use:1,grp:'기타-일반내역서',meter:'없음',mtr:'—',rest:'전체 유닛',basis:'개별 사용량 비율 · 전기요금 참조'},
    {it:'가스요금',use:0,grp:'',meter:'',mtr:'',rest:'',basis:''},
@@ -637,20 +637,20 @@ const METER={
 };
 /* 건물별 항목 설정 — 정본은 PRO-3 관리비 설정 */
 const BSET={
- elec:{meterCharge:'자동',target:'자동',basis:'사용량',ref:null,excl:{}},
- water:{meterCharge:'자동',target:'자동',basis:'임대면적',ref:null,excl:{}},
- fund:{meterCharge:'자동',target:'자동',basis:'사용량',ref:'elec',excl:{}},
- tv:{meterCharge:'자동',target:'자동',basis:'사용량',ref:'elec',excl:{}},
+ elec:{meterCharge:'자동',basis:'사용량',ref:null,excl:{}},
+ water:{meterCharge:'자동',basis:'임대면적',ref:null,excl:{}},
+ fund:{meterCharge:'자동',basis:'사용량',ref:'elec',excl:{}},
+ tv:{meterCharge:'자동',basis:'사용량',ref:'elec',excl:{}},
  gas:null, traffic:null, septic:null, parking:null,
 };
-const DEFSET={meterCharge:'자동',target:'자동',basis:'임대면적',ref:null,excl:{}};
+const DEFSET={meterCharge:'자동',basis:'임대면적',ref:null,excl:{}};
 /* 자동 규칙 해석 — 4.1.3 */
 function resolve(code){
   const st=BSET[code]||DEFSET;
-  const nM=(METER[code]||[]).length, nAll=UNITS_B1.length;
+  const nM=(METER[code]||[]).length;
   return {...st,
     meterCharge: st.meterCharge!=='자동'?st.meterCharge:(nM?'청구함':'—'),
-    target: st.target!=='자동'?st.target:(nM&&nM<nAll?'검침기 없는 유닛만':'전체 유닛')};
+    };
 }
 let DRAWER=null, dPick=[];
 /* PRO-3 청구 항목 설정 */
@@ -663,7 +663,7 @@ function loadCS(code){
   const mt=[...(METER[code]||[])];
   cs={neu:false, item:code, name:m.name, grp:m.grp, cycle:m.cycle,
       useMeter:mt.length>0, meters:mt,
-      mtrCharge:b.meterCharge||'자동', target:b.target||'자동',
+      mtrCharge:b.meterCharge||'자동',
       basis:b.basis||'임대면적', ref:b.ref||null, editing:!!row, adv:false};
 }
 function openCS(code){
@@ -676,7 +676,7 @@ function openCS(code){
 }
 function csNew(){
   cs={neu:true, item:null, name:'', grp:'관리비-과세', cycle:'매월',
-      useMeter:false, meters:[], mtrCharge:'자동', target:'자동',
+      useMeter:false, meters:[], mtrCharge:'자동',
       basis:'임대면적', ref:null, editing:false, adv:false};
 }
 /* 자동 규칙 — 4.1.3 */
@@ -684,8 +684,7 @@ function csAuto(){
   const nM=cs.useMeter?cs.meters.length:0, nAll=UNITS_B1.length;
   return {
     charge: cs.mtrCharge!=='자동' ? cs.mtrCharge : (nM?'청구함':'—'),
-    target: cs.target!=='자동' ? cs.target : (nM&&nM<nAll?'검침기 없는 유닛만':'전체 유닛'),
-    autoCharge: cs.mtrCharge==='자동', autoTarget: cs.target==='자동',
+    autoCharge: cs.mtrCharge==='자동',
   };
 }
 function csUseMeter(v){
@@ -724,14 +723,14 @@ function csApply(){
   const A=csAuto();
   METER[code]=cs.useMeter?[...cs.meters]:[];
   if(METER[code].length) BILL[code].read=BILL[code].read||{};
-  BSET[code]={meterCharge:cs.mtrCharge,target:cs.target,basis:cs.basis,
+  BSET[code]={meterCharge:cs.mtrCharge,basis:cs.basis,
     ref:cs.ref,excl:(BSET[code]||{}).excl||{}};
   const m=M(code), bc=BUILDINGS[0].charge, row=bc.find(c=>c.it===m.name);
   const mm=METER[code];
   const mt=mm.length===0?'없음':mm.length===UNITS_B1.length?`전체 ${mm.length}개`
     :mm.length<=2?mm.join(', '):`${mm.length}개 유닛`;
   const data={it:m.name,use:1,grp:m.grp,cycle:m.cycle,meter:mt,mtr:A.charge,
-    rest:mm.length?A.target:'전체 유닛',
+    rest:'전체 유닛',
     basis:cs.basis+' 비율'+(cs.ref&&cs.ref!==code?` · ${M(cs.ref).name} 참조`:'')};
   if(row) Object.assign(row,data); else bc.push(data);
   DRAWER=null; cs=null; render();
@@ -786,25 +785,15 @@ const isMetered=code=>meterUnits(code).length>0;
 const reading=(code,no)=>hasMeter(code,no)?(BILL[code].read||{})[no]:null;
 
 /* 배분 계산 — 4.1.2
-   조정 배수는 「그 유닛이 부담을 지는 곳」에 한 번만 적용한다.
+   ① 개별 사용량   = 당월 검침값 − 직전 검침값        원본. 배수를 곱하지 않는다
+   ② 공용 사용량 합계 = 고지서 총사용량 − Σ개별 사용량
+   ③ 조정 가중치   = (개별 사용량 또는 임대면적) × 조정 배수
+   ④ 공용 사용량   = 합계 × (조정 가중치 ÷ Σ조정 가중치)   합계는 변하지 않는다
+   ⑤ 유닛 총사용량 = 개별 사용량 + 공용 사용량
+   ⑥ 청구금액     = 고지서 총금액 × (유닛 총사용량 ÷ 고지서 총사용량)
 
-     공용분을 부담하는 유닛   →  공용 사용량 배분 가중치에 적용 (개별 사용량은 원본 유지)
-     공용분을 부담하지 않는
-     계량기 보유 유닛         →  개별 사용량에 적용
-
-   후자는 전기요금처럼 전 유닛이 공용분을 나눠 갖는 항목에는 없고,
-   수도요금처럼 「검침기 없는 유닛만」이 공용분을 부담하는 항목에서 생긴다.
-   1층 커피숍이 물을 많이 쓴다면 그 부담을 키울 자리가 개별 사용량밖에 없다.
-
-   ① 개별 사용량     = 당월 검침값 − 직전 검침값        원본
-   ② 조정 개별 사용량 = 개별 사용량 × 배수               위 후자에 해당하는 유닛만
-   ③ 공용 사용량 합계 = 고지서 총사용량 − Σ조정 개별 사용량
-   ④ 조정 가중치     = (개별 사용량 또는 임대면적) × 배수   공용분 부담 유닛만
-   ⑤ 공용 사용량     = 합계 × (조정 가중치 ÷ Σ조정 가중치)
-   ⑥ 유닛 총사용량   = 조정 개별 사용량 + 공용 사용량
-   ⑦ 청구금액       = 고지서 총금액 × (유닛 총사용량 ÷ 고지서 총사용량)
-
-   배수 0은 그 유닛의 부담을 없앤다. 공실·비운영중을 빼는 수단이다 → 4.1.7 */
+   공용분은 안분 제외를 뺀 전 유닛이 부담한다. 계량기가 있어도 복도·화장실을 쓴다.
+   특정 유닛을 빼려면 조정 배수를 0으로 둔다 → 4.1.7 */
 function ratios(m,raw){
   const st=resolve(m.code);
   const ref=(st.ref&&st.ref!==m.code)?st.ref:null;
@@ -812,7 +801,6 @@ function ratios(m,raw){
   const b=BILL[m.code], ex=st.excl||{};
   const charge=st.meterCharge==='청구함';
   const byUse=(st.basis||'').includes('사용량');
-  const onlyNoMeter=st.target==='검침기 없는 유닛만';
 
   const rows=UNITS_B1.map(u=>{
     const hasM=hasMeter(m.code,u.no);
@@ -822,15 +810,10 @@ function ratios(m,raw){
     const mul=raw?1:((aj&&Number.isFinite(aj.mul))?aj.mul:1);  /* 0을 1로 되돌리지 않는다 */
     return {...u,pm:r?r[0]:null,cm:r?r[1]:null,hasM,typed:!!r,use,mul,excl:ex[u.no]||null};
   });
-  /* 공용분을 부담하는 유닛 */
-  const inTarget=r=>!r.excl && (onlyNoMeter? !r.hasM : true);
-  /* ② 공용분을 부담하지 않는 계량기 유닛은 개별 사용량에 배수를 적용한다 */
-  rows.forEach(r=>{
-    r.selfAdj = !r.excl && r.hasM && charge && !inTarget(r);
-    r.aUse    = r.excl?0:(r.selfAdj? r.use*r.mul : r.use);
-  });
-  /* ③ */
-  const sumRaw=rows.reduce((a,r)=>a+(r.excl?0:r.use),0);
+  /* 공용분은 안분 제외를 뺀 전 유닛이 부담한다 */
+  const inTarget=r=>!r.excl;
+  rows.forEach(r=>{ r.aUse = r.excl?0:r.use; });
+  /* ② */
   const sumUse=rows.reduce((a,r)=>a+(r.excl?0:r.aUse),0);
   const totUse=b.use||0;
   const common=charge? totUse-sumUse : totUse;
@@ -840,10 +823,10 @@ function ratios(m,raw){
   rows.forEach(r=>{
     r.w=inTarget(r)? base(r)*r.mul : 0;
     r.common=wSum? common*r.w/wSum : 0;
-    r.tot=r.excl?0:((charge&&r.hasM? r.aUse : 0)+r.common);
+    r.tot=r.excl?0:((charge&&r.hasM? r.use : 0)+r.common);
     r.ratio=r.excl?0:(totUse?r.tot/totUse:(wSum?r.w/wSum:0));
   });
-  return {rows,sumRaw,sumUse,common,wSum,totUse,charge,onlyNoMeter,byUse};
+  return {rows,sumUse,common,wSum,totUse,charge,byUse};
 }
 /* ⑦ */
 function calc(m){
@@ -860,21 +843,18 @@ function csHTML(){
   const nM=cs.useMeter?cs.meters.length:0, nAll=U.length, nNo=nAll-nM;
   const doc=g=>g==='관리비-면세'?'계산서':g==='기타-일반내역서'?'내역서':'세금계산서';
   const byUse=cs.basis==='사용량';
-  const onlyNo=A.target==='검침기 없는 유닛만';
-  const targetN=onlyNo?nNo:nAll;
   const used=BUILDINGS[0].charge.filter(c=>c.use).map(c=>c.it);
   let warn='';
   if(cs.neu&&!(cs.name||'').trim()) warn='항목명을 입력하세요.';
   else if(byUse&&nM===0&&!cs.ref) warn='사용량 기준인데 계량기를 사용하지 않습니다. 계량기를 켜거나 참조 항목을 지정하세요.';
   else if(cs.useMeter&&!nM) warn='계량기를 사용하지만 보유 유닛을 선택하지 않았습니다.';
-  else if(onlyNo&&nNo===0) warn='전 유닛이 계량기를 보유해 잔여를 배분할 대상이 없습니다.';
   const prev = warn ? `<div class="prev warn2"><div class="pt">설정을 확인하세요</div>${warn}</div>`
    : `<div class="prev"><div class="pt">이 설정의 결과</div>
       ${nM&&A.charge==='청구함'
         ? `계량기 보유 <b>${nM}개 유닛</b>은 자기 사용량만큼 청구받습니다.<br>`
         : nM?`계량기 보유 ${nM}개 유닛의 사용분은 임차인이 직접 납부합니다.<br>`:''}
       ${nM&&A.charge==='청구함'?'남은 금액':'고지서 전액'}을
-      <b>${nM?targetN:nAll}개 유닛</b>${nM?`(${onlyNo?'계량기 없는 유닛':'전체 유닛'})`:''}에
+      <b>전체 ${nAll}개 유닛</b>에
       <b>${cs.basis}${cs.ref&&cs.ref!==cs.item?` · ${M(cs.ref).name} 검침값`:''} 비율</b>로 나눕니다.<br>
       <b>${cs.cycle}</b> 발생합니다.</div>`;
   return `<div class="dro"><div class="ov" onclick="closeDrawer()"></div><div class="pn">
@@ -950,14 +930,11 @@ function csHTML(){
               ${['자동','청구함','임차인 직접 납부'].map(o=>`<option ${cs.mtrCharge===o?'selected':''}>${o}${
                 o==='자동'?` — ${A.charge}`:''}</option>`).join('')}
             </select></div>
-          <div class="fr"><span class="fk">남은 금액 부담</span>
-            <select onchange="csSet('target',this.value)">
-              ${['자동','전체 유닛','검침기 없는 유닛만'].map(o=>`<option ${cs.target===o?'selected':''}>${o}${
-                o==='자동'?` — ${A.target}`:''}</option>`).join('')}
-            </select></div>
           <div class="hint" style="margin-top:2px">
-            계량기 설정에 따라 자동으로 정해집니다. 건물 전체가 공급자에게 직접 납부하는 등
-            예외적인 경우에만 바꾸세요.</div>
+            사용분 청구는 계량기 설정에 따라 자동으로 정해집니다.
+            건물 전체가 공급자에게 직접 납부하는 등 예외적인 경우에만 바꾸세요.<br>
+            <b>공용분은 언제나 전 유닛이 부담합니다.</b> 계량기가 있어도 복도·화장실을
+            쓰기 때문입니다. 특정 유닛을 빼려면 정산 시 조정 배수를 0으로 두세요.
         </div>`:''}
       </div>
     </div>
@@ -1394,8 +1371,8 @@ function stRead(m,R){
   <div class="hint">
     계량기 보유 유닛은 <b>건물 관리 › 관리비 설정</b>에서 정한다. 현재 <b>${mtr.length} / ${rows.length}개</b>.
     계량기가 없는 유닛은 행은 보이되 입력이 잠긴다.
-    ${noM.length?`이 ${noM.length}개 유닛은 공용 사용량 <b>${fx(R.common)} ${U}</b>을
-      ${st.basis} 비율로 나눠 부담한다.`:''}<br>
+    공용 사용량 <b>${fx(R.common)} ${U}</b>은 계량기 유무와 무관하게
+    <b>전 유닛</b>이 ${st.basis} 비율로 나눠 부담한다.<br>
     <b>직전 검침값</b>은 직전 정산 회차의 당월 검침값이며 수정할 수 없다.
     격월·반기 항목은 직전 회차가 전월이 아니다.<br>
     검침 기록은 원본이며 수정하지 않는다. 부담을 조정하려면 3단계에서 조정 배수를 기록한다.<br>
@@ -1404,17 +1381,15 @@ function stRead(m,R){
 }
 
 /* ── 3단계 · 조정 ── */
-/* 한 표에 전 유닛을 올린다. 배수 적용 지점은 유닛마다 다르지만(→ 4.1.2)
-   「증감」이 그 차이를 흡수한다 — 각 행의 증감은 그 유닛이 부담하는 사용량의 변화다.
-   기준선은 배수를 전부 1.0으로 본 상태이며, 그래서 증감 합계는 언제나 0이다.
-   계량기 유닛의 개별 사용량이 늘면 공용 사용량 합계가 정확히 그만큼 줄기 때문이다. */
+/* 배수는 공용 사용량 배분 가중치에만 작용한다 → 4.1.2
+   「증감」의 기준선은 전 유닛 배수 1.0인 상태이며, 그래서 증감 합계는 언제나 0이다. */
 function stAdj(m,R){
   const U=m.unit||'', st=resolve(m.code), B=ratios(m,true);   /* B = 배수 1.0 기준선 */
   const rows=R.rows.filter(r=>!r.excl);
   if(!rows.length) return `<div class="tbl"><div class="empty">
     <div class="t">조정할 대상이 없습니다</div>${m.name}은 조정 가능한 유닛이 없습니다.</div></div>`;
   const b0=R.rows.reduce((o,r)=>(o[r.no]=r,o),{}), bb=B.rows.reduce((o,r)=>(o[r.no]=r,o),{});
-  const inT=r=>!r.excl && (R.onlyNoMeter? !r.hasM : true);
+  const inT=r=>!r.excl;
   const showUse=isMetered(m.code)&&R.charge;
   const c2=R.byUse?'개별 사용 비율':'면적 비율';
   const base=r=>R.byUse?r.use:r.ar;
@@ -1423,8 +1398,7 @@ function stAdj(m,R){
   return `
   <div class="card"><div class="ct">조정
     <span class="sub">공용 사용량 합계 <b>${fx(R.common)} ${U}</b>
-      ${Math.abs(R.common-B.common)>0.05?`<span class="dlt dn">${fx(R.common-B.common)}</span>`:''}
-      · ${st.basis} 비율 · ${rows.length}개 유닛</span></div>
+      · ${st.basis} 비율 · 전체 ${rows.length}개 유닛</span></div>
     <div class="tw"><table>
       <thead><tr><th>계약고유명</th>
         ${showUse?'<th class="n">개별 사용량</th>':''}
@@ -1435,9 +1409,7 @@ function stAdj(m,R){
         const d=(r.aUse-o.aUse)+(r.common-o.common);
         return `<tr${r.mul===0?' class="vacr"':''}>
         <td>${cnameST(r,m)}</td>
-        ${showUse?`<td class="n">${r.hasM
-          ?`${fx(r.aUse)} <span class="u">${U}</span>${r.selfAdj&&r.mul!==1
-             ?`<span class="lock">원본 ${num(r.use)}</span>`:''}`
+        ${showUse?`<td class="n">${r.hasM?`${num(r.use)} <span class="u">${U}</span>`
           :'<span style="color:var(--faint)">—</span>'}</td>`:''}
         <td class="n" style="color:var(--muted)">${t?fx(o.common):'—'}</td>
         <td class="n" style="color:var(--muted)">${t&&bSum?(base(r)/bSum*100).toFixed(2)+'%':'—'}</td>
@@ -1458,11 +1430,9 @@ function stAdj(m,R){
   </div>
   <div class="hint">
     검침값은 실측이므로 고치지 않는다. 배수는 기본값 <b>1.0</b>, 0.1 단위로 조정한다.<br>
-    <b>배수가 무엇을 바꾸는지는 그 유닛이 무엇을 부담하느냐에 따라 다르다.</b>
-    공용분을 부담하는 유닛은 <b>공용 사용량</b>이, 검침분만 청구되는 유닛은
-    <b>개별 사용량</b>이 바뀐다. 어느 쪽이든 <b>증감</b> 열에 나타난다.<br>
-    계량기 유닛의 개별 사용량이 늘면 공용 사용량 합계가 정확히 그만큼 줄어든다.
-    그래서 <b>증감 합계는 언제나 0</b>이고 고지서 총량 <b>${num(R.totUse)} ${U}</b>은 변하지 않는다.<br>
+    배수는 <b>공용 사용량을 나누는 비율에만</b> 작용한다. 개별 사용량은 실측 원본이라 바뀌지 않는다.<br>
+    배수를 올린 유닛이 더 부담한 만큼 나머지 유닛이 덜 부담한다.
+    <b>증감 합계는 언제나 0</b>이고 공용 사용량 합계 <b>${fx(R.common)} ${U}</b>도 변하지 않는다.<br>
     <b>배수 0</b>은 그 유닛이 부담하지 않는다는 뜻이다. 공실·비운영중을 빼는 수단이다.</div>`;
 }
 
