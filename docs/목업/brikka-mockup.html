@@ -373,6 +373,9 @@ td.c,th.c{text-align:center}
   .top,.wrap{padding-left:16px;padding-right:16px}
 }
 .nomr td{background:color-mix(in srgb,var(--bg) 60%,transparent)}
+table.sch tr.grp td{background:var(--soft);border-top:2px solid var(--line);padding-top:11px;padding-bottom:11px}
+table.sch tr.sub{cursor:pointer} table.sch tr.sub:hover td{background:var(--soft)}
+table.sch td.ind{padding-left:26px}
 .dlt{font-size:11px;font-weight:700;margin-left:4px}
 .dlt.up{color:var(--warn)} .dlt.dn{color:var(--muted)}
 </style>
@@ -1583,7 +1586,120 @@ function TODO(id){
   const m=ALL.find(i=>i.id===id);
   return `<div class="ph"><h1>${m?m.n:id}</h1>${m?`<span class="sid">${m.sid}</span>`:''}</div>
   <div class="tbl"><div class="empty"><div class="t">아직 만들지 않은 화면입니다</div>
-    현재 <b>PRO-1 건물 목록</b>과 <b>PRO-3 건물 상세</b>만 구현되어 있습니다.</div></div>`;
+    구현된 화면 — <b>PRO-1</b> 건물 목록 · <b>PRO-3</b> 건물 상세 ·
+    <b>PAY-12</b> 청구 · 수납 현황 · <b>PAY-10</b> 관리비 정산 · <b>PAY-1</b> 청구 스케줄</div></div>`;
+}
+
+/* ═══ PAY-1 · 청구 스케줄 ═══ */
+/* 약정만 표시한다. 회차별 실제 청구액과 수납 현황은 PAY-2·PAY-12에서 본다. */
+const CITEM={
+ '임대료'      :{calc:'고정액',cycle:'매월', tax:true },
+ '고정관리비'   :{calc:'고정액',cycle:'매월', tax:true },
+ '주차비'      :{calc:'고정액',cycle:'매월', tax:true },
+ '전기요금'     :{calc:'정산', cycle:'매월', tax:true },
+ '수도요금'     :{calc:'정산', cycle:'격월', tax:false},
+ '정화조청소비'  :{calc:'정산', cycle:'반기', tax:false},
+ '교통유발부담금':{calc:'정산', cycle:'연1회',tax:false},
+};
+const CTRS=[
+ {b:'b1',no:'101호',ten:'커피 로스터리 담',st:'진행중',base:'2025-03-01',
+  it:[['임대료',4_280_000],['고정관리비',714_000],['전기요금'],['수도요금'],
+      ['정화조청소비'],['주차비',150_000,'2025-06-01']]},
+ {b:'b1',no:'201호',ten:'(주)한빛',st:'진행중',base:'2024-11-01',
+  it:[['임대료',5_160_000],['고정관리비',992_000],['전기요금'],['수도요금'],['정화조청소비']]},
+ {b:'b1',no:'202호',ten:'(주)비씨에이',st:'진행중',base:'2025-01-15',
+  it:[['임대료',4_296_000],['고정관리비',826_000],['전기요금'],['수도요금'],['정화조청소비']]},
+ {b:'b1',no:'301호',ten:'디자인스튜디오 온',st:'진행중',base:'2024-07-01',
+  it:[['임대료',6_864_000],['고정관리비',1_320_000],['전기요금'],['수도요금'],
+      ['정화조청소비'],['주차비',300_000]]},
+ {b:'b1',no:'402호',ten:'(주)메디플랜',st:'준비중',base:'2026-10-01',
+  it:[['임대료',4_296_000],['고정관리비',826_000],['전기요금'],['수도요금'],['정화조청소비']]},
+ {b:'b1',no:'501호',ten:'법무법인 정도',st:'진행중',base:'2023-09-01',
+  it:[['임대료',9_452_000],['고정관리비',1_818_000],['전기요금'],['수도요금'],
+      ['정화조청소비'],['교통유발부담금'],['주차비',450_000]]},
+ {b:'b1',no:'601호',ten:'(주)엔코어테크',st:'진행중',base:'2025-05-01',
+  it:[['임대료',9_452_000],['고정관리비',1_818_000],['전기요금'],['수도요금'],['정화조청소비']]},
+ {b:'b1',no:'701호',ten:'(주)한빛',st:'진행중',base:'2025-05-01',
+  it:[['임대료',9_452_000],['고정관리비',1_818_000],['전기요금'],['수도요금'],['정화조청소비']]},
+ {b:'b1',no:'801호',ten:'코어스페이스',st:'진행중',base:'2024-03-01',
+  it:[['임대료',9_452_000],['고정관리비',1_818_000],['전기요금'],['수도요금'],['정화조청소비']]},
+ {b:'b2',no:'1203호',ten:'(주)세움파트너스',st:'진행중',base:'2025-02-01',
+  it:[['임대료',7_800_000],['고정관리비',1_450_000],['전기요금'],['수도요금']]},
+ {b:'b2',no:'1501호',ten:'리틀브릿지',st:'종료됨',base:'2023-02-01',
+  it:[['임대료',6_200_000],['고정관리비',1_180_000],['전기요금'],['수도요금']]},
+];
+let f1={b:'',st:'진행중',it:'',calc:''};
+const setF1=(k,v)=>{f1[k]=v;render()};
+function PAY1(){
+  const BN=id=>(BUILDINGS.find(x=>x.id===id)||{}).name||id;
+  const BA=id=>(BUILDINGS.find(x=>x.id===id)||{}).alias||'';
+  const ST={진행중:'ok',준비중:'wa',종료됨:'mu',파기됨:'mu'};
+  /* 계약 필터 → 항목 필터. 항목이 모두 걸러진 계약은 표시하지 않는다 */
+  const ctrs=CTRS
+    .filter(c=>(!f1.b||c.b===f1.b)&&(!f1.st||c.st===f1.st))
+    .map(c=>({...c,it:c.it.filter(x=>(!f1.it||x[0]===f1.it)&&(!f1.calc||CITEM[x[0]].calc===f1.calc))}))
+    .filter(c=>c.it.length);
+  const fixedOf=c=>c.it.filter(x=>CITEM[x[0]].cycle==='매월'&&x[1]).reduce((a,x)=>a+x[1],0);
+  const body=ctrs.map(c=>{
+    const fixed=fixedOf(c);
+    return `
+    <tr class="grp"><td colspan="6">
+        ${cnameHTML(BA(c.b),c.no,c.ten)}
+        <span class="bd ${ST[c.st]||'mu'}">${c.st}</span>
+        <span class="lock">${BN(c.b)} · 기산일 ${c.base}</span></td>
+      <td class="n">${fixed?`<b>${won(fixed)}</b><div class="c2">월 고정액 · VAT 별도</div>`:'—'}</td>
+    </tr>` + c.it.map(x=>{const d=CITEM[x[0]];return `
+    <tr class="sub" onclick="go('ctr-3')">
+      <td class="ind">${x[0]}</td>
+      <td><span class="bd ${d.calc==='정산'?'wa':'mu'}">${d.calc}</span></td>
+      <td>${d.cycle}</td>
+      <td>${x[2]||c.base}</td>
+      <td class="c">${d.tax?'과세':'<span style="color:var(--muted)">면세</span>'}</td>
+      <td class="n">${d.calc==='정산'
+        ? '<span class="bd wa">정산</span>'
+        : `<b>${won(x[1])}</b>`}</td>
+      <td class="n c2">${d.calc==='정산'?'회차마다 산출 → PAY-10':''}</td>
+    </tr>`}).join('');
+  }).join('');
+  const nI=ctrs.reduce((a,c)=>a+c.it.length,0);
+  const mFix=ctrs.reduce((a,c)=>a+fixedOf(c),0);
+  return `
+  <div class="ph"><h1>청구 스케줄</h1><span class="sid">PAY-1</span>
+    <div class="act"><button class="btn" onclick="go('pay-2')">미납 조회</button>
+      <button class="btn pri" onclick="alert('PAY-3 청구 스케줄 등록')">+ 청구 스케줄 등록</button></div>
+  </div>
+  <div class="fbar">
+    <select onchange="setF1('b',this.value)">
+      <option value="">전체 건물</option>
+      ${BUILDINGS.map(b=>`<option value="${b.id}" ${f1.b===b.id?'selected':''}>${b.name}</option>`).join('')}
+    </select>
+    <select onchange="setF1('st',this.value)">
+      ${['진행중','준비중','종료됨',''].map(v=>`<option value="${v}" ${f1.st===v?'selected':''}>${v||'전체 계약상태'}</option>`).join('')}
+    </select>
+    <select onchange="setF1('it',this.value)">
+      <option value="">전체 청구항목</option>
+      ${Object.keys(CITEM).map(k=>`<option ${f1.it===k?'selected':''}>${k}</option>`).join('')}
+    </select>
+    <select onchange="setF1('calc',this.value)">
+      ${['','고정액','정산'].map(v=>`<option value="${v}" ${f1.calc===v?'selected':''}>${v||'전체 산정방식'}</option>`).join('')}
+    </select>
+  </div>
+  ${!ctrs.length?`<div class="tbl"><div class="empty"><div class="t">조건에 맞는 청구 스케줄이 없습니다</div>
+     필터를 바꾸거나 계약 상세에서 청구 항목을 등록하세요.</div></div>`
+  :`<div class="tbl"><table class="sch">
+      <thead><tr><th>청구항목</th><th>산정방식</th><th>반복주기</th><th>기산일</th>
+        <th class="c">부가세</th><th class="n">청구액</th><th class="n"></th></tr></thead>
+      <tbody>${body}
+        <tr class="sumr"><td colspan="5">합계 <span class="lock">계약 ${ctrs.length} · 항목 ${nI}</span></td>
+          <td class="n">${won(mFix)}</td><td class="n c2">월 고정액만</td></tr>
+      </tbody></table></div>`}
+  <div class="hint">
+    <b>약정만 표시한다.</b> 이 화면으로는 납부 여부를 알 수 없다.
+    회차별 실제 청구액과 미납 내역은 <b>미납 관리(PAY-2)</b>에서 확인한다.<br>
+    산정방식이 <b>정산</b>인 항목은 회차마다 금액이 달라지므로 약정액이 없다.
+    실제 금액은 <b>관리비 정산(PAY-10)</b>에서 산출된다.<br>
+    금액은 모두 <b>부가세 별도</b>다. 합계는 반복주기가 매월인 고정액만 더한 값이다.<br>
+    행을 누르면 계약 상세의 청구항목정보탭으로 이동한다.</div>`;
 }
 
 /* ═══ 라우터 ═══ */
@@ -1598,6 +1714,7 @@ function render(keep){
     html=PRO3(arg);crumb=`<span class="c" onclick="go('pro-1')">건물 관리</span> <span>›</span> <b>${b.name}</b>`;}
   else if(id==='pay-10'){html=PAY10();crumb='청구 · 수납 <span>›</span> <b>관리비 정산</b>';}
   else if(id==='pay-12'){html=PAY12();crumb='<b>청구 · 수납</b>';}
+  else if(id==='pay-1'){html=PAY1();crumb='청구 · 수납 <span>›</span> <b>청구 스케줄</b>';}
   else{html=TODO(id);const g=MENU.find(m=>m.items&&m.items.some(i=>i.id===id));
     const m=ALL.find(i=>i.id===id);
     crumb=(g?g.g+' <span>›</span> ':'')+`<b>${m?m.n:'—'}</b>`;}

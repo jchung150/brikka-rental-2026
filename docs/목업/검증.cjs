@@ -35,6 +35,10 @@ run('PRO-1', 'PRO1()');
 for (const t of ['요약', '유닛', '자료보관', '관리비 설정'])
   run('PRO-3 ' + t, "tab3='" + t + "';PRO3('b1')");
 for (const b of ['b2', 'b3', 'b4', 'b5']) run('PRO-3 ' + b, "tab3='요약';PRO3('" + b + "')");
+run('PAY-12', 'PAY12()');
+run('PAY-1', 'PAY1()');
+for (const f of ["f1.b='b2'", "f1.st=''", "f1.it='수도요금'", "f1.calc='정산'", "f1.b='b5'"])
+  run('PAY-1 필터 ' + f, f + ';PAY1()');
 run('미구현 화면', "TODO('pay-2')");
 if (!fail) console.log('② 전 화면 렌더                  OK');
 
