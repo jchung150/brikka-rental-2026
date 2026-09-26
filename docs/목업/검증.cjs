@@ -37,10 +37,10 @@ for (const t of ['요약', '유닛', '자료보관', '관리비 설정'])
 for (const b of ['b2', 'b3', 'b4', 'b5']) run('PRO-3 ' + b, "tab3='요약';PRO3('" + b + "')");
 run('PAY-12', 'PAY12()');
 run('PAY-1', 'PAY1()');
-for (const f of ["f1.b='b2'", "f1.st=''", "f1.it='수도요금'", "f1.calc='정산'", "f1.b='b5'"])
-  run('PAY-1 필터 ' + f, f + ';PAY1()');
-run('PAY-1 전체 펼침', 'g1All=true;PAY1()');
-run('PAY-1 개별 토글', "g1All=false;g1['b1101호']=true;PAY1()");
+for (const f of ["f1.b='b2'", "f1.b='b4'", "f1.st='발행 대기'", "f1.st='발행 완료'", "f1.b='b3'"])
+  run('PAY-1 필터 ' + f, "f1={b:'b1',st:''};" + f + ';PAY1()');
+run('PAY-1 전체 펼침', "f1={b:'b1',st:''};g1All=true;PAY1()");
+run('PAY-1 선택 발행', "f1={b:'b1',st:''};sel1['b1101호']=true;PAY1()");
 run('미구현 화면', "TODO('pay-2')");
 if (!fail) console.log('② 전 화면 렌더                  OK');
 

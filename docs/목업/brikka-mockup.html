@@ -377,7 +377,7 @@ td.c,th.c{text-align:center}
    그룹 행과 항목 행이 같은 grid-template-columns를 쓰므로 열이 어긋날 수 없다. */
 .schl{font-size:12.5px}
 .schr{display:grid;align-items:center;gap:0 10px;padding:11px 14px;
-  grid-template-columns:minmax(200px,1fr) 84px 72px 104px 58px 128px 118px;
+  grid-template-columns:minmax(220px,1fr) 84px 120px 140px 110px;
   border-bottom:1px solid var(--line-2)}
 .schr:last-child{border-bottom:0}
 .schr > *{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -396,6 +396,12 @@ td.c,th.c{text-align:center}
 .schr.sub{cursor:pointer} .schr.sub:hover{background:var(--side-hov)}
 .schr.sub .nm{padding-left:32px}
 .schr.sum{background:var(--head);font-weight:600}
+.schr .cb{margin-right:7px;vertical-align:-3px;cursor:pointer}
+.schr .cb.on{background:var(--pri);border-color:var(--pri);position:relative}
+.schr .cb.on::after{content:'';position:absolute;left:4px;top:1px;width:4px;height:8px;
+  border:solid #fff;border-width:0 2px 2px 0;transform:rotate(45deg)}
+.schr .cb.dis{opacity:.3}
+.lk{color:var(--pri);cursor:pointer;text-decoration:underline}
 .dlt{font-size:11px;font-weight:700;margin-left:4px}
 .dlt.up{color:var(--warn)} .dlt.dn{color:var(--muted)}
 </style>
@@ -477,7 +483,7 @@ const MENU=[
  {id:'ctr-1',n:'계약 관리',sid:'CTR-1',i:'file'},
  {k:'청구',g:'청구 · 수납',i:'wallet',over:'pay-12',items:[
    {id:'pay-10',n:'관리비 정산',sid:'PAY-10',i:'calc'},
-   {id:'pay-1',n:'청구 약정',sid:'PAY-1',i:'clock'},
+   {id:'pay-1',n:'청구서 발행',sid:'PAY-1',i:'mail'},
    {id:'pay-2',n:'미납 관리',sid:'PAY-2',i:'wallet'},
    {id:'pay-6',n:'수납 기록',sid:'PAY-6',i:'card'},
    {id:'pay-8',n:'수납 내역',sid:'PAY-8',i:'list'},
@@ -1607,7 +1613,7 @@ function TODO(id){
   return `<div class="ph"><h1>${m?m.n:id}</h1>${m?`<span class="sid">${m.sid}</span>`:''}</div>
   <div class="tbl"><div class="empty"><div class="t">아직 만들지 않은 화면입니다</div>
     구현된 화면 — <b>PRO-1</b> 건물 목록 · <b>PRO-3</b> 건물 상세 ·
-    <b>PAY-12</b> 청구 · 수납 현황 · <b>PAY-10</b> 관리비 정산 · <b>PAY-1</b> 청구 약정</div></div>`;
+    <b>PAY-12</b> 청구 · 수납 현황 · <b>PAY-10</b> 관리비 정산 · <b>PAY-1</b> 청구서 발행</div></div>`;
 }
 
 /* ═══ PAY-1 · 청구 약정 ═══ */
@@ -1648,95 +1654,105 @@ const CTRS=[
  {b:'b2',no:'1501호',ten:'리틀브릿지',st:'종료됨',base:'2023-02-01',
   it:[['임대료',6_200_000],['고정관리비',1_180_000],['전기요금'],['수도요금']]},
 ];
-let f1={b:'',st:'진행중',it:'',calc:''};
-let g1={}, g1All=false;                 /* 계약별 펼침 상태. 기본은 접힘 */
+let f1={b:'b1',st:''};                  /* 회차 화면이므로 건물을 하나 고른다 */
+let g1={}, g1All=false, sel1={};        /* 펼침 상태 · 발행 선택 */
 const setF1=(k,v)=>{f1[k]=v;render()};
-/* 항목 필터가 걸려 있으면 자동으로 펼친다 — 거른 항목을 보려는 것이므로 */
-const gAuto=()=>g1All||!!(f1.it||f1.calc);
-const gOpen=k=>(k in g1)?g1[k]:gAuto();
+const gOpen=k=>(k in g1)?g1[k]:g1All;
 const gTog=k=>{g1[k]=!gOpen(k);render(true)};
 const gAll=v=>{g1All=v;g1={};render(true)};
+const pick=(k,e)=>{if(e)e.stopPropagation();sel1[k]=!sel1[k];render(true)};
+const pickAll=v=>{ISSUE().forEach(c=>sel1[c.k]=v&&c.st==='발행 대기');render(true)};
 
+/* 이번 회차에 발행할 청구서 — 고정액(약정)과 정산액(PAY-10)을 계약별로 합친다 → 4.1 · 2부 */
+function ISSUE(){
+  const P=PROG[f1.b]||{}, done=P.inv>0;
+  return CTRS.filter(c=>c.b===f1.b&&c.st==='진행중').map(c=>{
+    const lines=c.it.map(x=>{
+      const d=CITEM[x[0]];
+      if(d.calc==='고정액') return {n:x[0],calc:'고정액',src:'약정',amt:x[1],note:''};
+      /* 정산 항목 — 이번 회차 산출 결과에서 가져온다 */
+      const code=codeOf(x[0]), m=M(code);
+      if(f1.b!=='b1'||!BILL[code]||!BILL[code].on)
+        return {n:x[0],calc:'정산',src:'2026-09',amt:null,note:'정산 내역 없음'};
+      const r=calc(m).rows.find(r=>r.no===c.no);
+      return {n:x[0],calc:'정산',src:'2026-09',amt:r?r.amt:null,note:r?'':'정산 내역 없음'};
+    });
+    const sum=lines.reduce((a,l)=>a+(l.amt||0),0);
+    const miss=lines.filter(l=>l.amt===null).length;
+    return {...c,k:c.b+c.no,lines,sum,miss,st:done?'발행 완료':'발행 대기'};
+  });
+}
 function PAY1(){
   const BN=id=>(BUILDINGS.find(x=>x.id===id)||{}).name||id;
   const BA=id=>(BUILDINGS.find(x=>x.id===id)||{}).alias||'';
-  const ST={진행중:'ok',준비중:'wa',종료됨:'mu',파기됨:'mu'};
-  const ctrs=CTRS
-    .filter(c=>(!f1.b||c.b===f1.b)&&(!f1.st||c.st===f1.st))
-    .map(c=>({...c,k:c.b+c.no,it:c.it.filter(x=>(!f1.it||x[0]===f1.it)&&(!f1.calc||CITEM[x[0]].calc===f1.calc))}))
-    .filter(c=>c.it.length);
-  const fixedOf=c=>c.it.filter(x=>CITEM[x[0]].cycle==='매월'&&x[1]).reduce((a,x)=>a+x[1],0);
-  const body=ctrs.map(c=>{
-    const op=gOpen(c.k), fixed=fixedOf(c);
-    const nF=c.it.filter(x=>CITEM[x[0]].calc==='고정액').length;
-    const nS=c.it.length-nF;
+  const P=PROG[f1.b]||{}, ok=P.settle==='확정';
+  const rows=ISSUE().filter(c=>!f1.st||c.st===f1.st);
+  const wait=rows.filter(c=>c.st==='발행 대기');
+  const nSel=wait.filter(c=>sel1[c.k]).length;
+  const total=rows.reduce((a,c)=>a+c.sum,0);
+  const anyOpen=rows.some(c=>gOpen(c.k));
+  const body=rows.map(c=>{
+    const op=gOpen(c.k), on=!!sel1[c.k], can=c.st==='발행 대기';
     return `
     <div class="schr grp" onclick="gTog('${c.k}')">
       <div class="nm">
-        <div><span class="tg ${op?'op':''}">${ic('chev',16)}</span>${cnameHTML(BA(c.b),c.no,c.ten)}
-          <span class="bd ${ST[c.st]||'mu'}">${c.st}</span></div>
-        <div class="c2">${BN(c.b)}${nF?` · 고정액 ${nF}`:''}${nS?` · 정산 ${nS}`:''}</div></div>
+        <div>${can?`<span class="cb ${on?'on':''}" onclick="pick('${c.k}',event)"></span>`
+              :'<span class="cb dis"></span>'}
+          <span class="tg ${op?'op':''}">${ic('chev',16)}</span>${cnameHTML(BA(c.b),c.no,c.ten)}</div>
+        <div class="c2">${BN(c.b)} · 항목 ${c.lines.length}${c.miss?` · 미산출 ${c.miss}`:''}</div></div>
       <div></div><div></div>
-      <div class="c2">${c.base}</div>
-      <div></div>
-      <div class="n">${fixed?`<b>${won(fixed)}</b>`:'<span style="color:var(--faint)">—</span>'}
-        <div class="c2">${fixed?'월 고정액':'고정액 없음'}</div></div>
-      <div class="n c2">${nS?`정산 ${nS}건 별도`:''}</div>
-    </div>` + (!op?'':c.it.map(x=>{const d=CITEM[x[0]];return `
-    <div class="schr sub" onclick="go('ctr-3')">
-      <div class="nm">${x[0]}</div>
-      <div><span class="bd ${d.calc==='정산'?'wa':'mu'}">${d.calc}</span></div>
-      <div>${d.cycle}</div>
-      <div>${x[2]||c.base}</div>
-      <div class="c">${d.tax?'과세':'<span style="color:var(--muted)">면세</span>'}</div>
-      <div class="n">${d.calc==='정산'?'<span class="bd wa">정산</span>':`<b>${won(x[1])}</b>`}</div>
-      <div class="n c2">${d.calc==='정산'?'PAY-10에서 산출':''}</div>
-    </div>`}).join(''));
+      <div class="n"><b>${won(c.sum)}</b><div class="c2">VAT 별도</div></div>
+      <div class="c">${c.st==='발행 완료'?'<span class="bd ok">발행 완료</span>'
+        :c.miss?'<span class="bd wa">미산출</span>':'<span class="bd mu">발행 대기</span>'}</div>
+    </div>` + (!op?'':c.lines.map(l=>`
+    <div class="schr sub">
+      <div class="nm">${l.n}</div>
+      <div><span class="bd ${l.calc==='정산'?'wa':'mu'}">${l.calc}</span></div>
+      <div class="c2">${l.src}</div>
+      <div class="n">${l.amt!=null?`<b>${won(l.amt)}</b>`:'<span style="color:var(--faint)">—</span>'}</div>
+      <div class="c c2">${l.note}</div>
+    </div>`).join(''));
   }).join('');
-  const nI=ctrs.reduce((a,c)=>a+c.it.length,0);
-  const mFix=ctrs.reduce((a,c)=>a+fixedOf(c),0);
-  const anyOpen=ctrs.some(c=>gOpen(c.k));
   return `
-  <div class="ph"><h1>청구 약정</h1><span class="sid">PAY-1</span>
+  <div class="ph"><h1>청구서 발행</h1><span class="sid">PAY-1</span>
     <div class="act"><button class="btn" onclick="go('pay-2')">미납 조회</button>
-      <button class="btn pri" onclick="alert('PAY-3 청구 약정 등록')">+ 청구 약정 등록</button></div>
+      <button class="btn">미리보기</button>
+      <button class="btn pri" ${ok?'':'disabled'}
+        onclick="alert('${nSel?nSel+'건':'전체 '+wait.length+'건'} 발행 → 원장 기록 + 임차인 담당자 이메일 발송')">
+        ${nSel?`선택 ${nSel}건 발행`:`전체 ${wait.length}건 발행`}</button></div>
   </div>
   <div class="fbar">
     <select onchange="setF1('b',this.value)">
-      <option value="">전체 건물</option>
       ${BUILDINGS.map(b=>`<option value="${b.id}" ${f1.b===b.id?'selected':''}>${b.name}</option>`).join('')}
     </select>
+    <select><option>2026년 9월</option><option>2026년 8월</option><option>2026년 7월</option></select>
     <select onchange="setF1('st',this.value)">
-      ${['진행중','준비중','종료됨',''].map(v=>`<option value="${v}" ${f1.st===v?'selected':''}>${v||'전체 계약상태'}</option>`).join('')}
+      ${['','발행 대기','발행 완료'].map(v=>`<option value="${v}" ${f1.st===v?'selected':''}>${v||'전체 상태'}</option>`).join('')}
     </select>
-    <select onchange="setF1('it',this.value)">
-      <option value="">전체 청구항목</option>
-      ${Object.keys(CITEM).map(k=>`<option ${f1.it===k?'selected':''}>${k}</option>`).join('')}
-    </select>
-    <select onchange="setF1('calc',this.value)">
-      ${['','고정액','정산'].map(v=>`<option value="${v}" ${f1.calc===v?'selected':''}>${v||'전체 산정방식'}</option>`).join('')}
-    </select>
-    ${ctrs.length?`<button class="btn sm" style="margin-left:auto"
-       onclick="gAll(${anyOpen?'false':'true'})">${anyOpen?'전체 접기':'전체 펼치기'}</button>`:''}
+    ${rows.length?`<span style="margin-left:auto;display:flex;gap:8px">
+      <button class="btn sm" onclick="pickAll(${nSel?'false':'true'})">${nSel?'선택 해제':'전체 선택'}</button>
+      <button class="btn sm" onclick="gAll(${anyOpen?'false':'true'})">${anyOpen?'전체 접기':'전체 펼치기'}</button></span>`:''}
   </div>
-  ${!ctrs.length?`<div class="tbl"><div class="empty"><div class="t">조건에 맞는 청구 약정이 없습니다</div>
-     필터를 바꾸거나 계약 상세에서 청구 항목을 등록하세요.</div></div>`
+  ${ok?'':`<div class="fnd"><span class="h">정산이 확정되지 않았습니다</span>
+    ${BN(f1.b)}의 2026년 9월 정산 상태는 <b>${P.settle}</b>입니다.
+    정산을 확정해야 정산 항목의 금액이 확정되고 청구서를 발행할 수 있습니다.
+    <b class="lk" onclick="go('pay-10')">관리비 정산으로 이동 →</b></div>`}
+  ${!rows.length?`<div class="tbl"><div class="empty"><div class="t">발행할 청구서가 없습니다</div>
+     진행중인 계약이 없거나 조건에 맞는 건이 없습니다.</div></div>`
   :`<div class="tbl schl">
-      <div class="schr hd"><div>청구항목</div><div>산정방식</div><div>반복주기</div><div>기산일</div>
-        <div class="c">부가세</div><div class="n">청구액</div><div></div></div>
+      <div class="schr hd"><div>계약고유명 · 청구항목</div><div>산정방식</div><div>근거</div>
+        <div class="n">금액</div><div class="c">상태</div></div>
       ${body}
-      <div class="schr sum"><div>합계 <span class="lock">계약 ${ctrs.length} · 항목 ${nI}</span></div>
-        <div></div><div></div><div></div><div></div>
-        <div class="n">${won(mFix)}</div><div class="n c2">월 고정액만</div></div>
+      <div class="schr sum"><div>합계 <span class="lock">계약 ${rows.length}</span></div>
+        <div></div><div></div>
+        <div class="n">${won(total)}</div><div class="c c2">VAT 별도</div></div>
     </div>`}
   <div class="hint">
-    <b>약정만 표시한다.</b> 이 화면으로는 납부 여부를 알 수 없다.
-    회차별 실제 청구액과 미납 내역은 <b>미납 관리(PAY-2)</b>에서 확인한다.<br>
-    계약 행을 누르면 청구 항목이 펼쳐진다. 접힌 상태에서는 <b>월 고정액</b>과 항목 구성만 본다.
-    청구항목·산정방식 필터를 걸면 자동으로 펼쳐진다.<br>
-    산정방식이 <b>정산</b>인 항목은 회차마다 금액이 달라지므로 약정액이 없다.
-    실제 금액은 <b>관리비 정산(PAY-10)</b>에서 산출된다. 고정액은 <b>임대료·고정관리비</b>뿐이다.<br>
-    금액은 모두 <b>부가세 별도</b>다. 합계는 반복주기가 매월인 고정액만 더한 값이다.</div>`;
+    이번 회차에 발행할 청구서다. <b>계약당 1장</b>이며 고정액 항목과 정산 항목을 함께 담는다 → 2부<br>
+    <b>고정액</b>(임대료·고정관리비)은 계약에 등록된 <b>청구 약정</b>에서, <b>정산</b> 항목은
+    <b>관리비 정산(PAY-10)</b> 확정 결과에서 가져온다. 약정 등록·수정은 계약 상세에서 한다.<br>
+    정산이 확정되지 않으면 정산 항목 금액이 비어 있어 발행할 수 없다.
+    발행하면 원장에 <b>청구</b> 거래로 기록되고 임차인 담당자에게 이메일이 발송된다.</div>`;
 }
 
 /* ═══ 라우터 ═══ */
@@ -1751,7 +1767,7 @@ function render(keep){
     html=PRO3(arg);crumb=`<span class="c" onclick="go('pro-1')">건물 관리</span> <span>›</span> <b>${b.name}</b>`;}
   else if(id==='pay-10'){html=PAY10();crumb='청구 · 수납 <span>›</span> <b>관리비 정산</b>';}
   else if(id==='pay-12'){html=PAY12();crumb='<b>청구 · 수납</b>';}
-  else if(id==='pay-1'){html=PAY1();crumb='청구 · 수납 <span>›</span> <b>청구 약정</b>';}
+  else if(id==='pay-1'){html=PAY1();crumb='청구 · 수납 <span>›</span> <b>청구서 발행</b>';}
   else{html=TODO(id);const g=MENU.find(m=>m.items&&m.items.some(i=>i.id===id));
     const m=ALL.find(i=>i.id===id);
     crumb=(g?g.g+' <span>›</span> ':'')+`<b>${m?m.n:'—'}</b>`;}
