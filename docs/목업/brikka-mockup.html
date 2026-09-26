@@ -958,34 +958,31 @@ function csHTML(){
           <div class="hint" style="margin:-3px 0 9px 114px">운영사 전체 공통 마스터에 등록되며 다른 건물에서도 선택할 수 있습니다.</div>`:''}
         <div class="fr"><span class="fk">발행 문서</span>
           <select onchange="csSet('bill',this.value)">
-            ${BILLDOC.map(b=>`<option ${cs.bill===b.k?'selected':''}>${b.k}(${b.t})</option>`).join('')}
+            ${BILLDOC.map(b=>`<option value="${b.k}" ${cs.bill===b.k?'selected':''}>${b.k}(${b.t})</option>`).join('')}
           </select></div>
         <div class="hint" style="margin:-3px 0 0 114px">${
           (BILLDOC.find(b=>b.k===cs.bill)||{}).d||''}<br>
           같은 문서끼리 묶여 계약당 1장으로 발행됩니다.</div>
         <div class="fr"><span class="fk">반복 주기</span>
           <select onchange="csSet('cycle',this.value)">
-            ${CYCLES.map(c=>`<option ${cs.cycle===c?'selected':''}>${c}</option>`).join('')}
+            ${CYCLES.map(c=>`<option value="${c}" ${cs.cycle===c?'selected':''}>${c}</option>`).join('')}
           </select></div>
       </div>
 
       <div class="fg"><div class="fl">근거 문서</div>
         <div class="fr"><span class="fk">문서 종류</span>
           <select onchange="csSet('doc',this.value)">
-            ${['고지서','내역서','계약서','집계표'].map(o=>`<option ${cs.doc===o?'selected':''}>${o}</option>`).join('')}
+            ${['고지서','내역서','계약서','집계표'].map(o=>`<option value="${o}" ${cs.doc===o?'selected':''}>${o}</option>`).join('')}
           </select></div>
         <div class="fr"><span class="fk">발행처</span>
           <input class="inp" style="flex:1" value="${cs.by||''}" placeholder="한국전력"
             onchange="csSet('by',this.value)"></div>
-        <div class="hint" style="margin-top:2px">
-          이 항목의 금액을 뒷받침하는 문서다. 청구서 발행(PAY-1)의 <b>근거</b> 열에 표시되고,
-          임차인이 산출 근거를 물을 때 무엇을 보여줄지 정한다.</div>
       </div>
 
       <div class="fg"><div class="fl">배분 방식</div>
         <div class="fr"><span class="fk">배분 기준</span>
           <select onchange="csBasis(this.value)">
-            ${BASIS.map(o=>`<option ${cs.basis===o.k?'selected':''}>${o.k}</option>`).join('')}
+            ${BASIS.map(o=>`<option value="${o.k}" ${cs.basis===o.k?'selected':''}>${o.k}</option>`).join('')}
           </select></div>
         <div class="hint" style="margin-top:2px">${(BASIS.find(o=>o.k===cs.basis)||{}).d||''}</div>
         ${needM&&!cs.useMeter?`<div class="fr"><span class="fk">참조 항목</span>
@@ -1015,7 +1012,7 @@ function csHTML(){
       <div class="fg"><div class="fl">사용분 청구</div>
         <div class="fr"><span class="fk">청구 여부</span>
           <select onchange="csSet('mtrCharge',this.value)">
-            ${['자동','청구함','임차인 직접 납부'].map(o=>`<option ${cs.mtrCharge===o?'selected':''}>${o}${
+            ${['자동','청구함','임차인 직접 납부'].map(o=>`<option value="${o}" ${cs.mtrCharge===o?'selected':''}>${o}${
               o==='자동'?` — ${A.charge}`:''}</option>`).join('')}
           </select></div>
         <div class="hint" style="margin-top:2px">
