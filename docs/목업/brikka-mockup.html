@@ -373,26 +373,29 @@ td.c,th.c{text-align:center}
   .top,.wrap{padding-left:16px;padding-right:16px}
 }
 .nomr td{background:color-mix(in srgb,var(--bg) 60%,transparent)}
-/* 청구 약정 목록 — 표가 아니라 그리드다.
+/* 청구 약정 목록 — 표가 아니라 그리드다. 스타일은 기본 표(th/td)와 동일하게 맞춘다.
    그룹 행과 항목 행이 같은 grid-template-columns를 쓰므로 열이 어긋날 수 없다. */
 .schl{font-size:12.5px}
-.schr{display:grid;align-items:center;gap:0 10px;padding:10px 14px;
+.schr{display:grid;align-items:center;gap:0 10px;padding:11px 14px;
   grid-template-columns:minmax(200px,1fr) 84px 72px 104px 58px 128px 118px;
-  border-bottom:1px solid var(--line)}
+  border-bottom:1px solid var(--line-2)}
 .schr:last-child{border-bottom:0}
 .schr > *{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.schr .n{text-align:right} .schr .c{text-align:center}
-.schr.hd{background:var(--bg);color:var(--muted);font-size:11.5px;font-weight:500;
-  border-bottom:1px solid var(--line)}
-.schr.grp{background:var(--soft);cursor:pointer;border-top:2px solid var(--line)}
-.schr.grp:hover{background:var(--line)}
+.schr .n{text-align:right;font-variant-numeric:tabular-nums} .schr .c{text-align:center}
+.schr.hd{background:var(--head);color:var(--muted);font-size:11.5px;font-weight:500;
+  padding:10px 14px;border-bottom:1px solid var(--line)}
+.schr.grp{background:var(--soft);cursor:pointer}
+.schr.grp:hover{background:var(--side-hov)}
 .schr.grp .nm{white-space:normal}
 .schr.grp .nm > div{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.schr.grp .tg{display:inline-block;width:14px;color:var(--muted);font-size:11px}
-.schr.grp .nm .c2{margin-left:14px}
-.schr.sub{cursor:pointer} .schr.sub:hover{background:var(--soft)}
-.schr.sub .nm{padding-left:26px}
-.schr.sum{background:var(--soft);font-weight:600;border-top:2px solid var(--line)}
+.schr.grp .tg{display:inline-flex;width:20px;color:var(--muted);vertical-align:-4px;
+  transition:transform .12s}
+.schr.grp:hover .tg{color:var(--ink)}
+.schr.grp .tg.op{transform:rotate(90deg)}
+.schr.grp .nm .c2{margin-left:20px}
+.schr.sub{cursor:pointer} .schr.sub:hover{background:var(--side-hov)}
+.schr.sub .nm{padding-left:32px}
+.schr.sum{background:var(--head);font-weight:600}
 .dlt{font-size:11px;font-weight:700;margin-left:4px}
 .dlt.up{color:var(--warn)} .dlt.dn{color:var(--muted)}
 </style>
@@ -1670,7 +1673,7 @@ function PAY1(){
     return `
     <div class="schr grp" onclick="gTog('${c.k}')">
       <div class="nm">
-        <div><span class="tg">${op?'▾':'▸'}</span>${cnameHTML(BA(c.b),c.no,c.ten)}
+        <div><span class="tg ${op?'op':''}">${ic('chev',16)}</span>${cnameHTML(BA(c.b),c.no,c.ten)}
           <span class="bd ${ST[c.st]||'mu'}">${c.st}</span></div>
         <div class="c2">${BN(c.b)}${nF?` · 고정액 ${nF}`:''}${nS?` · 정산 ${nS}`:''}</div></div>
       <div></div><div></div>
