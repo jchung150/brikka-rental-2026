@@ -668,7 +668,7 @@ const METER={
 /* 건물별 항목 설정 — 정본은 PRO-3 관리비 설정 */
 const BSET={
  elec:{meterCharge:'자동',basis:'사용량',ref:null,excl:{}},
- water:{meterCharge:'자동',basis:'임대면적',ref:null,excl:{}},
+ water:{meterCharge:'자동',basis:'사용량+임대면적',ref:null,excl:{}},
  fund:{meterCharge:'자동',basis:'사용량',ref:'elec',excl:{}},
  tv:{meterCharge:'자동',basis:'사용량',ref:'elec',excl:{}},
  gas:null, traffic:null, septic:null,
@@ -718,6 +718,21 @@ function csAuto(){
     charge: cs.mtrCharge!=='자동' ? cs.mtrCharge : (nM?'청구함':'—'),
     autoCharge: cs.mtrCharge==='자동',
   };
+}
+/* 배분 기준 4종 — 계량기 필요 여부가 기준에 포함된다 → 4.1.3 */
+const BASIS=[
+ {k:'사용량',        m:true,  d:'전 유닛 계량기 필수. 개별분은 검침 실측, 공용분도 사용량 비율로 나눈다.'},
+ {k:'임대면적',      m:false, d:'계량기가 필요 없다. 고지서 전액을 임대면적 비율로 나눈다.'},
+ {k:'사용량+임대면적', m:true,  d:'계량기 필수. 개별분은 검침 실측, 남은 공용분은 임대면적 비율로 나눈다. 일부 유닛만 계량기를 보유한 건물에 쓴다.'},
+ {k:'직접 입력',     m:false, d:'안분하지 않는다. 관리비 정산 3단계에서 계약별 금액을 직접 입력하며 입력 합계가 공급가액이 된다. 주차비처럼 면적·사용량과 무관한 항목에 쓴다.'},
+];
+const needMeter=b=>!!(BASIS.find(o=>o.k===b)||{}).m;
+function csBasis(v){
+  cs.basis=v;
+  if(v!=='사용량') cs.ref=null;
+  if(needMeter(v)){ cs.useMeter=true; if(!cs.meters.length) cs.meters=UNITS_B1.map(u=>u.no); }
+  else { cs.useMeter=false; cs.meters=[]; }
+  render();
 }
 function csUseMeter(v){
   cs.useMeter=(v==='사용');
@@ -836,7 +851,9 @@ function ratios(m,raw){
   if(ref) return ratios(M(ref),raw);
   const b=BILL[m.code], ex=st.excl||{};
   const charge=st.meterCharge==='청구함';
-  const byUse=(st.basis||'').includes('사용량');
+  /* 공용분 배분 가중치 — 「사용량」만 사용량 비율이다.
+     「사용량+임대면적」은 개별분은 검침, 공용분은 면적으로 나눈다 → 4.1.3 */
+  const byUse=st.basis==='사용량';
 
   /* 직접 입력 — 안분하지 않는다. 계약별로 담당자가 넣은 금액이 그대로 청구된다 */
   if(st.basis==='직접 입력'){
@@ -897,20 +914,26 @@ function csHTML(){
   const U=UNITS_B1, A=csAuto();
   const nM=cs.useMeter?cs.meters.length:0, nAll=U.length, nNo=nAll-nM;
   const doc=g=>g==='관리비-면세'?'계산서':g==='기타-일반내역서'?'내역서':'세금계산서';
-  const byUse=cs.basis==='사용량';
+  const byUse=cs.basis==='사용량', needM=needMeter(cs.basis);
   const used=BUILDINGS[0].charge.filter(c=>c.use).map(c=>c.it);
   let warn='';
   if(cs.neu&&!(cs.name||'').trim()) warn='항목명을 입력하세요.';
-  else if(byUse&&nM===0&&!cs.ref) warn='사용량 기준인데 계량기를 사용하지 않습니다. 계량기를 켜거나 참조 항목을 지정하세요.';
-  else if(cs.useMeter&&!nM) warn='계량기를 사용하지만 보유 유닛을 선택하지 않았습니다.';
+  else if(needM&&nM===0&&!cs.ref) warn='이 배분 기준은 계량기가 필요합니다. 보유 유닛을 선택하거나 참조 항목을 지정하세요.';
+  /* 사용량 기준인데 일부 유닛만 계량기를 보유하면, 계량기 없는 유닛의 가중치가 0이 되어
+     공용분을 한 푼도 부담하지 않는다. 그 몫을 계량기 보유 유닛이 대신 낸다 → 4.1.3 */
+  else if(cs.basis==='사용량'&&nM>0&&nM<nAll)
+    warn=`계량기를 보유한 유닛이 ${nM} / ${nAll}개입니다. 사용량 기준에서는 계량기 없는 `
+      +`${nNo}개 유닛의 배분 가중치가 0이 되어 공용분을 부담하지 않고, 그 몫을 계량기 보유 유닛이 `
+      +`대신 냅니다. <b>사용량+임대면적</b>을 쓰세요.`;
   const prev = warn ? `<div class="prev warn2"><div class="pt">설정을 확인하세요</div>${warn}</div>`
    : `<div class="prev"><div class="pt">이 설정의 결과</div>
       ${nM&&A.charge==='청구함'
         ? `계량기 보유 <b>${nM}개 유닛</b>은 자기 사용량만큼 청구받습니다.<br>`
         : nM?`계량기 보유 ${nM}개 유닛의 사용분은 임차인이 직접 납부합니다.<br>`:''}
-      ${nM&&A.charge==='청구함'?'남은 금액':'고지서 전액'}을
-      <b>전체 ${nAll}개 유닛</b>에
-      <b>${cs.basis}${cs.ref&&cs.ref!==cs.item?` · ${M(cs.ref).name} 검침값`:''} 비율</b>로 나눕니다.<br>
+      ${cs.basis==='직접 입력'
+        ? '안분하지 않습니다. 정산 때 계약별 금액을 직접 입력합니다.<br>'
+        : `${nM&&A.charge==='청구함'?'남은 공용분':'고지서 전액'}을 <b>전체 ${nAll}개 유닛</b>에
+           <b>${byUse?'사용량':'임대면적'}${cs.ref&&cs.ref!==cs.item?` · ${M(cs.ref).name} 검침값`:''} 비율</b>로 나눕니다.<br>`}
       <b>${cs.cycle}</b> 발생합니다.</div>`;
   return `<div class="dro"><div class="ov" onclick="closeDrawer()"></div><div class="pn">
     <div class="dh"><div><div class="t">청구 항목 설정</div>
@@ -957,19 +980,11 @@ function csHTML(){
 
       <div class="fg"><div class="fl">배분 방식</div>
         <div class="fr"><span class="fk">배분 기준</span>
-          <select onchange="csSet('basis',this.value)">
-            ${['임대면적','사용량','직접 입력'].map(o=>`<option ${cs.basis===o?'selected':''}>${o}</option>`).join('')}
+          <select onchange="csBasis(this.value)">
+            ${BASIS.map(o=>`<option ${cs.basis===o.k?'selected':''}>${o.k}</option>`).join('')}
           </select></div>
-        ${cs.basis==='직접 입력'?`<div class="hint" style="margin-top:2px">
-          안분하지 않는다. <b>관리비 정산 3단계에서 계약별 금액을 직접 입력</b>하며
-          입력 합계가 이 항목의 공급가액이 된다. 계량기·참조 항목·안분 제외를 쓰지 않는다.<br>
-          주차비가 대표적이다. 층별 무료 주차 대수를 넘는 만큼만 대당 요금을 매기므로
-          면적·사용량과 관계가 없다.</div>`:`
-        <div class="fr"><span class="fk">계량기</span>
-          <select onchange="csUseMeter(this.value)">
-            ${['사용 안 함','사용'].map(o=>`<option ${(cs.useMeter?'사용':'사용 안 함')===o?'selected':''}>${o}</option>`).join('')}
-          </select></div>`}
-        ${cs.basis!=='직접 입력'&&byUse&&!cs.useMeter?`<div class="fr"><span class="fk">참조 항목</span>
+        <div class="hint" style="margin-top:2px">${(BASIS.find(o=>o.k===cs.basis)||{}).d||''}</div>
+        ${needM&&!cs.useMeter?`<div class="fr"><span class="fk">참조 항목</span>
           <select onchange="csSet('ref',this.value||null)">
             <option value="">선택</option>
             ${MASTER.filter(x=>(METER[x.code]||[]).length).map(x=>
