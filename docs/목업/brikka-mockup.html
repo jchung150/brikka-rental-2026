@@ -377,7 +377,7 @@ td.c,th.c{text-align:center}
    그룹 행과 항목 행이 같은 grid-template-columns를 쓰므로 열이 어긋날 수 없다. */
 .schl{font-size:12.5px}
 .schr{display:grid;align-items:center;gap:0 10px;padding:11px 14px;
-  grid-template-columns:minmax(220px,1fr) 84px 120px 140px 110px;
+  grid-template-columns:minmax(210px,1fr) 104px 146px 110px 92px 118px 92px;
   border-bottom:1px solid var(--line-2)}
 .schr:last-child{border-bottom:0}
 .schr > *{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -647,8 +647,8 @@ const BILL={
    readDate:'2026-09-06', adj:{}},
  traffic:{on:false,date:'',use:null,supply:0,vat:0,read:null,adj:{}},
  septic:{on:false,date:'',use:null,supply:0,vat:0,read:null,adj:{}},
- parking:{on:true,date:'2026-09-30',use:null,supply:0,vat:0,read:null,adj:{},
-   direct:{'101호':100000,'301호':50000,'501호':150000}},
+ parking:{on:true,date:'2026-09-30',use:null,supply:0,vat:30000,read:null,adj:{},
+   direct:{'101호':100000,'301호':50000,'501호':150000}},   /* 공급가액. 부가세는 자동 */
 };
 const SETTLE={ym:'2026-09',status:'작성중'};
 /* 건물별 월 업무 진행 — PAY-12 */
@@ -912,20 +912,27 @@ function ratios(m,raw){
 }
 /* ⑦ */
 /* ⑥ 유닛 청구금액 — 4.1.2 · 잔차 처리 4.1.8
-   유닛별로 원 미만을 절사하므로 합계가 고지서보다 몇 원 적다.
-   남은 잔차는 「배분 비율이 가장 큰 유닛」에 더한다. 그래야 합계가 고지서와 정확히 일치한다. */
+   공급가액과 부가세를 각각 배분한다. 합쳐서 배분하면 유닛별 부가세를 알 수 없어
+   세금계산서를 만들 수 없다. 잔차도 각각 최대 몫 유닛에 더한다. */
 function calc(m,raw){
-  const base=ratios(m,raw), amt=billTotal(m);
-  const rows=base.rows.map(r=>({...r, amt:Math.floor(amt*r.ratio), rnd:0}));
-  const rem=amt-rows.reduce((a,r)=>a+r.amt,0);    /* 절사 잔차. 언제나 0 이상 */
-  if(rem>0){
-    let k=-1,best=-1;
-    rows.forEach((r,i)=>{ if(!r.excl && r.ratio>best){best=r.ratio;k=i;} });
-    if(k>=0){ rows[k].amt+=rem; rows[k].rnd=rem; }
+  const base=ratios(m,raw), b=BILL[m.code];
+  const sup=isDirect(m.code)?directSum(m.code):(b.supply||0);
+  const vat=b.vat||0;
+  const rows=base.rows.map(r=>({...r,
+    supply:Math.floor(sup*r.ratio), vat:Math.floor(vat*r.ratio), rnd:0}));
+  const top=()=>{let k=-1,best=-1;rows.forEach((r,i)=>{if(!r.excl&&r.ratio>best){best=r.ratio;k=i;}});return k;};
+  const k=top();
+  if(k>=0){
+    const rs=sup-rows.reduce((a,r)=>a+r.supply,0);
+    const rv=vat-rows.reduce((a,r)=>a+r.vat,0);
+    rows[k].supply+=rs; rows[k].vat+=rv; rows[k].rnd=rs+rv;
   }
-  const bill=rows.filter(r=>r.st==='사용중'&&!r.excl).reduce((a,r)=>a+r.amt,0);
-  const vac =rows.filter(r=>r.st!=='사용중'&&!r.excl).reduce((a,r)=>a+r.amt,0);
-  return {...base,rows,bill,vac,total:amt,diff:amt-(bill+vac),rem};
+  rows.forEach(r=>r.amt=r.supply+r.vat);
+  const sum=f=>rows.filter(f).reduce((a,r)=>a+r.amt,0);
+  const bill=sum(r=>r.st==='사용중'&&!r.excl), vc=sum(r=>r.st!=='사용중'&&!r.excl);
+  const total=sup+vat;
+  return {...base,rows,bill,vac:vc,total,supply:sup,vatTotal:vat,
+          diff:total-(bill+vc),rem:(k>=0?rows[k].rnd:0)};
 }
 
 function csHTML(){
@@ -1496,6 +1503,8 @@ function setDirect(code,no,v){
   const b=BILL[code]; (b.direct=b.direct||{});
   const n=Math.max(0,Math.round(parseFloat(String(v).replace(/[,\s]/g,''))||0));
   if(n) b.direct[no]=n; else delete b.direct[no];
+  /* 입력 금액이 공급가액이다. 과세 항목이면 부가세를 자동으로 다시 계산한다 */
+  if(M(code).tax&&!b.vatManual) b.vat=Math.round(directSum(code)*0.1);
   render(true);
 }
 /* 직접 입력 항목 — 안분하지 않고 계약별 금액을 담당자가 넣는다 → 4.1.3 */
@@ -1503,7 +1512,8 @@ function stDirect(m,R){
   const rows=R.rows.filter(r=>!r.excl), tot=directSum(m.code);
   return `
   <div class="card"><div class="ct">금액 입력
-    <span class="sub">${m.name} · 안분하지 않는다 · 입력 합계 <b>${won(tot)}</b></span></div>
+    <span class="sub">${m.name} · 안분하지 않는다 · 공급가액 합계 <b>${won(tot)}</b>${
+      m.tax?` · 부가세 ${won(BILL[m.code].vat||0)}`:''}</span></div>
     <div class="tw"><table>
       <thead><tr><th>계약고유명</th><th class="n">청구 금액</th><th>비고</th></tr></thead>
       <tbody>${rows.map(r=>`<tr>
@@ -1520,8 +1530,9 @@ function stDirect(m,R){
     <b>여기 입력한 금액이 그대로 그 계약에 청구</b>된다.<br>
     주차비가 대표적이다. 층별 무료 주차 대수를 넘는 만큼만 대당 요금을 매기므로
     면적이나 사용량과 관계가 없다.<br>
-    <b>고지서가 없다.</b> 여기 입력한 금액의 합이 이 항목의 공급가액이 되며,
-    1단계에서는 수정할 수 없다. 산출 근거는 <b>${m.src} ${m.doc}</b>에 남긴다.</div>`;
+    <b>고지서가 없다.</b> 여기 입력한 금액의 합이 이 항목의 <b>공급가액</b>이 되며,
+    1단계에서는 수정할 수 없다.${m.tax?' 과세 항목이므로 부가세 10%가 자동으로 붙는다.':''}
+    산출 근거는 <b>${m.src} ${m.doc}</b>에 남긴다.</div>`;
 }
 function stAdj(m,R){
   if(R.direct) return stDirect(m,R);
@@ -1779,23 +1790,28 @@ function ISSUE(){
     const lines=c.it.map(x=>{
       const d=CITEM[x[0]];
       /* 고정액 — 반복주기로 판정. 목업 데이터는 모두 매월이다 */
-      if(d.calc==='고정액')
-        return d.cycle==='매월'
-          ?{n:x[0],basis:'—',src:'임대차계약서',amt:x[1],st:'약정',stc:'mu'}:null;
+      if(d.calc!=='고정액'||d.cycle!=='매월'){} else {
+        const bd=M(codeOf(x[0])).bill||'세금계산서';
+        const sup=x[1], v=isTax(bd)?Math.round(sup*0.1):0;
+        return {n:x[0],bill:bd,src:'임대차계약서',supply:sup,vat:v,amt:sup+v,st:'약정',stc:'mu'};
+      }
+      if(d.calc==='고정액') return null;
       /* 정산 — 1단계에서 선택되지 않았으면 이번 회차 대상이 아니다 */
       const code=codeOf(x[0]), m=M(code), b=BILL[code];
       if(!(f1.b==='b1'&&b&&b.on)) return null;
       const st=resolve(code), ev=`${st.by||m.src||''} ${st.doc||m.doc||''}`.trim();
-      const S={n:x[0],basis:st.basis,src:ev,
+      const S={n:x[0],bill:m.bill,src:ev,
                st:fixed?'정산 확정':'정산 미확정', stc:fixed?'ok':'wa'};
-      if(!(billTotal(m)>0)) return {...S,amt:null};
+      if(!(billTotal(m)>0)) return {...S,supply:null,vat:null,amt:null};
       const r=calc(m).rows.find(r=>r.no===c.no);
-      return {...S,amt:r?r.amt:null};
+      return {...S,supply:r?r.supply:null,vat:r?r.vat:null,amt:r?r.amt:null};
     }).filter(Boolean);
     const sum=lines.reduce((a,l)=>a+(l.amt||0),0);
+    const sup=lines.reduce((a,l)=>a+(l.supply||0),0);
+    const vat=lines.reduce((a,l)=>a+(l.vat||0),0);
     const miss=lines.filter(l=>l.amt==null).length;
     const k=c.b+c.no;
-    return {...c,k,lines,sum,miss,due:UNPAID[k]||null,st:done?'발행 완료':'발행 대기'};
+    return {...c,k,lines,sum,sup,vat,miss,due:UNPAID[k]||null,st:done?'발행 완료':'발행 대기'};
   });
 }
 function PAY1(){
@@ -1807,6 +1823,7 @@ function PAY1(){
   const nSel=wait.filter(c=>sel1[c.k]).length;
   const total=rows.reduce((a,c)=>a+c.sum,0);
   const dues=rows.filter(c=>c.due), dueSum=dues.reduce((a,c)=>a+c.due.amt,0);
+  const supT=rows.reduce((a,c)=>a+c.sup,0), vatT=rows.reduce((a,c)=>a+c.vat,0);
   const anyOpen=rows.some(c=>gOpen(c.k));
   const body=rows.map(c=>{
     const op=gOpen(c.k), on=!!sel1[c.k], can=c.st==='발행 대기';
@@ -1822,14 +1839,19 @@ function PAY1(){
       <div class="n">${c.due
         ? `<span class="bd wa2">미납 ${won(c.due.amt)}</span>`
         : '<span style="color:var(--faint)">—</span>'}</div>
-      <div class="n"><b>${won(c.sum)}</b><div class="c2">VAT 별도</div></div>
+      <div class="n c2">${won(c.sup)}</div>
+      <div class="n c2">${won(c.vat)}</div>
+      <div class="n"><b>${won(c.sum)}</b><div class="c2">VAT 포함</div></div>
       <div class="c">${c.st==='발행 완료'?'<span class="bd ok">발행 완료</span>'
         :'<span class="bd mu">발행 대기</span>'}</div>
     </div>` + (!op?'':c.lines.map(l=>`
     <div class="schr sub">
       <div class="nm">${l.n}</div>
-      <div class="c2">${l.basis}</div>
+      <div class="c2">${l.bill}<div class="c2">${
+        isTax(l.bill)?'과세':l.bill==='계산서'?'면세':'비과세'}</div></div>
       <div class="c2" style="text-align:left">${l.src}</div>
+      <div class="n c2">${l.supply!=null?won(l.supply):'—'}</div>
+      <div class="n c2">${l.vat!=null?(l.vat?won(l.vat):'—'):'—'}</div>
       <div class="n">${l.amt!=null?`<b>${won(l.amt)}</b>`
         :'<span class="bd wa2">미산출</span>'}</div>
       <div class="c"><span class="bd ${l.stc}">${l.st}</span></div>
@@ -1865,13 +1887,16 @@ function PAY1(){
   ${!rows.length?`<div class="tbl"><div class="empty"><div class="t">발행할 청구서가 없습니다</div>
      진행중인 계약이 없거나 조건에 맞는 건이 없습니다.</div></div>`
   :`<div class="tbl schl">
-      <div class="schr hd"><div>계약고유명 · 청구항목</div><div>배분 기준</div>
-        <div class="n">미납 잔액 · 근거 문서</div><div class="n">금액</div><div class="c">상태</div></div>
+      <div class="schr hd"><div>계약고유명 · 청구항목</div><div>발행 문서</div>
+        <div class="n">미납 잔액 · 근거 문서</div>
+        <div class="n">공급가액</div><div class="n">부가세</div><div class="n">합계</div>
+        <div class="c">상태</div></div>
       ${body}
       <div class="schr sum"><div>합계 <span class="lock">계약 ${rows.length}</span></div>
         <div></div>
         <div class="n">${dueSum?`<span style="color:var(--warn)">${won(dueSum)}</span>`:'—'}</div>
-        <div class="n">${won(total)}</div><div class="c c2">VAT 별도</div></div>
+        <div class="n">${won(supT)}</div><div class="n">${won(vatT)}</div>
+        <div class="n">${won(total)}</div><div class="c c2">VAT 포함</div></div>
     </div>`}
   <div class="hint">
     이번 회차에 발행할 청구서다. <b>계약당 1장</b>이며 고정액 항목과 정산 항목을 함께 담는다 → 2부<br>
@@ -1886,6 +1911,8 @@ function PAY1(){
     청구서에는 <b>합계에 넣지 않고 별도 안내로</b> 표기한다. 세금계산서에는 넣지 않는다.<br>
     항목 상태는 셋이다. <b>약정</b>(계약서 금액이라 변하지 않는다) ·
     <b>정산 미확정</b>(관리비 정산을 확정하면 확정된다) · <b>정산 확정</b>.<br>
+    <b>합계는 부가세 포함</b>이다. 임차인이 실제로 납부하는 금액이다.
+    발행 문서가 <b>세금계산서</b>인 항목만 부가세가 붙는다.<br>
     금액 칸의 <b style="color:var(--warn)">미산출</b>은 이번 회차 대상인데 금액이 없다는 뜻이다.
     그대로 발행하면 그 항목이 빠진 청구서가 나간다.<br>
     발행하면 원장에 <b>청구</b> 거래로 기록되고 임차인 담당자에게 이메일이 발송된다.</div>`;
