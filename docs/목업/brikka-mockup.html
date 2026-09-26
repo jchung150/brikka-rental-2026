@@ -615,9 +615,9 @@ const PROG={
  b5:{settle:'확정', inv:13,invN:13,amt:98640000,paid:71200000,paidN:9,closed:true, closedAt:'09-24',due:'09-30'},
 };
 const selItems=()=>MASTER.filter(m=>BILL[m.code].on);
-let pCode='elec', pStep=0;
+let pCode='elec', pStep=0, pAll=true;   /* pAll — 1단계 「전체」 선택 여부 */
 const setPStep=i=>{pStep=i;render()};
-const setPItem=c=>{pCode=c;render()};
+const setPItem=c=>{pAll=(c==='*'); if(c!=='*') pCode=c; render()};
 /* 단계별 대상 항목 — 검침은 자체 계량기가 있는 항목만 */
 function stepItems(step){
   const sel=selItems();
@@ -1270,15 +1270,21 @@ function PAY10(){
       <div class="t"><span class="nm">${i+1}</span>${st[0]}</div>${
         st[1]?`<div class="d">${st[1]}</div>`:''}</div>`).join('')}
   </div>
-  ${pStep>0&&stepItems(pStep).length>1?`<div class="itab">${stepItems(pStep).map(x=>
-    `<button class="${m&&x.code===m.code?'on':''}" onclick="setPItem('${x.code}')">${x.name}</button>`).join('')}</div>`:''}
+  ${stepItems(pStep).length>1?`<div class="itab">${
+    pStep===0?`<button class="${pAll?'on':''}" onclick="setPItem('*')">전체</button>`:''
+    }${stepItems(pStep).map(x=>
+    `<button class="${(pStep===0?!pAll&&x.code===pCode:m&&x.code===m.code)?'on':''}"
+       onclick="setPItem('${x.code}')">${x.name}</button>`).join('')}</div>`:''}
   ${body}`;
 }
 
 /* ── 1단계 · 항목 선택 + 고지서 입력 (단일 표) ── */
 function stBill(){
-  const sel=selItems();
-  if(!sel.length) return `
+  const all=selItems();
+  /* 「전체」가 기본이다. 합계를 고지서 뭉치와 대조하고 입력 누락을 보기 위해서다.
+     항목이 많아졌을 때만 하나를 골라 집중한다. */
+  const sel=pAll?all:all.filter(m=>m.code===pCode);
+  if(!all.length) return `
     <div class="tbl"><div class="empty"><div class="t">이번 회차에 정산할 항목이 없습니다</div>
       고정관리비만 받는 건물은 정산 없이 청구할 수 있습니다.<br><br>
       <button class="btn pri" onclick="openDrawer('additem')">+ 청구 항목 추가</button></div></div>`;
@@ -1293,13 +1299,16 @@ function stBill(){
         <th class="n">소계</th><th class="c" style="width:64px"></th></tr></thead>
       <tbody>
         ${sel.map(m=>billRow(m)).join('')}
-        <tr class="sumr"><td colspan="6">합계</td>
-          <td class="n">${won(grandTotal())}</td><td></td></tr>
+        <tr class="sumr"><td colspan="6">${pAll?'합계':'소계'}</td>
+          <td class="n">${won(sel.reduce((a,m)=>a+billTotal(m),0))}</td><td></td></tr>
       </tbody></table></div>
   </div>
   <div class="hint">
     청구 항목은 <b>건물 관리 › 관리비 설정</b>에서 정의한 목록에서 가져온다.
-    회차마다 제외하거나 다시 추가할 수 있으나 목록에 없는 항목은 선택할 수 없다.</div>`;
+    회차마다 제외하거나 다시 추가할 수 있으나 목록에 없는 항목은 선택할 수 없다.<br>
+    ${all.length>1&&!pAll?`<b>전체</b>를 눌러 이번 회차 전 항목을 한 번에 보고 합계를
+      고지서와 대조한다. 입력 누락도 이 화면에서 확인한다.`
+     :'받은 고지서 장수와 목록의 항목 수가 일치하는지 확인한다.'}</div>`;
 }
 function billRow(m){
   const b=BILL[m.code];
