@@ -39,6 +39,8 @@ run('PAY-12', 'PAY12()');
 run('PAY-1', 'PAY1()');
 for (const f of ["f1.b='b2'", "f1.st=''", "f1.it='수도요금'", "f1.calc='정산'", "f1.b='b5'"])
   run('PAY-1 필터 ' + f, f + ';PAY1()');
+run('PAY-1 전체 펼침', 'g1All=true;PAY1()');
+run('PAY-1 개별 토글', "g1All=false;g1['b1101호']=true;PAY1()");
 run('미구현 화면', "TODO('pay-2')");
 if (!fail) console.log('② 전 화면 렌더                  OK');
 
