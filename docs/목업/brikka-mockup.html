@@ -373,13 +373,12 @@ td.c,th.c{text-align:center}
   .top,.wrap{padding-left:16px;padding-right:16px}
 }
 .nomr td{background:color-mix(in srgb,var(--bg) 60%,transparent)}
+table.sch{table-layout:fixed}
+table.sch td,table.sch th{overflow:hidden;text-overflow:ellipsis}
 table.sch tr.grp{cursor:pointer} table.sch tr.grp:hover td{background:var(--line)}
 table.sch tr.grp .tg{display:inline-block;width:14px;color:var(--muted);font-size:11px}
-table.sch tr.grp .gsum,table.sch tr.grp .gsub{margin-left:14px;margin-top:3px}
-table.sch tr.grp td:first-child{white-space:normal}
-table.sch tr.grp .gsub{display:none}
-table.sch tr.grp.op .gsum{display:none}
-table.sch tr.grp.op .gsub{display:block}
+table.sch tr.grp .gsum,table.sch tr.grp .gsub{margin-left:14px;margin-top:3px;
+  overflow:hidden;text-overflow:ellipsis}
 table.sch tr.grp td{background:var(--soft);border-top:2px solid var(--line);padding-top:11px;padding-bottom:11px}
 table.sch tr.sub{cursor:pointer} table.sch tr.sub:hover td{background:var(--soft)}
 table.sch td.ind{padding-left:26px}
@@ -1663,11 +1662,10 @@ function PAY1(){
         <span class="tg">${op?'▾':'▸'}</span>
         ${cnameHTML(BA(c.b),c.no,c.ten)}
         <span class="bd ${ST[c.st]||'mu'}">${c.st}</span>
-        <div class="c2 gsum">${BN(c.b)} · 기산일 ${c.base}
-          <span style="color:var(--faint)">· ${nF?`고정액 ${nF}`:''}${nF&&nS?' · ':''}${nS?`정산 ${nS}`:''}
-          · ${c.it.map(x=>x[0]).join(', ')}</span></div>
-        <div class="c2 gsub">${BN(c.b)} · 기산일 ${c.base}</div></td>
-      <td></td><td></td><td></td><td></td>
+        <div class="c2 gsum">${BN(c.b)}${nF?` · 고정액 ${nF}`:''}${nS?` · 정산 ${nS}`:''}</div></td>
+      <td></td><td></td>
+      <td class="c2">${c.base}</td>
+      <td></td>
       <td class="n">${fixed?`<b>${won(fixed)}</b>`:'<span style="color:var(--faint)">—</span>'}
         <div class="c2">${fixed?'월 고정액':'고정액 없음'}</div></td>
       <td class="n c2">${nS?`정산 ${nS}건 별도`:''}</td>
@@ -1679,7 +1677,7 @@ function PAY1(){
       <td>${x[2]||c.base}</td>
       <td class="c">${d.tax?'과세':'<span style="color:var(--muted)">면세</span>'}</td>
       <td class="n">${d.calc==='정산'?'<span class="bd wa">정산</span>':`<b>${won(x[1])}</b>`}</td>
-      <td class="n c2">${d.calc==='정산'?'회차마다 산출 → PAY-10':''}</td>
+      <td class="n c2">${d.calc==='정산'?'PAY-10에서 산출':''}</td>
     </tr>`}).join(''));
   }).join('');
   const nI=ctrs.reduce((a,c)=>a+c.it.length,0);
@@ -1711,6 +1709,8 @@ function PAY1(){
   ${!ctrs.length?`<div class="tbl"><div class="empty"><div class="t">조건에 맞는 청구 약정이 없습니다</div>
      필터를 바꾸거나 계약 상세에서 청구 항목을 등록하세요.</div></div>`
   :`<div class="tbl"><table class="sch">
+      <colgroup><col><col style="width:84px"><col style="width:72px"><col style="width:100px">
+        <col style="width:60px"><col style="width:124px"><col style="width:118px"></colgroup>
       <thead><tr><th>청구항목</th><th>산정방식</th><th>반복주기</th><th>기산일</th>
         <th class="c">부가세</th><th class="n">청구액</th><th class="n"></th></tr></thead>
       <tbody>${body}
