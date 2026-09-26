@@ -47,11 +47,12 @@ for (const it of X.selItems()) {
   const ratio = R.rows.reduce((a, r) => a + r.ratio, 0);
   const sumOK = Math.abs(tot - use) < 0.01;
   const ratOK = Math.abs(ratio - 1) < 0.0001;
-  const amtOK = R.diff >= 0 && R.diff <= R.rows.length;   /* 절사 차액은 유닛 수 이내 */
+  const amtOK = R.diff === 0;   /* 잔차를 최대 몫 유닛에 더하므로 언제나 0 — 4.1.8 */
   if (!sumOK || !ratOK || !amtOK) fail = 1;
   console.log('③ ' + it.name.padEnd(7) +
     ' 총사용량 ' + tot.toFixed(1) + '/' + use + (sumOK ? ' ✓' : ' ✗') +
     '  배분비율 ' + ratio.toFixed(4) + (ratOK ? ' ✓' : ' ✗') +
-    '  절사차액 ' + R.diff + (amtOK ? ' ✓' : ' ✗'));
+    '  차액 ' + R.diff + (amtOK ? ' ✓' : ' ✗') +
+    '  절사잔차 ' + (R.rem || 0) + '원');
 }
 process.exit(fail);
