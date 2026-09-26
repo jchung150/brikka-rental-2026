@@ -29,9 +29,9 @@ const run = (label, code) => {
   try { new Function(stub + bare + ';' + code)(); }
   catch (e) { console.log('② ' + label + ' ✗ ' + e.message); fail = 1; }
 };
-run('PAY-10 전체', "pAll=true;PAY10()");
 for (const c of ['elec', 'water', 'gas', 'parking'])
-  run('PAY-10 ' + c, "pAll=false;pCode='" + c + "';PAY10()");
+  run('PAY-10 ' + c, "pCode='" + c + "';PAY10()");
+run('PAY-10 항목 없음', "Object.keys(BILL).forEach(k=>BILL[k].on=false);PAY10()");
 run('PAY-10 패널', "DRAWER='additem';dPick=['fund'];drawerHTML()");
 run('PRO-1', 'PRO1()');
 for (const t of ['요약', '유닛', '자료보관', '관리비 설정'])
