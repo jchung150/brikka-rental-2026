@@ -1781,19 +1781,19 @@ function ISSUE(){
       /* 고정액 — 반복주기로 판정. 목업 데이터는 모두 매월이다 */
       if(d.calc==='고정액')
         return d.cycle==='매월'
-          ?{n:x[0],calc:'약정',src:'임대차계약서',amt:x[1],st:'확정',stc:'mu'}:null;
+          ?{n:x[0],basis:'—',src:'임대차계약서',amt:x[1],st:'약정',stc:'mu'}:null;
       /* 정산 — 1단계에서 선택되지 않았으면 이번 회차 대상이 아니다 */
       const code=codeOf(x[0]), m=M(code), b=BILL[code];
       if(!(f1.b==='b1'&&b&&b.on)) return null;
       const st=resolve(code), ev=`${st.by||m.src||''} ${st.doc||m.doc||''}`.trim();
-      if(!(billTotal(m)>0)) return {n:x[0],calc:'정산',src:ev,amt:null,st:'미산출',stc:'wa2'};
+      const S={n:x[0],basis:st.basis,src:ev,
+               st:fixed?'정산 확정':'정산 미확정', stc:fixed?'ok':'wa'};
+      if(!(billTotal(m)>0)) return {...S,amt:null};
       const r=calc(m).rows.find(r=>r.no===c.no);
-      if(!r) return {n:x[0],calc:'정산',src:ev,amt:null,st:'미산출',stc:'wa2'};
-      return {n:x[0],calc:'정산',src:ev,amt:r.amt,
-              st:fixed?'정산 확정':'정산 미확정', stc:fixed?'ok':'wa'};
+      return {...S,amt:r?r.amt:null};
     }).filter(Boolean);
     const sum=lines.reduce((a,l)=>a+(l.amt||0),0);
-    const miss=lines.filter(l=>l.st==='미산출').length;
+    const miss=lines.filter(l=>l.amt==null).length;
     const k=c.b+c.no;
     return {...c,k,lines,sum,miss,due:UNPAID[k]||null,st:done?'발행 완료':'발행 대기'};
   });
@@ -1820,8 +1820,7 @@ function PAY1(){
           c.miss?` · <b style="color:var(--warn)">미산출 ${c.miss}</b>`:''}</div></div>
       <div></div>
       <div class="n">${c.due
-        ? `<span class="bd wa2">미납 ${won(c.due.amt)}</span>
-           <div class="c2">${c.due.from}부터 ${c.due.n}건</div>`
+        ? `<span class="bd wa2">미납 ${won(c.due.amt)}</span>`
         : '<span style="color:var(--faint)">—</span>'}</div>
       <div class="n"><b>${won(c.sum)}</b><div class="c2">VAT 별도</div></div>
       <div class="c">${c.st==='발행 완료'?'<span class="bd ok">발행 완료</span>'
@@ -1829,9 +1828,10 @@ function PAY1(){
     </div>` + (!op?'':c.lines.map(l=>`
     <div class="schr sub">
       <div class="nm">${l.n}</div>
-      <div><span class="bd ${l.calc==='정산'?'wa':'mu'}">${l.calc}</span></div>
+      <div class="c2">${l.basis}</div>
       <div class="c2" style="text-align:left">${l.src}</div>
-      <div class="n">${l.amt!=null?`<b>${won(l.amt)}</b>`:'<span style="color:var(--faint)">—</span>'}</div>
+      <div class="n">${l.amt!=null?`<b>${won(l.amt)}</b>`
+        :'<span class="bd wa2">미산출</span>'}</div>
       <div class="c"><span class="bd ${l.stc}">${l.st}</span></div>
     </div>`).join(''));
   }).join('');
@@ -1865,8 +1865,8 @@ function PAY1(){
   ${!rows.length?`<div class="tbl"><div class="empty"><div class="t">발행할 청구서가 없습니다</div>
      진행중인 계약이 없거나 조건에 맞는 건이 없습니다.</div></div>`
   :`<div class="tbl schl">
-      <div class="schr hd"><div>계약고유명 · 청구항목</div><div>산정방식</div>
-        <div class="n">미납 잔액</div><div class="n">금액</div><div class="c">상태</div></div>
+      <div class="schr hd"><div>계약고유명 · 청구항목</div><div>배분 기준</div>
+        <div class="n">미납 잔액 · 근거 문서</div><div class="n">금액</div><div class="c">상태</div></div>
       ${body}
       <div class="schr sum"><div>합계 <span class="lock">계약 ${rows.length}</span></div>
         <div></div>
@@ -1884,9 +1884,10 @@ function PAY1(){
     1단계에서 이미 빠졌으므로 여기에 나오지 않는다.<br>
     <b>미납 잔액</b>은 원장에서 계산되는 값이며 이번 회차 청구와 별개다.
     청구서에는 <b>합계에 넣지 않고 별도 안내로</b> 표기한다. 세금계산서에는 넣지 않는다.<br>
-    항목 상태는 넷이다. <b>확정</b>(약정 금액. 계약서 값이라 변하지 않는다) ·
-    <b>정산 확정</b> · <b>정산 미확정</b>(관리비 정산을 확정하면 바뀐다) ·
-    <b style="color:var(--warn)">미산출</b>(금액이 없다. 그대로 발행하면 그 항목이 빠진 청구서가 나간다).<br>
+    항목 상태는 셋이다. <b>약정</b>(계약서 금액이라 변하지 않는다) ·
+    <b>정산 미확정</b>(관리비 정산을 확정하면 확정된다) · <b>정산 확정</b>.<br>
+    금액 칸의 <b style="color:var(--warn)">미산출</b>은 이번 회차 대상인데 금액이 없다는 뜻이다.
+    그대로 발행하면 그 항목이 빠진 청구서가 나간다.<br>
     발행하면 원장에 <b>청구</b> 거래로 기록되고 임차인 담당자에게 이메일이 발송된다.</div>`;
 }
 
