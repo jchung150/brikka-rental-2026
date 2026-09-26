@@ -1241,12 +1241,11 @@ function PAY10(){
   const meterN=sel.filter(m=>isMetered(m.code)).length;
   const m=curItem(pStep);
   const R=m?calc(m):null;
-  const allDiff=sel.reduce((a,x)=>a+Math.abs(calc(x).diff),0);
   const steps=[
     ['청구 항목 · 고지서', sel.length?'':'선택된 항목 없음'],
     ['검침 입력', meterN?'':'검침 대상 없음'],
     ['조정', ''],
-    ['산출 결과', !sel.length?'':(allDiff===0?'검증 일치':`차액 ${num(allDiff)}원`)],
+    ['산출 결과', ''],
   ];
   const body = (!sel.length&&pStep>0)
     ? `<div class="tbl"><div class="empty"><div class="t">이번 회차에 정산할 항목이 없습니다</div>
