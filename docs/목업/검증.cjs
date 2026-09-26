@@ -55,11 +55,12 @@ for (const it of X.selItems()) {
   const sumOK = Math.abs(tot - use) < 0.01;
   const ratOK = Math.abs(ratio - 1) < 0.0001;
   const amtOK = R.diff === 0;   /* 잔차를 최대 몫 유닛에 더하므로 언제나 0 — 4.1.8 */
-  if (!sumOK || !ratOK || !amtOK) fail = 1;
+  const negOK = R.rows.every(r => r.use >= 0 && r.common >= -0.001 && r.amt >= 0);
+  if (!sumOK || !ratOK || !amtOK || !negOK) fail = 1;
   console.log('③ ' + it.name.padEnd(7) +
     ' 총사용량 ' + tot.toFixed(1) + '/' + use + (sumOK ? ' ✓' : ' ✗') +
     '  배분비율 ' + ratio.toFixed(4) + (ratOK ? ' ✓' : ' ✗') +
     '  차액 ' + R.diff + (amtOK ? ' ✓' : ' ✗') +
-    '  절사잔차 ' + (R.rem || 0) + '원');
+    '  절사잔차 ' + (R.rem || 0) + '원' + (negOK ? '' : '   ✗ 음수 발생'));
 }
 process.exit(fail);

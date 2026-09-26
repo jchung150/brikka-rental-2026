@@ -553,6 +553,8 @@ const BUILDINGS=[
    {it:'전력기금',use:1,bill:'일반내역서',meter:'없음',mtr:'—',rest:'전체 유닛',basis:'사용량 · 전기요금 참조',doc:'한국전력 고지서'},
    {it:'TV수신료',use:1,bill:'일반내역서',meter:'없음',mtr:'—',rest:'전체 유닛',basis:'사용량 · 전기요금 참조',doc:'한국전력 고지서'},
    {it:'가스요금',use:0,bill:'',meter:'',mtr:'',rest:'',basis:''},
+   {it:'가스요금',use:1,bill:'세금계산서',cycle:'매월',meter:'101호, 301호, 801호',mtr:'—',
+    basis:'사용량+임대면적',doc:'도시가스 고지서'},
    {it:'주차비',use:1,bill:'세금계산서',meter:'없음',mtr:'—',rest:'—',basis:'직접 입력',doc:'경비실 내역서'},
    {it:'교통유발부담금',use:1,bill:'계산서',meter:'없음',mtr:'—',rest:'전체 유닛',basis:'임대면적',doc:'구청 고지서'},
    {it:'정화조청소비',use:1,bill:'계산서',meter:'없음',mtr:'—',rest:'전체 유닛',basis:'임대면적',doc:'청소업체 내역서'}],
@@ -637,7 +639,9 @@ const BILL={
    read:{'101호':[1240,1318]},readDate:'2026-09-10',adj:{}},
  fund:{on:false,date:'2026-09-08',use:null,supply:71040,vat:0,read:null,adj:{}},
  tv:{on:false,date:'2026-09-08',use:null,supply:2500,vat:0,read:null,adj:{}},
- gas:{on:false,date:'',use:0,supply:0,vat:0,read:null,adj:{}},
+ gas:{on:true,date:'2026-09-09',use:1840,supply:2208000,vat:220800,
+   read:{'101호':[4820,null],'301호':[1150,null],'801호':[2340,null]},
+   readDate:'2026-09-06', adj:{}},
  traffic:{on:false,date:'',use:null,supply:0,vat:0,read:null,adj:{}},
  septic:{on:false,date:'',use:null,supply:0,vat:0,read:null,adj:{}},
  parking:{on:true,date:'2026-09-30',use:null,supply:0,vat:0,read:null,adj:{},
@@ -670,7 +674,7 @@ const ALL_U=['101호','201호','202호','301호','401호','402호','501호','601
 const METER={
  elec: [...ALL_U],          /* 전 유닛 계량기 보유 */
  water:['101호'],           /* 1층 상가만 보유. 나머지는 면적 안분 */
- gas:  [],
+ gas:  ['101호','301호','801호'],   /* 취사·급탕 사용 유닛만 보유. 나머지는 면적 안분 */
  fund: [], tv: [], traffic: [], septic: [], parking: [],
 };
 /* 건물별 항목 설정 — 정본은 PRO-3 관리비 설정 */
@@ -679,7 +683,8 @@ const BSET={
  water:{basis:'사용량+임대면적',ref:null,excl:{}},
  fund:{basis:'사용량',ref:'elec',excl:{}},
  tv:{basis:'사용량',ref:'elec',excl:{}},
- gas:null, traffic:null, septic:null,
+ gas:{basis:'사용량+임대면적',ref:null,excl:{},doc:'고지서',by:'도시가스'},
+ traffic:null, septic:null,
  parking:{basis:'직접 입력',ref:null,excl:{}},
 };
 const DEFSET={basis:'임대면적',ref:null,excl:{}};
@@ -876,10 +881,13 @@ function ratios(m,raw){
   const rows=UNITS_B1.map(u=>{
     const hasM=hasMeter(m.code,u.no);
     const r=reading(m.code,u.no);
-    const use=r?r[1]-r[0]:0;
+    /* 당월 검침값이 없으면 사용량은 0이다. null − 전월값이 음수가 되는 것을 막는다 */
+    const typed=!!r&&r[1]!=null;
+    const use=typed?r[1]-r[0]:0;
     const aj=b.adj[u.no];
     const mul=raw?1:((aj&&Number.isFinite(aj.mul))?aj.mul:1);  /* 0을 1로 되돌리지 않는다 */
-    return {...u,pm:r?r[0]:null,cm:r?r[1]:null,hasM,typed:!!r,use,mul,excl:ex[u.no]||null};
+    return {...u,pm:r?r[0]:null,cm:r?r[1]:null,hasM,typed,use,mul,
+            neg:typed&&use<0,excl:ex[u.no]||null};
   });
   /* 공용분은 안분 제외를 뺀 전 유닛이 부담한다 */
   const inTarget=r=>!r.excl;
@@ -1451,7 +1459,10 @@ function stRead(m,R){
         <td class="n" style="color:var(--muted)">${r.pm!=null?num(r.pm):dash}</td>
         <td class="n"><input class="inp" type="number" value="${r.cm!=null?r.cm:''}" placeholder="미입력"
             onchange="setRead('${m.code}','${r.no}',this.value)"></td>
-        <td class="n">${r.typed?`<b>${num(r.use)}</b> <span class="u">${U}</span>`:dash}</td></tr>`
+        <td class="n">${r.typed
+          ?`<b style="${r.neg?'color:var(--warn)':''}">${num(r.use)}</b> <span class="u">${U}</span>${
+             r.neg?'<div class="c2" style="color:var(--warn)">당월 &lt; 직전</div>':''}`
+          :dash}</td></tr>`
       :`<tr class="nomr">
         <td>${cnameST(r,m)}</td>
         <td>${dash}</td><td class="n">${dash}</td>
@@ -1466,6 +1477,8 @@ function stRead(m,R){
     계량기가 없는 유닛은 행은 보이되 입력이 잠긴다.
     공용 사용량 <b>${fx(R.common)} ${U}</b>은 계량기 유무와 무관하게
     <b>전 유닛</b>이 ${st.basis} 비율로 나눠 부담한다.<br>
+    당월 검침값이 비어 있으면 그 유닛의 개별 사용량은 <b>0</b>으로 두고 공용분만 부담한다.
+    <b>당월이 직전보다 작으면</b> 계량기 교체·오입력을 의심한다. 그대로 확정할 수 없다.<br>
     <b>직전 검침값</b>은 직전 정산 회차의 당월 검침값이며 수정할 수 없다.
     격월·반기 항목은 직전 회차가 전월이 아니다.<br>
     검침 기록은 원본이며 수정하지 않는다. 부담을 조정하려면 3단계에서 조정 배수를 기록한다.<br>
