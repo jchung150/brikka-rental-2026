@@ -401,6 +401,7 @@ td.c,th.c{text-align:center}
 .schr .cb.on::after{content:'';position:absolute;left:4px;top:1px;width:4px;height:8px;
   border:solid #fff;border-width:0 2px 2px 0;transform:rotate(45deg)}
 .schr .cb.dis{opacity:.3}
+.bd.wa2{background:color-mix(in srgb,var(--warn) 14%,transparent);color:var(--warn)}
 .lk{color:var(--pri);cursor:pointer;text-decoration:underline}
 .dlt{font-size:11px;font-weight:700;margin-left:4px}
 .dlt.up{color:var(--warn)} .dlt.dn{color:var(--muted)}
@@ -550,8 +551,8 @@ const BUILDINGS=[
   charge:[
    {it:'전기요금',use:1,bill:'세금계산서',meter:'전체 11개',mtr:'청구함',rest:'전체 유닛',basis:'사용량',doc:'한국전력 고지서'},
    {it:'수도요금',use:1,bill:'계산서',meter:'101호',mtr:'청구함',rest:'전체 유닛',basis:'사용량+임대면적',doc:'상수도사업본부 고지서'},
-   {it:'전력기금',use:1,bill:'일반내역서',meter:'없음',mtr:'—',rest:'전체 유닛',basis:'사용량 · 전기요금 참조',doc:'한국전력 고지서'},
-   {it:'TV수신료',use:1,bill:'일반내역서',meter:'없음',mtr:'—',rest:'전체 유닛',basis:'사용량 · 전기요금 참조',doc:'한국전력 고지서'},
+   {it:'전력기금',use:1,bill:'일반내역서',meter:'없음',mtr:'—',rest:'전체 유닛',basis:'사용량',ref:'전기요금',doc:'한국전력 고지서'},
+   {it:'TV수신료',use:1,bill:'일반내역서',meter:'없음',mtr:'—',rest:'전체 유닛',basis:'사용량',ref:'전기요금',doc:'한국전력 고지서'},
    {it:'가스요금',use:0,bill:'',meter:'',mtr:'',rest:'',basis:''},
    {it:'가스요금',use:1,bill:'세금계산서',cycle:'매월',meter:'101호, 301호, 801호',mtr:'—',
     basis:'사용량+임대면적',doc:'도시가스 고지서'},
@@ -1316,7 +1317,7 @@ function t청구(b){
         <td>${c.bill||m.bill||'—'}<div class="c2">${
           isTax(c.bill||m.bill)?'과세':(c.bill||m.bill)==='계산서'?'면세':'비과세'}</div></td>
         <td>${c.cycle||m.cycle||'—'}</td>
-        <td>${c.basis||'—'}</td>
+        <td>${c.basis||'—'}${c.ref?`<div class="c2">${c.ref} 검침값 참조</div>`:''}</td>
         <td>${!c.meter?'—':c.meter==='없음'?'<span style="color:var(--faint)">없음</span>':`<b>${c.meter}</b>`}</td>
         <td>${c.doc||`${st.by||m.src||''} ${st.doc||m.doc||''}`.trim()||'—'}</td>
         <td class="c"><span class="det" onclick="openCS(codeOf('${c.it}'))">수정</span></td></tr>`}).join('')}</tbody>
@@ -1716,19 +1717,20 @@ const CITEM={
  '주차비'      :{calc:'정산', cycle:'매월', tax:true },   /* 변동 관리비 — 기준표 3.3 */
  '전기요금'     :{calc:'정산', cycle:'매월', tax:true },
  '수도요금'     :{calc:'정산', cycle:'격월', tax:false},
+ '가스요금'     :{calc:'정산', cycle:'매월', tax:true },
  '정화조청소비'  :{calc:'정산', cycle:'반기', tax:false},
  '교통유발부담금':{calc:'정산', cycle:'연1회',tax:false},
 };
 const CTRS=[
  {b:'b1',no:'101호',ten:'커피 로스터리 담',st:'진행중',base:'2025-03-01',
-  it:[['임대료',4_280_000],['고정관리비',714_000],['전기요금'],['수도요금'],
+  it:[['임대료',4_280_000],['고정관리비',714_000],['전기요금'],['수도요금'],['가스요금'],
       ['정화조청소비'],['주차비',null,'2025-06-01']]},
  {b:'b1',no:'201호',ten:'(주)한빛',st:'진행중',base:'2024-11-01',
   it:[['임대료',5_160_000],['고정관리비',992_000],['전기요금'],['수도요금'],['정화조청소비']]},
  {b:'b1',no:'202호',ten:'(주)비씨에이',st:'진행중',base:'2025-01-15',
   it:[['임대료',4_296_000],['고정관리비',826_000],['전기요금'],['수도요금'],['정화조청소비']]},
  {b:'b1',no:'301호',ten:'디자인스튜디오 온',st:'진행중',base:'2024-07-01',
-  it:[['임대료',6_864_000],['고정관리비',1_320_000],['전기요금'],['수도요금'],
+  it:[['임대료',6_864_000],['고정관리비',1_320_000],['전기요금'],['수도요금'],['가스요금'],
       ['정화조청소비'],['주차비']]},
  {b:'b1',no:'402호',ten:'(주)메디플랜',st:'준비중',base:'2026-10-01',
   it:[['임대료',4_296_000],['고정관리비',826_000],['전기요금'],['수도요금'],['정화조청소비']]},
@@ -1740,7 +1742,8 @@ const CTRS=[
  {b:'b1',no:'701호',ten:'(주)한빛',st:'진행중',base:'2025-05-01',
   it:[['임대료',9_452_000],['고정관리비',1_818_000],['전기요금'],['수도요금'],['정화조청소비']]},
  {b:'b1',no:'801호',ten:'코어스페이스',st:'진행중',base:'2024-03-01',
-  it:[['임대료',9_452_000],['고정관리비',1_818_000],['전기요금'],['수도요금'],['정화조청소비']]},
+  it:[['임대료',9_452_000],['고정관리비',1_818_000],['전기요금'],['수도요금'],['가스요금'],
+      ['정화조청소비']]},
  {b:'b2',no:'1203호',ten:'(주)세움파트너스',st:'진행중',base:'2025-02-01',
   it:[['임대료',7_800_000],['고정관리비',1_450_000],['전기요금'],['수도요금']]},
  {b:'b2',no:'1501호',ten:'리틀브릿지',st:'종료됨',base:'2023-02-01',
@@ -1769,19 +1772,20 @@ function ISSUE(){
       const d=CITEM[x[0]];
       /* 고정액 — 반복주기로 판정. 목업 데이터는 모두 매월이다 */
       if(d.calc==='고정액')
-        return d.cycle==='매월'?{n:x[0],calc:'약정',src:'임대차계약서',amt:x[1],note:''}:null;
+        return d.cycle==='매월'
+          ?{n:x[0],calc:'약정',src:'임대차계약서',amt:x[1],st:'확정',stc:'mu'}:null;
       /* 정산 — 1단계에서 선택되지 않았으면 이번 회차 대상이 아니다 */
       const code=codeOf(x[0]), m=M(code), b=BILL[code];
       if(!(f1.b==='b1'&&b&&b.on)) return null;
       const st=resolve(code), ev=`${st.by||m.src||''} ${st.doc||m.doc||''}`.trim();
-      if(!(billTotal(m)>0)) return {n:x[0],calc:'정산',src:ev,amt:null,
-                                    note:'금액 미입력'};
+      if(!(billTotal(m)>0)) return {n:x[0],calc:'정산',src:ev,amt:null,st:'미산출',stc:'wa2'};
       const r=calc(m).rows.find(r=>r.no===c.no);
-      return {n:x[0],calc:'정산',src:ev,amt:r?r.amt:null,
-              note:r?(fixed?'2026-09 정산':'2026-09 · 잠정'):'산출 결과 없음'};
+      if(!r) return {n:x[0],calc:'정산',src:ev,amt:null,st:'미산출',stc:'wa2'};
+      return {n:x[0],calc:'정산',src:ev,amt:r.amt,
+              st:fixed?'정산 확정':'정산 미확정', stc:fixed?'ok':'wa'};
     }).filter(Boolean);
     const sum=lines.reduce((a,l)=>a+(l.amt||0),0);
-    const miss=lines.filter(l=>l.amt==null).length;   /* 대상인데 금액이 없다 */
+    const miss=lines.filter(l=>l.st==='미산출').length;
     return {...c,k:c.b+c.no,lines,sum,miss,st:done?'발행 완료':'발행 대기'};
   });
 }
@@ -1814,7 +1818,7 @@ function PAY1(){
       <div><span class="bd ${l.calc==='정산'?'wa':'mu'}">${l.calc}</span></div>
       <div class="c2">${l.src}</div>
       <div class="n">${l.amt!=null?`<b>${won(l.amt)}</b>`:'<span style="color:var(--faint)">—</span>'}</div>
-      <div class="c c2" ${l.amt==null?'style="color:var(--warn);font-weight:600"':''}>${l.note}</div>
+      <div class="c"><span class="bd ${l.stc}">${l.st}</span></div>
     </div>`).join(''));
   }).join('');
   return `
@@ -1860,8 +1864,9 @@ function PAY1(){
     <b>이번 회차 대상 항목만 올라온다.</b> 고정액은 약정의 반복주기로, 정산은
     <b>관리비 정산 1단계에서 선택한 항목</b>으로 정해진다. 격월·반기 항목의 비대상 회차는
     1단계에서 이미 빠졌으므로 여기에 나오지 않는다.<br>
-    <b style="color:var(--warn)">미산출</b>은 이번 회차 대상인데 금액이 없다는 경고다.
-    그대로 발행하면 <b>그 항목이 빠진 청구서</b>가 나간다.<br>
+    항목 상태는 넷이다. <b>확정</b>(약정 금액. 계약서 값이라 변하지 않는다) ·
+    <b>정산 확정</b> · <b>정산 미확정</b>(관리비 정산을 확정하면 바뀐다) ·
+    <b style="color:var(--warn)">미산출</b>(금액이 없다. 그대로 발행하면 그 항목이 빠진 청구서가 나간다).<br>
     발행하면 원장에 <b>청구</b> 거래로 기록되고 임차인 담당자에게 이메일이 발송된다.</div>`;
 }
 
