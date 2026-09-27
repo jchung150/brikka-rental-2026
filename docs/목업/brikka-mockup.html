@@ -1433,6 +1433,14 @@ function itemSecs(m){
 }
 /* 항목 탭의 상태 — 손봐야 할 것이 있으면 알린다 */
 function itemFlag(m){
+  /* 참조 항목은 참조 대상이 끝나야 금액이 확정된다. 그 상태를 그대로 물려받는다 */
+  const ref=resolve(m.code).ref;
+  if(ref&&ref!==m.code){
+    if(!selItems().some(x=>x.code===ref))
+      return {t:`${M(ref).name} 미선택`,c:'wa2'};
+    const rf=itemFlag(M(ref));
+    if(rf.c!=='ok') return {t:`${M(ref).name} 미완`,c:'wa'};
+  }
   if(isDirect(m.code)) return directSum(m.code)?{t:'완료',c:'ok'}:{t:'미입력',c:'wa'};
   if(!(billTotal(m)>0)) return {t:'고지서 미입력',c:'wa'};
   if(isMetered(m.code)){
@@ -1694,8 +1702,11 @@ function stResult(m,R){
   const b=BILL[m.code];
   return `
   ${(()=>{const rf=resolve(m.code).ref;return rf&&rf!==m.code
-    ?`<div class="hint" style="margin:-4px 0 10px">이 항목은 <b>${M(rf).name}</b>의 배분을 그대로 따른다.
-       자체 검침값이 없어 조정할 것이 없으며, 부담 비율을 바꾸려면 ${M(rf).name}의 조정 절에서 바꾼다.</div>`:''})()}
+    ?(()=>{const f=itemFlag(M(rf));return `<div class="${f.c==='ok'?'hint':'fnd'}" style="margin:-4px 0 10px">${
+        f.c==='ok'?'':`<span class="h">${M(rf).name}을 먼저 끝내세요</span>`}
+       이 항목은 <b>${M(rf).name}</b>의 <b>부담 비율</b>을 그대로 따른다.
+       자체 검침값이 없어 조정할 것이 없으며, 비율을 바꾸려면 ${M(rf).name}의 조정 절에서 바꾼다.${
+        f.c==='ok'?'':` 지금 ${M(rf).name}이 <b>${f.t}</b> 상태라 이 금액도 확정되지 않는다.`}</div>`})():''})()}
   <div class="card"><div class="ct">산출 결과
     <span class="sub">${m.name} · ${resolve(m.code).basis} 비율 배분${
       (resolve(m.code).ref&&resolve(m.code).ref!==m.code)?` · ${M(resolve(m.code).ref).name} 배분 적용`:''}</span></div>
