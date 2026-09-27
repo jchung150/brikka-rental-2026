@@ -1767,10 +1767,11 @@ const CTRS=[
   it:[['임대료',9240000],['고정관리비',1650000],['전기요금'],['전력기금'],['TV수신료'],['수도요금'],['정화조청소비']]},
  {b:'b1',no:'본관4층',ten:'케이큐엔터테이먼트',st:'진행중',base:'2023-09-01',
   it:[['임대료',9240000],['고정관리비',1650000],['전기요금'],['전력기금'],['TV수신료'],['수도요금'],['정화조청소비'],['주차비']]},
- {b:'b1',no:'본관301호',ten:'고우컴퍼니',st:'진행중',base:'2025-05-01',
-  it:[['임대료',4620000],['고정관리비',825000],['전기요금'],['전력기금'],['TV수신료'],['수도요금'],['정화조청소비']]},
+ /* 301호는 302호와 실질 주인이 같다. 임대료만 청구하고 관리비·정산액은 302호가 부담한다 */
+ {b:'b1',no:'본관301호',ten:'고우컴퍼니',st:'진행중',base:'2025-05-01',payTo:'본관302호',
+  it:[['임대료',360000]]},
  {b:'b1',no:'본관302호',ten:'유니버셜',st:'진행중',base:'2024-11-01',
-  it:[['임대료',4620000],['고정관리비',825000],['전기요금'],['전력기금'],['TV수신료'],['수도요금'],['정화조청소비']]},
+  it:[['임대료',4620000],['고정관리비',1650000],['전기요금'],['전력기금'],['TV수신료'],['수도요금'],['정화조청소비']]},
  {b:'b1',no:'본관2층',ten:'좋은생각',st:'진행중',base:'2024-03-01',
   it:[['임대료',9900000],['고정관리비',1650000],['전기요금'],['전력기금'],['TV수신료'],['수도요금'],['정화조청소비'],['주차비']]},
  {b:'b1',no:'본관1층',ten:'에스씨케이컴퍼니',st:'진행중',base:'2025-08-01',
@@ -1812,8 +1813,11 @@ const pickAll=v=>{ISSUE().forEach(c=>sel1[c.k]=v&&c.st==='발행 대기');render
    대상이 아닌 항목은 화면에 올리지 않는다. 그 판단은 1단계에서 이미 끝났다. */
 function ISSUE(){
   const P=PROG[f1.b]||{}, done=P.inv>0, fixed=P.settle==='확정';
-  return CTRS.filter(c=>c.b===f1.b&&c.st==='진행중').map(c=>{
-    const lines=c.it.map(x=>{
+  const all=CTRS.filter(c=>c.b===f1.b&&c.st==='진행중');
+  return all.map(c=>{
+    /* 정산액을 다른 계약이 부담하는 유닛 — 그 유닛의 안분 결과를 이 계약에 얹는다 */
+    const via=all.filter(d=>d.payTo===c.no);
+    const lineOf=(x,unit)=>{
       const d=CITEM[x[0]];
       /* 고정액 — 반복주기로 판정. 목업 데이터는 모두 매월이다 */
       if(d.calc!=='고정액'||d.cycle!=='매월'){} else {
@@ -1829,15 +1833,22 @@ function ISSUE(){
       const S={n:x[0],bill:m.bill,src:ev,
                st:fixed?'정산 확정':'정산 미확정', stc:fixed?'ok':'wa'};
       if(!(billTotal(m)>0)) return {...S,supply:null,vat:null,amt:null};
-      const r=calc(m).rows.find(r=>r.no===c.no);
+      const r=calc(m).rows.find(r=>r.no===unit);
       return {...S,supply:r?r.supply:null,vat:r?r.vat:null,amt:r?r.amt:null};
-    }).filter(Boolean);
+    };
+    const lines=c.it.map(x=>lineOf(x,c.no)).filter(Boolean);
+    /* 대납분 — 자기 정산 항목을 그 유닛에 적용해 산출한다 */
+    via.forEach(d=>c.it.filter(x=>CITEM[x[0]].calc==='정산').forEach(x=>{
+      const l=lineOf(x,d.no);
+      if(l) lines.push({...l,via:`${d.no}|${d.ten}`});
+    }));
     const sum=lines.reduce((a,l)=>a+(l.amt||0),0);
     const sup=lines.reduce((a,l)=>a+(l.supply||0),0);
     const vat=lines.reduce((a,l)=>a+(l.vat||0),0);
     const miss=lines.filter(l=>l.amt==null).length;
     const k=c.b+c.no;
-    return {...c,k,lines,sum,sup,vat,miss,due:UNPAID[k]||null,st:done?'발행 완료':'발행 대기'};
+    return {...c,k,lines,sum,sup,vat,miss,via,payTo:c.payTo,
+            due:UNPAID[k]||null,st:done?'발행 완료':'발행 대기'};
   });
 }
 function PAY1(){
@@ -1860,7 +1871,9 @@ function PAY1(){
               :'<span class="cb dis"></span>'}
           <span class="tg ${op?'op':''}">${ic('chev',16)}</span>${cnameHTML(BA(c.b),c.no,c.ten)}</div>
         <div class="c2">${BN(c.b)} · 청구 ${c.lines.length}건${
-          c.miss?` · <b style="color:var(--warn)">미산출 ${c.miss}</b>`:''}</div></div>
+          c.miss?` · <b style="color:var(--warn)">미산출 ${c.miss}</b>`:''}${
+          c.via.length?` · <b style="color:var(--warn)">${c.via.map(d=>d.no).join(', ')} 대납</b>`:''}${
+          c.payTo?` · <span style="color:var(--muted)">정산액은 ${c.payTo}가 부담</span>`:''}</div></div>
       <div></div>
       <div class="n">${c.due
         ? `<span class="bd wa2">미납 ${won(c.due.amt)}</span>`
@@ -1872,7 +1885,7 @@ function PAY1(){
         :'<span class="bd mu">발행 대기</span>'}</div>
     </div>` + (!op?'':c.lines.map(l=>`
     <div class="schr sub">
-      <div class="nm">${l.n}</div>
+      <div class="nm">${l.n}${l.via?`<div class="c2" style="color:var(--warn)">${l.via} 대납</div>`:''}</div>
       <div class="c2">${l.bill}<div class="c2">${
         isTax(l.bill)?'과세':l.bill==='계산서'?'면세':'비과세'}</div></div>
       <div class="c2" style="text-align:left">${l.src}</div>
@@ -1933,6 +1946,9 @@ function PAY1(){
     <b>이번 회차 대상 항목만 올라온다.</b> 고정액은 약정의 반복주기로, 정산은
     <b>관리비 정산에서 선택한 항목</b>으로 정해진다. 격월·반기 항목의 비대상 회차는
     관리비 정산에서 이미 빠졌으므로 여기에 나오지 않는다.<br>
+    <b>대납</b>은 그 유닛의 안분 결과를 다른 계약이 부담한다는 뜻이다.
+    고지서에는 그 유닛 사용량이 포함되어 있으므로 안분 제외와 다르다.
+    계약에 <b>정산액 부담 계약</b>을 지정하면 산출은 유닛 기준으로 하고 청구만 옮긴다.<br>
     <b>미납 잔액</b>은 원장에서 계산되는 값이며 이번 회차 청구와 별개다.
     청구서에는 <b>합계에 넣지 않고 별도 안내로</b> 표기한다. 세금계산서에는 넣지 않는다.<br>
     항목 상태는 셋이다. <b>약정</b>(계약서 금액이라 변하지 않는다) ·
