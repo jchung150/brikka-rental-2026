@@ -1637,7 +1637,7 @@ function stAdj(m,R){
   const bSum=rows.reduce((a,r)=>a+base(r),0);
   /* 사용량 개념이 없는 항목은 금액으로 표시한다 */
   const amtMode=!m.unit, TOT=billTotal(m);
-  const cRatio='공용 부담 비율';   /* 공용 사용량 ÷ 공용 사용량 합계. 산출 결과의 부담 비율과 다르다 */
+  const cRatio='공용 배분 비율';   /* 공용 사용량 ÷ 공용 사용량 합계. 산출 결과의 부담 비율과 다르다 */
   const cBase =byUse?'개별 사용량':'임대면적';
   const cVal  =amtMode?'배분 금액':'공용 사용량';
   const now=r=>amtMode?won(r.amt):fx(r.common)+' '+U;
