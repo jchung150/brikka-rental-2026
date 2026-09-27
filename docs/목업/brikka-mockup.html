@@ -395,7 +395,7 @@ td.c,th.c{text-align:center}
 .hsum b{color:var(--ink);font-size:14px}
 .schl{font-size:12.5px}
 .schr{display:grid;align-items:center;gap:0 10px;padding:11px 14px;
-  grid-template-columns:minmax(210px,1fr) 104px 146px 110px 92px 118px 92px;
+  grid-template-columns:minmax(210px,1fr) 118px 146px 110px 92px 156px 92px;
   border-bottom:1px solid var(--line-2)}
 .schr:last-child{border-bottom:0}
 .schr > *{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -404,13 +404,12 @@ td.c,th.c{text-align:center}
   padding:10px 14px;border-bottom:1px solid var(--line)}
 .schr.grp{background:var(--soft);cursor:pointer}
 .schr.grp:hover{background:var(--side-hov)}
-.schr.grp .nm{white-space:normal}
-.schr.grp .nm > div{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .schr.grp .tg{display:inline-flex;width:20px;color:var(--muted);vertical-align:-4px;
   transition:transform .12s}
 .schr.grp:hover .tg{color:var(--ink)}
 .schr.grp .tg.op{transform:rotate(90deg)}
-.schr.grp .nm .c2{margin-left:20px}
+.schr .nm .c2{margin-left:7px}
+.schr .n .c2{margin-right:6px}
 .schr.sub{cursor:pointer} .schr.sub:hover{background:var(--side-hov)}
 .schr.sub .nm{padding-left:32px}
 .schr.sum{background:var(--head);font-weight:600}
@@ -1924,7 +1923,7 @@ function ISSUE(){
     const vat=lines.reduce((a,l)=>a+(l.vat||0),0);
     const miss=lines.filter(l=>l.amt==null).length;
     const k=c.b+c.no;
-    return {...c,k,lines,sum,sup,vat,miss,via,payTo:c.payTo,
+    return {...c,k,lines,sum,sup,vat,miss,via,
             due:UNPAID[k]||null,st:done?'발행 완료':'발행 대기'};
   });
 }
@@ -1944,27 +1943,25 @@ function PAY1(){
     return `
     <div class="schr grp" onclick="gTog('${c.k}')">
       <div class="nm">
-        <div>${can?`<span class="cb ${on?'on':''}" onclick="pick('${c.k}',event)"></span>`
+        ${can?`<span class="cb ${on?'on':''}" onclick="pick('${c.k}',event)"></span>`
               :'<span class="cb dis"></span>'}
-          <span class="tg ${op?'op':''}">${ic('chev',16)}</span>${cnameHTML(BA(c.b),c.no,c.ten)}</div>
-        <div class="c2">${BN(c.b)} · 청구 ${c.lines.length}건${
-          c.miss?` · <b style="color:var(--warn)">미산출 ${c.miss}</b>`:''}${
-          c.via.length?` · <b style="color:var(--warn)">${c.via.map(d=>d.no).join(', ')} 대납</b>`:''}${
-          c.payTo?` · <span style="color:var(--muted)">정산액은 ${c.payTo}가 부담</span>`:''}</div></div>
+        <span class="tg ${op?'op':''}">${ic('chev',16)}</span>${cnameHTML(BA(c.b),c.no,c.ten)}
+        <span class="c2">청구 ${c.lines.length}건${
+          c.miss?` · <b style="color:var(--warn)">미산출 ${c.miss}</b>`:''}</span></div>
       <div></div>
       <div class="n">${c.due
-        ? `<span class="bd wa2">미납 ${won(c.due.amt)}</span>`
+        ? `<span style="color:var(--warn)">${won(c.due.amt)}</span>`
         : '<span style="color:var(--faint)">—</span>'}</div>
       <div class="n c2">${won(c.sup)}</div>
       <div class="n c2">${won(c.vat)}</div>
-      <div class="n"><b>${won(c.sum)}</b><div class="c2">VAT 포함</div></div>
+      <div class="n"><span class="c2">VAT 포함</span><b>${won(c.sum)}</b></div>
       <div class="c">${c.st==='발행 완료'?'<span class="bd ok">발행 완료</span>'
         :'<span class="bd mu">발행 대기</span>'}</div>
     </div>` + (!op?'':c.lines.map(l=>`
     <div class="schr sub">
-      <div class="nm">${l.n}${l.via?`<div class="c2" style="color:var(--warn)">${l.via} 대납</div>`:''}</div>
-      <div class="c2">${l.bill}<div class="c2">${
-        isTax(l.bill)?'과세':l.bill==='계산서'?'면세':'비과세'}</div></div>
+      <div class="nm">${l.n}${l.via?`<span class="c2" style="color:var(--warn)">${l.via} 대납</span>`:''}</div>
+      <div class="c2">${l.bill} <span style="opacity:.7">${
+        isTax(l.bill)?'과세':l.bill==='계산서'?'면세':'비과세'}</span></div>
       <div class="c2" style="text-align:left">${l.src}</div>
       <div class="n c2">${l.supply!=null?won(l.supply):'—'}</div>
       <div class="n c2">${l.vat!=null?(l.vat?won(l.vat):'—'):'—'}</div>
@@ -2012,7 +2009,7 @@ function PAY1(){
         <div></div>
         <div class="n">${dueSum?`<span style="color:var(--warn)">${won(dueSum)}</span>`:'—'}</div>
         <div class="n">${won(supT)}</div><div class="n">${won(vatT)}</div>
-        <div class="n">${won(total)}</div><div class="c c2">VAT 포함</div></div>
+        <div class="n"><span class="c2">VAT 포함</span>${won(total)}</div><div></div></div>
     </div>`}
   <div class="hint">
     이번 회차에 발행할 청구서다. <b>계약당 1장</b>이며 고정액 항목과 정산 항목을 함께 담는다 → 2부<br>
