@@ -85,4 +85,17 @@ if (tgt) {
     (ok ? '  ✓ 총량 불변' : '  ✗'));
   delete Y.BILL.elec.adj[tgt];
 }
+/* ⑤ 검침값·계량기·계기배율의 유닛 번호가 실제 유닛과 맞는가 */
+const Z = new Function(stub + bare + '; return {BILL,METER,CTMUL,UNITS_B1,MASTER};')();
+const names = new Set(Z.UNITS_B1.map(u => u.no));
+let orphan = [];
+for (const m of Z.MASTER) {
+  const b = Z.BILL[m.code] || {};
+  for (const k of Object.keys(b.read || {})) if (!names.has(k)) orphan.push(m.name + '.검침:' + k);
+  for (const k of (Z.METER[m.code] || [])) if (!names.has(k)) orphan.push(m.name + '.계량기:' + k);
+  for (const k of Object.keys(Z.CTMUL[m.code] || {})) if (!names.has(k)) orphan.push(m.name + '.배율:' + k);
+  for (const k of Object.keys(b.direct || {})) if (!names.has(k)) orphan.push(m.name + '.직접입력:' + k);
+}
+if (orphan.length) fail = 1;
+console.log('⑤ 유닛 번호 정합성 ' + (orphan.length ? '✗ ' + orphan.join(', ') : 'OK'));
 process.exit(fail);
