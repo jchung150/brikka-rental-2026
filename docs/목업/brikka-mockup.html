@@ -1420,12 +1420,13 @@ const fx=(n,d=1)=>n.toLocaleString('ko-KR',{minimumFractionDigits:d,maximumFract
    단계를 가로 네비로 고정하면 항목마다 「이 단계엔 이 항목이 없음」이라는 예외가 생긴다.
    항목당 한 페이지를 주고 그 항목이 실제로 거치는 단계만 세로로 쌓는다. */
 function itemSecs(m){
-  const R=calc(m), out=[];
+  const R=calc(m), out=[], ref=resolve(m.code).ref;
   if(isDirect(m.code)) out.push(['금액 입력',stDirect(m,R)]);
   else{
     out.push(['고지서',stBillOne(m)]);
     if(isMetered(m.code)) out.push(['검침 입력',stRead(m,R)]);
-    out.push(['조정',stAdj(m,R)]);
+    /* 참조 항목은 배분이 참조 대상에 종속된다. 여기서 조정할 것이 없다 */
+    if(!ref) out.push(['조정',stAdj(m,R)]);
   }
   out.push(['산출 결과',stResult(m,R)]);
   return out;
@@ -1636,7 +1637,7 @@ function stAdj(m,R){
   const bSum=rows.reduce((a,r)=>a+base(r),0);
   /* 사용량 개념이 없는 항목은 금액으로 표시한다 */
   const amtMode=!m.unit, TOT=billTotal(m);
-  const cRatio='배분 비율';   /* 배율이 반영된 비율. 공용 사용량 = 합계 × 이 비율 */
+  const cRatio='공용 부담 비율';   /* 공용 사용량 ÷ 공용 사용량 합계. 산출 결과의 부담 비율과 다르다 */
   const cBase =byUse?'개별 사용량':'임대면적';
   const cVal  =amtMode?'배분 금액':'공용 사용량';
   const now=r=>amtMode?won(r.amt):fx(r.common)+' '+U;
@@ -1692,9 +1693,12 @@ function stAdj(m,R){
 function stResult(m,R){
   const b=BILL[m.code];
   return `
+  ${(()=>{const rf=resolve(m.code).ref;return rf&&rf!==m.code
+    ?`<div class="hint" style="margin:-4px 0 10px">이 항목은 <b>${M(rf).name}</b>의 배분을 그대로 따른다.
+       자체 검침값이 없어 조정할 것이 없으며, 부담 비율을 바꾸려면 ${M(rf).name}의 조정 절에서 바꾼다.</div>`:''})()}
   <div class="card"><div class="ct">산출 결과
     <span class="sub">${m.name} · ${resolve(m.code).basis} 비율 배분${
-      (resolve(m.code).ref&&resolve(m.code).ref!==m.code)?` · 기준 ${M(resolve(m.code).ref).name}`:''}</span></div>
+      (resolve(m.code).ref&&resolve(m.code).ref!==m.code)?` · ${M(resolve(m.code).ref).name} 배분 적용`:''}</span></div>
     <div class="tw"><table>
       <thead><tr><th>계약고유명</th>
         ${R.charge&&isMetered(m.code)?'<th class="n">(조정 후)개별 사용량</th>':''}
