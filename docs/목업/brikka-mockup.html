@@ -829,7 +829,7 @@ function dApply(){dPick.forEach(c=>BILL[c].on=true);DRAWER=null;dPick=[];render(
 function delItem(code){BILL[code].on=false;render();}
 function setMul(code,no,v){
   const b=BILL[code], m=parseFloat(v);
-  /* 배수 0은 「부담 없음」이라는 유효한 값이다. 기본값 1.0일 때만 기록을 지운다. */
+  /* 가중치 0은 「부담 없음」이라는 유효한 값이다. 기본값 1.0일 때만 기록을 지운다. */
   if(!Number.isFinite(m)||m<0||m===1){delete b.adj[no];}
   else b.adj[no]={mul:m, by:'김영준', at:'2026-09-25 10:14'};
   render(true);
@@ -866,15 +866,15 @@ const isMetered=code=>meterUnits(code).length>0;
 const reading=(code,no)=>hasMeter(code,no)?(BILL[code].read||{})[no]:null;
 
 /* 배분 계산 — 4.1.2
-   ① 개별 사용량   = 당월 검침값 − 직전 검침값        원본. 배수를 곱하지 않는다
+   ① 개별 사용량   = 당월 검침값 − 직전 검침값        원본. 가중치를 곱하지 않는다
    ② 공용 사용량 합계 = 고지서 총사용량 − Σ개별 사용량
-   ③ 조정 가중치   = (개별 사용량 또는 임대면적) × 조정 배수
+   ③ 조정 가중치   = (개별 사용량 또는 임대면적) × 가중치
    ④ 공용 사용량   = 합계 × (조정 가중치 ÷ Σ조정 가중치)   합계는 변하지 않는다
    ⑤ 유닛 총사용량 = 개별 사용량 + 공용 사용량
    ⑥ 청구금액     = 고지서 총금액 × (유닛 총사용량 ÷ 고지서 총사용량)
 
    공용분은 안분 제외를 뺀 전 유닛이 부담한다. 계량기가 있어도 복도·화장실을 쓴다.
-   특정 유닛을 빼려면 조정 배수를 0으로 둔다 → 4.1.7 */
+   특정 유닛을 빼려면 가중치를 0으로 둔다 → 4.1.7 */
 function ratios(m,raw){
   const st=resolve(m.code);
   const ref=(st.ref&&st.ref!==m.code)?st.ref:null;
@@ -1048,7 +1048,7 @@ function csHTML(){
       ${cs.basis==='직접 입력'?'':`
       <div class="hint" style="margin-top:-4px">
         <b>공용분은 언제나 전 유닛이 부담합니다.</b> 계량기가 있어도 복도·화장실을
-        쓰기 때문입니다. 특정 유닛을 빼려면 정산 시 조정 배수를 0으로 두세요.</div>`}
+        쓰기 때문입니다. 특정 유닛을 빼려면 정산 시 가중치를 0으로 두세요.</div>`}
       ${prev}
     </div>
     <div class="df">
@@ -1399,9 +1399,6 @@ function PAY10(){
 function pay10Head(sel){
   return `
   <div class="ph"><h1>건물 관리비 정산</h1><span class="sid">PAY-10</span>
-    <span class="bd wa">작성중</span>
-    ${sel&&sel.length?`<span class="hsum">이번 회차 <b>${won(grandTotal())}</b>
-      <span class="lock">항목 ${sel.length} · 완료 ${sel.filter(x=>itemFlag(x).c==='ok').length}</span></span>`:''}
     <div class="act"><button class="btn">엑셀 다운로드</button>
       <button class="btn pri" onclick="alert('정산 확정 → 계약별 청구서 생성')">정산 확정</button></div>
   </div>
@@ -1505,14 +1502,14 @@ function stRead(m,R){
     <b>당월이 직전보다 작으면</b> 계량기 교체·오입력을 의심한다. 그대로 확정할 수 없다.<br>
     <b>직전 검침값</b>은 직전 정산 회차의 당월 검침값이며 수정할 수 없다.
     격월·반기 항목은 직전 회차가 전월이 아니다.<br>
-    검침 기록은 원본이며 수정하지 않는다. 부담을 조정하려면 3단계에서 조정 배수를 기록한다.<br>
+    검침 기록은 원본이며 수정하지 않는다. 부담을 조정하려면 3단계에서 가중치를 기록한다.<br>
     <b>검침일</b>은 유닛마다 다를 수 있다. 기본값은 당일이며, 한 날에 몰아서 검침했다면
     상단 <b>일괄 적용</b>으로 전 유닛을 한 번에 맞춘다.</div>`;
 }
 
 /* ── 3단계 · 조정 ── */
-/* 배수는 공용 사용량 배분 가중치에만 작용한다 → 4.1.2
-   「증감」의 기준선은 전 유닛 배수 1.0인 상태이며, 그래서 증감 합계는 언제나 0이다. */
+/* 가중치는 공용 사용량 배분 가중치에만 작용한다 → 4.1.2
+   「증감」의 기준선은 전 유닛 가중치 1.0인 상태이며, 그래서 증감 합계는 언제나 0이다. */
 function setDirect(code,no,v){
   const b=BILL[code]; (b.direct=b.direct||{});
   const n=Math.max(0,Math.round(parseFloat(String(v).replace(/[,\s]/g,''))||0));
@@ -1550,62 +1547,59 @@ function stDirect(m,R){
 }
 function stAdj(m,R){
   if(R.direct) return stDirect(m,R);
-  const U=m.unit||'', st=resolve(m.code), B=calc(m,true);   /* B = 배수 1.0 기준선 */
+  const U=m.unit||'', st=resolve(m.code), B=calc(m,true);   /* B = 가중치 1.0 기준선 */
   const rows=R.rows.filter(r=>!r.excl);
   if(!rows.length) return `<div class="tbl"><div class="empty">
     <div class="t">조정할 대상이 없습니다</div>${m.name}은 조정 가능한 유닛이 없습니다.</div></div>`;
   const bb=B.rows.reduce((o,r)=>(o[r.no]=r,o),{});
-  const showUse=isMetered(m.code)&&R.charge;
-  const c2=R.byUse?'개별 사용 비율':'면적 비율';
-  const base=r=>R.byUse?r.use:r.ar;
-  const bSum=B.rows.filter(r=>!r.excl).reduce((a,r)=>a+base(r),0);
-  /* 사용량 개념이 없는 항목(정화조청소비·교통유발부담금 등)은 금액으로 표시한다.
-     사용량 열을 두면 전부 0으로 나와 배수가 무엇을 바꾸는지 보이지 않는다. */
+  const byUse=R.byUse;
+  const base=r=>byUse?r.use:r.ar;
+  const bSum=rows.reduce((a,r)=>a+base(r),0);
+  /* 사용량 개념이 없는 항목은 금액으로 표시한다 */
   const amtMode=!m.unit, TOT=billTotal(m);
-  const cV =amtMode?'배분 금액':'공용 사용량';
-  const pre=r=>amtMode?won(bb[r.no].amt):fx(bb[r.no].common);
-  const now=r=>amtMode?won(r.amt)       :fx(r.common)+' '+U;
+  const cRatio=byUse?'개별 사용 비율':'면적 비율';
+  const cBase =byUse?'개별 사용량':'임대면적';
+  const cVal  =amtMode?'배분 금액':'공용 사용량';
+  const now=r=>amtMode?won(r.amt):fx(r.common)+' '+U;
   const dOf=r=>amtMode?(r.amt-bb[r.no].amt):(r.common-bb[r.no].common);
   const big=d=>amtMode?Math.abs(d)>=1:Math.abs(d)>0.05;
   const dTx=d=>(d>0?'+':'−')+(amtMode?won(Math.abs(d)):fx(Math.abs(d)));
   const dSum=rows.reduce((a,r)=>a+dOf(r),0);
+  const moved=rows.some(r=>r.mul!==1);
   return `
   <div class="card"><div class="ct">조정
     <span class="sub">${amtMode?`고지서 금액 <b>${won(TOT)}</b>`
        :`공용 사용량 합계 <b>${fx(R.common)} ${U}</b>`} · ${st.basis} 비율</span></div>
     <div class="tw"><table>
-      <thead><tr><th>계약고유명</th>
-        ${showUse?'<th class="n">개별 사용량</th>':''}
-        <th class="n">${cV}</th><th class="n">${c2}</th><th class="c">조정 배수</th>
-        <th class="n">증감</th><th class="n">(조정후) ${cV}</th></tr></thead>
+      <thead><tr><th>계약고유명</th><th class="n">${cRatio}</th><th class="n">${cBase}</th>
+        <th class="n">${cVal}</th><th class="c">가중치</th><th class="n">증감</th></tr></thead>
       <tbody>${rows.map(r=>{const d=dOf(r);return `<tr${r.mul===0?' class="vacr"':''}>
         <td>${cnameST(r,m)}</td>
-        ${showUse?`<td class="n">${r.hasM?`${num(r.use)} <span class="u">${U}</span>`
-          :'<span style="color:var(--faint)">—</span>'}</td>`:''}
-        <td class="n" style="color:var(--muted)">${pre(r)}</td>
         <td class="n" style="color:var(--muted)">${bSum?(base(r)/bSum*100).toFixed(2)+'%':'—'}</td>
+        <td class="n" style="color:var(--muted)">${byUse?num(base(r))+' '+U:fx(base(r))+' ㎡'}</td>
+        <td class="n">${r.mul===0?'<span class="bd mu">부담 없음</span>':`<b>${now(r)}</b>`}</td>
         <td class="c"><input class="inp w" value="${r.mul}" step="0.1" min="0" type="number"
              onchange="setMul('${m.code}','${r.no}',this.value)"></td>
         <td class="n">${big(d)?`<span class="dlt ${d>0?'up':'dn'}">${dTx(d)}</span>`
-          :'<span style="color:var(--faint)">—</span>'}</td>
-        <td class="n">${r.mul===0?'<span class="bd mu">부담 없음</span>':`<b>${now(r)}</b>`}</td></tr>`}).join('')}
+          :'<span style="color:var(--faint)">—</span>'}</td></tr>`}).join('')}
         <tr class="sumr"><td>합계</td>
-          ${showUse?`<td class="n">${fx(rows.reduce((a,r)=>a+r.use,0))} ${U}</td>`:''}
-          <td class="n">${amtMode?won(rows.reduce((a,r)=>a+bb[r.no].amt,0)):fx(B.common)}</td>
-          <td class="n">100.00%</td><td></td>
-          <td class="n">${(v=>big(v)?dTx(v):(amtMode?won(0):fx(0)))(dSum)}</td>
-          <td class="n">${amtMode?won(rows.reduce((a,r)=>a+r.amt,0)):fx(R.common)+' '+U}</td></tr>
+          <td class="n">100.00%</td>
+          <td class="n">${byUse?num(bSum)+' '+U:fx(bSum)+' ㎡'}</td>
+          <td class="n">${amtMode?won(rows.reduce((a,r)=>a+r.amt,0)):fx(R.common)+' '+U}</td>
+          <td></td>
+          <td class="n">${(v=>big(v)?dTx(v):(amtMode?won(0):fx(0)))(dSum)}</td></tr>
       </tbody></table></div>
   </div>
   <div class="hint">
-    ${amtMode?`이 항목은 사용량을 재지 않는다. 고지서 금액 <b>${won(TOT)}</b>을
-      ${st.basis} 비율로 나눈다.`
-     :`검침값은 실측이므로 고치지 않는다. 배수는 <b>공용 사용량을 나누는 비율에만</b> 작용한다.`}
-    배수는 기본값 <b>1.0</b>, 0.1 단위로 조정한다.<br>
-    배수를 올린 유닛이 더 부담한 만큼 나머지 유닛이 덜 부담한다.
-    <b>증감 합계는 언제나 0</b>이고 ${amtMode?`고지서 금액 <b>${won(TOT)}</b>`
-      :`공용 사용량 합계 <b>${fx(R.common)} ${U}</b>`}도 변하지 않는다.<br>
-    <b>배수 0</b>은 그 유닛이 부담하지 않는다는 뜻이다. 공실·비운영중을 빼는 수단이다.</div>`;
+    ${amtMode?`이 항목은 사용량을 재지 않는다. 고지서 금액 <b>${won(TOT)}</b>을 ${st.basis} 비율로 나눈다.`
+     :`검침값은 실측이므로 고치지 않는다. 가중치는 <b>공용 사용량을 나누는 비율에만</b> 작용한다.`}<br>
+    <b>가중치</b>는 기본값 <b>1.0</b>이며 0.1 단위로 조정한다.
+    값을 바꾸면 <b>${cVal}</b>이 즉시 다시 계산된다.
+    배분 몫 = <b>${cBase} × 가중치</b>이고, ${cVal} = 합계 × (배분 몫 ÷ Σ배분 몫)이다.<br>
+    ${moved?'가중치를 올린 유닛이 더 부담한 만큼 나머지 유닛이 덜 부담한다. ':''}
+    <b>증감</b>은 전 유닛 가중치가 1.0일 때 대비 변화이며 <b>합계는 언제나 0</b>이다.
+    ${amtMode?`고지서 금액 <b>${won(TOT)}</b>`:`공용 사용량 합계 <b>${fx(R.common)} ${U}</b>`}도 변하지 않는다.<br>
+    <b>가중치 0</b>은 그 유닛이 부담하지 않는다는 뜻이다. 공실·비운영중을 빼는 수단이다.</div>`;
 }
 
 /* ── 4단계 · 산출 결과 ── */
@@ -1640,9 +1634,9 @@ function stResult(m,R){
     ${R.diff?`<span style="margin-left:auto;font-weight:700;color:var(--warn)">차액 ${num(R.diff)}원</span>`:''}
   </div>
   <div class="hint">
-    <b>개별 사용량</b> = 당월 − 전월. 그 유닛이 직접 쓴 양이며 배수를 곱하지 않는다.<br>
+    <b>개별 사용량</b> = 당월 − 전월. 그 유닛이 직접 쓴 양이며 가중치를 곱하지 않는다.<br>
     ${!m.unit?`이 항목은 사용량을 재지 않는다. 고지서 금액 <b>${won(R.total)}</b>을
-      ${resolve(m.code).basis} 비율로 나눈다. 3단계 조정 배수가 반영된 비율이다.`
+      ${resolve(m.code).basis} 비율로 나눈다. 3단계 가중치가 반영된 비율이다.`
      :`<b>개별 사용량</b> = 당월 − 직전 검침값. 계량기가 실측한 전용부 사용량이다.<br>
     <b>공용 사용량</b> = (고지서 총사용량 − Σ개별 사용량) × 그 유닛 배분 비율.
     복도·승강기·화장실 등 공용부 사용분이며 계량기 유무와 무관하게 전 유닛이 부담한다.<br>
