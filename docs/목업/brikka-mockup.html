@@ -702,6 +702,11 @@ const ALL_U=UNITS_B1.map(u=>u.no);
    본관1층 에스씨케이컴퍼니는 1/30 계량기라 지침에 30을 곱해야 실사용량이 된다.
    계량기의 고정 속성이므로 회차마다 입력하지 않는다 → PRO-3 계량기 설정 */
 const CTMUL={ elec:{'본관1층':30} };
+/* 계량기 공유 — 두 유닛이 한 공간을 쓰며 계량기가 하나뿐인 경우.
+   본관301호는 본관302호 계량기를 통해 전기를 쓴다. 301호 사용분은 302호 지침에 이미 포함된다.
+   따라서 301호는 「계량기 없음」이 아니라 「공유」이며, 사용량 기준에서 배분 몫 0이 정상이다. */
+const SHARE={ elec:{'본관301호':'본관302호'} };
+const shareOf=(code,no)=>(SHARE[code]||{})[no]||null;
 const ctOf=(code,no)=>((CTMUL[code]||{})[no])||1;
 function setCT(code,no,v){
   const n=Math.max(0,parseFloat(v)||0)||1;
@@ -982,11 +987,15 @@ function csHTML(){
   let warn='';
   if(cs.neu&&!(cs.name||'').trim()) warn='항목명을 입력하세요.';
   else if(needM&&nM===0&&!cs.ref) warn='이 배분 기준은 계량기가 필요합니다. 보유 유닛을 선택하거나 참조 항목을 지정하세요.';
-  /* 사용량 기준인데 일부 유닛만 계량기를 보유하면, 계량기 없는 유닛의 가중치가 0이 되어
-     공용분을 한 푼도 부담하지 않는다. 그 몫을 계량기 보유 유닛이 대신 낸다 → 4.1.3 */
-  else if(cs.basis==='사용량'&&nM>0&&nM<nAll)
+  /* 사용량 기준인데 일부 유닛만 계량기를 보유하면, 계량기 없는 유닛의 배분 몫이 0이 되어
+     공용분을 한 푼도 부담하지 않는다. 그 몫을 계량기 보유 유닛이 대신 낸다 → 4.1.3-1
+     단, 계량기를 공유하는 유닛은 배분 몫 0이 정상이므로 경고 대상이 아니다 */
+  else if(cs.basis==='사용량'&&nM>0&&(()=>{
+    const sh=SHARE[cs.item]||{};
+    return U.filter(u=>!cs.meters.includes(u.no)&&!sh[u.no]).length>0;
+  })())
     warn=`계량기를 보유한 유닛이 ${nM} / ${nAll}개입니다. 사용량 기준에서는 계량기 없는 `
-      +`${nNo}개 유닛의 배분 가중치가 0이 되어 공용분을 부담하지 않고, 그 몫을 계량기 보유 유닛이 `
+      +`유닛의 배분 몫이 0이 되어 공용분을 부담하지 않고, 그 몫을 계량기 보유 유닛이 `
       +`대신 냅니다. <b>사용량+임대면적</b>을 쓰세요.`;
   const prev = warn ? `<div class="prev warn2"><div class="pt">설정을 확인하세요</div>${warn}</div>`
    : `<div class="prev"><div class="pt">이 설정의 결과</div>
@@ -1514,7 +1523,8 @@ function stRead(m,R){
       :`<tr class="nomr">
         <td>${cnameST(r,m)}</td>
         <td>${dash}</td><td class="n">${dash}</td>
-        <td class="n"><input class="inp" type="text" value="" placeholder="계량기 없음" disabled></td>
+        <td class="n"><input class="inp" type="text" value=""
+            placeholder="${shareOf(m.code,r.no)?shareOf(m.code,r.no)+' 공유':'계량기 없음'}" disabled></td>
         <td class="n">${dash}</td><td class="c">${dash}</td><td class="n">${dash}</td></tr>`).join('')}
         <tr class="sumr"><td colspan="4">개별 사용량 합계</td>
           <td class="n">${fx(mtr.reduce((a,r)=>a+r.raw,0),2)}</td><td></td>
@@ -1524,6 +1534,8 @@ function stRead(m,R){
   <div class="hint">
     계량기 보유 유닛은 <b>건물 관리 › 관리비 설정</b>에서 정한다.
     계량기가 없는 유닛은 행은 보이되 입력이 잠긴다.
+    <b>계량기 공유</b>는 두 유닛이 한 공간을 쓰며 계량기가 하나뿐인 경우다.
+    공유 유닛의 사용분은 이미 상대 유닛 지침에 포함되어 있다.
     공용 사용량 <b>${fx(R.common)} ${U}</b>은 계량기 유무와 무관하게
     <b>전 유닛</b>이 ${st.basis} 비율로 나눠 부담한다.<br>
     당월 검침값이 비어 있으면 그 유닛의 개별 사용량은 <b>0</b>으로 두고 공용분만 부담한다.
@@ -1860,9 +1872,10 @@ function ISSUE(){
     };
     const lines=c.it.map(x=>lineOf(x,c.no)).filter(Boolean);
     /* 대납분 — 자기 정산 항목을 그 유닛에 적용해 산출한다 */
+    /* 대납분 — 금액이 0인 항목은 싣지 않는다. 계량기를 공유해 사용분이 0인 경우다 */
     via.forEach(d=>c.it.filter(x=>CITEM[x[0]].calc==='정산').forEach(x=>{
       const l=lineOf(x,d.no);
-      if(l) lines.push({...l,via:`${d.no}|${d.ten}`});
+      if(l&&l.amt!==0) lines.push({...l,via:`${d.no}|${d.ten}`});
     }));
     const sum=lines.reduce((a,l)=>a+(l.amt||0),0);
     const sup=lines.reduce((a,l)=>a+(l.supply||0),0);
