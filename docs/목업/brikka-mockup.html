@@ -698,6 +698,17 @@ function curItem(step){
 }
 /* 계량기 보유 유닛 (유닛 × 청구항목) — PRO-3 관리비 설정 / PRO-4 검침 설정 */
 const ALL_U=UNITS_B1.map(u=>u.no);
+/* 계기배율 — 계량기가 실사용량을 그대로 재지 않는 경우의 환산 계수.
+   본관1층 에스씨케이컴퍼니는 1/30 계량기라 지침에 30을 곱해야 실사용량이 된다.
+   계량기의 고정 속성이므로 회차마다 입력하지 않는다 → PRO-3 계량기 설정 */
+const CTMUL={ elec:{'본관1층':30} };
+const ctOf=(code,no)=>((CTMUL[code]||{})[no])||1;
+function setCT(code,no,v){
+  const n=Math.max(0,parseFloat(v)||0)||1;
+  (CTMUL[code]=CTMUL[code]||{});
+  if(n===1) delete CTMUL[code][no]; else CTMUL[code][no]=n;
+  render(true);
+}
 const METER={
  /* 본관301호 고우컴퍼니는 전월·당월 지침이 모두 없다 — 계량기 미보유로 본다 */
  elec: ALL_U.filter(n=>n!=='본관301호'),
@@ -911,10 +922,12 @@ function ratios(m,raw){
     const r=reading(m.code,u.no);
     /* 당월 검침값이 없으면 사용량은 0이다. null − 전월값이 음수가 되는 것을 막는다 */
     const typed=!!r&&r[1]!=null;
-    const use=typed?r[1]-r[0]:0;
+    const raw=typed?r[1]-r[0]:0;          /* 지침 차이 */
+    const ct=ctOf(m.code,u.no);           /* 계기배율 */
+    const use=raw*ct;                     /* 실사용량 */
     const aj=b.adj[u.no];
     const mul=raw?1:((aj&&Number.isFinite(aj.mul))?aj.mul:1);  /* 0을 1로 되돌리지 않는다 */
-    return {...u,pm:r?r[0]:null,cm:r?r[1]:null,hasM,typed,use,mul,
+    return {...u,pm:r?r[0]:null,cm:r?r[1]:null,hasM,typed,raw,ct,use,mul,
             neg:typed&&use<0,excl:ex[u.no]||null};
   });
   /* 공용분은 안분 제외를 뺀 전 유닛이 부담한다 */
@@ -1482,7 +1495,8 @@ function stRead(m,R){
       <button class="btn sm">엑셀 업로드</button></span></div>
     <div class="tw"><table>
       <thead><tr><th>계약고유명</th><th>검침일</th>
-        <th class="n">직전 검침값</th><th class="n">당월 검침값</th><th class="n">개별 사용량</th></tr></thead>
+        <th class="n">직전 검침값</th><th class="n">당월 검침값</th>
+        <th class="n">지침 차이</th><th class="c">배율</th><th class="n">개별 사용량</th></tr></thead>
       <tbody>${rows.map(r=>r.hasM?`<tr>
         <td>${cnameST(r,m)}</td>
         <td><input class="inp d" type="date" value="${readDateOf(m.code,r.no)}"
@@ -1490,6 +1504,9 @@ function stRead(m,R){
         <td class="n" style="color:var(--muted)">${r.pm!=null?fx(r.pm,r.pm%1?2:0):dash}</td>
         <td class="n"><input class="inp" type="number" value="${r.cm!=null?r.cm:''}" placeholder="미입력"
             onchange="setRead('${m.code}','${r.no}',this.value)"></td>
+        <td class="n" style="color:var(--muted)">${r.typed?fx(r.raw,r.raw%1?2:0):dash}</td>
+        <td class="c"><input class="inp w" type="number" step="0.1" min="0" value="${r.ct}"
+            onchange="setCT('${m.code}','${r.no}',this.value)"></td>
         <td class="n">${r.typed
           ?`<b style="${r.neg?'color:var(--warn)':''}">${fx(r.use,r.use%1?2:0)}</b> <span class="u">${U}</span>${
              r.neg?'<div class="c2" style="color:var(--warn)">당월 &lt; 직전</div>':''}`
@@ -1498,8 +1515,9 @@ function stRead(m,R){
         <td>${cnameST(r,m)}</td>
         <td>${dash}</td><td class="n">${dash}</td>
         <td class="n"><input class="inp" type="text" value="" placeholder="계량기 없음" disabled></td>
-        <td class="n">${dash}</td></tr>`).join('')}
+        <td class="n">${dash}</td><td class="c">${dash}</td><td class="n">${dash}</td></tr>`).join('')}
         <tr class="sumr"><td colspan="4">개별 사용량 합계</td>
+          <td class="n">${fx(mtr.reduce((a,r)=>a+r.raw,0),2)}</td><td></td>
           <td class="n">${fx(mtr.reduce((a,r)=>a+r.use,0),2)} ${U}</td></tr>
       </tbody></table></div>
   </div>
@@ -1513,6 +1531,10 @@ function stRead(m,R){
     <b>직전 검침값</b>은 직전 정산 회차의 당월 검침값이며 수정할 수 없다.
     격월·반기 항목은 직전 회차가 전월이 아니다.<br>
     검침 기록은 원본이며 수정하지 않는다. 부담을 조정하려면 3단계에서 가중치를 기록한다.<br>
+    <b>배율</b>은 계량기가 실사용량을 그대로 재지 않을 때의 환산 계수다.
+    1/30 계량기는 <b>30</b>을 넣는다. <b>개별 사용량 = 지침 차이 × 배율</b>.
+    계량기의 고정 속성이므로 회차마다 바꾸지 않는다.
+    조정 절의 <b>가중치</b>와 다르다 — 배율은 실사용량을 복원하고, 가중치는 공용분 배분 비율을 정한다.<br>
     <b>검침일</b>은 유닛마다 다를 수 있다. 기본값은 당일이며, 한 날에 몰아서 검침했다면
     상단 <b>일괄 적용</b>으로 전 유닛을 한 번에 맞춘다.</div>`;
 }
