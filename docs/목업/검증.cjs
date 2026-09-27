@@ -74,10 +74,15 @@ if (tgt) {
   const before = Y.calc(Y.M('elec')).rows.find(r => r.no === tgt);
   Y.BILL.elec.adj[tgt] = { mul: 2 };
   const after = Y.calc(Y.M('elec')).rows.find(r => r.no === tgt);
-  const ok = after.mul === 2 && after.common > before.common + 0.01;
+  /* 배율 N이면 그 유닛의 공용 사용량이 정확히 N배여야 한다 — 4.1.2 */
+  const exact = Math.abs(after.common - before.common * 2) < 0.05;
+  const totalOK = Math.abs(Y.calc(Y.M('elec')).common -
+    Y.calc(Y.M('elec'), true).common) < 0.01;
+  const ok = after.mul === 2 && exact && totalOK;
   if (!ok) fail = 1;
-  console.log('④ 조정 배율 반영 ' + tgt + '  공용 ' + before.common.toFixed(1) +
-    ' → ' + after.common.toFixed(1) + (ok ? '  ✓' : '  ✗ 배율이 적용되지 않는다'));
+  console.log('④ 조정 배율 ×2  ' + tgt + '  공용 ' + before.common.toFixed(1) +
+    ' → ' + after.common.toFixed(1) + '  (기대 ' + (before.common * 2).toFixed(1) + ')' +
+    (ok ? '  ✓ 총량 불변' : '  ✗'));
   delete Y.BILL.elec.adj[tgt];
 }
 process.exit(fail);
