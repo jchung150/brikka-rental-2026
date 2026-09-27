@@ -1505,7 +1505,7 @@ function stRead(m,R){
     <div class="tw"><table>
       <thead><tr><th>계약고유명</th><th>검침일</th>
         <th class="n">직전 검침값</th><th class="n">당월 검침값</th>
-        <th class="n">지침 차이</th><th class="c">배율</th><th class="n">개별 사용량</th></tr></thead>
+        <th class="n">개별 사용량</th><th class="c">배율</th><th class="n">증감</th></tr></thead>
       <tbody>${rows.map(r=>r.hasM?`<tr>
         <td>${cnameST(r,m)}</td>
         <td><input class="inp d" type="date" value="${readDateOf(m.code,r.no)}"
@@ -1513,13 +1513,15 @@ function stRead(m,R){
         <td class="n" style="color:var(--muted)">${r.pm!=null?fx(r.pm,r.pm%1?2:0):dash}</td>
         <td class="n"><input class="inp" type="number" value="${r.cm!=null?r.cm:''}" placeholder="미입력"
             onchange="setRead('${m.code}','${r.no}',this.value)"></td>
-        <td class="n" style="color:var(--muted)">${r.typed?fx(r.raw,r.raw%1?2:0):dash}</td>
-        <td class="c"><input class="inp w" type="number" step="0.1" min="0" value="${r.ct}"
-            onchange="setCT('${m.code}','${r.no}',this.value)"></td>
         <td class="n">${r.typed
           ?`<b style="${r.neg?'color:var(--warn)':''}">${fx(r.use,r.use%1?2:0)}</b> <span class="u">${U}</span>${
              r.neg?'<div class="c2" style="color:var(--warn)">당월 &lt; 직전</div>':''}`
-          :dash}</td></tr>`
+          :dash}</td>
+        <td class="c"><input class="inp w" type="number" step="0.1" min="0" value="${r.ct}"
+            onchange="setCT('${m.code}','${r.no}',this.value)"></td>
+        <td class="n">${r.typed&&r.ct!==1
+          ?`<span class="dlt up">+${fx(r.use-r.raw,(r.use-r.raw)%1?2:0)}</span>`
+          :'<span style="color:var(--faint)">—</span>'}</td></tr>`
       :`<tr class="nomr">
         <td>${cnameST(r,m)}</td>
         <td>${dash}</td><td class="n">${dash}</td>
@@ -1527,8 +1529,9 @@ function stRead(m,R){
             placeholder="${shareOf(m.code,r.no)?shareOf(m.code,r.no)+' 공유':'계량기 없음'}" disabled></td>
         <td class="n">${dash}</td><td class="c">${dash}</td><td class="n">${dash}</td></tr>`).join('')}
         <tr class="sumr"><td colspan="4">개별 사용량 합계</td>
-          <td class="n">${fx(mtr.reduce((a,r)=>a+r.raw,0),2)}</td><td></td>
-          <td class="n">${fx(mtr.reduce((a,r)=>a+r.use,0),2)} ${U}</td></tr>
+          <td class="n">${fx(mtr.reduce((a,r)=>a+r.use,0),2)} ${U}</td><td></td>
+          <td class="n">${(v=>v>0.005?`<span class="dlt up">+${fx(v,2)}</span>`:'—')
+            (mtr.reduce((a,r)=>a+(r.use-r.raw),0))}</td></tr>
       </tbody></table></div>
   </div>
   <div class="hint">
@@ -1544,7 +1547,9 @@ function stRead(m,R){
     격월·반기 항목은 직전 회차가 전월이 아니다.<br>
     검침 기록은 원본이며 수정하지 않는다. 부담을 조정하려면 3단계에서 가중치를 기록한다.<br>
     <b>배율</b>은 계량기가 실사용량을 그대로 재지 않을 때의 환산 계수다.
-    1/30 계량기는 <b>30</b>을 넣는다. <b>개별 사용량 = 지침 차이 × 배율</b>.
+    1/30 계량기는 <b>30</b>을 넣는다.
+    <b>개별 사용량 = (당월 − 직전) × 배율</b>이며 배율을 바꾸면 즉시 다시 계산된다.
+    <b>증감</b>은 배율로 더해진 양이다.
     계량기의 고정 속성이므로 회차마다 바꾸지 않는다.
     조정 절의 <b>가중치</b>와 다르다 — 배율은 실사용량을 복원하고, 가중치는 공용분 배분 비율을 정한다.<br>
     <b>검침일</b>은 유닛마다 다를 수 있다. 기본값은 당일이며, 한 날에 몰아서 검침했다면
