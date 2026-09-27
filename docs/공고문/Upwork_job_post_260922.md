@@ -4,7 +4,6 @@ Category: Full Stack Development · Drafted 2026-09-22
 
 > Scope: schema design, project scaffold, one reference implementation slice, and a
 > handover package. The remaining screens are built in-house afterward.
-> Full-build post is kept at `_참고_전체개발_공고안_260922.md` (not in use).
 >
 > 예산 배분 (CAD 20,000 ≈ USD 14,600)
 >
