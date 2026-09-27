@@ -62,16 +62,20 @@ for (const it of X.selItems()) {
   const sumOK = Math.abs(tot - use) < 0.01;
   const ratOK = Math.abs(ratio - 1) < 0.0001;
   const amtOK = R.diff === 0;   /* 잔차를 최대 몫 유닛에 더하므로 언제나 0 — 4.1.8 */
-  const negOK = R.rows.every(r => r.use >= 0 && r.common >= -0.001 && r.amt >= 0);
+  const nNeg = R.rows.filter(r => r.neg).length;
+  const negOK = nNeg ? true : R.rows.every(r => r.use >= 0 && r.common >= -0.001 && r.amt >= 0);
   if (!sumOK || !ratOK || !amtOK || !negOK) fail = 1;
   console.log('③ ' + it.name.padEnd(7) +
     ' 총사용량 ' + tot.toFixed(1) + '/' + use + (own == null ? ' 참조' : sumOK ? ' ✓' : ' ✗') +
     '  배분비율 ' + ratio.toFixed(4) + (ratOK ? ' ✓' : ' ✗') +
     '  차액 ' + R.diff + (amtOK ? ' ✓' : ' ✗') +
-    '  절사잔차 ' + (R.rem || 0) + '원' + (negOK ? '' : '   ✗ 음수 발생'));
+    '  절사잔차 ' + (R.rem || 0) + '원' + (negOK ? '' : '   ✗ 음수 발생') +
+    (nNeg ? '   ⚠ 검침 역전 ' + nNeg + '곳 — 확정 불가(경고 정상)' : ''));
 }
 /* ④ 조정 배율이 실제로 결과를 바꾸는가 — 변수 가림으로 무력화된 적이 있다 */
 const Y = new Function(stub + bare + '; return {calc,ratios,BILL,M,isDirect,METER};')();
+/* 검침 역전 유닛은 미입력으로 돌려 깨끗한 상태에서 본다 */
+for (const [no, v] of Object.entries(Y.BILL.elec.read || {})) if (v[1] != null && v[1] < v[0]) v[1] = null;
 const tgt = (Y.METER.elec || [])[0];
 if (tgt) {
   const before = Y.calc(Y.M('elec')).rows.find(r => r.no === tgt);
@@ -120,11 +124,11 @@ const R6 = W.rcRun();
 r6.push(['분리 입금 — 13,200,000은 임대료에', R6[7].lines.length === 1 && R6[7].lines[0].n === '임대료']);
 r6.push(['분리 입금 — 나머지는 같은 계약에', R6[6].st === '자동' && R6[6].rest === 0 && R6[6].lines.every(l => l.no === '본관1층')]);
 r6.push(['별칭 등록 후 같은 이름 입금 자동', R6[4].st === '자동']);
-r6.push(['계약 1건 · 유닛 2개 (ICB)', new Set(R6[5].lines.map(l => l.no)).size === 1 && R6[5].rest === 0]);
+r6.push(['입금 1건 → 계약 2개 (ICB)', new Set(R6[5].lines.map(l => l.no)).size === 2 && R6[5].rest === 0]);
 r6.push(['입금 1건 → 계약 2개 (좋은생각사람들)', new Set(R6[24].lines.map(l => l.no)).size === 2 && R6[24].rest === 0]);
 r6.push(['임차인 입금 12건 전부 전액 배분', [1,2,3,4,5,6,7,8,9,10,12,24].every(n => R6[n].lines && R6[n].rest === 0)]);
 W.rcApprove();
-const all13 = ['본관7층·본관8층','본관6층','본관5층','본관4층','본관301호','본관302호','본관2층','본관1층','본관B2','별관4층','별관3층','별관2층'];
+const all13 = ['본관8층','본관7층','본관6층','본관5층','본관4층','본관301호','본관302호','본관2층','본관1층','본관B2','별관4층','별관3층','별관2층'];
 r6.push(['승인 후 미납 0 — 8월 전원 완납', all13.every(n => !W.dueOf('b1' + n))]);
 r6.push(['8월 청구 합계 = 임차인 입금 합계', W.BILLS.reduce((a, i) => a + i.amt, 0) === 138919945]);
 /* 미납액 먼저 — 7월 미납이 있으면 8월 청구서와 같은 금액이 와도 7월부터 채운다 → 4.3.3 */

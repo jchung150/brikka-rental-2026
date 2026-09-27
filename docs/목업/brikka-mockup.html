@@ -455,7 +455,7 @@ td.c,th.c{text-align:center}
       <div class="nw" id="noti" style="display:none">
         <div class="nh"><b>알림</b><span class="cl" onclick="event.stopPropagation();closeNoti()">모두 지우기</span></div>
         <div class="ni" onclick="go('pay-10')"><span class="bd wa">주의</span>
-          <div class="nb"><div class="nt">9월 정산 미확정</div>
+          <div class="nb"><div class="nt">8월 정산 미확정</div>
             <div class="nd">동교동 영준빌딩 · 청구일(19일)까지 4일 남았습니다.</div></div>
           <span class="ng">3시간 전</span></div>
         <div class="ni" onclick="go('pay-6')"><span class="bd wa">주의</span>
@@ -641,7 +641,7 @@ const UNITS_B1=[
  {no:'본관302호',st:'사용중', ten:'(유)유니버셜대부',        ar:165.0},
  {no:'본관2층',  st:'사용중', ten:'(주)좋은생각사람들',      ar:330.0},
  {no:'본관1층',  st:'사용중', ten:'(주)에스씨케이컴퍼니',    ar:280.0},
- {no:'본관B1',   st:'공실',   ten:'',                    ar:320.0},
+ {no:'본관B1',   st:'비운영중', ten:'',                  ar:320.0},
  {no:'본관B2',   st:'사용중', ten:'주식회사루비뮤직',         ar:320.0},
  {no:'별관4층',  st:'사용중', ten:'(주)좋은생각사람들',      ar:95.0},
  {no:'별관3층',  st:'사용중', ten:'(주)비씨에이전시',        ar:95.0},
@@ -662,28 +662,28 @@ const M=c=>MASTER.find(x=>x.code===c);
 const codeOf=name=>{const m=MASTER.find(x=>x.name===name);return m?m.code:'elec';};
 /* 이번 회차 입력값 — 기본은 전기·수도 2종 */
 const BILL={
- elec:{on:true,date:'2026-09-09',use:43092,supply:8062614,vat:806261,
-   /* 2026-08-09 → 2026-09-09 실검침 */
-   read:{'본관8층':[172448,175561], '본관7층':[157702,164682], '본관6층':[83508,84507],
-         '본관5층':[104729,107068], '본관4층':[174301,178576], '본관302호':[216083,218785],
-         '본관2층':[203081,205158], '본관1층':[2428.27,2764.55], '본관B1':[3161.9,5436.7],
-         '본관B2':[77963,78525],    '별관4층':[84657,85065],   '별관3층':[85438,86195],
-         '별관2층':[67332,68100]},
-   readDate:'2026-09-09', adj:{}},
- water:{on:true,date:'2026-09-11',use:1386,supply:4788240,vat:0,
-   /* 본관1층만 계량기. 2026-09 검침 292톤 */
+ elec:{on:true,date:'2026-08-09',use:37703,supply:7719702,vat:771970,
+   /* 2026-08 검침 — 대표 제공 원본. 본관6층·본관B1은 당월 < 전월이다(계량기 교체 또는 오기) */
+   read:{'본관8층':[165836,169004], '본관7층':[142559,150366], '본관6층':[202618,83483],
+         '본관5층':[100085,102485], '본관4층':[165837,169976], '본관302호':[211027,213666],
+         '본관2층':[198908,200939], '본관1층':[1774.40,2106.50], '본관B1':[105007,14542],
+         '본관B2':[77125,77533],    '별관4층':[83798,84193],   '별관3층':[83808,84627],
+         '별관2층':[65851,66627]},
+   readDate:'2026-08-09', adj:{}},
+ water:{on:true,date:'2026-08-11',use:1386,supply:4788240,vat:0,
+   /* 본관1층만 계량기. 8월 청구서의 수도 합계 4,788,240원과 일치한다 */
    read:{'본관1층':[1240,1532]},readDate:'2026-09-10',adj:{}},
- fund:{on:true,date:'2026-09-09',use:null,supply:217690,vat:0,read:null,adj:{}},
- tv:{on:true,date:'2026-09-09',use:null,supply:5000,vat:0,read:null,adj:{}},
+ fund:{on:true,date:'2026-08-09',use:null,supply:208430,vat:0,read:null,adj:{}},
+ tv:{on:true,date:'2026-08-09',use:null,supply:5000,vat:0,read:null,adj:{}},
  gas:{on:false,date:'2026-09-09',use:1840,supply:2208000,vat:220800,
    read:{'본관1층':[4820,null],'본관B2':[1150,null],'별관2층':[2340,null]},
    readDate:'2026-09-06', adj:{}},   /* 영준빌딩은 가스를 청구하지 않는다 — 실제 청구서에 열이 없다 */
  traffic:{on:false,date:'',use:null,supply:0,vat:0,read:null,adj:{}},
  septic:{on:false,date:'',use:null,supply:0,vat:0,read:null,adj:{}},
- parking:{on:true,date:'2026-09-30',use:null,supply:0,vat:22100,read:null,adj:{},
+ parking:{on:true,date:'2026-08-31',use:null,supply:0,vat:22100,read:null,adj:{},
    direct:{'본관8층':71000,'본관4층':100000,'본관302호':50000}},   /* 공급가액. 부가세는 자동 */
 };
-const SETTLE={ym:'2026-09',status:'작성중'};
+const SETTLE={ym:'2026-08',status:'작성중'};
 /* 건물별 월 업무 진행 — PAY-12 */
 const PROG={
  b1:{settle:'작성중',inv:0,invN:9,amt:0,paid:0,paidN:0,closed:false,closedAt:null,due:'09-30'},
@@ -1137,7 +1137,7 @@ function drawerHTML(){
   };
   return `<div class="dro"><div class="ov" onclick="closeDrawer()"></div><div class="pn">
     <div class="dh"><div><div class="t">청구 항목 추가</div>
-      <div class="s">2026년 9월 · 동교동 영준빌딩</div></div>
+      <div class="s">2026년 8월 · 동교동 영준빌딩</div></div>
       <button class="x" onclick="closeDrawer()">✕</button></div>
     <div class="db">
       ${rest.length? rest.map(card).join('')
@@ -1482,7 +1482,7 @@ function pay10Head(sel){
   </div>
   <div class="fbar">
     <select><option>동교동 영준빌딩</option><option>금악빌딩</option><option>역삼 제이타워</option></select>
-    <select><option>2026년 9월</option><option>2026년 8월</option><option>2026년 7월</option></select>
+    <select><option>2026년 8월</option><option>2026년 7월</option><option>2026년 6월</option></select>
   </div>
   ${!sel?'':`<div class="itab">
     ${sel.map(x=>{const f=itemFlag(x), on=x.code===(pCode||sel[0].code);return `
@@ -1787,7 +1787,7 @@ function PAY12(){
     <div class="act"><button class="btn">엑셀 다운로드</button></div>
   </div>
   <div class="fbar">
-    <select><option>2026년 9월</option><option>2026년 8월</option><option>2026년 7월</option></select>
+    <select><option>2026년 8월</option><option>2026년 7월</option><option>2026년 6월</option></select>
     <span style="color:var(--muted);font-size:12px">건물 ${BUILDINGS.length}개 · 정산 확정 ${T.done} · 월 마감 ${T.closed}</span>
   </div>
   <div class="two" style="grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px">
@@ -1840,12 +1840,14 @@ const CITEM={
  '교통유발부담금':{calc:'정산', cycle:'연1회',tax:false},
 };
 /* 계약 — 임차인명과 임대료·고정관리비는 2026-08 실제 청구서 기준(VAT 포함 ÷ 1.1). 기산일은 예시값이다.
-   계약 1건이 유닛 여러 개를 가질 수 있다(units). (주)아이씨비는 본관7·8층을 계약서 한 장으로 빌렸다 → #67
-   계약고유이름의 유닛 자리는 유닛고유번호를 ·로 잇는다 → 3.1
-   본관B1은 계약이 없어 공실이다. 산출 금액은 건축주가 부담한다 → 검토사항 #51 */
+   계약은 유닛마다 따로 둔다. (주)아이씨비 본관7·8층은 계약서가 한 장이지만 한 층만 해지할 수 있어야 하므로
+   계약 2건이다. 실제 청구서는 한 장이다 → 검토사항 #67
+   본관B1은 건물주가 직접 쓰는 공간이라 비운영중이다. 산출 금액은 건축주가 부담한다 → 3.2 */
 const CTRS=[
- {b:'b1',no:'본관7층·본관8층',units:['본관7층','본관8층'],ten:'(주)아이씨비',st:'진행중',base:'2024-03-01',
-  it:[['임대료',17800000],['고정관리비',5300000],['전기요금'],['전력기금'],['TV수신료'],['수도요금'],['정화조청소비'],['주차비']]},
+ {b:'b1',no:'본관8층',ten:'(주)아이씨비',st:'진행중',base:'2024-03-01',
+  it:[['임대료',8900000],['고정관리비',2650000],['전기요금'],['전력기금'],['TV수신료'],['수도요금'],['정화조청소비'],['주차비']]},
+ {b:'b1',no:'본관7층',ten:'(주)아이씨비',st:'진행중',base:'2024-03-01',
+  it:[['임대료',8900000],['고정관리비',2650000],['전기요금'],['전력기금'],['TV수신료'],['수도요금'],['정화조청소비']]},
  {b:'b1',no:'본관6층',ten:'유한회사아마데우스',st:'진행중',base:'2025-01-15',
   it:[['임대료',9300000],['고정관리비',2800000],['전기요금'],['전력기금'],['TV수신료'],['수도요금'],['정화조청소비']]},
  {b:'b1',no:'본관5층',ten:'㈜케이더블유인터내셔널',st:'진행중',base:'2024-07-01',
@@ -1995,7 +1997,7 @@ function PAY1(){
     <select onchange="setF1('b',this.value)">
       ${BUILDINGS.map(b=>`<option value="${b.id}" ${f1.b===b.id?'selected':''}>${b.name}</option>`).join('')}
     </select>
-    <select><option>2026년 9월</option><option>2026년 8월</option><option>2026년 7월</option></select>
+    <select><option>2026년 8월</option><option>2026년 7월</option><option>2026년 6월</option></select>
     <select onchange="setF1('st',this.value)">
       ${['','발행 대기','발행 완료'].map(v=>`<option value="${v}" ${f1.st===v?'selected':''}>${v||'전체 상태'}</option>`).join('')}
     </select>
@@ -2004,7 +2006,7 @@ function PAY1(){
       <button class="btn sm" onclick="gAll(${anyOpen?'false':'true'})">${anyOpen?'전체 접기':'전체 펼치기'}</button></span>`:''}
   </div>
   ${ok?'':`<div class="fnd"><span class="h">정산이 확정되지 않았습니다</span>
-    ${BN(f1.b)}의 2026년 9월 정산 상태는 <b>${P.settle}</b>입니다.
+    ${BN(f1.b)}의 2026년 8월 정산 상태는 <b>${P.settle}</b>입니다.
     정산을 확정해야 정산 항목의 금액이 확정되고 청구서를 발행할 수 있습니다.
     <b class="lk" onclick="go('pay-10')">관리비 정산으로 이동 →</b></div>`}
   ${dues.length?`<div class="fnd wa3"><span class="h">미납이 있는 계약 ${dues.length}건 · ${won(dueSum)}</span>
@@ -2134,9 +2136,12 @@ const normName=s=>String(s||'').normalize('NFKC')
   .replace(/\(주\)|\(유\)|주식회사|유한회사/g,'').replace(/\s+/g,'');
 
 /* 2026-08 회차 청구 — 발행 완료분. 영준빌딩 실제 8월 청구서(VAT 포함)다.
-   전력기금과 TV수신료는 청구서에 한 열로 합쳐져 있어 한 줄로 둔다 */
+   전력기금과 TV수신료는 청구서에 한 열로 합쳐져 있어 한 줄로 둔다.
+   (주)아이씨비는 청구서가 한 장이다. 계약 2건으로 나눌 때 임대료·관리비·수도는 반씩,
+   전기·기금은 8월 개별 검침 비율(8층 3,168 : 7층 7,807 kWh)로, 주차는 8층에 둔다 */
 const AUG={
- '본관7층·본관8층':[['임대료',19580000],['고정관리비',5830000],['전기요금',2702726],['주차비',78100],['수도요금',524992],['전력기금·TV수신료',74149]],
+ '본관8층':[['임대료',9790000],['고정관리비',2915000],['전기요금',780158],['주차비',78100],['수도요금',262496],['전력기금·TV수신료',21404]],
+ '본관7층':[['임대료',9790000],['고정관리비',2915000],['전기요금',1922568],['수도요금',262496],['전력기금·TV수신료',52745]],
  '본관6층':[['임대료',10230000],['고정관리비',3080000],['전기요금',22610],['수도요금',276802],['전력기금·TV수신료',619]],
  '본관5층':[['임대료',10649100],['고정관리비',2970000],['전기요금',562472],['수도요금',274628],['전력기금·TV수신료',15435]],
  '본관4층':[['임대료',11770000],['고정관리비',3443000],['전기요금',1084418],['주차비',110000],['수도요금',317206],['전력기금·TV수신료',29748]],
