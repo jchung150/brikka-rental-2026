@@ -418,6 +418,15 @@ td.c,th.c{text-align:center}
 .schr .cb.on::after{content:'';position:absolute;left:4px;top:1px;width:4px;height:8px;
   border:solid #fff;border-width:0 2px 2px 0;transform:rotate(45deg)}
 .schr .cb.dis{opacity:.3}
+.rcr{grid-template-columns:minmax(160px,.9fr) minmax(150px,1fr) 118px 92px minmax(210px,1.3fr) 110px 140px}
+.rcx{padding:4px 14px 14px 46px;background:var(--soft);border-bottom:1px solid var(--line-2)}
+.rcx table{background:var(--bg);border:1px solid var(--line);border-radius:var(--r-sm)}
+.rcx td,.rcx th{padding:7px 12px}
+.rcx .ln{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:9px 0;font-size:12.5px}
+.rcx select{border:1px solid var(--line);background:var(--bg);padding:6px 9px;border-radius:var(--r-sm);font:inherit;font-size:12.5px}
+.mapc{display:inline-flex;gap:5px;align-items:center;border:1px solid var(--line);border-radius:99px;
+  padding:3px 10px;font-size:11.5px;color:var(--muted);white-space:nowrap}
+.mapc b{color:var(--ink);font-weight:500}
 
 .fnd.wa3{border-color:color-mix(in srgb,var(--warn) 40%,var(--line))}
 .bd.wa2{background:color-mix(in srgb,var(--warn) 14%,transparent);color:var(--warn)}
@@ -1814,7 +1823,8 @@ function TODO(id){
   return `<div class="ph"><h1>${m?m.n:id}</h1>${m?`<span class="sid">${m.sid}</span>`:''}</div>
   <div class="tbl"><div class="empty"><div class="t">아직 만들지 않은 화면입니다</div>
     구현된 화면 — <b>PRO-1</b> 건물 목록 · <b>PRO-3</b> 건물 상세 ·
-    <b>PAY-12</b> 청구 · 수납 현황 · <b>PAY-10</b> 관리비 정산 · <b>PAY-1</b> 청구서 발행</div></div>`;
+    <b>PAY-12</b> 청구 · 수납 현황 · <b>PAY-10</b> 관리비 정산 · <b>PAY-1</b> 청구서 발행 ·
+    <b>PAY-6</b> 수납 기록</div></div>`;
 }
 
 /* ═══ PAY-1 · 청구 약정 ═══ */
@@ -1852,9 +1862,9 @@ const CTRS=[
  {b:'b1',no:'본관2층',ten:'좋은생각',st:'진행중',base:'2024-03-01',
   it:[['임대료',9900000],['고정관리비',1650000],['전기요금'],['전력기금'],['TV수신료'],['수도요금'],['정화조청소비'],['주차비']]},
  {b:'b1',no:'본관1층',ten:'에스씨케이컴퍼니',st:'진행중',base:'2025-08-01',
-  it:[['임대료',11200000],['고정관리비',1400000],['전기요금'],['전력기금'],['TV수신료'],['수도요금'],['가스요금'],['정화조청소비']]},
+  it:[['임대료',12000000],['고정관리비',1400000],['전기요금'],['전력기금'],['TV수신료'],['수도요금'],['가스요금'],['정화조청소비']]},
  {b:'b1',no:'본관B2',ten:'루비뮤직',st:'진행중',base:'2026-01-01',
-  it:[['임대료',6400000],['고정관리비',1600000],['전기요금'],['전력기금'],['TV수신료'],['수도요금'],['가스요금'],['정화조청소비']]},
+  it:[['임대료',1500000],['고정관리비',300000],['전기요금'],['전력기금'],['TV수신료'],['수도요금'],['가스요금'],['정화조청소비']]},
  {b:'b1',no:'별관4층',ten:'좋은생각',st:'진행중',base:'2025-10-01',
   it:[['임대료',2660000],['고정관리비',475000],['전기요금'],['전력기금'],['TV수신료'],['수도요금'],['정화조청소비']]},
  {b:'b1',no:'별관3층',ten:'비씨에이전시',st:'진행중',base:'2024-12-01',
@@ -1866,10 +1876,9 @@ const CTRS=[
  {b:'b2',no:'1501호',ten:'리틀브릿지',st:'종료됨',base:'2023-02-01',
   it:[['임대료',6200000],['고정관리비',1180000],['전기요금'],['수도요금']]},
 ];
-/* 계약별 미납 잔액 — 원장에서 계산되는 값이다. 청구 합계에 포함하지 않는다 → PAY-2 */
+/* 계약별 미납 잔액 — 원장에서 계산되는 값이다. 청구 합계에 포함하지 않는다 → PAY-2
+   영준빌딩은 수납 기록(PAY-6)의 결과에서 계산한다 → dueOf. 나머지 건물은 예시값이다 */
 const UNPAID={
- 'b1본관6층':{n:1,amt:1240000,from:'2026-08'},
- 'b1본관302호':{n:2,amt:3680000,from:'2026-07'},
  'b21203호':{n:1,amt:890_000,from:'2026-08'},
 };
 let f1={b:'b1',st:''};                  /* 회차 화면이므로 건물을 하나 고른다 */
@@ -1926,7 +1935,7 @@ function ISSUE(){
     const miss=lines.filter(l=>l.amt==null).length;
     const k=c.b+c.no;
     return {...c,k,lines,sum,sup,vat,miss,via,
-            due:UNPAID[k]||null,st:done?'발행 완료':'발행 대기'};
+            due:dueOf(k),st:done?'발행 완료':'발행 대기'};
   });
 }
 function PAY1(){
@@ -1998,7 +2007,10 @@ function PAY1(){
     <b class="lk" onclick="go('pay-10')">관리비 정산으로 이동 →</b></div>`}
   ${dues.length?`<div class="fnd wa3"><span class="h">미납이 있는 계약 ${dues.length}건 · ${won(dueSum)}</span>
     청구서에 <b>별도 안내</b>로 표기됩니다. <b>청구 합계에는 포함되지 않습니다.</b>
-    <b class="lk" onclick="go('pay-2')">미납 관리로 이동 →</b></div>`:''}
+    <b class="lk" onclick="go('pay-2')">미납 관리로 이동 →</b>
+    ${f1.b==='b1'&&rcOpenN()?`<br>은행 거래내역 입금 <b>${rcOpenN()}건이 아직 수납 기록되지 않았습니다.</b>
+      기록 전이면 이미 낸 임차인도 미납으로 안내됩니다.
+      <b class="lk" onclick="go('pay-6')">수납 기록으로 이동 →</b>`:''}</div>`:''}
   ${!rows.length?`<div class="tbl"><div class="empty"><div class="t">발행할 청구서가 없습니다</div>
      진행중인 계약이 없거나 조건에 맞는 건이 없습니다.</div></div>`
   :`<div class="tbl schl">
@@ -2036,6 +2048,332 @@ function PAY1(){
     발행하면 원장에 <b>청구</b> 거래로 기록되고 임차인 담당자에게 이메일이 발송된다.</div>`;
 }
 
+/* ═══ PAY-6 수납 기록 ═══ */
+/* 2026-08 동교동 영준빌딩 운영계좌 거래내역 — 은행에서 내려받은 그대로다.
+   앞 2행은 머리말, 출금 행과 임대 외 입금이 섞여 있다. 시스템이 걸러내야 한다 → 4.6.1 */
+const BANK_RAW=`영준빌딩
+조회기간 : 2026.08.01~2026.08.31 조회일시 : 2026.09.11 07:30:28
+No.    거래일시    적요    기재내용    지급(원)    입금(원)    거래후 잔액(원)    취급점    메모    수표·어음·증권금액(원)
+1    2026.08.31 19:01:55    인터넷    주식회사루비뮤직    0    2,309,497    128,641,416    기업은행(003045)        0
+2    2026.08.31 16:26:06    인터넷    (주)케이큐엔터테인    0    16,754,372    126,331,919    199555        0
+3    2026.08.31 15:48:24    인터넷    (주)케이더블유인터    0    14,471,635    109,577,547    하나은행(081569)        0
+4    2026.08.31 15:48:23    인터넷    (주)케이더블유인터    0    4,955,225    95,105,912    하나은행(081569)        0
+5    2026.08.31 15:39:16    타행대량    ICB    0    28,789,967    90,150,687    기업은행(003472)        0
+6    2026.08.31 13:05:37    펌뱅킹    에스씨케이컴퍼니    0    7,549,294    61,360,720    본점기업영업지원팀        0
+7    2026.08.31 13:05:36    펌뱅킹    에스씨케이컴퍼니    0    13,200,000    53,811,426    본점기업영업지원팀        0
+8    2026.08.31 12:34:01    ＰＣ뱅킹    AMADEUS KO    0    13,610,031    40,611,426    HSBC은행(054002)        0
+9    2026.08.31 12:04:11    인터넷    유한회사 고우컴퍼니    0    396,000    27,001,395    서교중앙금융센터        0
+10    2026.08.31 11:54:55    인터넷    (유)유니버셜대부    0    13,625,312    26,605,395    도산대로금융센터        0
+11    2026.08.31 11:30:42    수수료    SMS수수료    900    0    12,980,083    동부이촌동지점        0
+12    2026.08.31 08:43:10    인터넷    (주)비씨에이전시    0    5,169,403    12,980,983    국민은행(004069)        0
+13    2026.08.31 03:21:42    지로자동    수도2608일반    4,788,240    0    7,811,580    동부이촌동지점        0
+14    2026.08.31 03:13:25    전기요금    08월 전기요금    9,725,020    0    12,599,820    동부이촌동지점        0
+15    2026.08.27 03:06:34    우리카드    우리카드결제대금    1,783,710    0    22,324,840    리테일영업총괄부(카드)        0
+16    2026.08.27 03:06:34    우리카드    우리카드결제대금    1,638,680    0    24,108,550    리테일영업총괄부(카드)        0
+17    2026.08.26 16:40:31    대체입금    자금반환청구건    0    55,000    25,747,230    동부이촌동지점        0
+18    2026.08.25 17:01:20    F/B 출금    KT0336032208    42,350    0    25,692,230    동부이촌동지점        0
+19    2026.08.25 16:16:22    인터넷    신한이씀운영용역비    5,500,000    0    25,734,580    동부이촌동지점        0
+20    2026.08.25 16:16:22    인터넷    국민B1가구커버교체    605,000    0    31,234,580    동부이촌동지점        0
+21    2026.08.25 16:16:21    인터넷    하나소독방역비    200,000    0    31,839,580    동부이촌동지점        0
+22    2026.08.25 16:16:20    인터넷    농협주차지원비    176,000    0    32,039,580    동부이촌동지점        0
+23    2026.08.25 16:16:19    인터넷    기업에어컨수리    55,000    0    32,215,580    동부이촌동지점        0
+24    2026.08.25 10:16:55    인터넷    (주) 좋은생각 사    0    18,089,209    32,270,580    서교중앙금융센터        0
+25    2026.08.25 03:22:42    ＣＭＳ    SK렌터카    11,050    0    14,181,371    동부이촌동지점        0
+26    2026.08.25 03:20:56    ＣＭＳ    SK인텔릭스요금    19,900    0    14,192,421    동부이촌동지점        0
+27    2026.08.25 03:02:01    통신요금    SKYLIFE2608    17,006    0    14,212,321    동부이촌동지점        0
+28    2026.08.25 02:59:45    통신요금    DLIVE마포08    7,700    0    14,229,327    동부이촌동지점        0
+29    2026.08.21 16:52:56    F/B 출금    KT통신요금08    51,700    0    14,237,027    동부이촌동지점        0
+30    2026.08.21 11:15:17    인터넷    신한위탁운영수수료    31,618,411    0    14,288,727    동부이촌동지점        0
+31    2026.08.21 03:17:43    지로자동    S1(N6220064)    77,000    0    45,907,138    동부이촌동지점        0
+32    2026.08.21 03:17:43    지로자동    S1(N5881847)    352,000    0    45,984,138    동부이촌동지점        0
+33    2026.08.19 12:06:02    인터넷    기업에어컨수리    55,000    0    46,336,138    동부이촌동지점        0
+34    2026.08.19 12:06:01    인터넷    에어컨수리    33,000    0    46,391,138    동부이촌동지점        0
+35    2026.08.19 12:06:01    인터넷    화장실착수금    30,800,000    0    46,424,138    동부이촌동지점        0
+36    2026.08.18 16:49:33    F/B 출금    피앤씨테크놀    33,000    0    77,224,138    동부이촌동지점        0
+37    2026.08.05 15:10:41    인터넷    건강보험료    5,194,910    0    77,257,138    동부이촌동지점        0
+38    2026.08.05 15:10:40    인터넷    건강보험료    5,195,110    0    82,452,048    동부이촌동지점        0
+39    2026.08.05 15:09:32    인터넷    신한대표급여    20,000,000    0    87,647,158    동부이촌동지점        0
+40    2026.08.05 15:09:32    인터넷    신한대표급여    30,000,000    0    107,647,158    동부이촌동지점        0
+41    2026.08.05 15:07:40    인터넷    신협B1테이블구매    394,900    0    137,647,158    동부이촌동지점        0
+42    2026.08.05 15:07:40    인터넷    카카도어락교체    143,000    0    138,042,058    동부이촌동지점        0
+43    2026.08.05 15:07:39    인터넷    경비미화용역비    14,190,000    0    138,185,058    동부이촌동지점        0
+44    2026.08.05 15:07:38    인터넷    하나청소용품구매비    924,550    0    152,375,058    동부이촌동지점        0
+45    2026.08.05 15:07:37    인터넷    하나경비실생수    18,000    0    153,299,608    동부이촌동지점        0
+46    2026.08.05 15:07:37    인터넷    국민정길철정기후원    1,500,000    0    153,317,608    동부이촌동지점        0
+47    2026.08.05 15:07:37    인터넷    국민오연엽정기후원    1,500,000    0    154,817,608    동부이촌동지점        0
+48    2026.08.05 15:07:36    인터넷    신한세무기장료    330,000    0    156,317,608    동부이촌동지점        0
+49    2026.08.05 15:07:35    인터넷    하나법률자문료    1,182,500    0    156,647,608    동부이촌동지점        0
+50    2026.08.05 15:07:34    인터넷    주차기안전관리비    440,000    0    157,830,108    동부이촌동지점        0
+51    2026.08.05 15:07:34    인터넷    하나소방안전관리비    143,000    0    158,270,108    동부이촌동지점        0
+52    2026.08.05 15:07:33    인터넷    승강기유지관리비    39,600    0    158,413,108    동부이촌동지점        0
+53    2026.08.05 15:07:32    인터넷    국민승강기유지관리비    92,400    0    158,452,708    동부이촌동지점        0
+54    2026.08.05 15:07:32    인터넷    기업전기안전관리비    275,000    0    158,545,108    동부이촌동지점        0
+55    2026.08.05 14:14:25    타행건별    SK렌터카(주)    0    1,938,620    158,820,108    신한은행(088699)        0
+56    2026.08.04 11:04:33    인터넷    기업연단구입    162,800    0    156,881,488    동부이촌동지점        0`;
+
+/* 거래내역 해석 — 머리글 행을 찾아 그 앞을 버리고, 열 이름으로 네 열을 찾는다 → 4.6.1
+   은행마다 열 이름과 순서가 다르므로 위치가 아니라 이름으로 찾고, 결과는 은행별로 저장한다 */
+function parseBank(raw){
+  const cut=l=>l.split(/\t| {2,}/).map(x=>x.trim());
+  const lines=raw.split('\n').map(l=>l.trim()).filter(Boolean);
+  const hi=lines.findIndex(l=>/거래일시/.test(l)&&/입금/.test(l));
+  const head=cut(lines[hi]);
+  const col=re=>head.findIndex(h=>re.test(h));
+  const map={dt:col(/거래일시/),kind:col(/^적요$/),name:col(/기재내용/),amt:col(/^입금/),out:col(/^지급/)};
+  const n=v=>+String(v||'0').replace(/,/g,'')||0;
+  const rows=lines.slice(hi+1).map((l,i)=>{const c=cut(l);
+    return {no:+c[0]||i+1,dt:(c[map.dt]||'').replace(/\./g,'-'),kind:(c[map.kind]||'').normalize('NFKC'),
+            name:c[map.name]||'',amt:n(c[map.amt]),out:n(c[map.out])};});
+  return {skip:hi,head,map,rows,dep:rows.filter(r=>r.amt>0),wd:rows.filter(r=>!(r.amt>0))};
+}
+
+/* 입금자명 정규화 — 공백과 법인격 표기를 뗀다. 전각 문자(ＰＣ뱅킹)도 반각으로 → 4.6.2 */
+const normName=s=>String(s||'').normalize('NFKC')
+  .replace(/\(주\)|\(유\)|주식회사|유한회사/g,'').replace(/\s+/g,'');
+
+/* 2026-08 회차 청구 — 발행 완료분이다.
+   임대료·고정관리비는 약정(CTRS), 정산 항목은 실제 8월 청구서가 없어 입금액에 맞춰 역산한 예시값이다.
+   본관6층은 1,240,000원을 덜 낸 것으로, 본관302호는 7월분 2건이 밀린 것으로 두었다 */
+const AUG={
+ '본관8층':[['임대료',9240000,924000],['고정관리비',1650000,165000],['전기요금',2272144,227214],['주차비',100000,10000],['전력기금',61521,0],['TV수신료',2500,0]],
+ '본관7층':[['임대료',9240000,924000],['고정관리비',1650000,165000],['전기요금',1912984,191298],['전력기금',51806,0],['TV수신료',2500,0]],
+ '본관6층':[['임대료',8910000,891000],['고정관리비',1650000,165000],['전기요금',2867195,286719],['전력기금',77617,0],['TV수신료',2500,0]],
+ '본관5층':[['임대료',9240000,924000],['고정관리비',1650000,165000],['전기요금',2209375,220937],['전력기금',59823,0],['TV수신료',2500,0]],
+ '본관4층':[['임대료',9240000,924000],['고정관리비',1650000,165000],['전기요금',4185985,418598],['주차비',50000,5000],['전력기금',113289,0],['TV수신료',2500,0]],
+ '본관301호':[['임대료',360000,36000]],
+ '본관302호':[['임대료',4620000,462000],['고정관리비',1650000,165000],['전기요금',5967575,596758],['전력기금',161479,0],['TV수신료',2500,0]],
+ '본관2층':[['임대료',9900000,990000],['고정관리비',1650000,165000],['전기요금',1277579,127758],['주차비',150000,15000],['전력기금',34619,0],['TV수신료',2500,0]],
+ '본관1층':[['임대료',12000000,1200000],['고정관리비',1400000,140000],['전기요금',5114890,511489],['가스요금',220000,22000],['전력기금',138415,0],['TV수신료',2500,0]],
+ '본관B2':[['임대료',1500000,150000],['고정관리비',300000,30000],['전기요금',231521,23152],['가스요금',60000,6000],['전력기금',6324,0],['TV수신료',2500,0]],
+ '별관4층':[['임대료',2660000,266000],['고정관리비',475000,47500],['전기요금',288977,28898],['전력기금',7878,0],['TV수신료',2500,0]],
+ '별관3층':[['임대료',2660000,266000],['고정관리비',475000,47500],['전기요금',1524637,152464],['전력기금',41302,0],['TV수신료',2500,0]],
+ '별관2층':[['임대료',2660000,266000],['고정관리비',475000,47500],['전기요금',1295564,129556],['가스요금',40000,4000],['전력기금',35105,0],['TV수신료',2500,0]],
+};
+const PRIO={'임대료':1,'고정관리비':2,'주차비':3,'전기요금':4,'가스요금':12,'수도요금':13,'전력기금':16,'TV수신료':17};
+const BILLS=[];
+Object.entries(AUG).forEach(([no,ls])=>ls.forEach(([n,s,v])=>
+  BILLS.push({id:`2026-08|${no}|${n}`,ym:'2026-08',k:'b1'+no,no,n,pr:PRIO[n],amt:s+v})));
+/* 7월분 중 남은 미납 2건 */
+BILLS.push({id:'2026-07|본관302호|고정관리비',ym:'2026-07',k:'b1본관302호',no:'본관302호',n:'고정관리비',pr:2,amt:1815000});
+BILLS.push({id:'2026-07|본관302호|전기요금',ym:'2026-07',k:'b1본관302호',no:'본관302호',n:'전기요금',pr:4,amt:1865000});
+
+/* 원장에 기록된 수납 배분 — 청구 건별 누적액 */
+const PAID={};
+
+/* 수납 기록 화면 상태 */
+const RC={b:'b1',P:parseBank(BANK_RAW),dec:{},op:{},sel:{},alias:{},pre:{}};
+
+/* 사업자 — 같은 사업자의 계약은 입금 1건으로 함께 낼 수 있다 */
+function rcBiz(){
+  const m={};
+  CTRS.filter(c=>c.b===RC.b&&c.st==='진행중').forEach(c=>{
+    const k=normName(c.ten);(m[k]=m[k]||{k,n:c.ten,ctrs:[]}).ctrs.push(c);});
+  return m;
+}
+/* 별칭 — 등록된 입금자명. 사업자를 등록하면 정규화한 상호가 기본 별칭이 된다 */
+const rcAlias=(nm,B)=>RC.alias[nm]||(B[nm]?nm:null);
+/* 상호 앞자리 부분 일치 — 참고 표시만. 자동 확정하지 않는다 → 4.6.3 */
+function rcPrefix(nm,B){
+  const pre=(a,b)=>{let i=0;while(i<a.length&&a[i]===b[i])i++;return i;};
+  const hit=Object.keys(B).filter(k=>pre(k,nm)>=4);
+  return hit.length===1?hit[0]:null;
+}
+
+/* 배분 — 금액 일치를 먼저 찾고, 없으면 오래된 회차 → 우선순위 → 4.3
+   일치는 청구서 1장 → 청구서 여러 장 → 청구 건 1건 순으로 찾는다.
+   같은 단계에서 둘 이상 맞으면 자동으로 고르지 않는다 */
+function rcPlan(amt,keys,paid){
+  const open=BILLS.filter(i=>keys.includes(i.k))
+    .map(i=>({...i,due:i.amt-(paid[i.id]||0)})).filter(i=>i.due>0);
+  const inv={};open.forEach(i=>{(inv[i.ym+'|'+i.k]=inv[i.ym+'|'+i.k]||[]).push(i);});
+  const invs=Object.values(inv), sd=a=>a.reduce((s,i)=>s+i.due,0);
+  const ord=(a,b)=>a.ym<b.ym?-1:a.ym>b.ym?1:a.k<b.k?-1:a.k>b.k?1:a.pr-b.pr;
+  const take=(items,how)=>({how,rest:0,lines:[...items].sort(ord).map(i=>({...i,pay:i.due,after:'완납'}))});
+  let c=invs.filter(v=>sd(v)===amt);
+  if(c.length===1) return take(c[0],'청구서 일치');
+  if(c.length>1) return {need:'같은 금액의 청구서가 둘 이상입니다'};
+  if(invs.length>1&&invs.length<=8){
+    const hits=[];
+    for(let m=1;m<(1<<invs.length);m++){
+      if(!(m&(m-1))) continue;
+      const set=invs.filter((_,j)=>m>>j&1);
+      if(sd(set.flat())===amt) hits.push(set);
+    }
+    if(hits.length===1) return take(hits[0].flat(),`청구서 ${hits[0].length}장 일치`);
+    if(hits.length>1) return {need:'금액이 맞는 청구서 조합이 둘 이상입니다'};
+  }
+  c=open.filter(i=>i.due===amt);
+  if(c.length===1) return take(c,'항목 일치');
+  if(c.length>1) return {need:'같은 금액의 청구 건이 둘 이상입니다'};
+  if(new Set(open.map(i=>i.k)).size>1) return {need:'금액이 맞지 않아 계약을 골라야 합니다'};
+  open.sort((a,b)=>a.ym<b.ym?-1:a.ym>b.ym?1:a.pr-b.pr);
+  let r=amt;const lines=[];
+  for(const i of open){if(r<=0)break;const a=Math.min(r,i.due);
+    lines.push({...i,pay:a,after:a===i.due?'완납':'부분납'});r-=a;}
+  return {how:open.length?'우선순위 배분':'청구 없음',lines,rest:r};
+}
+
+/* 매칭 — 입금을 시간순으로 처리한다. 앞선 입금의 배분이 뒤 입금의 미납액을 줄인다
+   (에스씨케이컴퍼니 13:05:36 임대료 → 13:05:37 나머지) */
+function rcRun(){
+  const B=rcBiz(), paid={...PAID}, res={};
+  [...RC.P.dep].sort((a,b)=>a.dt<b.dt?-1:a.dt>b.dt?1:0).forEach(d=>{
+    const dec=RC.dec[d.no]||{}, nm=normName(d.name);
+    if(dec.done){res[d.no]=dec.done;return;}
+    if(dec.ex){res[d.no]={st:'제외',why:dec.ex,nm};return;}
+    let biz=null,basis='',st='';
+    if(dec.biz){biz=dec.biz;basis='담당자 지정';st='지정';}
+    else{const a=rcAlias(nm,B);if(a){biz=a;basis=RC.alias[nm]?'등록 별칭':'상호 일치';st='자동';}}
+    if(!biz||!B[biz]){const auto=rcPrefix(nm,B);
+      res[d.no]={st:auto?'후보':'미매칭',cand:RC.pre[d.no]||auto,nm,basis:auto?'상호 앞자리 일치':''};return;}
+    const keys=dec.ctr?[dec.ctr]:B[biz].ctrs.map(c=>c.b+c.no);
+    const pl=rcPlan(d.amt,keys,paid);
+    if(pl.need){res[d.no]={st:'후보',biz,cand:RC.pre[d.no]||biz,nm,basis,need:pl.need};return;}
+    pl.lines.forEach(l=>paid[l.id]=(paid[l.id]||0)+l.pay);
+    res[d.no]={st,biz,nm,basis,...pl};
+  });
+  return res;
+}
+
+/* 원장에 아직 기록되지 않은 입금 건수 — PAY-1 안내에 쓴다 */
+const rcOpenN=()=>RC.P.dep.filter(d=>{const x=RC.dec[d.no]||{};return !x.done&&!x.ex;}).length;
+/* 계약별 미납 — 지난 회차 청구 − 원장에 기록된 수납 */
+function dueOf(k){
+  if(!k.startsWith('b1')) return UNPAID[k]||null;
+  const o=BILLS.filter(i=>i.k===k&&i.ym<SETTLE.ym).map(i=>i.amt-(PAID[i.id]||0)).filter(v=>v>0);
+  if(!o.length) return null;
+  const from=BILLS.filter(i=>i.k===k&&i.amt>(PAID[i.id]||0)).map(i=>i.ym).sort()[0];
+  return {n:o.length,amt:o.reduce((a,v)=>a+v,0),from};
+}
+
+const rcTog=no=>{RC.op[no]=!RC.op[no];render(true);};
+const rcPick=(no,e)=>{e.stopPropagation();RC.sel[no]=RC.sel[no]===false;render(true);};
+function rcAssign(no){
+  const biz=$('#rcb'+no).value;if(!biz) return;
+  const ce=$('#rcc'+no), reg=$('#rca'+no);
+  const d=RC.P.dep.find(x=>x.no===no), nm=normName(d.name);
+  RC.dec[no]={biz,ctr:ce&&ce.value?ce.value:null};
+  /* 별칭으로 등록하면 같은 이름의 다른 입금도 다시 매칭된다 */
+  if(reg&&reg.checked) RC.alias[nm]=biz;
+  render(true);
+}
+function rcExclude(no){RC.dec[no]={ex:$('#rce'+no).value};render(true);}
+function rcUndo(no){delete RC.dec[no];render(true);}
+function rcApprove(){
+  const R=rcRun();let n=0;
+  Object.entries(R).forEach(([no,r])=>{
+    if((r.st==='자동'||r.st==='지정')&&RC.sel[no]!==false){
+      r.lines.forEach(l=>PAID[l.id]=(PAID[l.id]||0)+l.pay);
+      RC.dec[no]={...(RC.dec[no]||{}),done:{...r,st:'기록 완료',was:r.st}};n++;}
+  });
+  render(true);
+}
+/* 계약 선택 목록 */
+const rcCtrOpts=(biz,B)=>(B[biz]?B[biz].ctrs:[]).map(c=>
+  `<option value="${c.b+c.no}">${cname(BUILDINGS[0].alias,c.no,c.ten)}</option>`).join('');
+
+function PAY6(){
+  const P=RC.P, B=rcBiz(), R=rcRun(), bn=BUILDINGS.find(x=>x.id===RC.b);
+  const cnt=k=>P.dep.filter(d=>R[d.no].st===k).length;
+  const ready=P.dep.filter(d=>(R[d.no].st==='자동'||R[d.no].st==='지정')&&RC.sel[d.no]!==false);
+  const readySum=ready.reduce((a,d)=>a+d.amt,0);
+  const BADGE={'자동':'ok','지정':'ac','후보':'wa','미매칭':'da','제외':'mu','기록 완료':'mu'};
+  const LABEL={'자동':'자동 매칭','지정':'담당자 지정','후보':'후보','미매칭':'미매칭','제외':'수납 아님','기록 완료':'기록 완료'};
+  const ctrCell=r=>{
+    const ks=[...new Set((r.lines||[]).map(l=>l.no))];
+    if(ks.length){const c=CTRS.find(x=>x.b===RC.b&&x.no===ks[0]);
+      return cnameHTML(bn.alias,c.no,c.ten)+(ks.length>1?`<span class="c2">외 ${ks.length-1}건</span>`:'');}
+    if(r.cand&&B[r.cand]) return `<span class="c2" style="margin:0">${B[r.cand].n}?</span>`;
+    return '<span style="color:var(--faint)">—</span>';
+  };
+  const resCell=(d,r)=>{
+    if(r.st==='제외') return `<span class="c2">${r.why}</span>`;
+    if(!r.lines) return '<span style="color:var(--faint)">—</span>';
+    const part=r.lines.some(l=>l.after==='부분납');
+    if(r.rest>0) return `<span style="color:var(--warn)">미배분 ${won(r.rest)}</span>`;
+    return part?`<span style="color:var(--warn)">부분납</span>`:'<span class="c2" style="margin:0">전액 배분</span>';
+  };
+  const detail=(d,r)=>{
+    const tbl=r.lines&&r.lines.length?`<table><thead><tr><th>청구년월</th><th>계약</th><th>청구항목</th>
+        <th class="c">우선순위</th><th class="n">미납액</th><th class="n">배분액</th><th class="c">배분 후</th></tr></thead>
+      <tbody>${r.lines.map(l=>{const c=CTRS.find(x=>x.b===RC.b&&x.no===l.no);return `<tr>
+        <td>${l.ym}</td><td>${cnameHTML(bn.alias,l.no,c.ten)}</td><td>${l.n}</td><td class="c">${l.pr}</td>
+        <td class="n">${won(l.due)}</td><td class="n"><b>${won(l.pay)}</b></td>
+        <td class="c"><span class="bd ${l.after==='완납'?'ok':'wa'}">${l.after}</span></td></tr>`;}).join('')}</tbody></table>`:'';
+    const undo=(r.st==='지정'||r.st==='제외')?` <b class="lk" onclick="rcUndo(${d.no})">되돌리기</b>`:'';
+    const rest=r.rest>0?`<div class="ln"><span style="color:var(--warn)">미배분 ${won(r.rest)}</span>
+      입금 기록에 보관하고 환불 또는 다음 회차 배분 중 하나를 고른다. 자동으로 처리하지 않는다.</div>`:'';
+    if(r.st==='자동'||r.st==='지정'||r.st==='기록 완료')
+      return `<div class="rcx"><div class="ln"><span class="c2" style="margin:0">
+        ${r.st==='기록 완료'?'원장에 기록됨 · ':''}${r.basis||''} · ${r.how} · 비교용 이름 <b>${r.nm}</b></span>${undo}</div>${tbl}${rest}</div>`;
+    if(r.st==='제외')
+      return `<div class="rcx"><div class="ln">수납으로 기록하지 않는다. 통장 대조를 위해 목록에는 남긴다.${undo}</div></div>`;
+    /* 후보 · 미매칭 — 사업자를 고르고 계약이 여럿이면 계약도 고른다 */
+    const pickBiz=r.cand||'';
+    const multi=pickBiz&&B[pickBiz]&&B[pickBiz].ctrs.length>1;
+    return `<div class="rcx">
+      ${r.need?`<div class="ln" style="color:var(--warn)">${r.need}</div>`:''}
+      <div class="ln">임차인
+        <select id="rcb${d.no}" onchange="RC.pre[${d.no}]=this.value;render(true)">
+          <option value="">선택</option>
+          ${Object.values(B).map(b=>`<option value="${b.k}" ${b.k===pickBiz?'selected':''}>${b.n} · 계약 ${b.ctrs.length}건</option>`).join('')}
+        </select>
+        ${multi?`<select id="rcc${d.no}"><option value="">계약 자동 (금액 일치)</option>${rcCtrOpts(pickBiz,B)}</select>`:''}
+        <label><input type="checkbox" id="rca${d.no}" checked> <b>${d.name}</b>을(를) 이 임차인의 입금자명으로 등록</label>
+        <button class="btn sm pri" onclick="rcAssign(${d.no})">지정</button></div>
+      <div class="ln"><span class="c2" style="margin:0">임차인 입금이 아니면</span>
+        <select id="rce${d.no}"><option>반환·환불 입금</option><option>임대 외 수입</option><option>확인 불가</option></select>
+        <button class="btn sm" onclick="rcExclude(${d.no})">수납 아님</button></div></div>`;
+  };
+  const body=P.dep.map(d=>{
+    const r=R[d.no], op=!!RC.op[d.no], can=r.st==='자동'||r.st==='지정', on=RC.sel[d.no]!==false;
+    return `<div class="schr rcr grp" onclick="rcTog(${d.no})">
+      <div class="nm">${can?`<span class="cb ${on?'on':''}" onclick="rcPick(${d.no},event)"></span>`
+          :'<span class="cb dis"></span>'}<span class="tg ${op?'op':''}">${ic('chev',16)}</span>${d.dt.slice(5,16)}</div>
+      <div>${d.name}</div>
+      <div class="n"><b>${won(d.amt)}</b></div>
+      <div class="c"><span class="bd ${BADGE[r.st]}">${LABEL[r.st]}</span></div>
+      <div>${ctrCell(r)}</div>
+      <div class="c2" style="margin:0">${r.how||r.basis||''}</div>
+      <div class="n">${resCell(d,r)}</div>
+    </div>`+(op?detail(d,r):'');
+  }).join('');
+  const hd=P.head, mp=P.map;
+  return `
+  <div class="ph"><h1>수납 기록</h1><span class="sid">PAY-6</span>
+    <div class="act"><button class="btn" onclick="alert('수동 입력 — 계약·입금일·입금액·결제수단을 직접 넣는다. 아직 미구현')">수동 입력</button>
+      <button class="btn pri" ${ready.length?'':'disabled'} onclick="rcApprove()">
+        ${ready.length?`${ready.length}건 승인 · ${won(readySum)}`:'승인할 입금 없음'}</button></div>
+  </div>
+  <div class="card"><div class="ct">은행 거래내역
+      <span class="sub">${bn.name} · 국민은행 · 영준빌딩_거래내역_2026-08.xls</span>
+      <span class="ca"><button class="btn sm" onclick="alert('다른 파일 업로드 — 건물을 먼저 고른다')">다른 파일</button></span></div>
+    <div class="cc">
+      <div style="font-size:12.5px">거래 <b>${P.rows.length}</b>건 중 입금 <b>${P.dep.length}</b>건
+        <span class="c2" style="margin-left:8px">출금 ${P.wd.length}건 제외 · 머리말 ${P.skip}행 건너뜀</span></div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px">
+        <span class="mapc">거래일시 ← <b>${hd[mp.dt]}</b></span>
+        <span class="mapc">거래구분 ← <b>${hd[mp.kind]}</b></span>
+        <span class="mapc">입금자명 ← <b>${hd[mp.name]}</b></span>
+        <span class="mapc">입금액 ← <b>${hd[mp.amt]}</b></span>
+        <span class="c2" style="margin:0 0 0 4px;align-self:center">국민은행 열 매핑으로 저장됨</span></div>
+    </div></div>
+  <div class="fbar">
+    ${['자동','지정','후보','미매칭','제외','기록 완료'].map(k=>`<span class="bd ${BADGE[k]}">${LABEL[k]} ${cnt(k)}</span>`).join('')}
+  </div>
+  <div class="tbl schl">
+    <div class="schr rcr hd"><div>입금일시</div><div>입금자명</div><div class="n">입금액</div>
+      <div class="c">매칭</div><div>계약</div><div>배분 근거</div><div class="n">배분 결과</div></div>
+    ${body}
+    <div class="schr rcr sum"><div>합계 <span class="lock">입금 ${P.dep.length}</span></div><div></div>
+      <div class="n">${won(P.dep.reduce((a,d)=>a+d.amt,0))}</div><div></div><div></div><div></div><div></div></div>
+  </div>
+  <div class="hint">
+    자동 매칭된 입금은 배분을 펼쳐 확인한 뒤 승인하세요. 승인해야 원장에 기록됩니다.<br>
+    후보·미매칭은 펼쳐서 임차인을 고르세요. 입금자명을 등록해 두면 다음 달부터 자동으로 매칭됩니다.<br>
+    임차인 입금이 아니면 수납 아님으로 두세요. 통장과 맞춰볼 수 있도록 목록에는 남습니다.</div>`;
+}
+
 /* ═══ 라우터 ═══ */
 function render(keep){
   const y=window.scrollY||0;
@@ -2049,6 +2387,7 @@ function render(keep){
   else if(id==='pay-10'){html=PAY10();crumb='청구 · 수납 <span>›</span> <b>관리비 정산</b>';}
   else if(id==='pay-12'){html=PAY12();crumb='<b>청구 · 수납</b>';}
   else if(id==='pay-1'){html=PAY1();crumb='청구 · 수납 <span>›</span> <b>청구서 발행</b>';}
+  else if(id==='pay-6'){html=PAY6();crumb='청구 · 수납 <span>›</span> <b>수납 기록</b>';}
   else{html=TODO(id);const g=MENU.find(m=>m.items&&m.items.some(i=>i.id===id));
     const m=ALL.find(i=>i.id===id);
     crumb=(g?g.g+' <span>›</span> ':'')+`<b>${m?m.n:'—'}</b>`;}
