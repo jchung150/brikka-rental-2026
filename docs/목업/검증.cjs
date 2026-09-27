@@ -113,21 +113,20 @@ r6.push(['첫 달 자동 매칭 0건 — 등록된 입금자명만 자동', auto
 r6.push(['상호가 같으면 후보', first[9].st === '후보' && first[9].basis === '상호 일치']);
 const asg = (no, biz) => { W.RC.dec[no] = { biz }; W.RC.alias[W.normName(P6.dep.find(d => d.no === no).name)] = biz; };
 asg(1, '루비뮤직'); asg(2, '케이큐엔터테이먼트'); asg(3, '케이더블유인터내셔널'); asg(5, '아이씨비');
-asg(7, '에스씨케이컴퍼니'); asg(8, '아마데우스코리아'); asg(9, '고우컴퍼니'); asg(10, '유니버셜');
-asg(12, '비씨에이전시'); asg(24, '좋은생각');
+asg(7, '에스씨케이컴퍼니'); asg(8, '아마데우스'); asg(9, '고우컴퍼니'); asg(10, '유니버셜대부');
+asg(12, '비씨에이전시'); asg(24, '좋은생각사람들');
 W.RC.dec[17] = { ex: true }; W.RC.dec[55] = { ex: true };
 const R6 = W.rcRun();
 r6.push(['분리 입금 — 13,200,000은 임대료에', R6[7].how === '항목 일치' && R6[7].lines[0].n === '임대료']);
 r6.push(['분리 입금 — 나머지는 같은 청구서에', R6[6].st === '자동' && R6[6].how === '청구서 일치' && R6[6].lines.every(l => l.no === '본관1층')]);
 r6.push(['별칭 등록 후 같은 이름 입금 자동', R6[4].st === '자동']);
 r6.push(['입금 1건 → 계약 2개 (ICB)', new Set(R6[5].lines.map(l => l.no)).size === 2 && R6[5].rest === 0]);
-r6.push(['금액 일치가 오래된 회차보다 먼저 (302호)', R6[10].lines.every(l => l.ym === '2026-08')]);
+r6.push(['입금 1건 → 계약 2개 (좋은생각사람들)', new Set(R6[24].lines.map(l => l.no)).size === 2 && R6[24].rest === 0]);
+r6.push(['임차인 입금 12건 전부 전액 배분', [1,2,3,4,5,6,7,8,9,10,12,24].every(n => R6[n].lines && R6[n].rest === 0 && R6[n].lines.every(l => l.after === '완납'))]);
 W.rcApprove();
-const d6 = W.dueOf('b1본관6층'), d302 = W.dueOf('b1본관302호');
-const others = ['본관8층','본관7층','본관5층','본관4층','본관301호','본관2층','본관1층','본관B2','별관4층','별관3층','별관2층']
-  .every(n => !W.dueOf('b1' + n));
-r6.push(['미납 — 6층 1,240,000 · 302호 3,680,000 · 나머지 0',
-  d6 && d6.amt === 1240000 && d302 && d302.amt === 3680000 && d302.from === '2026-07' && others]);
+const all13 = ['본관8층','본관7층','본관6층','본관5층','본관4층','본관301호','본관302호','본관2층','본관1층','본관B2','별관4층','별관3층','별관2층'];
+r6.push(['승인 후 미납 0 — 8월 전원 완납', all13.every(n => !W.dueOf('b1' + n))]);
+r6.push(['8월 청구 합계 = 임차인 입금 합계', W.BILLS.reduce((a, i) => a + i.amt, 0) === 138919945]);
 const bad6 = r6.filter(x => !x[1]);
 if (bad6.length) fail = 1;
 console.log('⑥ 수납 기록 ' + (bad6.length ? '✗ ' + bad6.map(x => x[0]).join(' / ') : 'OK — ' + r6.length + '개 검산'));
