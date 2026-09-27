@@ -1099,7 +1099,7 @@ function csHTML(){
             <div class="ck2" onclick="csUnit('${u.no}')">${on?'✓':''}</div>
             <span class="un2" onclick="csUnit('${u.no}')">${u.no}</span>
             <span class="ut2" onclick="csUnit('${u.no}')">${u.ten||'<span style="color:var(--faint)">공실</span>'}</span>
-            ${on?`<span class="uct">배율
+            ${on?`<span class="uct">계량기 배율
               <input class="inp w2" type="number" step="0.1" min="0" value="${csCT(u.no)}"
                 onclick="event.stopPropagation()" onchange="csSetCT('${u.no}',this.value)"></span>`
               :`<span class="ua2">${fx(u.ar)} ㎡</span>`}</div>`}).join('')}
@@ -1543,7 +1543,7 @@ function stRead(m,R){
     <div class="tw"><table>
       <thead><tr><th>계약고유명</th><th>검침일</th>
         <th class="n">직전 검침값</th><th class="n">당월 검침값</th>
-        <th class="n">개별 사용량</th><th class="c">배율</th><th class="n">증감</th></tr></thead>
+        <th class="n">개별 사용량</th><th class="c">계량기 배율</th><th class="n">증감</th></tr></thead>
       <tbody>${rows.map(r=>r.hasM?`<tr>
         <td>${cnameST(r,m)}</td>
         <td><input class="inp d" type="date" value="${readDateOf(m.code,r.no)}"
@@ -1576,7 +1576,7 @@ function stRead(m,R){
     각 유닛의 <b>당월 검침값</b>만 넣으세요. 개별 사용량은 자동으로 계산됩니다.<br>
     아직 검침하지 못한 유닛은 비워 두세요. 그 유닛은 공용분만 부담합니다.
     당월이 직전보다 작으면 계량기 교체나 입력 실수이니 확인하세요.<br>
-    <b>배율</b>은 계량기가 실제 사용량보다 작게 표시될 때 씁니다.
+    <b>계량기 배율</b>은 계량기가 실제 사용량보다 작게 표시될 때 씁니다.
     표시가 실제의 1/30이면 <b>30</b>을 넣습니다. 보통은 <b>1</b>입니다.</div>`;
 }
 
