@@ -1608,7 +1608,7 @@ function stAdj(m,R){
   const bSum=rows.reduce((a,r)=>a+base(r),0);
   /* 사용량 개념이 없는 항목은 금액으로 표시한다 */
   const amtMode=!m.unit, TOT=billTotal(m);
-  const cRatio=byUse?'개별 사용 비율':'면적 비율';
+  const cRatio='배분 비율';   /* 배율이 반영된 비율. 공용 사용량 = 합계 × 이 비율 */
   const cBase =byUse?'개별 사용량':'임대면적';
   const cVal  =amtMode?'배분 금액':'공용 사용량';
   const now=r=>amtMode?won(r.amt):fx(r.common)+' '+U;
@@ -1627,7 +1627,7 @@ function stAdj(m,R){
       <tbody>${rows.map(r=>{const d=dOf(r);return `<tr${r.mul===0?' class="vacr"':''}>
         <td>${cnameST(r,m)}</td>
         <td class="n" style="color:var(--muted)">${byUse?fx(base(r),base(r)%1?1:0)+' '+U:fx(base(r))+' ㎡'}</td>
-        <td class="n" style="color:var(--muted)">${bSum?(base(r)/bSum*100).toFixed(2)+'%':'—'}</td>
+        <td class="n" style="color:var(--muted)">${R.wSum?(r.w/R.wSum*100).toFixed(2)+'%':'—'}</td>
         <td class="n">${r.mul===0?'<span class="bd mu">부담 없음</span>':`<b>${now(r)}</b>`}</td>
         <td class="c"><input class="inp w" value="${r.mul}" step="0.1" min="0" type="number"
              onchange="setMul('${m.code}','${r.no}',this.value)"></td>
@@ -1646,7 +1646,8 @@ function stAdj(m,R){
      :`검침값은 실측이므로 고치지 않는다. 배율은 <b>공용 사용량을 나누는 비율에만</b> 작용한다.`}<br>
     <b>배율</b>은 기본값 <b>1.0</b>이며 0.1 단위로 조정한다.
     값을 바꾸면 <b>${cVal}</b>이 즉시 다시 계산된다.
-    배분 몫 = <b>${cBase} × 배율</b>이고, ${cVal} = 합계 × (배분 몫 ÷ Σ배분 몫)이다.<br>
+    <b>배분 비율 = ${cBase} × 배율 ÷ Σ(${cBase} × 배율)</b>이고,
+    <b>${cVal} = 합계 × 배분 비율</b>이다. 배율을 바꾸면 비율과 ${cVal}이 함께 움직인다.<br>
     ${moved?'배율을 올린 유닛이 더 부담한 만큼 나머지 유닛이 덜 부담한다. ':''}
     <b>증감</b>은 전 유닛 배율이 1.0일 때 대비 변화이며 <b>합계는 언제나 0</b>이다.
     ${amtMode?`고지서 금액 <b>${won(TOT)}</b>`:`공용 사용량 합계 <b>${fx(R.common)} ${U}</b>`}도 변하지 않는다.<br>
