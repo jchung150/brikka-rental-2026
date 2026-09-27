@@ -641,7 +641,7 @@ const UNITS_B1=[
  {no:'본관302호',st:'사용중', ten:'(유)유니버셜대부',        ar:165.0},
  {no:'본관2층',  st:'사용중', ten:'(주)좋은생각사람들',      ar:330.0},
  {no:'본관1층',  st:'사용중', ten:'(주)에스씨케이컴퍼니',    ar:280.0},
- {no:'본관B1',   st:'사용중', ten:'영준복합문화공간',       ar:320.0, own:true},
+ {no:'본관B1',   st:'공실',   ten:'',                    ar:320.0},
  {no:'본관B2',   st:'사용중', ten:'주식회사루비뮤직',         ar:320.0},
  {no:'별관4층',  st:'사용중', ten:'(주)좋은생각사람들',      ar:95.0},
  {no:'별관3층',  st:'사용중', ten:'(주)비씨에이전시',        ar:95.0},
@@ -1840,13 +1840,12 @@ const CITEM={
  '교통유발부담금':{calc:'정산', cycle:'연1회',tax:false},
 };
 /* 계약 — 임차인명과 임대료·고정관리비는 2026-08 실제 청구서 기준(VAT 포함 ÷ 1.1). 기산일은 예시값이다.
-   (주)아이씨비 본관7·8층은 실제 청구서가 한 장이다. 목업은 계약 둘로 두고 반씩 나눴다 → 검토사항 #67
-   본관B1 영준복합문화공간은 건물주 직영이라 계약이 없다 → 검토사항 #51 */
+   계약 1건이 유닛 여러 개를 가질 수 있다(units). (주)아이씨비는 본관7·8층을 계약서 한 장으로 빌렸다 → #67
+   계약고유이름의 유닛 자리는 유닛고유번호를 ·로 잇는다 → 3.1
+   본관B1은 계약이 없어 공실이다. 산출 금액은 건축주가 부담한다 → 검토사항 #51 */
 const CTRS=[
- {b:'b1',no:'본관8층',ten:'(주)아이씨비',st:'진행중',base:'2024-03-01',
-  it:[['임대료',8900000],['고정관리비',2650000],['전기요금'],['전력기금'],['TV수신료'],['수도요금'],['정화조청소비'],['주차비']]},
- {b:'b1',no:'본관7층',ten:'(주)아이씨비',st:'진행중',base:'2025-03-01',
-  it:[['임대료',8900000],['고정관리비',2650000],['전기요금'],['전력기금'],['TV수신료'],['수도요금'],['정화조청소비']]},
+ {b:'b1',no:'본관7층·본관8층',units:['본관7층','본관8층'],ten:'(주)아이씨비',st:'진행중',base:'2024-03-01',
+  it:[['임대료',17800000],['고정관리비',5300000],['전기요금'],['전력기금'],['TV수신료'],['수도요금'],['정화조청소비'],['주차비']]},
  {b:'b1',no:'본관6층',ten:'유한회사아마데우스',st:'진행중',base:'2025-01-15',
   it:[['임대료',9300000],['고정관리비',2800000],['전기요금'],['전력기금'],['TV수신료'],['수도요금'],['정화조청소비']]},
  {b:'b1',no:'본관5층',ten:'㈜케이더블유인터내셔널',st:'진행중',base:'2024-07-01',
@@ -1918,10 +1917,14 @@ function ISSUE(){
       const S={n:x[0],bill:m.bill,src:ev,
                st:fixed?'정산 확정':'정산 미확정', stc:fixed?'ok':'wa'};
       if(!(billTotal(m)>0)) return {...S,supply:null,vat:null,amt:null};
-      const r=calc(m).rows.find(r=>r.no===unit);
-      return {...S,supply:r?r.supply:null,vat:r?r.vat:null,amt:r?r.amt:null};
+      /* 유닛이 여럿인 계약은 유닛별 산출 결과를 합친다 */
+      const us=Array.isArray(unit)?unit:[unit];
+      const rs=calc(m).rows.filter(r=>us.includes(r.no));
+      if(!rs.length) return {...S,supply:null,vat:null,amt:null};
+      const sm=k=>rs.reduce((a,r)=>a+r[k],0);
+      return {...S,supply:sm('supply'),vat:sm('vat'),amt:sm('amt')};
     };
-    const lines=c.it.map(x=>lineOf(x,c.no)).filter(Boolean);
+    const lines=c.it.map(x=>lineOf(x,c.units||c.no)).filter(Boolean);
     /* 대납분 — 자기 정산 항목을 그 유닛에 적용해 산출한다 */
     /* 대납분 — 금액이 0인 항목은 싣지 않는다. 계량기를 공유해 사용분이 0인 경우다 */
     via.forEach(d=>c.it.filter(x=>CITEM[x[0]].calc==='정산').forEach(x=>{
@@ -2131,11 +2134,9 @@ const normName=s=>String(s||'').normalize('NFKC')
   .replace(/\(주\)|\(유\)|주식회사|유한회사/g,'').replace(/\s+/g,'');
 
 /* 2026-08 회차 청구 — 발행 완료분. 영준빌딩 실제 8월 청구서(VAT 포함)다.
-   전력기금과 TV수신료는 청구서에 한 열로 합쳐져 있어 한 줄로 둔다.
-   (주)아이씨비 본관7·8층은 청구서 한 장(28,789,967원)을 반씩 나눴다. 주차비는 8층에 둔다 */
+   전력기금과 TV수신료는 청구서에 한 열로 합쳐져 있어 한 줄로 둔다 */
 const AUG={
- '본관8층':[['임대료',9790000],['고정관리비',2915000],['전기요금',1351363],['주차비',78100],['수도요금',262496],['전력기금·TV수신료',37075]],
- '본관7층':[['임대료',9790000],['고정관리비',2915000],['전기요금',1351363],['수도요금',262496],['전력기금·TV수신료',37074]],
+ '본관7층·본관8층':[['임대료',19580000],['고정관리비',5830000],['전기요금',2702726],['주차비',78100],['수도요금',524992],['전력기금·TV수신료',74149]],
  '본관6층':[['임대료',10230000],['고정관리비',3080000],['전기요금',22610],['수도요금',276802],['전력기금·TV수신료',619]],
  '본관5층':[['임대료',10649100],['고정관리비',2970000],['전기요금',562472],['수도요금',274628],['전력기금·TV수신료',15435]],
  '본관4층':[['임대료',11770000],['고정관리비',3443000],['전기요금',1084418],['주차비',110000],['수도요금',317206],['전력기금·TV수신료',29748]],
@@ -2175,34 +2176,14 @@ function rcPrefix(nm,B){
   return hit.length===1?hit[0]:null;
 }
 
-/* 배분 — 금액 일치를 먼저 찾고, 없으면 오래된 회차 → 우선순위 → 4.3
-   일치는 청구서 1장 → 청구서 여러 장 → 청구 건 1건 순으로 찾는다.
-   같은 단계에서 둘 이상 맞으면 자동으로 고르지 않는다 */
+/* 배분 — 오래된 회차 → 같은 회차 안에서는 우선순위 → 같은 우선순위면 계약 순서 → 4.3.1
+   입금액이 청구액과 같은지 따지지 않는다. 전액이면 결과가 같고, 모자라면 남는 것이 미납이다.
+   이번 달 청구서와 같은 금액이 들어와도 미납액부터 채운다 */
 function rcPlan(amt,keys,paid){
+  const ci=k=>CTRS.findIndex(c=>c.b+c.no===k);
   const open=BILLS.filter(i=>keys.includes(i.k))
-    .map(i=>({...i,due:i.amt-(paid[i.id]||0)})).filter(i=>i.due>0);
-  const inv={};open.forEach(i=>{(inv[i.ym+'|'+i.k]=inv[i.ym+'|'+i.k]||[]).push(i);});
-  const invs=Object.values(inv), sd=a=>a.reduce((s,i)=>s+i.due,0);
-  const ord=(a,b)=>a.ym<b.ym?-1:a.ym>b.ym?1:a.k<b.k?-1:a.k>b.k?1:a.pr-b.pr;
-  const take=(items,how)=>({how,rest:0,lines:[...items].sort(ord).map(i=>({...i,pay:i.due,after:'완납'}))});
-  let c=invs.filter(v=>sd(v)===amt);
-  if(c.length===1) return take(c[0],'청구서 일치');
-  if(c.length>1) return {need:'같은 금액의 청구서가 둘 이상입니다'};
-  if(invs.length>1&&invs.length<=8){
-    const hits=[];
-    for(let m=1;m<(1<<invs.length);m++){
-      if(!(m&(m-1))) continue;
-      const set=invs.filter((_,j)=>m>>j&1);
-      if(sd(set.flat())===amt) hits.push(set);
-    }
-    if(hits.length===1) return take(hits[0].flat(),`청구서 ${hits[0].length}장 일치`);
-    if(hits.length>1) return {need:'금액이 맞는 청구서 조합이 둘 이상입니다'};
-  }
-  c=open.filter(i=>i.due===amt);
-  if(c.length===1) return take(c,'항목 일치');
-  if(c.length>1) return {need:'같은 금액의 청구 건이 둘 이상입니다'};
-  if(new Set(open.map(i=>i.k)).size>1) return {need:'금액이 맞지 않아 계약을 골라야 합니다'};
-  open.sort((a,b)=>a.ym<b.ym?-1:a.ym>b.ym?1:a.pr-b.pr);
+    .map(i=>({...i,due:i.amt-(paid[i.id]||0)})).filter(i=>i.due>0)
+    .sort((a,b)=>a.ym<b.ym?-1:a.ym>b.ym?1:a.pr!==b.pr?a.pr-b.pr:ci(a.k)-ci(b.k));
   let r=amt;const lines=[];
   for(const i of open){if(r<=0)break;const a=Math.min(r,i.due);
     lines.push({...i,pay:a,after:a===i.due?'완납':'부분납'});r-=a;}
@@ -2210,7 +2191,7 @@ function rcPlan(amt,keys,paid){
 }
 
 /* 매칭 — 입금을 시간순으로 처리한다. 앞선 입금의 배분이 뒤 입금의 미납액을 줄인다
-   (에스씨케이컴퍼니 13:05:36 임대료 → 13:05:37 나머지) */
+   (에스씨케이컴퍼니 13:05:36 임대료 → 13:05:37 나머지) → 4.6.5 */
 function rcRun(){
   const B=rcBiz(), paid={...PAID}, res={};
   [...RC.P.dep].sort((a,b)=>a.dt<b.dt?-1:a.dt>b.dt?1:0).forEach(d=>{
@@ -2225,7 +2206,6 @@ function rcRun(){
         basis:auto?(auto===nm?'상호 일치':'상호 앞자리 일치'):''};return;}
     const keys=dec.ctr?[dec.ctr]:B[biz].ctrs.map(c=>c.b+c.no);
     const pl=rcPlan(d.amt,keys,paid);
-    if(pl.need){res[d.no]={st:'후보',biz,cand:RC.pre[d.no]||biz,nm,basis,need:pl.need};return;}
     pl.lines.forEach(l=>paid[l.id]=(paid[l.id]||0)+l.pay);
     res[d.no]={st,biz,nm,basis,...pl};
   });
@@ -2286,9 +2266,9 @@ function PAY6(){
   const resCell=(d,r)=>{
     if(r.st==='제외') return '<span style="color:var(--faint)">—</span>';
     if(!r.lines) return '<span style="color:var(--faint)">—</span>';
-    const part=r.lines.some(l=>l.after==='부분납');
+    /* 입금 기준이다. 청구의 완납 여부는 뒤 입금까지 처리해야 정해지므로 여기서 말하지 않는다 */
     if(r.rest>0) return `<span style="color:var(--warn)">미배분 ${won(r.rest)}</span>`;
-    return part?`<span style="color:var(--warn)">부분납</span>`:'<span class="c2" style="margin:0">전액 배분</span>';
+    return '<span class="c2" style="margin:0">전액 배분</span>';
   };
   const detail=(d,r)=>{
     const tbl=r.lines&&r.lines.length?`<table><thead><tr><th>청구년월</th><th>계약</th><th>청구항목</th>
@@ -2302,7 +2282,7 @@ function PAY6(){
       입금 기록에 보관하고 환불 또는 다음 회차 배분 중 하나를 고른다. 자동으로 처리하지 않는다.</div>`:'';
     if(r.st==='자동'||r.st==='지정'||r.st==='기록 완료')
       return `<div class="rcx"><div class="ln"><span class="c2" style="margin:0">
-        ${r.st==='기록 완료'?'원장에 기록됨 · ':''}${r.basis||''} · ${r.how} · 비교용 이름 <b>${r.nm}</b></span>${undo}</div>${tbl}${rest}</div>`;
+        ${r.st==='기록 완료'?'원장에 기록됨 · ':''}${r.basis||''} · 오래된 회차 → 우선순위 순 · 비교용 이름 <b>${r.nm}</b></span>${undo}</div>${tbl}${rest}</div>`;
     if(r.st==='제외')
       return `<div class="rcx"><div class="ln">임차인 입금이 아니어서 무시했습니다. 수납으로 기록하지 않습니다.${undo}</div></div>`;
     /* 후보 · 미매칭 — 사업자를 고르고 계약이 여럿이면 계약도 고른다 */
@@ -2330,7 +2310,7 @@ function PAY6(){
       <div class="n"><b>${won(d.amt)}</b></div>
       <div class="c"><span class="bd ${BADGE[r.st]}">${LABEL[r.st]}</span></div>
       <div>${ctrCell(r)}</div>
-      <div class="c2" style="margin:0">${r.how||r.basis||''}</div>
+      <div class="c2" style="margin:0">${r.basis||''}</div>
       <div class="n">${resCell(d,r)}</div>
     </div>`+(op?detail(d,r):'');
   }).join('');
@@ -2359,7 +2339,7 @@ function PAY6(){
   </div>
   <div class="tbl schl">
     <div class="schr rcr hd"><div>입금일시</div><div>입금자명</div><div class="n">입금액</div>
-      <div class="c">매칭</div><div>계약</div><div>배분 근거</div><div class="n">배분 결과</div></div>
+      <div class="c">매칭</div><div>계약</div><div>매칭 근거</div><div class="n">배분 결과</div></div>
     ${body}
     <div class="schr rcr sum"><div>합계 <span class="lock">입금 ${P.dep.length}</span></div><div></div>
       <div class="n">${won(P.dep.reduce((a,d)=>a+d.amt,0))}</div><div></div><div></div><div></div><div></div></div>
