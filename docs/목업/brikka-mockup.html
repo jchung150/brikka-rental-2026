@@ -2170,9 +2170,9 @@ function rcBiz(){
     const k=normName(c.ten);(m[k]=m[k]||{k,n:c.ten,ctrs:[]}).ctrs.push(c);});
   return m;
 }
-/* 별칭 — 등록된 입금자명. 사업자를 등록하면 정규화한 상호가 기본 별칭이 된다 */
-const rcAlias=(nm,B)=>RC.alias[nm]||(B[nm]?nm:null);
-/* 상호 앞자리 부분 일치 — 참고 표시만. 자동 확정하지 않는다 → 4.6.3 */
+/* 별칭 — 담당자가 등록한 입금자명. 등록된 것만 자동 매칭한다 → 4.6.3 */
+const rcAlias=nm=>RC.alias[nm]||null;
+/* 상호 일치 · 앞자리 부분 일치 — 후보로만 제시한다. 자동 확정하지 않는다 → 4.6.3 */
 function rcPrefix(nm,B){
   const pre=(a,b)=>{let i=0;while(i<a.length&&a[i]===b[i])i++;return i;};
   const hit=Object.keys(B).filter(k=>pre(k,nm)>=4);
@@ -2220,12 +2220,13 @@ function rcRun(){
   [...RC.P.dep].sort((a,b)=>a.dt<b.dt?-1:a.dt>b.dt?1:0).forEach(d=>{
     const dec=RC.dec[d.no]||{}, nm=normName(d.name);
     if(dec.done){res[d.no]=dec.done;return;}
-    if(dec.ex){res[d.no]={st:'제외',why:dec.ex,nm};return;}
+    if(dec.ex){res[d.no]={st:'제외',nm};return;}
     let biz=null,basis='',st='';
     if(dec.biz){biz=dec.biz;basis='담당자 지정';st='지정';}
-    else{const a=rcAlias(nm,B);if(a){biz=a;basis=RC.alias[nm]?'등록 별칭':'상호 일치';st='자동';}}
+    else{const a=rcAlias(nm);if(a){biz=a;basis='등록된 입금자명';st='자동';}}
     if(!biz||!B[biz]){const auto=rcPrefix(nm,B);
-      res[d.no]={st:auto?'후보':'미매칭',cand:RC.pre[d.no]||auto,nm,basis:auto?'상호 앞자리 일치':''};return;}
+      res[d.no]={st:auto?'후보':'미매칭',cand:RC.pre[d.no]||auto,nm,
+        basis:auto?(auto===nm?'상호 일치':'상호 앞자리 일치'):''};return;}
     const keys=dec.ctr?[dec.ctr]:B[biz].ctrs.map(c=>c.b+c.no);
     const pl=rcPlan(d.amt,keys,paid);
     if(pl.need){res[d.no]={st:'후보',biz,cand:RC.pre[d.no]||biz,nm,basis,need:pl.need};return;}
@@ -2257,7 +2258,7 @@ function rcAssign(no){
   if(reg&&reg.checked) RC.alias[nm]=biz;
   render(true);
 }
-function rcExclude(no){RC.dec[no]={ex:$('#rce'+no).value};render(true);}
+function rcExclude(no){RC.dec[no]={ex:true};render(true);}
 function rcUndo(no){delete RC.dec[no];render(true);}
 function rcApprove(){
   const R=rcRun();let n=0;
@@ -2278,7 +2279,7 @@ function PAY6(){
   const ready=P.dep.filter(d=>(R[d.no].st==='자동'||R[d.no].st==='지정')&&RC.sel[d.no]!==false);
   const readySum=ready.reduce((a,d)=>a+d.amt,0);
   const BADGE={'자동':'ok','지정':'ac','후보':'wa','미매칭':'da','제외':'mu','기록 완료':'mu'};
-  const LABEL={'자동':'자동 매칭','지정':'담당자 지정','후보':'후보','미매칭':'미매칭','제외':'수납 아님','기록 완료':'기록 완료'};
+  const LABEL={'자동':'자동 매칭','지정':'담당자 지정','후보':'후보','미매칭':'미매칭','제외':'무시','기록 완료':'기록 완료'};
   const ctrCell=r=>{
     const ks=[...new Set((r.lines||[]).map(l=>l.no))];
     if(ks.length){const c=CTRS.find(x=>x.b===RC.b&&x.no===ks[0]);
@@ -2287,7 +2288,7 @@ function PAY6(){
     return '<span style="color:var(--faint)">—</span>';
   };
   const resCell=(d,r)=>{
-    if(r.st==='제외') return `<span class="c2">${r.why}</span>`;
+    if(r.st==='제외') return '<span style="color:var(--faint)">—</span>';
     if(!r.lines) return '<span style="color:var(--faint)">—</span>';
     const part=r.lines.some(l=>l.after==='부분납');
     if(r.rest>0) return `<span style="color:var(--warn)">미배분 ${won(r.rest)}</span>`;
@@ -2307,7 +2308,7 @@ function PAY6(){
       return `<div class="rcx"><div class="ln"><span class="c2" style="margin:0">
         ${r.st==='기록 완료'?'원장에 기록됨 · ':''}${r.basis||''} · ${r.how} · 비교용 이름 <b>${r.nm}</b></span>${undo}</div>${tbl}${rest}</div>`;
     if(r.st==='제외')
-      return `<div class="rcx"><div class="ln">수납으로 기록하지 않는다. 통장 대조를 위해 목록에는 남긴다.${undo}</div></div>`;
+      return `<div class="rcx"><div class="ln">임차인 입금이 아니어서 무시했습니다. 수납으로 기록하지 않습니다.${undo}</div></div>`;
     /* 후보 · 미매칭 — 사업자를 고르고 계약이 여럿이면 계약도 고른다 */
     const pickBiz=r.cand||'';
     const multi=pickBiz&&B[pickBiz]&&B[pickBiz].ctrs.length>1;
@@ -2322,8 +2323,7 @@ function PAY6(){
         <label><input type="checkbox" id="rca${d.no}" checked> <b>${d.name}</b>을(를) 이 임차인의 입금자명으로 등록</label>
         <button class="btn sm pri" onclick="rcAssign(${d.no})">지정</button></div>
       <div class="ln"><span class="c2" style="margin:0">임차인 입금이 아니면</span>
-        <select id="rce${d.no}"><option>반환·환불 입금</option><option>임대 외 수입</option><option>확인 불가</option></select>
-        <button class="btn sm" onclick="rcExclude(${d.no})">수납 아님</button></div></div>`;
+        <button class="btn sm" onclick="rcExclude(${d.no})">무시</button></div></div>`;
   };
   const body=P.dep.map(d=>{
     const r=R[d.no], op=!!RC.op[d.no], can=r.st==='자동'||r.st==='지정', on=RC.sel[d.no]!==false;
@@ -2371,7 +2371,7 @@ function PAY6(){
   <div class="hint">
     자동 매칭된 입금은 배분을 펼쳐 확인한 뒤 승인하세요. 승인해야 원장에 기록됩니다.<br>
     후보·미매칭은 펼쳐서 임차인을 고르세요. 입금자명을 등록해 두면 다음 달부터 자동으로 매칭됩니다.<br>
-    임차인 입금이 아니면 수납 아님으로 두세요. 통장과 맞춰볼 수 있도록 목록에는 남습니다.</div>`;
+    임차인 입금이 아니면 무시하세요.</div>`;
 }
 
 /* ═══ 라우터 ═══ */
