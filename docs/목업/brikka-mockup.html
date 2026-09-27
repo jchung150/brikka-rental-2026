@@ -710,6 +710,12 @@ const CTMUL={};
 const SHARE={ elec:{'본관301호':'본관302호'} };
 const shareOf=(code,no)=>(SHARE[code]||{})[no]||null;
 const ctOf=(code,no)=>((CTMUL[code]||{})[no])||1;
+function setCT(code,no,v){
+  const n=Math.max(0,parseFloat(v)||0)||1;
+  (CTMUL[code]=CTMUL[code]||{});
+  if(n===1) delete CTMUL[code][no]; else CTMUL[code][no]=n;
+  render(true);
+}
 const METER={
  /* 본관301호 고우컴퍼니는 전월·당월 지침이 모두 없다 — 계량기 미보유로 본다 */
  elec: ALL_U.filter(n=>n!=='본관301호'),
@@ -1540,8 +1546,8 @@ function stRead(m,R){
           ?`<b style="${r.neg?'color:var(--warn)':''}">${fx(r.use,r.use%1?2:0)}</b> <span class="u">${U}</span>${
              r.neg?'<div class="c2" style="color:var(--warn)">당월 &lt; 직전</div>':''}`
           :dash}</td>
-        <td class="c">${r.ct===1?'<span style="color:var(--faint)">×1</span>'
-          :`<b>×${r.ct}</b>`}</td>
+        <td class="c"><input class="inp w" type="number" step="0.1" min="0" value="${r.ct}"
+            onchange="setCT('${m.code}','${r.no}',this.value)"></td>
         <td class="n">${r.typed&&r.ct!==1
           ?`<span class="dlt up">+${fx(r.use-r.raw,(r.use-r.raw)%1?2:0)}</span>`
           :'<span style="color:var(--faint)">—</span>'}</td></tr>`
@@ -1572,9 +1578,7 @@ function stRead(m,R){
     <b>배율</b>은 계량기가 실사용량을 그대로 재지 않을 때의 환산 계수다.
     1/30 계량기는 <b>30</b>이 된다. <b>개별 사용량 = (당월 − 직전) × 배율</b>이고
     <b>증감</b>은 배율로 더해진 양이다.<br>
-    <b>배율은 여기서 고치지 않는다.</b> 계량기의 고정 속성이라 회차마다 바뀌지 않으며,
-    회차 중에 바꾸면 이미 확인한 유닛의 금액이 조용히 달라진다.
-    계량기를 교체했다면 <b>건물 관리 › 관리비 설정</b>에서 바꾼다.
+    계량기의 고정 속성이라 매월 바뀌지 않는다. <b>건물 관리 › 관리비 설정</b>에서도 같은 값을 고칠 수 있다.
     계량기의 고정 속성이므로 회차마다 바꾸지 않는다.
     조정 절의 배율과 작용점이 다르다 — 여기서는 <b>실사용량을 복원</b>하고,
     조정 절에서는 <b>공용분 배분 비율</b>을 정한다.<br>
