@@ -115,6 +115,8 @@ svg{flex:none}
   font-size:12.5px;width:92px;text-align:right;font-variant-numeric:tabular-nums}
 .inp:focus{outline:0;border-color:var(--pri)}
 .inp.w{width:76px}
+.inp.w2{width:62px;padding:3px 7px;font-size:12px}
+.uct{display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--muted);margin-left:auto}
 .inp.why{width:100%;text-align:left;font-size:12px}
 
 tr.dim td{color:var(--muted)}
@@ -210,7 +212,7 @@ tr.exr td{background:var(--line-2);color:var(--muted)}
 .ulist .ur.on .ck2{background:var(--pri);border-color:var(--pri)}
 .ulist .ur .un2{font-weight:500;width:52px;flex:none}
 .ulist .ur .ut2{color:var(--muted);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.ulist .ur .ua2{color:var(--faint);font-variant-numeric:tabular-nums}
+color:var(--faint);font-variant-numeric:tabular-nums}
 .utool{display:flex;gap:6px;align-items:center;margin-bottom:7px;font-size:11.5px;color:var(--muted)}
 .utool button{border:1px solid var(--line);background:var(--bg);padding:3px 9px;border-radius:99px;
   cursor:pointer;font-size:11.5px;color:var(--ink-2);font-family:inherit}
@@ -708,12 +710,6 @@ const CTMUL={ elec:{'본관1층':30} };
 const SHARE={ elec:{'본관301호':'본관302호'} };
 const shareOf=(code,no)=>(SHARE[code]||{})[no]||null;
 const ctOf=(code,no)=>((CTMUL[code]||{})[no])||1;
-function setCT(code,no,v){
-  const n=Math.max(0,parseFloat(v)||0)||1;
-  (CTMUL[code]=CTMUL[code]||{});
-  if(n===1) delete CTMUL[code][no]; else CTMUL[code][no]=n;
-  render(true);
-}
 const METER={
  /* 본관301호 고우컴퍼니는 전월·당월 지침이 모두 없다 — 계량기 미보유로 본다 */
  elec: ALL_U.filter(n=>n!=='본관301호'),
@@ -755,6 +751,7 @@ function loadCS(code){
   cs={neu:false, item:code, name:m.name, bill:m.bill, cycle:m.cycle,
       useMeter:mt.length>0, meters:mt,
       basis:b.basis||'임대면적', ref:b.ref||null, editing:!!row,
+      ct:{...(CTMUL[code]||{})},
       doc:b.doc||m.doc||'고지서', by:b.by||m.src||''};
 }
 function openCS(code){
@@ -767,7 +764,7 @@ function openCS(code){
 }
 function csNew(){
   cs={neu:true, item:null, name:'', bill:'세금계산서', cycle:'매월',
-      useMeter:false, meters:[],
+      useMeter:false, meters:[], ct:{},
       basis:'임대면적', ref:null, editing:false};
 }
 /* 자동 규칙 — 4.1.3 */
@@ -802,6 +799,13 @@ function csSet(k,v){
   if(k==='basis'&&v!=='사용량') cs.ref=null;
   render();
 }
+const csCT=no=>(cs.ct&&cs.ct[no])||1;
+function csSetCT(no,v){
+  const n=Math.max(0,parseFloat(v)||0)||1;
+  cs.ct=cs.ct||{};
+  if(n===1) delete cs.ct[no]; else cs.ct[no]=n;
+  render(true);
+}
 function csUnit(no){
   cs.meters.includes(no)?cs.meters=cs.meters.filter(x=>x!==no):cs.meters.push(no);
   render();
@@ -823,6 +827,7 @@ function csApply(){
   }
   const A=csAuto();
   METER[code]=cs.useMeter?[...cs.meters]:[];
+  CTMUL[code]=cs.useMeter?{...(cs.ct||{})}:{};   /* 계기배율도 함께 저장한다 */
   if(METER[code].length) BILL[code].read=BILL[code].read||{};
   BSET[code]={basis:cs.basis,doc:cs.doc,by:cs.by,
     ref:cs.ref,excl:(BSET[code]||{}).excl||{}};
@@ -1082,12 +1087,15 @@ function csHTML(){
           <button onclick="csAll(true)">전체 선택</button>
           <button onclick="csAll(false)">전체 해제</button>
           <span class="cnt2">${nM} / ${nAll}개 선택</span></div>
-        <div class="ulist">${U.map(u=>`
-          <div class="ur ${cs.meters.includes(u.no)?'on':''}" onclick="csUnit('${u.no}')">
-            <div class="ck2">${cs.meters.includes(u.no)?'✓':''}</div>
-            <span class="un2">${u.no}</span>
-            <span class="ut2">${u.ten||'<span style="color:var(--faint)">공실</span>'}</span>
-            <span class="ua2">${fx(u.ar)} ㎡</span></div>`).join('')}
+        <div class="ulist">${U.map(u=>{const on=cs.meters.includes(u.no);return `
+          <div class="ur ${on?'on':''}">
+            <div class="ck2" onclick="csUnit('${u.no}')">${on?'✓':''}</div>
+            <span class="un2" onclick="csUnit('${u.no}')">${u.no}</span>
+            <span class="ut2" onclick="csUnit('${u.no}')">${u.ten||'<span style="color:var(--faint)">공실</span>'}</span>
+            ${on?`<span class="uct">배율
+              <input class="inp w2" type="number" step="0.1" min="0" value="${csCT(u.no)}"
+                onclick="event.stopPropagation()" onchange="csSetCT('${u.no}',this.value)"></span>`
+              :`<span class="ua2">${fx(u.ar)} ㎡</span>`}</div>`}).join('')}
         </div>
       </div>`:''}
 
@@ -1532,8 +1540,8 @@ function stRead(m,R){
           ?`<b style="${r.neg?'color:var(--warn)':''}">${fx(r.use,r.use%1?2:0)}</b> <span class="u">${U}</span>${
              r.neg?'<div class="c2" style="color:var(--warn)">당월 &lt; 직전</div>':''}`
           :dash}</td>
-        <td class="c"><input class="inp w" type="number" step="0.1" min="0" value="${r.ct}"
-            onchange="setCT('${m.code}','${r.no}',this.value)"></td>
+        <td class="c">${r.ct===1?'<span style="color:var(--faint)">×1</span>'
+          :`<b>×${r.ct}</b>`}</td>
         <td class="n">${r.typed&&r.ct!==1
           ?`<span class="dlt up">+${fx(r.use-r.raw,(r.use-r.raw)%1?2:0)}</span>`
           :'<span style="color:var(--faint)">—</span>'}</td></tr>`
@@ -1562,9 +1570,11 @@ function stRead(m,R){
     격월·반기 항목은 직전 회차가 전월이 아니다.<br>
     검침 기록은 원본이며 수정하지 않는다. 부담을 조정하려면 조정 절에서 배율을 기록한다.<br>
     <b>배율</b>은 계량기가 실사용량을 그대로 재지 않을 때의 환산 계수다.
-    1/30 계량기는 <b>30</b>을 넣는다.
-    <b>개별 사용량 = (당월 − 직전) × 배율</b>이며 배율을 바꾸면 즉시 다시 계산된다.
-    <b>증감</b>은 배율로 더해진 양이다.
+    1/30 계량기는 <b>30</b>이 된다. <b>개별 사용량 = (당월 − 직전) × 배율</b>이고
+    <b>증감</b>은 배율로 더해진 양이다.<br>
+    <b>배율은 여기서 고치지 않는다.</b> 계량기의 고정 속성이라 회차마다 바뀌지 않으며,
+    회차 중에 바꾸면 이미 확인한 유닛의 금액이 조용히 달라진다.
+    계량기를 교체했다면 <b>건물 관리 › 관리비 설정</b>에서 바꾼다.
     계량기의 고정 속성이므로 회차마다 바꾸지 않는다.
     조정 절의 배율과 작용점이 다르다 — 여기서는 <b>실사용량을 복원</b>하고,
     조정 절에서는 <b>공용분 배분 비율</b>을 정한다.<br>
