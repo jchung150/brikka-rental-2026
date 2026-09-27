@@ -52,7 +52,9 @@ const X = new Function(stub + bare + '; return {selItems,calc,billTotal,BILL,MAS
 for (const it of X.selItems()) {
   const R = X.calc(it);
   const tot = R.rows.reduce((a, r) => a + r.tot, 0);
-  const use = X.BILL[it.code].use || 0;
+  /* 참조 항목(전력기금·TV수신료)은 자기 사용량이 없고 참조 대상의 검침값을 쓴다 */
+  const own = X.BILL[it.code].use;
+  const use = own == null ? R.totUse : own;
   const ratio = R.rows.reduce((a, r) => a + r.ratio, 0);
   const sumOK = Math.abs(tot - use) < 0.01;
   const ratOK = Math.abs(ratio - 1) < 0.0001;
@@ -60,7 +62,7 @@ for (const it of X.selItems()) {
   const negOK = R.rows.every(r => r.use >= 0 && r.common >= -0.001 && r.amt >= 0);
   if (!sumOK || !ratOK || !amtOK || !negOK) fail = 1;
   console.log('③ ' + it.name.padEnd(7) +
-    ' 총사용량 ' + tot.toFixed(1) + '/' + use + (sumOK ? ' ✓' : ' ✗') +
+    ' 총사용량 ' + tot.toFixed(1) + '/' + use + (own == null ? ' 참조' : sumOK ? ' ✓' : ' ✗') +
     '  배분비율 ' + ratio.toFixed(4) + (ratOK ? ' ✓' : ' ✗') +
     '  차액 ' + R.diff + (amtOK ? ' ✓' : ' ✗') +
     '  절사잔차 ' + (R.rem || 0) + '원' + (negOK ? '' : '   ✗ 음수 발생'));
