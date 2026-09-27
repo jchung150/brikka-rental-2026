@@ -67,4 +67,17 @@ for (const it of X.selItems()) {
     '  차액 ' + R.diff + (amtOK ? ' ✓' : ' ✗') +
     '  절사잔차 ' + (R.rem || 0) + '원' + (negOK ? '' : '   ✗ 음수 발생'));
 }
+/* ④ 조정 배율이 실제로 결과를 바꾸는가 — 변수 가림으로 무력화된 적이 있다 */
+const Y = new Function(stub + bare + '; return {calc,ratios,BILL,M,isDirect,METER};')();
+const tgt = (Y.METER.elec || [])[0];
+if (tgt) {
+  const before = Y.calc(Y.M('elec')).rows.find(r => r.no === tgt);
+  Y.BILL.elec.adj[tgt] = { mul: 2 };
+  const after = Y.calc(Y.M('elec')).rows.find(r => r.no === tgt);
+  const ok = after.mul === 2 && after.common > before.common + 0.01;
+  if (!ok) fail = 1;
+  console.log('④ 조정 배율 반영 ' + tgt + '  공용 ' + before.common.toFixed(1) +
+    ' → ' + after.common.toFixed(1) + (ok ? '  ✓' : '  ✗ 배율이 적용되지 않는다'));
+  delete Y.BILL.elec.adj[tgt];
+}
 process.exit(fail);
