@@ -567,7 +567,7 @@ const BUILDINGS=[
    {t:'건축물대장.pdf',sz:'2.1 MB',c:'건축물대장',by:'김영준',at:'2025-03-02 11:40'},
    {t:'2026년 화재보험증권.pdf',sz:'880 KB',c:'기타',by:'박수민',at:'2026-01-08 16:05'}],
   charge:[
-   {it:'전기요금',use:1,bill:'세금계산서',meter:'13개 유닛',mtr:'청구함',rest:'전체 유닛',basis:'사용량+임대면적',doc:'한국전력 고지서'},
+   {it:'전기요금',use:1,bill:'세금계산서',meter:'13개 유닛',mtr:'청구함',rest:'전체 유닛',basis:'사용량',doc:'한국전력 고지서'},
    {it:'수도요금',use:1,bill:'계산서',meter:'101호',mtr:'청구함',rest:'전체 유닛',basis:'사용량+임대면적',doc:'상수도사업본부 고지서'},
    {it:'전력기금',use:1,bill:'일반내역서',meter:'없음',mtr:'—',rest:'전체 유닛',basis:'사용량',ref:'전기요금',doc:'한국전력 고지서'},
    {it:'TV수신료',use:1,bill:'일반내역서',meter:'없음',mtr:'—',rest:'전체 유닛',basis:'사용량',ref:'전기요금',doc:'한국전력 고지서'},
@@ -718,7 +718,7 @@ const METER={
 };
 /* 건물별 항목 설정 — 정본은 PRO-3 관리비 설정 */
 const BSET={
- elec:{basis:'사용량+임대면적',ref:null,excl:{}},
+ elec:{basis:'사용량',ref:null,excl:{}},
  water:{basis:'사용량+임대면적',ref:null,excl:{}},
  fund:{basis:'사용량',ref:'elec',excl:{}},
  tv:{basis:'사용량',ref:'elec',excl:{}},
