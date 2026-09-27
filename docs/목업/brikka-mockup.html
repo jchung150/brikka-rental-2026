@@ -1697,9 +1697,9 @@ function stResult(m,R){
       (resolve(m.code).ref&&resolve(m.code).ref!==m.code)?` · 기준 ${M(resolve(m.code).ref).name}`:''}</span></div>
     <div class="tw"><table>
       <thead><tr><th>계약고유명</th>
-        ${R.charge&&isMetered(m.code)?'<th class="n">개별 사용량</th>':''}
-        ${m.unit?'<th class="n">공용 사용량</th><th class="n">유닛 총사용량</th>':''}
-        <th class="n">배분 비율</th><th class="n">청구금액</th></tr></thead>
+        ${R.charge&&isMetered(m.code)?'<th class="n">(조정 후)개별 사용량</th>':''}
+        ${m.unit?'<th class="n">(조정 후)공용 사용량</th><th class="n">총 사용량</th>':''}
+        <th class="n">배분 비율</th><th class="n">청구 금액</th></tr></thead>
       <tbody>
         ${R.rows.filter(r=>r.st==='사용중').map(r=>row4(r,m)).join('')}
         ${R.rows.filter(r=>r.st!=='사용중').map(r=>row4(r,m,'vacr')).join('')}
@@ -1726,7 +1726,7 @@ function stResult(m,R){
      :`<b>개별 사용량</b> = 당월 − 직전 검침값. 계량기가 실측한 전용부 사용량이다.<br>
     <b>공용 사용량</b> = (고지서 총사용량 − Σ개별 사용량) × 그 유닛 배분 비율.
     복도·승강기·화장실 등 공용부 사용분이며 계량기 유무와 무관하게 전 유닛이 부담한다.<br>
-    <b>유닛 총사용량</b> = 개별 사용량 + 공용 사용량. 이 비율대로 고지서 금액을 나눈다.`}</div>
+    <b>총 사용량</b> = 개별 사용량 + 공용 사용량. 이 비율대로 고지서 금액을 나눈다.`}</div>
   `;
 }
 function row4(r,m,cls){
