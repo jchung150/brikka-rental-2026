@@ -437,7 +437,10 @@ table.nowr th,table.nowr td{white-space:nowrap}
 .rcr > :nth-child(4){padding-left:28px}
 .ctr{grid-template-columns:minmax(260px,1fr) 150px 150px 150px 100px}
 .schr.dep .nm{color:var(--muted)}
-.arr{grid-template-columns:minmax(300px,1.6fr) 150px 140px 90px 120px 90px}
+.arr{grid-template-columns:minmax(300px,1.6fr) 150px 140px 90px 150px 90px}
+.schr.arr.pd{padding-top:3px;padding-bottom:3px;border-bottom:0;font-size:11.5px;color:var(--muted)}
+.schr.arr.pd .nm{padding-left:56px}
+.schr.arr.mo{border-top:1px solid var(--line-2)}
 .rcx{padding:4px 14px 14px 46px;background:var(--soft);border-bottom:1px solid var(--line-2)}
 .rcx table{background:var(--bg);border:1px solid var(--line);border-radius:var(--r-sm)}
 .rcx td,.rcx th{padding:7px 12px}
@@ -1883,6 +1886,7 @@ const CITEM={
  '교통유발부담금':{calc:'정산', cycle:'연1회',tax:false},
 };
 /* 계약 — 임차인명과 임대료·고정관리비는 2026-08 실제 청구서 기준(VAT 포함 ÷ 1.1). 기산일은 예시값이다.
+   rate는 연체이자율(연 %)이다. 계약마다 다르며 없으면 8%다 → CTR-2
    계약은 유닛마다 따로 둔다. (주)아이씨비 본관7·8층은 계약서가 한 장이지만 한 층만 해지할 수 있어야 하므로
    계약 2건이다. 실제 청구서는 한 장이다 → 임차인 「청구서 합쳐 보내기」 PAY-1 · USER-7
    본관B1은 건물주가 직접 쓰는 공간이라 비운영중이다. 산출 금액은 건축주가 부담한다 → 3.2 */
@@ -1910,7 +1914,7 @@ const CTRS=[
   it:[['임대료',1500000],['고정관리비',430000],['전기요금'],['전력기금'],['TV수신료'],['수도요금'],['정화조청소비']]},
  {b:'b1',no:'별관4층',ten:'(주)좋은생각사람들',st:'진행중',base:'2025-10-01',
   it:[['임대료',2800000],['고정관리비',600000],['전기요금'],['전력기금'],['TV수신료'],['수도요금'],['정화조청소비']]},
- {b:'b1',no:'별관3층',ten:'(주)비씨에이전시',st:'진행중',base:'2024-12-01',
+ {b:'b1',no:'별관3층',ten:'(주)비씨에이전시',st:'진행중',base:'2024-12-01',rate:12,
   it:[['임대료',3150000],['고정관리비',1220000],['전기요금'],['전력기금'],['TV수신료'],['수도요금'],['정화조청소비']]},
  {b:'b1',no:'별관2층',ten:'㈜케이더블유인터내셔널',st:'진행중',base:'2025-04-01',
   it:[['임대료',3700000],['고정관리비',500000],['전기요금'],['전력기금'],['TV수신료'],['수도요금'],['정화조청소비']]},
@@ -2205,12 +2209,19 @@ const AUG={
  '별관3층':[['임대료',3465000],['고정관리비',1342000],['전기요금',198172],['전력기금',4864],['TV수신료',116],['수도요금',102147]],
  '별관2층':[['임대료',4070000],['고정관리비',550000],['전기요금',187767],['전력기금',4608],['TV수신료',110],['수도요금',102147]],
 };
+/* 날짜 — 시간대 영향 없이 날 단위로 센다 */
+const TODAY_S='2026-09-23';
+const dnum=d=>{const [y,m,dd]=d.slice(0,10).split('-').map(Number);return Date.UTC(y,m-1,dd)/864e5;};
+const dueStr=ym=>{const [y,m]=ym.split('-').map(Number);const d=new Date(Date.UTC(y,m,0));return d.toISOString().slice(0,10);};
 const BILLS=[];
 Object.entries(AUG).forEach(([no,ls])=>ls.forEach(([n,amt])=>
   BILLS.push({id:`2026-08|${no}|${n}`,ym:'2026-08',k:'b1'+no,no,n,amt})));
 
 /* 원장에 기록된 수납 배분 — 청구 건별 누적액 */
 const PAID={};
+/* 수납 일자 — 청구 건별 [{date,amt}]. 연체료 구간 계산에 쓴다 → 4.4 */
+const PAYEV={};
+const addPay=(id,amt,date)=>{PAID[id]=(PAID[id]||0)+amt;(PAYEV[id]=PAYEV[id]||[]).push({date,amt});};
 
 /* 2026-06 · 07 회차 — 지난달까지의 원장. 대부분 계약은 8월과 같은 금액을 청구받아 완납했다.
    (주)비씨에이전시는 6·7월 모두 한 푼도 내지 않았다 → 8월 입금 5,000,000원이 6월분부터 채운다
@@ -2224,12 +2235,13 @@ const PAST={
   (PAST[ym][no]||ls).forEach(([n,amt])=>{
     const id=`${ym}|${no}|${n}`;
     BILLS.push({id,ym,k:'b1'+no,no,n,amt});
-    if(no!=='별관3층') PAID[id]=amt;                       /* 비씨에이전시는 6·7월 수납 0 */
+    if(no!=='별관3층') addPay(id,amt,dueStr(ym));          /* 제때 냈다. 비씨에이전시는 6·7월 수납 0 */
   });
 }));
-/* 루비뮤직 7월 — 1,911,880원만 받았다. 우선순위대로 임대료 → 고정관리비 일부 */
-PAID['2026-07|본관B2|고정관리비']=261880;
-['전기요금','전력기금','TV수신료','수도요금'].forEach(n=>delete PAID['2026-07|본관B2|'+n]);
+/* 루비뮤직 7월 — 7/31에 1,911,880원만 받았다. 우선순위대로 임대료 → 고정관리비 일부 */
+['고정관리비','전기요금','전력기금','TV수신료','수도요금'].forEach(n=>{
+  delete PAID['2026-07|본관B2|'+n]; delete PAYEV['2026-07|본관B2|'+n];});
+addPay('2026-07|본관B2|고정관리비',261880,'2026-07-31');
 
 /* 수납 기록 화면 상태 */
 const RC={b:'b1',P:parseBank(BANK_RAW),dec:{},op:{},alias:{},pre:{},reg:{},cur:null,
@@ -2237,8 +2249,8 @@ const RC={b:'b1',P:parseBank(BANK_RAW),dec:{},op:{},alias:{},pre:{},reg:{},cur:n
 const setRC=(k,v)=>{RC.f[k]=v;render();};
 /* 계약 × 청구년월 수납 — 청구액·수납액·미납액·납부상태 → PAY-6 · 3.2 */
 /* 납부마감일 — 영준빌딩은 매월 말일 → 3.5 */
-const dueDate=ym=>{const [y,m]=ym.split('-').map(Number);return new Date(y,m,0);};
-const lateDays=ym=>Math.max(0,Math.floor((TODAY-dueDate(ym))/864e5));
+const dueDate=ym=>new Date(dueStr(ym)+'T00:00:00Z');
+const lateDays=ym=>Math.max(0,dnum(TODAY_S)-dnum(dueStr(ym)));
 /* 납부상태 5종 — 수납 0인 청구만 납부마감일로 납부전/미납을 나눈다 → 3.2 */
 const payState=(bill,paid,ym)=>paid>=bill?'완납':paid>0?'부분납':lateDays(ym)>0?'미납':'납부전';
 function ctrPay(k,ym){
@@ -2247,8 +2259,23 @@ function ctrPay(k,ym){
   const bill=it.reduce((a,i)=>a+i.amt,0), paid=it.reduce((a,i)=>a+i.paid,0);
   return {it,bill,paid,due:bill-paid,st:!it.length?null:payState(bill,paid,ym)};
 }
-/* 연체료(예상) — 미납액 × 연 8% × 연체일수 ÷ 365, 원 미만 절사 → 4.4 */
-const lateFee=(due,ym)=>Math.floor(due*0.08*lateDays(ym)/365);
+/* 연체료(예상) — 구간별로 계산한다 → 4.4
+   납부마감일 다음날부터 오늘까지를 수납이 들어올 때마다 끊고, 구간마다 그 동안의 미납액 × 연체이자율 × 일수 ÷ 365.
+   구간마다 원 미만 절사 후 합한다. 내역서의 줄과 합계가 맞아야 하기 때문이다 */
+const rateOf=k=>{const c=CTRS.find(x=>x.b+x.no===k);return (c&&c.rate)||8;};
+function lateCalc(k,ym){
+  const it=BILLS.filter(i=>i.k===k&&i.ym===ym), due=dueStr(ym), rate=rateOf(k);
+  const bill=it.reduce((a,i)=>a+i.amt,0);
+  const ev=it.flatMap(i=>PAYEV[i.id]||[]);
+  let bal=bill-ev.filter(e=>dnum(e.date)<=dnum(due)).reduce((a,e)=>a+e.amt,0);
+  const later=ev.filter(e=>dnum(e.date)>dnum(due)).sort((a,b)=>dnum(a.date)-dnum(b.date));
+  const periods=[]; let from=due;
+  const cut=(to)=>{const days=dnum(to)-dnum(from);
+    if(days>0&&bal>0) periods.push({from,to,days,bal,fee:Math.floor(bal*rate/100*days/365)});from=to;};
+  later.forEach(e=>{cut(e.date);bal-=e.amt;});
+  if(dnum(TODAY_S)>dnum(from)) cut(TODAY_S);
+  return {rate,periods,fee:periods.reduce((a,p)=>a+p.fee,0)};
+}
 /* 이 계약에 배분된 입금 — 입금 하나가 여러 계약에 나뉘면 자기 몫만 */
 const ctrDeps=(k,ym)=>RC.P.dep.filter(d=>(RC.dec[d.no]||{}).done)
   .map(d=>({d,pay:RC.dec[d.no].done.lines.filter(l=>l.k===k&&(!ym||l.ym===ym)).reduce((a,l)=>a+l.pay,0)})).filter(x=>x.pay>0);
@@ -2339,7 +2366,7 @@ function rcConfirm(no){
   const B=rcBiz(), d=RC.P.dep.find(x=>x.no===no), g=rcGuess(d,B);
   if(!g.biz) return;
   const pl=rcPreview(d,g.biz,B);
-  pl.lines.forEach(l=>PAID[l.id]=(PAID[l.id]||0)+l.pay);
+  pl.lines.forEach(l=>addPay(l.id,l.pay,d.dt.slice(0,10).replace(/\./g,'-')));
   if(RC.reg[no]!==false&&g.st!=='자동') RC.alias[g.nm]=g.biz;   /* 입금자명 등록 */
   RC.dec[no]={done:{st:'확정',was:g.st,biz:g.biz,basis:g.basis,nm:g.nm,...pl}};
   RC.cur=rcNext(); render(true);
@@ -2567,55 +2594,64 @@ const setF2=(k,v)=>{f2[k]=v;render();};
 const g2Open=k=>(k in g2)?g2[k]:g2All;
 const g2Tog=k=>{g2[k]=!g2Open(k);render(true);};
 const pick2=(k,e)=>{e.stopPropagation();sel2[k]=!sel2[k];render(true);};
-/* 계약 하나의 미납 — 미납액이 남은 달만, 오래된 달부터 */
+/* 계약 하나의 미납 — 미납액이 남았거나 청구 전 연체료가 있는 달. 최근 달이 위 */
 function arrears(c){
-  const k=c.b+c.no, yms=[...new Set(BILLS.filter(i=>i.k===k).map(i=>i.ym))].sort();
-  const months=yms.map(ym=>{const p=ctrPay(k,ym);
-    return {ym,due:p.due,bill:p.bill,paid:p.paid,st:p.st,days:lateDays(ym),fee:lateFee(p.due,ym)};}).filter(m=>m.due>0);
+  const k=c.b+c.no, yms=[...new Set(BILLS.filter(i=>i.k===k).map(i=>i.ym))].sort().reverse();
+  const months=yms.map(ym=>{const p=ctrPay(k,ym), L=lateCalc(k,ym);
+    return {ym,due:p.due,bill:p.bill,paid:p.paid,st:p.st,days:p.due?lateDays(ym):0,fee:L.fee,periods:L.periods};})
+    .filter(m=>m.due>0||m.fee>0);
+  const owe=months.filter(m=>m.due>0);
   const lastDep=RC.P.dep.filter(d=>{const x=RC.dec[d.no];return x&&x.done&&x.done.lines.some(l=>l.k===k);})
     .map(d=>d.dt).sort().pop()||null;
-  return {c,k,months,due:months.reduce((a,m)=>a+m.due,0),fee:months.reduce((a,m)=>a+m.fee,0),
-    days:Math.max(0,...months.map(m=>m.days)),from:months.length?months[0].ym:null,lastDep};
+  return {c,k,months,owe,rate:rateOf(k),due:owe.reduce((a,m)=>a+m.due,0),fee:months.reduce((a,m)=>a+m.fee,0),
+    days:Math.max(0,...owe.map(m=>m.days)),from:owe.length?owe[owe.length-1].ym:null,lastDep};
 }
 function PAY2(){
   const bn=BUILDINGS.find(x=>x.id===f2.b)||BUILDINGS[0];
   const has=f2.b===RC.b;
   const all=has?CTRS.filter(c=>c.b===RC.b&&(!f2.cs||(f2.cs==='진행중'?c.st==='진행중':c.st!=='진행중'))).map(arrears):[];
-  const rows=all.filter(a=>f2.all||a.due>0).sort((x,y)=>y.due-x.due);
-  const dueRows=all.filter(a=>a.due>0);
-  const T={due:dueRows.reduce((a,x)=>a+x.due,0),fee:dueRows.reduce((a,x)=>a+x.fee,0)};
-  const oldest=dueRows.map(a=>a.from).sort()[0];
-  const nSel=rows.filter(a=>sel2[a.k]&&a.due>0).length;
+  const rows=all.filter(a=>f2.all||a.due>0||a.fee>0).sort((x,y)=>(y.due-x.due)||(y.fee-x.fee));
+  const act=rows.filter(a=>a.due>0||a.fee>0);
+  const T={due:act.reduce((a,x)=>a+x.due,0),fee:act.reduce((a,x)=>a+x.fee,0)};
+  const nSel=rows.filter(a=>sel2[a.k]&&(a.due>0||a.fee>0)).length;
   const waitN=has?RC.P.dep.filter(rcIsOpen).length:0;
   const anyOp=rows.some(a=>g2Open(a.k));
   const ymK=ym=>ym.slice(2).replace('-','.')+'월';
+  const md=d=>d.slice(5).replace('-','.');
   const dash='<span style="color:var(--faint)">—</span>';
   const body=rows.map(a=>{
-    const op=g2Open(a.k), on=!!sel2[a.k], can=a.due>0;
+    const op=g2Open(a.k), on=!!sel2[a.k], can=a.due>0||a.fee>0;
     return `<div class="schr arr grp" onclick="g2Tog('${a.k}')">
       <div class="nm">${can?`<span class="cb ${on?'on':''}" onclick="pick2('${a.k}',event)"></span>`:'<span class="cb dis"></span>'}<span class="tg ${op?'op':''}" style="${can?'':'visibility:hidden'}">${ic('chev',16)}</span>${cnameHTML(bn.alias,a.c.no,a.c.ten)}${
         a.c.st!=='진행중'?` <span class="bd mu">${a.c.st}</span>`:''}</div>
-      <div>${a.months.length?`<b>${a.months.length}개월</b><span class="c2" style="margin-left:6px">${ymK(a.from)}부터</span>`:'<span class="c2" style="margin:0">미납 없음</span>'}</div>
+      <div>${a.owe.length?`<b>${a.owe.length}개월</b><span class="c2" style="margin-left:6px">${ymK(a.from)}부터</span>`
+        :a.fee?'<span class="c2" style="margin:0">미납 없음 · 연체료 미청구</span>':'<span class="c2" style="margin:0">미납 없음</span>'}</div>
       <div class="n">${a.due?`<b style="color:var(--warn)">${won(a.due)}</b>`:dash}</div>
       <div class="n">${a.days?`${a.days}일`:dash}</div>
-      <div class="n">${a.fee?won(a.fee):dash}</div>
-      <div class="n c2" style="margin:0">${a.lastDep?a.lastDep.slice(5,10).replace('-','.'):'—'}</div>
-    </div>`+(!op||!can?'':a.months.map(m=>`
-    <div class="schr arr sub" onclick="RC.f.b='${RC.b}';RC.f.ym='${m.ym}';RC.f.st='';go('pay-6')">
-      <div class="nm">${m.ym.replace('-','년 ')}월분 <span class="c2">청구 ${won(m.bill)} · 수납 ${m.paid?won(m.paid):'0원'} · 마감 ${m.ym.slice(5)}.${String(dueDate(m.ym).getDate())}</span></div>
+      <div class="n">${a.fee?`<span class="c2" style="margin-right:6px">연 ${a.rate}%</span>${won(a.fee)}`:dash}</div>
+      <div class="n c2" style="margin:0">${a.lastDep?md(a.lastDep.slice(0,10).replace(/\./g,'-')):'—'}</div>
+    </div>`+(!op||!can?'':`
+    <div class="schr arr sub"><div class="nm" style="color:var(--muted)">연체이자율 연 ${a.rate}% · 구간마다 미납액 × 이율 × 일수 ÷ 365</div>
+      <div></div><div></div><div></div><div></div>
+      <div class="n"><button class="btn sm" onclick="event.stopPropagation();alert('연체료 내역서 — 달별·구간별 미납액, 이율, 일수, 연체료와 그 사이 입금을 한 장에 담는다. PDF로 내려받거나 임차인 담당자에게 보낸다')">내역서</button></div></div>`
+    +a.months.map(m=>`
+    <div class="schr arr sub mo" onclick="RC.f.b='${RC.b}';RC.f.ym='${m.ym}';RC.f.st='';go('pay-6')">
+      <div class="nm">${m.ym.replace('-','년 ')}월분 <span class="c2">청구 ${won(m.bill)} · 수납 ${m.paid?won(m.paid):'0원'} · 마감 ${md(dueStr(m.ym))}</span></div>
       <div><span class="bd ${PST[m.st]}">${m.st}</span></div>
-      <div class="n" style="color:var(--warn)">${won(m.due)}</div>
+      <div class="n">${m.due?`<span style="color:var(--warn)">${won(m.due)}</span>`:dash}</div>
       <div class="n c2" style="margin:0">${m.days?`${m.days}일`:'—'}</div>
-      <div class="n c2" style="margin:0">${m.fee?won(m.fee):'—'}</div>
+      <div class="n">${m.fee?won(m.fee):'—'}</div>
       <div></div>
-    </div>`).join(''));
+    </div>`+m.periods.map(p=>`
+    <div class="schr arr sub pd"><div class="nm">${md(p.from)} ~ ${md(p.to)} · ${p.days}일 · ${won(p.bal)} × ${a.rate}% × ${p.days} ÷ 365</div>
+      <div></div><div></div><div></div><div class="n">${won(p.fee)}</div><div></div></div>`).join('')).join(''));
   }).join('');
   return `
   <div class="ph"><h1>미납 관리</h1><span class="sid">PAY-2</span>
     <div class="act">
       <button class="btn" onclick="alert('수납 처리 — 입금 매칭(PAY-13)의 수동 입력으로 연결한다. 선택한 계약의 임차인을 미리 채운다')">수납 처리</button>
-      <button class="btn" ${nSel?'':'disabled'} onclick="alert('연체료 청구 — 선택한 계약의 연체료를 청구 항목(우선순위 99)으로 생성하고 원장에 기록한다')">연체료 청구${nSel?` ${nSel}건`:''}</button>
-      <button class="btn pri" ${nSel?'':'disabled'} onclick="alert('독촉 메일 발송 — 월별 미납액·연체일수를 담아 임차인 담당자에게 보낸다')">독촉 메일 발송${nSel?` ${nSel}건`:''}</button></div>
+      <button class="btn" ${nSel?'':'disabled'} onclick="alert('연체료 청구 — 선택한 계약의 연체료를 청구 항목(우선순위 99)으로 생성하고 원장에 기록한다. 청구한 날까지의 구간은 다시 계산하지 않는다')">연체료 청구${nSel?` ${nSel}건`:''}</button>
+      <button class="btn pri" ${nSel?'':'disabled'} onclick="alert('독촉 메일 발송 — 월별 미납액·연체일수·연체료 내역을 담아 임차인 담당자에게 보낸다')">독촉 메일 발송${nSel?` ${nSel}건`:''}</button></div>
   </div>
   <div class="fbar">
     <select onchange="setF2('b',this.value)">
@@ -2625,36 +2661,26 @@ function PAY2(){
       ${[['','전체 계약상태'],['진행중','진행중'],['종료','종료됨·파기됨']].map(([v,t])=>`<option value="${v}" ${f2.cs===v?'selected':''}>${t}</option>`).join('')}
     </select>
     <select onchange="setF2('all',this.value==='1')">
-      <option value="" ${!f2.all?'selected':''}>미납 있는 계약</option><option value="1" ${f2.all?'selected':''}>전체 계약</option>
+      <option value="" ${!f2.all?'selected':''}>미납·연체료 있는 계약</option><option value="1" ${f2.all?'selected':''}>전체 계약</option>
     </select>
     ${rows.length?`<span style="margin-left:auto"><button class="btn sm" onclick="g2All=${anyOp?'false':'true'};g2={};render(true)">${anyOp?'전체 접기':'전체 펼치기'}</button></span>`:''}
   </div>
-  ${has?`<div class="two" style="grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px">
-    ${[['미납 계약',`${dueRows.length}건`,`진행중 ${dueRows.filter(a=>a.c.st==='진행중').length}`],
-       ['미납액 합계',won(T.due),'부가세 포함'],
-       ['연체료(예상)',won(T.fee),'연 8% · 청구 전'],
-       ['가장 오래된 미납',oldest?oldest.replace('-','년 ')+'월':'없음',oldest?`${lateDays(oldest)}일 경과`:'']]
-      .map(([k,v,d],i)=>`<div class="card" style="margin:0"><div class="cc" style="padding:14px 16px">
-        <div style="font-size:11.5px;color:var(--muted)">${k}</div>
-        <div style="font-size:17px;font-weight:700;margin:3px 0 1px;${i===1&&T.due?'color:var(--warn)':''}">${v}</div>
-        <div class="c2">${d}</div></div></div>`).join('')}
-  </div>`:''}
   ${waitN?`<div class="fnd wa3"><span class="h">확정 전 입금 ${waitN}건</span>
     아직 기록되지 않은 입금이 있어 이미 낸 계약도 미납으로 보입니다.
     <b class="lk" onclick="go('pay-13')">입금 매칭으로 이동 →</b></div>`:''}
   ${!rows.length?`<div class="tbl"><div class="empty"><div class="t">${has?'미납이 없습니다':'자료가 없습니다'}</div>
-     ${has?'모든 계약이 완납 상태입니다.':'목업 자료는 동교동 영준빌딩뿐입니다.'}</div></div>`
+     ${has?'모든 계약이 완납 상태이고 청구 전 연체료도 없습니다.':'목업 자료는 동교동 영준빌딩뿐입니다.'}</div></div>`
   :`<div class="tbl schl">
     <div class="schr arr hd"><div>계약고유명 · 청구년월</div><div>미납 기간</div><div class="n">미납액</div>
       <div class="n">연체일수</div><div class="n">연체료(예상)</div><div class="n">최근 입금</div></div>
     ${body}
-    <div class="schr arr sum"><div>합계 <span class="lock">계약 ${dueRows.length}</span></div><div></div>
+    <div class="schr arr sum"><div>합계 <span class="lock">계약 ${act.length}</span></div><div></div>
       <div class="n">${T.due?`<span style="color:var(--warn)">${won(T.due)}</span>`:'—'}</div><div></div>
       <div class="n">${T.fee?won(T.fee):'—'}</div><div></div></div>
   </div>`}
   <div class="hint">
-    지금까지 쌓인 미납을 계약별로 모았습니다. 펼치면 달별 미납이 보이고, 누르면 그 달 수납 내역으로 갑니다.<br>
-    연체료는 표시만 합니다. 청구하려면 계약을 골라 연체료 청구를 누르세요.</div>`;
+    지금까지 쌓인 미납과 청구하지 않은 연체료를 계약별로 모았습니다. 펼치면 최근 달부터 보입니다.<br>
+    연체료는 표시만 합니다. 늦게라도 다 낸 달에도 연체료가 남습니다. 청구하려면 계약을 골라 연체료 청구를 누르세요.</div>`;
 }
 
 /* ═══ 라우터 ═══ */

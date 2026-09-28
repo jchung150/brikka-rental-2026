@@ -118,7 +118,7 @@ for (const m of Z.MASTER) {
 if (orphan.length) fail = 1;
 console.log('⑤ 유닛 번호 정합성 ' + (orphan.length ? '✗ ' + orphan.join(', ') : 'OK'));
 /* ⑥ 수납 기록 — 8월 실제 거래내역으로 매칭·배분·미납을 검산한다 → 4.3 · 4.6 */
-const W = new Function(stub + bare + '; return {RC,rcPreview,ctrPay,ctrDeps,rcRun,rcQueue,rcGuess,rcBiz,rcConfirm,rcIgnore,rcNext,rcOpenN,dueOf,normName,PAID,BILLS};')();
+const W = new Function(stub + bare + '; return {RC,lateCalc,rcPreview,ctrPay,ctrDeps,rcRun,rcQueue,rcGuess,rcBiz,rcConfirm,rcIgnore,rcNext,rcOpenN,dueOf,normName,PAID,BILLS};')();
 const P6 = W.RC.P;
 const r6 = [];
 r6.push(['거래 56 · 입금 14 · 출금 42', P6.rows.length === 56 && P6.dep.length === 14 && P6.wd.length === 42]);
@@ -157,6 +157,11 @@ r6.push(['수납 내역 — 나머지 12계약 8월 완납, 루비뮤직 7월도
   ['본관8층','본관7층','본관6층','본관5층','본관4층','본관301호','본관302호','본관2층','본관1층','본관B2','별관4층','별관2층'].every(n => st6(n) === '완납')
   && st6('본관B2', '2026-07') === '완납']);
 r6.push(['케이더블유인터 두 입금이 각 계약에 자기 몫만', W.ctrDeps('b1본관5층').length >= 1 && W.ctrDeps('b1별관2층').length >= 1]);
+/* 연체료 구간 계산 — 비씨에이전시(연 12%) 6월분: 7/1~8/31 5,086,514원 → 8/31 입금 후 86,514원 → 4.4 */
+const L6 = W.lateCalc('b1별관3층', '2026-06'), LR = W.lateCalc('b1본관B2', '2026-07');
+r6.push(['연체료 구간 — 비씨에이전시 6월분 103,681 + 654 = 104,335',
+  L6.periods.length === 2 && L6.periods[0].fee === 103681 && L6.periods[1].fee === 654 && L6.fee === 104335]);
+r6.push(['늦게 다 낸 달에도 연체료 — 루비뮤직 7월분 385,000 × 8% × 31일 = 2,615', LR.fee === 2615 && LR.periods[0].days === 31]);
 /* 원장 잔액 — 8월 회차 화면에서는 8월 미납이 「지난 미납」이 아니므로 dueOf 대신 직접 본다 */
 const left = k => W.BILLS.filter(i => i.k === k).reduce((a, i) => a + i.amt - (W.PAID[i.id] || 0), 0);
 const all12 = ['본관8층','본관7층','본관6층','본관5층','본관4층','본관301호','본관302호','본관2층','본관1층','본관B2','별관4층','별관2층'];
