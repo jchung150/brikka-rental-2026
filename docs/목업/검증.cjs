@@ -48,6 +48,8 @@ run('미구현 화면', "TODO('pay-2')");
 run('PAY-6', 'PAY6()');
 run('PAY-6 전체 펼침', 'RC.P.dep.forEach(d=>RC.op[d.no]=true);PAY6()');
 run('PAY-6 임차인 선택', "RC.pre[8]='아마데우스코리아';RC.op[8]=true;PAY6()");
+for (const f of ["RC.f.st='배분 전'", "RC.f.st='전액 배분'", "RC.f.st='미배분'", "RC.f.st='무시'", "RC.f.b='b2'", "RC.f.ym='2026-07'"])
+  run('PAY-6 필터 ' + f, "RC.f={b:'b1',ym:'2026-08',st:''};" + f + ';PAY6()');
 if (!fail) console.log('② 전 화면 렌더                  OK');
 
 /* ③ 계산 검산 — 4.1.2 */

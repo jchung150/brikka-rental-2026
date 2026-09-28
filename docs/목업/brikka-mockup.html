@@ -424,9 +424,6 @@ td.c,th.c{text-align:center}
 .rcx td,.rcx th{padding:7px 12px}
 .rcx .ln{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:9px 0;font-size:12.5px}
 .rcx select{border:1px solid var(--line);background:var(--bg);padding:6px 9px;border-radius:var(--r-sm);font:inherit;font-size:12.5px}
-.mapc{display:inline-flex;gap:5px;align-items:center;border:1px solid var(--line);border-radius:99px;
-  padding:3px 10px;font-size:11.5px;color:var(--muted);white-space:nowrap}
-.mapc b{color:var(--ink);font-weight:500}
 
 .fnd.wa3{border-color:color-mix(in srgb,var(--warn) 40%,var(--line))}
 .bd.wa2{background:color-mix(in srgb,var(--warn) 14%,transparent);color:var(--warn)}
@@ -2172,7 +2169,11 @@ Object.entries(AUG).forEach(([no,ls])=>ls.forEach(([n,amt])=>
 const PAID={};
 
 /* 수납 기록 화면 상태 */
-const RC={b:'b1',P:parseBank(BANK_RAW),dec:{},op:{},sel:{},alias:{},pre:{}};
+const RC={b:'b1',P:parseBank(BANK_RAW),dec:{},op:{},sel:{},alias:{},pre:{},
+          f:{b:'b1',ym:'2026-08',st:''}};   /* 필터 — 건물 · 청구년월 · 배분 결과 */
+const setRC=(k,v)=>{RC.f[k]=v;render();};
+/* 배분 결과 — 입금 기준. 필터와 목록 열이 같은 값을 쓴다 */
+const rcRes=r=>r.st==='제외'?'무시':!r.lines?'배분 전':r.rest>0?'미배분':'전액 배분';
 
 /* 사업자 — 같은 사업자의 계약은 입금 1건으로 함께 낼 수 있다 */
 function rcBiz(){
@@ -2238,6 +2239,7 @@ function dueOf(k){
 }
 
 const rcTog=no=>{RC.op[no]=!RC.op[no];render(true);};
+const P6open=v=>{RC.P.dep.forEach(d=>RC.op[d.no]=v);render(true);};
 const rcPick=(no,e)=>{e.stopPropagation();RC.sel[no]=RC.sel[no]===false;render(true);};
 function rcAssign(no){
   const biz=$('#rcb'+no).value;if(!biz) return;
@@ -2278,8 +2280,8 @@ function PAY6(){
     return '<span style="color:var(--faint)">—</span>';
   };
   const resCell=(d,r)=>{
-    if(r.st==='제외') return '<span style="color:var(--faint)">—</span>';
-    if(!r.lines) return '<span style="color:var(--faint)">—</span>';
+    if(r.st==='제외') return '<span style="color:var(--faint)">무시</span>';
+    if(!r.lines) return '<span style="color:var(--faint)">배분 전</span>';
     /* 입금 기준이다. 청구의 완납 여부는 뒤 입금까지 처리해야 정해지므로 여기서 말하지 않는다 */
     if(r.rest>0) return `<span style="color:var(--warn)">미배분 ${won(r.rest)}</span>`;
     return '<span class="c2" style="margin:0">전액 배분</span>';
@@ -2315,7 +2317,11 @@ function PAY6(){
       <div class="ln"><span class="c2" style="margin:0">임차인 입금이 아니면</span>
         <button class="btn sm" onclick="rcExclude(${d.no})">무시</button></div></div>`;
   };
-  const body=P.dep.map(d=>{
+  /* 은행 거래내역은 건물 × 월 단위로 올린다. 목업 자료는 영준빌딩 2026년 8월뿐이다 */
+  const has=RC.f.b===RC.b&&RC.f.ym==='2026-08';
+  const rows=has?P.dep.filter(d=>!RC.f.st||rcRes(R[d.no])===RC.f.st):[];
+  const anyOp=rows.some(d=>RC.op[d.no]);
+  const body=rows.map(d=>{
     const r=R[d.no], op=!!RC.op[d.no], can=r.st==='자동'||r.st==='지정', on=RC.sel[d.no]!==false;
     return `<div class="schr rcr grp" onclick="rcTog(${d.no})">
       <div class="nm">${can?`<span class="cb ${on?'on':''}" onclick="rcPick(${d.no},event)"></span>`
@@ -2328,36 +2334,37 @@ function PAY6(){
       <div class="n">${resCell(d,r)}</div>
     </div>`+(op?detail(d,r):'');
   }).join('');
-  const hd=P.head, mp=P.map;
   return `
   <div class="ph"><h1>수납 기록</h1><span class="sid">PAY-6</span>
-    <div class="act"><button class="btn" onclick="alert('수동 입력 — 계약·입금일·입금액·결제수단을 직접 넣는다. 아직 미구현')">수동 입력</button>
+    <div class="act">
+      <button class="btn" onclick="alert('은행 거래내역 업로드 — 건물을 고르고 은행에서 내려받은 파일을 그대로 올린다.\n머리말 행과 출금 행은 시스템이 걸러낸다 → 4.6.1')">은행 거래내역 업로드</button>
+      <button class="btn" onclick="alert('수동 입력 — 임차인·입금일·입금액·결제수단을 직접 넣는다. 아직 미구현')">수동 입력</button>
       <button class="btn pri" ${ready.length?'':'disabled'} onclick="rcApprove()">
         ${ready.length?`${ready.length}건 승인 · ${won(readySum)}`:'승인할 입금 없음'}</button></div>
   </div>
-  <div class="card"><div class="ct">은행 거래내역
-      <span class="sub">${bn.name} · 국민은행 · 영준빌딩_거래내역_2026-08.xls</span>
-      <span class="ca"><button class="btn sm" onclick="alert('다른 파일 업로드 — 건물을 먼저 고른다')">다른 파일</button></span></div>
-    <div class="cc">
-      <div style="font-size:12.5px">거래 <b>${P.rows.length}</b>건 중 입금 <b>${P.dep.length}</b>건
-        <span class="c2" style="margin-left:8px">출금 ${P.wd.length}건 제외 · 머리말 ${P.skip}행 건너뜀</span></div>
-      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px">
-        <span class="mapc">거래일시 ← <b>${hd[mp.dt]}</b></span>
-        <span class="mapc">거래구분 ← <b>${hd[mp.kind]}</b></span>
-        <span class="mapc">입금자명 ← <b>${hd[mp.name]}</b></span>
-        <span class="mapc">입금액 ← <b>${hd[mp.amt]}</b></span>
-        <span class="c2" style="margin:0 0 0 4px;align-self:center">국민은행 열 매핑으로 저장됨</span></div>
-    </div></div>
   <div class="fbar">
-    ${['자동','지정','후보','미매칭','제외','기록 완료'].map(k=>`<span class="bd ${BADGE[k]}">${LABEL[k]} ${cnt(k)}</span>`).join('')}
+    <select onchange="setRC('b',this.value)">
+      ${BUILDINGS.map(b=>`<option value="${b.id}" ${RC.f.b===b.id?'selected':''}>${b.name}</option>`).join('')}
+    </select>
+    <select onchange="setRC('ym',this.value)">
+      ${[['2026-08','2026년 8월'],['2026-07','2026년 7월'],['2026-06','2026년 6월']].map(([v,t])=>
+        `<option value="${v}" ${RC.f.ym===v?'selected':''}>${t}</option>`).join('')}
+    </select>
+    <select onchange="setRC('st',this.value)">
+      ${['','배분 전','전액 배분','미배분','무시'].map(v=>`<option value="${v}" ${RC.f.st===v?'selected':''}>${v||'전체 상태'}</option>`).join('')}
+    </select>
+    ${rows.length?`<span style="margin-left:auto;display:flex;gap:8px">
+      <button class="btn sm" onclick="P6open(${anyOp?'false':'true'})">${anyOp?'전체 접기':'전체 펼치기'}</button></span>`:''}
   </div>
-  <div class="tbl schl">
+  ${!rows.length?`<div class="tbl"><div class="empty"><div class="t">${has?'조건에 맞는 입금이 없습니다':'은행 거래내역이 없습니다'}</div>
+     ${has?'다른 상태를 선택해 보세요.':'이 건물·월의 거래내역을 올리면 입금이 표시됩니다.'}</div></div>`
+  :`<div class="tbl schl">
     <div class="schr rcr hd"><div>입금일시</div><div>입금자명</div><div class="n">입금액</div>
       <div class="c">매칭</div><div>계약</div><div>매칭 근거</div><div class="n">배분 결과</div></div>
     ${body}
-    <div class="schr rcr sum"><div>합계 <span class="lock">입금 ${P.dep.length}</span></div><div></div>
-      <div class="n">${won(P.dep.reduce((a,d)=>a+d.amt,0))}</div><div></div><div></div><div></div><div></div></div>
-  </div>
+    <div class="schr rcr sum"><div>합계 <span class="lock">입금 ${rows.length}</span></div><div></div>
+      <div class="n">${won(rows.reduce((a,d)=>a+d.amt,0))}</div><div></div><div></div><div></div><div></div></div>
+  </div>`}
   <div class="hint">
     자동 매칭된 입금은 배분을 펼쳐 확인한 뒤 승인하세요. 승인해야 원장에 기록됩니다.<br>
     후보·미매칭은 펼쳐서 임차인을 고르세요. 입금자명을 등록해 두면 다음 달부터 자동으로 매칭됩니다.<br>
