@@ -437,6 +437,7 @@ table.nowr th,table.nowr td{white-space:nowrap}
 .rcr > :nth-child(4){padding-left:28px}
 .ctr{grid-template-columns:minmax(260px,1fr) 150px 150px 150px 100px}
 .schr.dep .nm{color:var(--muted)}
+.arr{grid-template-columns:minmax(300px,1.6fr) 150px 140px 90px 120px 90px}
 .rcx{padding:4px 14px 14px 46px;background:var(--soft);border-bottom:1px solid var(--line-2)}
 .rcx table{background:var(--bg);border:1px solid var(--line);border-radius:var(--r-sm)}
 .rcx td,.rcx th{padding:7px 12px}
@@ -1864,7 +1865,7 @@ function TODO(id){
   <div class="tbl"><div class="empty"><div class="t">아직 만들지 않은 화면입니다</div>
     구현된 화면 — <b>PRO-1</b> 건물 목록 · <b>PRO-3</b> 건물 상세 ·
     <b>PAY-12</b> 청구 · 수납 현황 · <b>PAY-10</b> 관리비 정산 · <b>PAY-1</b> 청구서 발행 ·
-    <b>PAY-13</b> 입금 매칭 · <b>PAY-6</b> 수납 내역</div></div>`;   /* PAY-8 수납 내역은 PAY-6에 합쳤다 */
+    <b>PAY-13</b> 입금 매칭 · <b>PAY-6</b> 수납 내역 · <b>PAY-2</b> 미납 관리</div></div>`;   /* PAY-8 수납 내역은 PAY-6에 합쳤다 */
 }
 
 /* ═══ PAY-1 · 청구 약정 ═══ */
@@ -2109,7 +2110,7 @@ function PAY1(){
 const BANK_RAW=`영준빌딩
 조회기간 : 2026.08.01~2026.08.31 조회일시 : 2026.09.11 07:30:28
 No.    거래일시    적요    기재내용    지급(원)    입금(원)    거래후 잔액(원)    취급점    메모    수표·어음·증권금액(원)
-1    2026.08.31 19:01:55    인터넷    주식회사루비뮤직    0    2,568,279    128,641,416    기업은행(003045)        0
+1    2026.08.31 19:01:55    인터넷    주식회사루비뮤직    0    2,953,279    128,641,416    기업은행(003045)        0
 2    2026.08.31 16:26:06    인터넷    (주)케이큐엔터테인    0    16,704,509    126,331,919    199555        0
 3    2026.08.31 15:48:24    인터넷    (주)케이더블유인터    0    14,569,249    109,577,547    하나은행(081569)        0
 4    2026.08.31 15:48:23    인터넷    (주)케이더블유인터    0    4,914,632    95,105,912    하나은행(081569)        0
@@ -2211,21 +2212,47 @@ Object.entries(AUG).forEach(([no,ls])=>ls.forEach(([n,amt])=>
 /* 원장에 기록된 수납 배분 — 청구 건별 누적액 */
 const PAID={};
 
+/* 2026-06 · 07 회차 — 지난달까지의 원장. 대부분 계약은 8월과 같은 금액을 청구받아 완납했다.
+   (주)비씨에이전시는 6·7월 모두 한 푼도 내지 않았다 → 8월 입금 5,000,000원이 6월분부터 채운다
+   주식회사루비뮤직은 7월분 385,000원을 덜 냈다 → 8월 입금에 그만큼 더 얹어 보냈다 */
+const PAST={
+ '2026-06':{'별관3층':[['임대료',3465000],['고정관리비',1342000],['전기요금',176420],['전력기금',4330],['TV수신료',104],['수도요금',98660]]},
+ '2026-07':{'별관3층':[['임대료',3465000],['고정관리비',1342000],['전기요금',205880],['전력기금',5050],['TV수신료',121],['수도요금',101390]],
+            '본관B2':[['임대료',1650000],['고정관리비',473000],['전기요금',101230],['전력기금',2480],['TV수신료',60],['수도요금',70110]]},
+};
+['2026-06','2026-07'].forEach(ym=>Object.entries(AUG).forEach(([no,ls])=>{
+  (PAST[ym][no]||ls).forEach(([n,amt])=>{
+    const id=`${ym}|${no}|${n}`;
+    BILLS.push({id,ym,k:'b1'+no,no,n,amt});
+    if(no!=='별관3층') PAID[id]=amt;                       /* 비씨에이전시는 6·7월 수납 0 */
+  });
+}));
+/* 루비뮤직 7월 — 1,911,880원만 받았다. 우선순위대로 임대료 → 고정관리비 일부 */
+PAID['2026-07|본관B2|고정관리비']=261880;
+['전기요금','전력기금','TV수신료','수도요금'].forEach(n=>delete PAID['2026-07|본관B2|'+n]);
+
 /* 수납 기록 화면 상태 */
 const RC={b:'b1',P:parseBank(BANK_RAW),dec:{},op:{},alias:{},pre:{},reg:{},cur:null,
           f:{b:'b1',ym:'2026-08',st:''}};   /* 필터 — 건물 · 청구년월 · 납부상태 */
 const setRC=(k,v)=>{RC.f[k]=v;render();};
 /* 계약 × 청구년월 수납 — 청구액·수납액·미납액·납부상태 → PAY-6 · 3.2 */
+/* 납부마감일 — 영준빌딩은 매월 말일 → 3.5 */
+const dueDate=ym=>{const [y,m]=ym.split('-').map(Number);return new Date(y,m,0);};
+const lateDays=ym=>Math.max(0,Math.floor((TODAY-dueDate(ym))/864e5));
+/* 납부상태 5종 — 수납 0인 청구만 납부마감일로 납부전/미납을 나눈다 → 3.2 */
+const payState=(bill,paid,ym)=>paid>=bill?'완납':paid>0?'부분납':lateDays(ym)>0?'미납':'납부전';
 function ctrPay(k,ym){
   const it=BILLS.filter(i=>i.k===k&&i.ym===ym).map(i=>{const p=Math.min(PAID[i.id]||0,i.amt);
-    return {...i,paid:p,due:i.amt-p,st:i.amt-p<=0?'완납':p===0?'납부전':'부분납'};});
+    return {...i,paid:p,due:i.amt-p,st:payState(i.amt,p,ym)};});
   const bill=it.reduce((a,i)=>a+i.amt,0), paid=it.reduce((a,i)=>a+i.paid,0);
-  return {it,bill,paid,due:bill-paid,st:!it.length?null:paid>=bill?'완납':paid===0?'납부전':'부분납'};
+  return {it,bill,paid,due:bill-paid,st:!it.length?null:payState(bill,paid,ym)};
 }
+/* 연체료(예상) — 미납액 × 연 8% × 연체일수 ÷ 365, 원 미만 절사 → 4.4 */
+const lateFee=(due,ym)=>Math.floor(due*0.08*lateDays(ym)/365);
 /* 이 계약에 배분된 입금 — 입금 하나가 여러 계약에 나뉘면 자기 몫만 */
-const ctrDeps=k=>RC.P.dep.filter(d=>(RC.dec[d.no]||{}).done)
-  .map(d=>({d,pay:RC.dec[d.no].done.lines.filter(l=>l.k===k).reduce((a,l)=>a+l.pay,0)})).filter(x=>x.pay>0);
-const PST={'완납':'ok','부분납':'wa','납부전':'da'};
+const ctrDeps=(k,ym)=>RC.P.dep.filter(d=>(RC.dec[d.no]||{}).done)
+  .map(d=>({d,pay:RC.dec[d.no].done.lines.filter(l=>l.k===k&&(!ym||l.ym===ym)).reduce((a,l)=>a+l.pay,0)})).filter(x=>x.pay>0);
+const PST={'완납':'ok','부분납':'wa','납부전':'mu','미납':'da'};
 
 /* 사업자 — 같은 사업자의 계약은 입금 1건으로 함께 낼 수 있다 */
 function rcBiz(){
@@ -2468,8 +2495,8 @@ const g6Tog=k=>{g6[k]=!g6Open(k);render(true);};
 const g6Set=v=>{g6All=v;g6={};render(true);};
 function PAY6(){
   const bn=BUILDINGS.find(x=>x.id===RC.f.b)||BUILDINGS[0];
-  const has=RC.f.b===RC.b&&RC.f.ym==='2026-08';
-  const waitN=has?RC.P.dep.filter(rcIsOpen).length:0;
+  const has=RC.f.b===RC.b&&['2026-06','2026-07','2026-08'].includes(RC.f.ym);
+  const waitN=RC.f.b===RC.b?RC.P.dep.filter(rcIsOpen).length:0;
   const all=has?CTRS.filter(c=>c.b===RC.b&&c.st==='진행중')
     .map(c=>({c,k:c.b+c.no,...ctrPay(c.b+c.no,RC.f.ym)})).filter(x=>x.st):[];
   const rows=all.filter(x=>!RC.f.st||x.st===RC.f.st);
@@ -2483,7 +2510,8 @@ function PAY6(){
         <div class="n c2">${won(i.amt)}</div><div class="n c2">${i.paid?won(i.paid):dash}</div>
         <div class="n">${i.due?`<span style="color:var(--warn)">${won(i.due)}</span>`:dash}</div>
         <div class="c"><span class="bd ${PST[i.st]}">${i.st}</span></div></div>`).join('')
-      +(()=>{const ds=ctrDeps(x.k);
+      +(()=>{const ds=ctrDeps(x.k,RC.f.ym);
+        if(!ds.length&&x.paid) return `<div class="schr ctr sub dep"><div class="nm" style="color:var(--muted)">이전에 기록된 입금 ${won(x.paid)} — 목업에는 입금 원본이 없다</div><div></div><div></div><div></div><div></div></div>`;
         return ds.length?ds.map(({d,pay})=>`
       <div class="schr ctr sub dep"><div class="nm">입금 ${d.dt.slice(5,16)} · ${d.name}${
           pay<d.amt?`<span class="c2">${won(d.amt)} 중</span>`:''}</div>
@@ -2510,13 +2538,13 @@ function PAY6(){
         `<option value="${v}" ${RC.f.ym===v?'selected':''}>${t}</option>`).join('')}
     </select>
     <select onchange="setRC('st',this.value)">
-      ${['','완납','부분납','납부전'].map(v=>`<option value="${v}" ${RC.f.st===v?'selected':''}>${v||'전체 납부상태'}</option>`).join('')}
+      ${['','완납','부분납','납부전','미납'].map(v=>`<option value="${v}" ${RC.f.st===v?'selected':''}>${v||'전체 납부상태'}</option>`).join('')}
     </select>
     ${rows.length?`<span style="margin-left:auto;display:flex;gap:8px">
       <button class="btn sm" onclick="g6Set(${anyOp?'false':'true'})">${anyOp?'전체 접기':'전체 펼치기'}</button></span>`:''}
   </div>
   ${waitN?`<div class="fnd wa3"><span class="h">확정 전 입금 ${waitN}건</span>
-    아직 기록되지 않은 입금이 있어 이미 낸 계약도 <b>납부전</b>으로 보일 수 있습니다.
+    아직 기록되지 않은 입금이 있어 이미 낸 계약도 <b>미납</b>으로 보일 수 있습니다.
     <b class="lk" onclick="go('pay-13')">입금 매칭으로 이동 →</b></div>`:''}
   ${!rows.length?`<div class="tbl"><div class="empty"><div class="t">${has?'조건에 맞는 계약이 없습니다':'이 달의 청구가 없습니다'}</div>
      ${has?'다른 납부상태를 선택해 보세요.':'청구서를 발행하면 계약별 수납 상태가 표시됩니다.'}</div></div>`
@@ -2533,6 +2561,102 @@ function PAY6(){
     밀린 달 전부의 미납과 독촉은 미납 관리에서, 입금 한 건 한 건은 입금 매칭에서 봅니다.</div>`;
 }
 
+/* ═══ PAY-2 미납 관리 — 계약별로 지금까지 쌓인 미납액 전부. 청구년월로 자르지 않는다 ═══ */
+let f2={b:'b1',cs:'',all:false}, g2={}, g2All=false, sel2={};
+const setF2=(k,v)=>{f2[k]=v;render();};
+const g2Open=k=>(k in g2)?g2[k]:g2All;
+const g2Tog=k=>{g2[k]=!g2Open(k);render(true);};
+const pick2=(k,e)=>{e.stopPropagation();sel2[k]=!sel2[k];render(true);};
+/* 계약 하나의 미납 — 미납액이 남은 달만, 오래된 달부터 */
+function arrears(c){
+  const k=c.b+c.no, yms=[...new Set(BILLS.filter(i=>i.k===k).map(i=>i.ym))].sort();
+  const months=yms.map(ym=>{const p=ctrPay(k,ym);
+    return {ym,due:p.due,bill:p.bill,paid:p.paid,st:p.st,days:lateDays(ym),fee:lateFee(p.due,ym)};}).filter(m=>m.due>0);
+  const lastDep=RC.P.dep.filter(d=>{const x=RC.dec[d.no];return x&&x.done&&x.done.lines.some(l=>l.k===k);})
+    .map(d=>d.dt).sort().pop()||null;
+  return {c,k,months,due:months.reduce((a,m)=>a+m.due,0),fee:months.reduce((a,m)=>a+m.fee,0),
+    days:Math.max(0,...months.map(m=>m.days)),from:months.length?months[0].ym:null,lastDep};
+}
+function PAY2(){
+  const bn=BUILDINGS.find(x=>x.id===f2.b)||BUILDINGS[0];
+  const has=f2.b===RC.b;
+  const all=has?CTRS.filter(c=>c.b===RC.b&&(!f2.cs||(f2.cs==='진행중'?c.st==='진행중':c.st!=='진행중'))).map(arrears):[];
+  const rows=all.filter(a=>f2.all||a.due>0).sort((x,y)=>y.due-x.due);
+  const dueRows=all.filter(a=>a.due>0);
+  const T={due:dueRows.reduce((a,x)=>a+x.due,0),fee:dueRows.reduce((a,x)=>a+x.fee,0)};
+  const oldest=dueRows.map(a=>a.from).sort()[0];
+  const nSel=rows.filter(a=>sel2[a.k]&&a.due>0).length;
+  const waitN=has?RC.P.dep.filter(rcIsOpen).length:0;
+  const anyOp=rows.some(a=>g2Open(a.k));
+  const ymK=ym=>ym.slice(2).replace('-','.')+'월';
+  const dash='<span style="color:var(--faint)">—</span>';
+  const body=rows.map(a=>{
+    const op=g2Open(a.k), on=!!sel2[a.k], can=a.due>0;
+    return `<div class="schr arr grp" onclick="g2Tog('${a.k}')">
+      <div class="nm">${can?`<span class="cb ${on?'on':''}" onclick="pick2('${a.k}',event)"></span>`:'<span class="cb dis"></span>'}<span class="tg ${op?'op':''}" style="${can?'':'visibility:hidden'}">${ic('chev',16)}</span>${cnameHTML(bn.alias,a.c.no,a.c.ten)}${
+        a.c.st!=='진행중'?` <span class="bd mu">${a.c.st}</span>`:''}</div>
+      <div>${a.months.length?`<b>${a.months.length}개월</b><span class="c2" style="margin-left:6px">${ymK(a.from)}부터</span>`:'<span class="c2" style="margin:0">미납 없음</span>'}</div>
+      <div class="n">${a.due?`<b style="color:var(--warn)">${won(a.due)}</b>`:dash}</div>
+      <div class="n">${a.days?`${a.days}일`:dash}</div>
+      <div class="n">${a.fee?won(a.fee):dash}</div>
+      <div class="n c2" style="margin:0">${a.lastDep?a.lastDep.slice(5,10).replace('-','.'):'—'}</div>
+    </div>`+(!op||!can?'':a.months.map(m=>`
+    <div class="schr arr sub" onclick="RC.f.b='${RC.b}';RC.f.ym='${m.ym}';RC.f.st='';go('pay-6')">
+      <div class="nm">${m.ym.replace('-','년 ')}월분 <span class="c2">청구 ${won(m.bill)} · 수납 ${m.paid?won(m.paid):'0원'} · 마감 ${m.ym.slice(5)}.${String(dueDate(m.ym).getDate())}</span></div>
+      <div><span class="bd ${PST[m.st]}">${m.st}</span></div>
+      <div class="n" style="color:var(--warn)">${won(m.due)}</div>
+      <div class="n c2" style="margin:0">${m.days?`${m.days}일`:'—'}</div>
+      <div class="n c2" style="margin:0">${m.fee?won(m.fee):'—'}</div>
+      <div></div>
+    </div>`).join(''));
+  }).join('');
+  return `
+  <div class="ph"><h1>미납 관리</h1><span class="sid">PAY-2</span>
+    <div class="act">
+      <button class="btn" onclick="alert('수납 처리 — 입금 매칭(PAY-13)의 수동 입력으로 연결한다. 선택한 계약의 임차인을 미리 채운다')">수납 처리</button>
+      <button class="btn" ${nSel?'':'disabled'} onclick="alert('연체료 청구 — 선택한 계약의 연체료를 청구 항목(우선순위 99)으로 생성하고 원장에 기록한다')">연체료 청구${nSel?` ${nSel}건`:''}</button>
+      <button class="btn pri" ${nSel?'':'disabled'} onclick="alert('독촉 메일 발송 — 월별 미납액·연체일수를 담아 임차인 담당자에게 보낸다')">독촉 메일 발송${nSel?` ${nSel}건`:''}</button></div>
+  </div>
+  <div class="fbar">
+    <select onchange="setF2('b',this.value)">
+      ${BUILDINGS.map(b=>`<option value="${b.id}" ${f2.b===b.id?'selected':''}>${b.name}</option>`).join('')}
+    </select>
+    <select onchange="setF2('cs',this.value)">
+      ${[['','전체 계약상태'],['진행중','진행중'],['종료','종료됨·파기됨']].map(([v,t])=>`<option value="${v}" ${f2.cs===v?'selected':''}>${t}</option>`).join('')}
+    </select>
+    <select onchange="setF2('all',this.value==='1')">
+      <option value="" ${!f2.all?'selected':''}>미납 있는 계약</option><option value="1" ${f2.all?'selected':''}>전체 계약</option>
+    </select>
+    ${rows.length?`<span style="margin-left:auto"><button class="btn sm" onclick="g2All=${anyOp?'false':'true'};g2={};render(true)">${anyOp?'전체 접기':'전체 펼치기'}</button></span>`:''}
+  </div>
+  ${has?`<div class="two" style="grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px">
+    ${[['미납 계약',`${dueRows.length}건`,`진행중 ${dueRows.filter(a=>a.c.st==='진행중').length}`],
+       ['미납액 합계',won(T.due),'부가세 포함'],
+       ['연체료(예상)',won(T.fee),'연 8% · 청구 전'],
+       ['가장 오래된 미납',oldest?oldest.replace('-','년 ')+'월':'없음',oldest?`${lateDays(oldest)}일 경과`:'']]
+      .map(([k,v,d],i)=>`<div class="card" style="margin:0"><div class="cc" style="padding:14px 16px">
+        <div style="font-size:11.5px;color:var(--muted)">${k}</div>
+        <div style="font-size:17px;font-weight:700;margin:3px 0 1px;${i===1&&T.due?'color:var(--warn)':''}">${v}</div>
+        <div class="c2">${d}</div></div></div>`).join('')}
+  </div>`:''}
+  ${waitN?`<div class="fnd wa3"><span class="h">확정 전 입금 ${waitN}건</span>
+    아직 기록되지 않은 입금이 있어 이미 낸 계약도 미납으로 보입니다.
+    <b class="lk" onclick="go('pay-13')">입금 매칭으로 이동 →</b></div>`:''}
+  ${!rows.length?`<div class="tbl"><div class="empty"><div class="t">${has?'미납이 없습니다':'자료가 없습니다'}</div>
+     ${has?'모든 계약이 완납 상태입니다.':'목업 자료는 동교동 영준빌딩뿐입니다.'}</div></div>`
+  :`<div class="tbl schl">
+    <div class="schr arr hd"><div>계약고유명 · 청구년월</div><div>미납 기간</div><div class="n">미납액</div>
+      <div class="n">연체일수</div><div class="n">연체료(예상)</div><div class="n">최근 입금</div></div>
+    ${body}
+    <div class="schr arr sum"><div>합계 <span class="lock">계약 ${dueRows.length}</span></div><div></div>
+      <div class="n">${T.due?`<span style="color:var(--warn)">${won(T.due)}</span>`:'—'}</div><div></div>
+      <div class="n">${T.fee?won(T.fee):'—'}</div><div></div></div>
+  </div>`}
+  <div class="hint">
+    지금까지 쌓인 미납을 계약별로 모았습니다. 펼치면 달별 미납이 보이고, 누르면 그 달 수납 내역으로 갑니다.<br>
+    연체료는 표시만 합니다. 청구하려면 계약을 골라 연체료 청구를 누르세요.</div>`;
+}
+
 /* ═══ 라우터 ═══ */
 function render(keep){
   const y=window.scrollY||0;
@@ -2547,6 +2671,7 @@ function render(keep){
   else if(id==='pay-12'){html=PAY12();crumb='<b>청구 · 수납</b>';}
   else if(id==='pay-1'){html=PAY1();crumb='청구 · 수납 <span>›</span> <b>청구서 발행</b>';}
   else if(id==='pay-6'){html=PAY6();crumb='청구 · 수납 <span>›</span> <b>수납 내역</b>';}
+  else if(id==='pay-2'){html=PAY2();crumb='청구 · 수납 <span>›</span> <b>미납 관리</b>';}
   else if(id==='pay-13'){html=PAY13();crumb='청구 · 수납 <span>›</span> <b>입금 매칭</b>';}
   else{html=TODO(id);const g=MENU.find(m=>m.items&&m.items.some(i=>i.id===id));
     const m=ALL.find(i=>i.id===id);

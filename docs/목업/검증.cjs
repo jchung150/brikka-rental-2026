@@ -48,6 +48,11 @@ run('미구현 화면', "TODO('pay-2')");
 run('PAY-6', 'PAY6()');
 run('PAY-6 전체 펼침', 'g6All=true;PAY6()');
 run('PAY-13', 'PAY13()');
+run('PAY-2', 'PAY2()');
+run('PAY-2 전체 펼침 · 전체 계약', "g2All=true;f2.all=true;PAY2()");
+run('PAY-2 종료 계약', "f2.cs='종료';PAY2()");
+run('PAY-2 다른 건물', "f2.b='b2';PAY2()");
+run('PAY-6 7월', "RC.f.ym='2026-07';g6All=true;PAY6()");
 run('PAY-13 임차인 선택', "RC.pre[8]='아마데우스';RC.cur=8;PAY13()");
 run('PAY-13 미매칭', "RC.cur=5;PAY13()");
 run('PAY-13 무시', "RC.dec[17]={ex:true};RC.cur=17;PAY13()");
@@ -124,8 +129,8 @@ r6.push(['첫 달 자동 매칭 0건 — 등록된 입금자명만 자동', auto
 r6.push(['상호가 같으면 미매칭이되 임차인을 미리 채움', first[9].st === '후보' && first[9].cand === '고우컴퍼니']);
 /* 배분 미리보기는 채우지 못하는 청구까지 보여야 한다 — 비씨에이전시 배분 후 미납 112,299 */
 const pvB = W.rcPreview(P6.dep.find(d => d.no === 12), '비씨에이전시', W.rcBiz());
-r6.push(['미리보기 — 비씨에이전시 배분 후 미납 112,299 (6개 항목 모두 표시)',
-  pvB.all.length === 6 && pvB.all.reduce((a, l) => a + l.due - l.pay, 0) === 112299]);
+r6.push(['미리보기 — 비씨에이전시 6·7·8월 18개 항목, 6월분부터 채우고 배분 후 미납 10,318,254',
+  pvB.all.length === 18 && pvB.lines[0].ym === '2026-06' && pvB.all.reduce((a, l) => a + l.due - l.pay, 0) === 10318254]);
 /* 입금 매칭 — 대기열 순서(입금일시 오름차순)대로 한 건씩 임차인을 고르고 확정한다 */
 const PICK = {1:'루비뮤직', 2:'케이큐엔터테이먼트', 3:'케이더블유인터내셔널', 5:'아이씨비', 7:'에스씨케이컴퍼니',
   8:'아마데우스', 9:'고우컴퍼니', 10:'유니버셜대부', 12:'비씨에이전시', 24:'좋은생각사람들'};
@@ -144,19 +149,21 @@ r6.push(['입금 1건 → 계약 2개 (ICB)', new Set(got[5].lines.map(l => l.no
 r6.push(['입금 1건 → 계약 2개 (좋은생각사람들)', new Set(got[24].lines.map(l => l.no)).size === 2 && got[24].rest === 0]);
 r6.push(['임차인 입금 12건 전부 전액 배분', [1,2,3,4,5,6,7,8,9,10,12,24].every(n => got[n] && got[n].rest === 0)]);
 r6.push(['대기 0건 — 모두 처리', W.rcNext() === null && W.rcOpenN() === 0]);
-/* 계약별 납부상태 — 비씨에이전시만 부분납, 나머지 완납 → PAY-6 */
-const st6 = n => W.ctrPay('b1' + n, '2026-08').st;
-r6.push(['수납 내역 — 비씨에이전시 부분납 · 나머지 12계약 완납',
-  st6('별관3층') === '부분납' && ['본관8층','본관7층','본관6층','본관5층','본관4층','본관301호','본관302호','본관2층','본관1층','본관B2','별관4층','별관2층'].every(n => st6(n) === '완납')]);
+/* 계약별 납부상태 — 비씨에이전시 6월 부분납 · 7·8월 미납(마감 경과, 수납 0), 루비뮤직 7월 미납분 해소 → PAY-6 · 3.2 */
+const st6 = (n, ym) => W.ctrPay('b1' + n, ym || '2026-08').st;
+r6.push(['수납 내역 — 비씨에이전시 6월 부분납 · 7월 미납 · 8월 미납',
+  st6('별관3층', '2026-06') === '부분납' && st6('별관3층', '2026-07') === '미납' && st6('별관3층') === '미납']);
+r6.push(['수납 내역 — 나머지 12계약 8월 완납, 루비뮤직 7월도 완납',
+  ['본관8층','본관7층','본관6층','본관5층','본관4층','본관301호','본관302호','본관2층','본관1층','본관B2','별관4층','별관2층'].every(n => st6(n) === '완납')
+  && st6('본관B2', '2026-07') === '완납']);
 r6.push(['케이더블유인터 두 입금이 각 계약에 자기 몫만', W.ctrDeps('b1본관5층').length >= 1 && W.ctrDeps('b1별관2층').length >= 1]);
 /* 원장 잔액 — 8월 회차 화면에서는 8월 미납이 「지난 미납」이 아니므로 dueOf 대신 직접 본다 */
 const left = k => W.BILLS.filter(i => i.k === k).reduce((a, i) => a + i.amt - (W.PAID[i.id] || 0), 0);
 const all12 = ['본관8층','본관7층','본관6층','본관5층','본관4층','본관301호','본관302호','본관2층','본관1층','본관B2','별관4층','별관2층'];
-r6.push(['승인 후 미납 — 비씨에이전시 112,299원만', all12.every(n => left('b1' + n) === 0) && left('b1별관3층') === 112299]);
-r6.push(['8월 청구 합계 − 미납 = 임차인 입금 합계', W.BILLS.reduce((a, i) => a + i.amt, 0) - 112299 ===
-  P6.dep.filter(d => ![17, 55].includes(d.no)).reduce((a, d) => a + d.amt, 0)]);
+r6.push(['미납 관리 — 비씨에이전시 10,318,254원만 남음 (루비뮤직 7월분 해소)', all12.every(n => left('b1' + n) === 0) && left('b1별관3층') === 10318254]);
 /* 미납액 먼저 — 7월 미납이 있으면 8월 청구서와 같은 금액이 와도 7월부터 채운다 → 4.3.3 */
 const V = new Function(stub + bare + '; return {rcPlan,BILLS};')();
+{ const keep = V.BILLS.filter(i => !(i.k === 'b1본관302호' && i.ym !== '2026-08')); V.BILLS.length = 0; V.BILLS.push(...keep); }
 V.BILLS.push({id:'2026-07|본관302호|고정관리비',ym:'2026-07',k:'b1본관302호',no:'본관302호',n:'고정관리비',pr:2,amt:1815000});
 V.BILLS.push({id:'2026-07|본관302호|전기요금',ym:'2026-07',k:'b1본관302호',no:'본관302호',n:'전기요금',pr:4,amt:1865000});
 const pv = V.rcPlan(13625312, ['b1본관302호'], {});
@@ -166,13 +173,13 @@ r6.push(['미납액 먼저 — 7월 3,680,000 완납 · 8월 임대료 9,945,312
   jul === 3680000 && aug.length === 1 && aug[0].n === '임대료' && aug[0].pay === 9945312 && aug[0].after === '부분납']);
 /* 나눠 보낸 입금 — 백만 원 적게 보낸 뒤 나머지를 다음 날 같은 이름으로 보낸 경우 */
 const S = new Function(stub + bare + '; return {RC,rcGuess,rcBiz,rcConfirm,ctrPay};')();
-const s1 = {no:901,dt:'2026-08-31 08:43:10',kind:'인터넷',name:'(주)비씨에이전시',amt:4112299,out:0};
-const s2 = {no:902,dt:'2026-09-01 10:02:44',kind:'인터넷',name:'(주)비씨에이전시',amt:1000000,out:0};
-S.RC.P.dep = [s1, s2]; S.RC.pre[901] = '비씨에이전시'; S.rcConfirm(901);
-const mid = S.ctrPay('b1별관3층', '2026-08');
+const s1 = {no:901,dt:'2026-08-31 12:34:01',kind:'PC뱅킹',name:'AMADEUS KO',amt:12685910,out:0};
+const s2 = {no:902,dt:'2026-09-01 10:02:44',kind:'PC뱅킹',name:'AMADEUS KO',amt:1000000,out:0};
+S.RC.P.dep = [s1, s2]; S.RC.pre[901] = '아마데우스'; S.rcConfirm(901);
+const mid = S.ctrPay('b1본관6층', '2026-08');
 const auto2 = S.rcGuess(s2, S.rcBiz()).st === '자동';
 S.rcConfirm(902);
-const end = S.ctrPay('b1별관3층', '2026-08');
+const end = S.ctrPay('b1본관6층', '2026-08');
 r6.push(['나눠 보낸 입금 — 1차 부분납 100만 미납 → 2차 자동 매칭 → 완납',
   mid.st === '부분납' && mid.due === 1000000 && auto2 && end.st === '완납' && end.due === 0]);
 const bad6 = r6.filter(x => !x[1]);
