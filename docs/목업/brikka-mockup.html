@@ -432,9 +432,6 @@ td.c,th.c{text-align:center}
 .mqi .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .mqi .n{text-align:right;font-variant-numeric:tabular-nums;font-weight:500}
 .mqi .g{text-align:right}
-.mqf{padding:12px 14px;border-top:1px solid var(--line);background:var(--soft)}
-.mqs{display:grid;grid-template-columns:52px 40px 1fr;font-size:12px;padding:2px 0;color:var(--muted)}
-.mqs b{text-align:right;color:var(--ink);font-weight:500;font-variant-numeric:tabular-nums}
 table.nowr th,table.nowr td{white-space:nowrap}
 .rcr{grid-template-columns:minmax(150px,.7fr) minmax(170px,1fr) 130px minmax(240px,1.4fr) 180px}
 .rcr > :nth-child(4){padding-left:28px}
@@ -2440,7 +2437,7 @@ function PAY13(){
         ${g.biz?(registered?`<span class="c2" style="margin:0">등록된 입금자명으로 찾았습니다</span>`
           :`${g.st==='후보'?`<span class="c2" style="margin:0;color:var(--warn)">상호가 비슷한 임차인을 미리 골랐습니다. 맞는지 확인하세요.</span>`:''}
             <label style="font-size:12.5px"><input type="checkbox" ${RC.reg[d.no]!==false?'checked':''}
-              onchange="rcRegTog(${d.no},this.checked)"> <b>${d.name}</b>을(를) 이 임차인의 입금자명으로 등록</label>`)
+              onchange="rcRegTog(${d.no},this.checked)"> 앞으로 <b>${d.name}</b>을(를) 이 임차인의 입금자명으로 등록</label>`)
           :'<span class="c2" style="margin:0">입금자명으로 임차인을 찾지 못했습니다. 직접 고르세요.</span>'}
       </div></div></div>
     ${g.biz?`<div class="isec"><div class="ish"><span class="isn">2</span>배분 미리보기
@@ -2459,13 +2456,7 @@ function PAY13(){
     계약별로 다 받았는지는 수납 내역에서 확인하세요. <b class="lk" onclick="go('pay-6')">수납 내역으로 이동 →</b></div>`:''}
   <div class="mw">
     <div class="mq"><div class="mqh">대기열 <span class="c2" style="margin:0">입금일시 순</span></div>${queue}
-      <div class="mqf">${(()=>{
-        /* 일자별 소계 — 통장의 당일 입금 합계와 대조한다. 무시한 입금도 센다 */
-        const g={};Q.forEach(q=>{const k=q.dt.slice(5,10);(g[k]=g[k]||{n:0,a:0});g[k].n++;g[k].a+=q.amt;});
-        return `<div class="mqh" style="border:0;padding:0 0 6px">일자별 입금 <span class="c2" style="margin:0">통장 대조</span></div>`+
-          Object.entries(g).map(([k,v])=>`<div class="mqs"><span>${k}</span><span>${v.n}건</span><b>${won(v.a)}</b></div>`).join('')
-          +`<div class="mqs" style="border-top:1px solid var(--line);padding-top:6px;margin-top:4px"><span>합계</span><span>${Q.length}건</span>
-             <b>${won(Q.reduce((a,q)=>a+q.amt,0))}</b></div>`;})()}</div></div>
+</div>
     <div>${panel}</div>
   </div>`;
 }

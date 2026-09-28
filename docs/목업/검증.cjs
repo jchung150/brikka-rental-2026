@@ -164,6 +164,17 @@ const jul = pv.lines.filter(l => l.ym === '2026-07').reduce((a, l) => a + l.pay,
 const aug = pv.lines.filter(l => l.ym === '2026-08');
 r6.push(['미납액 먼저 — 7월 3,680,000 완납 · 8월 임대료 9,945,312 부분납',
   jul === 3680000 && aug.length === 1 && aug[0].n === '임대료' && aug[0].pay === 9945312 && aug[0].after === '부분납']);
+/* 나눠 보낸 입금 — 백만 원 적게 보낸 뒤 나머지를 다음 날 같은 이름으로 보낸 경우 */
+const S = new Function(stub + bare + '; return {RC,rcGuess,rcBiz,rcConfirm,ctrPay};')();
+const s1 = {no:901,dt:'2026-08-31 08:43:10',kind:'인터넷',name:'(주)비씨에이전시',amt:4112299,out:0};
+const s2 = {no:902,dt:'2026-09-01 10:02:44',kind:'인터넷',name:'(주)비씨에이전시',amt:1000000,out:0};
+S.RC.P.dep = [s1, s2]; S.RC.pre[901] = '비씨에이전시'; S.rcConfirm(901);
+const mid = S.ctrPay('b1별관3층', '2026-08');
+const auto2 = S.rcGuess(s2, S.rcBiz()).st === '자동';
+S.rcConfirm(902);
+const end = S.ctrPay('b1별관3층', '2026-08');
+r6.push(['나눠 보낸 입금 — 1차 부분납 100만 미납 → 2차 자동 매칭 → 완납',
+  mid.st === '부분납' && mid.due === 1000000 && auto2 && end.st === '완납' && end.due === 0]);
 const bad6 = r6.filter(x => !x[1]);
 if (bad6.length) fail = 1;
 console.log('⑥ 수납 기록 ' + (bad6.length ? '✗ ' + bad6.map(x => x[0]).join(' / ') : 'OK — ' + r6.length + '개 검산'));
