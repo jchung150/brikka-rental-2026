@@ -511,7 +511,7 @@ const MENU=[
    {id:'pay-10',n:'관리비 정산',sid:'PAY-10',i:'calc'},
    {id:'pay-1',n:'청구서 발행',sid:'PAY-1',i:'mail'},
    {id:'pay-2',n:'미납 관리',sid:'PAY-2',i:'wallet'},
-   {id:'pay-6',n:'수납 기록',sid:'PAY-6',i:'card'},
+   {id:'pay-6',n:'수납 관리',sid:'PAY-6',i:'card'},
    {id:'pay-8',n:'수납 내역',sid:'PAY-8',i:'list'},
    {id:'pay-4',n:'청구 항목 관리',sid:'PAY-4',i:'list'},
    {id:'pay-11',n:'월 마감',sid:'PAY-11',i:'lock'}]},
@@ -1820,7 +1820,7 @@ function TODO(id){
   <div class="tbl"><div class="empty"><div class="t">아직 만들지 않은 화면입니다</div>
     구현된 화면 — <b>PRO-1</b> 건물 목록 · <b>PRO-3</b> 건물 상세 ·
     <b>PAY-12</b> 청구 · 수납 현황 · <b>PAY-10</b> 관리비 정산 · <b>PAY-1</b> 청구서 발행 ·
-    <b>PAY-6</b> 수납 기록</div></div>`;
+    <b>PAY-6</b> 수납 관리</div></div>`;
 }
 
 /* ═══ PAY-1 · 청구 약정 ═══ */
@@ -2019,7 +2019,7 @@ function PAY1(){
     <b class="lk" onclick="go('pay-2')">미납 관리로 이동 →</b>
     ${f1.b==='b1'&&rcOpenN()?`<br>은행 거래내역 입금 <b>${rcOpenN()}건이 아직 수납 기록되지 않았습니다.</b>
       기록 전이면 이미 낸 임차인도 미납으로 안내됩니다.
-      <b class="lk" onclick="go('pay-6')">수납 기록으로 이동 →</b>`:''}</div>`:''}
+      <b class="lk" onclick="go('pay-6')">수납 관리로 이동 →</b>`:''}</div>`:''}
   ${!rows.length?`<div class="tbl"><div class="empty"><div class="t">발행할 청구서가 없습니다</div>
      진행중인 계약이 없거나 조건에 맞는 건이 없습니다.</div></div>`
   :`<div class="tbl schl">
@@ -2057,7 +2057,7 @@ function PAY1(){
     발행하면 원장에 <b>청구</b> 거래로 기록되고 임차인 담당자에게 이메일이 발송된다.</div>`;
 }
 
-/* ═══ PAY-6 수납 기록 ═══ */
+/* ═══ PAY-6 수납 관리 ═══ */
 /* 2026-08 동교동 영준빌딩 운영계좌 거래내역 — 은행에서 내려받은 형식 그대로다.
    임차인 입금액만 시스템 계산 청구액에 맞춰 고쳤다. (주)비씨에이전시는 112,299원을 덜 냈다 → 미납
    거래후 잔액 열은 원본 값이며 계산에 쓰지 않는다.
@@ -2335,7 +2335,7 @@ function PAY6(){
     </div>`+(op?detail(d,r):'');
   }).join('');
   return `
-  <div class="ph"><h1>수납 기록</h1><span class="sid">PAY-6</span>
+  <div class="ph"><h1>수납 관리</h1><span class="sid">PAY-6</span>
     <div class="act">
       <button class="btn" onclick="alert('은행 거래내역 업로드 — 건물을 고르고 은행에서 내려받은 파일을 그대로 올린다.\n머리말 행과 출금 행은 시스템이 걸러낸다 → 4.6.1')">은행 거래내역 업로드</button>
       <button class="btn" onclick="alert('수동 입력 — 임차인·입금일·입금액·결제수단을 직접 넣는다. 아직 미구현')">수동 입력</button>
@@ -2384,7 +2384,7 @@ function render(keep){
   else if(id==='pay-10'){html=PAY10();crumb='청구 · 수납 <span>›</span> <b>관리비 정산</b>';}
   else if(id==='pay-12'){html=PAY12();crumb='<b>청구 · 수납</b>';}
   else if(id==='pay-1'){html=PAY1();crumb='청구 · 수납 <span>›</span> <b>청구서 발행</b>';}
-  else if(id==='pay-6'){html=PAY6();crumb='청구 · 수납 <span>›</span> <b>수납 기록</b>';}
+  else if(id==='pay-6'){html=PAY6();crumb='청구 · 수납 <span>›</span> <b>수납 관리</b>';}
   else{html=TODO(id);const g=MENU.find(m=>m.items&&m.items.some(i=>i.id===id));
     const m=ALL.find(i=>i.id===id);
     crumb=(g?g.g+' <span>›</span> ':'')+`<b>${m?m.n:'—'}</b>`;}
