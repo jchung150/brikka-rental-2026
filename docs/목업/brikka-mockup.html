@@ -512,7 +512,6 @@ const MENU=[
    {id:'pay-1',n:'청구서 발행',sid:'PAY-1',i:'mail'},
    {id:'pay-2',n:'미납 관리',sid:'PAY-2',i:'wallet'},
    {id:'pay-6',n:'수납 관리',sid:'PAY-6',i:'card'},
-   {id:'pay-8',n:'수납 내역',sid:'PAY-8',i:'list'},
    {id:'pay-4',n:'청구 항목 관리',sid:'PAY-4',i:'list'},
    {id:'pay-11',n:'월 마감',sid:'PAY-11',i:'lock'}]},
  {k:'상대',g:'거래 상대',i:'users',items:[
@@ -1820,7 +1819,7 @@ function TODO(id){
   <div class="tbl"><div class="empty"><div class="t">아직 만들지 않은 화면입니다</div>
     구현된 화면 — <b>PRO-1</b> 건물 목록 · <b>PRO-3</b> 건물 상세 ·
     <b>PAY-12</b> 청구 · 수납 현황 · <b>PAY-10</b> 관리비 정산 · <b>PAY-1</b> 청구서 발행 ·
-    <b>PAY-6</b> 수납 관리</div></div>`;
+    <b>PAY-6</b> 수납 관리</div></div>`;   /* PAY-8 수납 내역은 PAY-6에 합쳤다 */
 }
 
 /* ═══ PAY-1 · 청구 약정 ═══ */
@@ -2298,7 +2297,8 @@ function PAY6(){
       입금 기록에 보관하고 환불 또는 다음 회차 배분 중 하나를 고른다. 자동으로 처리하지 않는다.</div>`:'';
     if(r.st==='자동'||r.st==='지정'||r.st==='기록 완료')
       return `<div class="rcx"><div class="ln"><span class="c2" style="margin:0">
-        ${r.st==='기록 완료'?'원장에 기록됨 · ':''}${r.basis||''} · 오래된 회차 → 우선순위 순 · 비교용 이름 <b>${r.nm}</b></span>${undo}</div>${tbl}${rest}</div>`;
+        ${r.st==='기록 완료'?'원장에 기록됨 · 계좌이체 · 은행거래내역매칭 · 김영준 · ':''}${r.basis||''} · 오래된 회차 → 우선순위 순 · 비교용 이름 <b>${r.nm}</b></span>${undo}${
+        r.st==='기록 완료'?` <button class="btn sm" style="margin-left:auto" onclick="event.stopPropagation();alert('PAY-9 수납 내역 수정 및 취소 — 배분 재조정 또는 무효 처리. 입금액은 수정할 수 없다')">수정·취소</button>`:''}</div>${tbl}${rest}</div>`;
     if(r.st==='제외')
       return `<div class="rcx"><div class="ln">임차인 입금이 아니어서 무시했습니다. 수납으로 기록하지 않습니다.${undo}</div></div>`;
     /* 후보 · 미매칭 — 사업자를 고르고 계약이 여럿이면 계약도 고른다 */
@@ -2364,7 +2364,12 @@ function PAY6(){
     ${body}
     <div class="schr rcr sum"><div>합계 <span class="lock">입금 ${rows.length}</span></div><div></div>
       <div class="n">${won(rows.reduce((a,d)=>a+d.amt,0))}</div><div></div><div></div><div></div><div></div></div>
-  </div>`}
+  </div>
+  ${has?(()=>{
+    /* 일자별 소계 — 통장의 당일 입금 합계와 대조한다. 필터와 무관하게 이 달의 모든 입금을 센다 */
+    const g={};P.dep.forEach(d=>{const k=d.dt.slice(5,10);(g[k]=g[k]||{n:0,a:0});g[k].n++;g[k].a+=d.amt;});
+    return `<div class="c2" style="margin-top:10px;white-space:normal">일자별 입금 · ${
+      Object.entries(g).map(([k,v])=>`${k} <b>${v.n}건 ${won(v.a)}</b>`).join(' · ')}</div>`;})():''}`}
   <div class="hint">
     자동 매칭된 입금은 배분을 펼쳐 확인한 뒤 승인하세요. 승인해야 원장에 기록됩니다.<br>
     후보·미매칭은 펼쳐서 임차인을 고르세요. 입금자명을 등록해 두면 다음 달부터 자동으로 매칭됩니다.<br>
