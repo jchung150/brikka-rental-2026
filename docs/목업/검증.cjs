@@ -128,9 +128,12 @@ r6.push(['입금 1건 → 계약 2개 (ICB)', new Set(R6[5].lines.map(l => l.no)
 r6.push(['입금 1건 → 계약 2개 (좋은생각사람들)', new Set(R6[24].lines.map(l => l.no)).size === 2 && R6[24].rest === 0]);
 r6.push(['임차인 입금 12건 전부 전액 배분', [1,2,3,4,5,6,7,8,9,10,12,24].every(n => R6[n].lines && R6[n].rest === 0)]);
 W.rcApprove();
-const all13 = ['본관8층','본관7층','본관6층','본관5층','본관4층','본관301호','본관302호','본관2층','본관1층','본관B2','별관4층','별관3층','별관2층'];
-r6.push(['승인 후 미납 0 — 8월 전원 완납', all13.every(n => !W.dueOf('b1' + n))]);
-r6.push(['8월 청구 합계 = 임차인 입금 합계', W.BILLS.reduce((a, i) => a + i.amt, 0) === 138919945]);
+/* 원장 잔액 — 8월 회차 화면에서는 8월 미납이 「지난 미납」이 아니므로 dueOf 대신 직접 본다 */
+const left = k => W.BILLS.filter(i => i.k === k).reduce((a, i) => a + i.amt - (W.PAID[i.id] || 0), 0);
+const all12 = ['본관8층','본관7층','본관6층','본관5층','본관4층','본관301호','본관302호','본관2층','본관1층','본관B2','별관4층','별관2층'];
+r6.push(['승인 후 미납 — 비씨에이전시 112,299원만', all12.every(n => left('b1' + n) === 0) && left('b1별관3층') === 112299]);
+r6.push(['8월 청구 합계 − 미납 = 임차인 입금 합계', W.BILLS.reduce((a, i) => a + i.amt, 0) - 112299 ===
+  P6.dep.filter(d => ![17, 55].includes(d.no)).reduce((a, d) => a + d.amt, 0)]);
 /* 미납액 먼저 — 7월 미납이 있으면 8월 청구서와 같은 금액이 와도 7월부터 채운다 → 4.3.3 */
 const V = new Function(stub + bare + '; return {rcPlan,BILLS};')();
 V.BILLS.push({id:'2026-07|본관302호|고정관리비',ym:'2026-07',k:'b1본관302호',no:'본관302호',n:'고정관리비',pr:2,amt:1815000});
