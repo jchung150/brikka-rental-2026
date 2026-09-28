@@ -47,7 +47,12 @@ run('PAY-1 선택 발행', "f1={b:'b1',st:''};sel1['b1101호']=true;PAY1()");
 run('미구현 화면', "TODO('pay-2')");
 run('PAY-6', 'PAY6()');
 run('PAY-6 전체 펼침', 'RC.P.dep.forEach(d=>RC.op[d.no]=true);PAY6()');
-run('PAY-6 임차인 선택', "RC.pre[8]='아마데우스코리아';RC.op[8]=true;PAY6()");
+run('PAY-13', 'PAY13()');
+run('PAY-13 임차인 선택', "RC.pre[8]='아마데우스';RC.cur=8;PAY13()");
+run('PAY-13 미매칭', "RC.cur=5;PAY13()");
+run('PAY-13 무시', "RC.dec[17]={ex:true};RC.cur=17;PAY13()");
+run('PAY-13 전체 처리', "Object.assign(RC.alias,{'루비뮤직':'루비뮤직'});RC.cur=1;rcConfirm(1);PAY13();PAY6()");
+run('PAY-13 다른 건물', "RC.f.b='b2';PAY13()");
 for (const f of ["RC.f.st='배분 전'", "RC.f.st='전액 배분'", "RC.f.st='미배분'", "RC.f.st='무시'", "RC.f.b='b2'", "RC.f.ym='2026-07'"])
   run('PAY-6 필터 ' + f, "RC.f={b:'b1',ym:'2026-08',st:''};" + f + ';PAY6()');
 if (!fail) console.log('② 전 화면 렌더                  OK');
@@ -108,7 +113,7 @@ for (const m of Z.MASTER) {
 if (orphan.length) fail = 1;
 console.log('⑤ 유닛 번호 정합성 ' + (orphan.length ? '✗ ' + orphan.join(', ') : 'OK'));
 /* ⑥ 수납 기록 — 8월 실제 거래내역으로 매칭·배분·미납을 검산한다 → 4.3 · 4.6 */
-const W = new Function(stub + bare + '; return {RC,rcRun,rcApprove,dueOf,normName,PAID,BILLS};')();
+const W = new Function(stub + bare + '; return {RC,rcRun,rcQueue,rcGuess,rcBiz,rcConfirm,rcIgnore,rcNext,rcOpenN,dueOf,normName,PAID,BILLS};')();
 const P6 = W.RC.P;
 const r6 = [];
 r6.push(['거래 56 · 입금 14 · 출금 42', P6.rows.length === 56 && P6.dep.length === 14 && P6.wd.length === 42]);
@@ -117,19 +122,24 @@ const first = W.rcRun();
 const auto = P6.dep.filter(d => first[d.no].st === '자동').length;
 r6.push(['첫 달 자동 매칭 0건 — 등록된 입금자명만 자동', auto === 0]);
 r6.push(['상호가 같으면 후보', first[9].st === '후보' && first[9].basis === '상호 일치']);
-const asg = (no, biz) => { W.RC.dec[no] = { biz }; W.RC.alias[W.normName(P6.dep.find(d => d.no === no).name)] = biz; };
-asg(1, '루비뮤직'); asg(2, '케이큐엔터테이먼트'); asg(3, '케이더블유인터내셔널'); asg(5, '아이씨비');
-asg(7, '에스씨케이컴퍼니'); asg(8, '아마데우스'); asg(9, '고우컴퍼니'); asg(10, '유니버셜대부');
-asg(12, '비씨에이전시'); asg(24, '좋은생각사람들');
-W.RC.dec[17] = { ex: true }; W.RC.dec[55] = { ex: true };
-const R6 = W.rcRun();
-r6.push(['분리 입금 — 13,200,000은 임대료에', R6[7].lines.length === 1 && R6[7].lines[0].n === '임대료']);
-r6.push(['분리 입금 — 나머지는 같은 계약에', R6[6].st === '자동' && R6[6].rest === 0 && R6[6].lines.every(l => l.no === '본관1층')]);
-r6.push(['별칭 등록 후 같은 이름 입금 자동', R6[4].st === '자동']);
-r6.push(['입금 1건 → 계약 2개 (ICB)', new Set(R6[5].lines.map(l => l.no)).size === 2 && R6[5].rest === 0]);
-r6.push(['입금 1건 → 계약 2개 (좋은생각사람들)', new Set(R6[24].lines.map(l => l.no)).size === 2 && R6[24].rest === 0]);
-r6.push(['임차인 입금 12건 전부 전액 배분', [1,2,3,4,5,6,7,8,9,10,12,24].every(n => R6[n].lines && R6[n].rest === 0)]);
-W.rcApprove();
+/* 입금 매칭 — 대기열 순서(입금일시 오름차순)대로 한 건씩 임차인을 고르고 확정한다 */
+const PICK = {1:'루비뮤직', 2:'케이큐엔터테이먼트', 3:'케이더블유인터내셔널', 5:'아이씨비', 7:'에스씨케이컴퍼니',
+  8:'아마데우스', 9:'고우컴퍼니', 10:'유니버셜대부', 12:'비씨에이전시', 24:'좋은생각사람들'};
+const got = {};
+for (const d of W.rcQueue()) {
+  if ([17, 55].includes(d.no)) { W.rcIgnore(d.no); continue; }
+  const g = W.rcGuess(d, W.rcBiz());
+  if (g.st !== '자동') W.RC.pre[d.no] = PICK[d.no];
+  W.rcConfirm(d.no);
+  got[d.no] = W.RC.dec[d.no].done;
+}
+r6.push(['분리 입금 — 13,200,000은 임대료에', got[7].lines.length === 1 && got[7].lines[0].n === '임대료']);
+r6.push(['분리 입금 — 나머지는 같은 계약에', got[6].was === '자동' && got[6].rest === 0 && got[6].lines.every(l => l.no === '본관1층')]);
+r6.push(['입금자명 등록 후 같은 이름 입금 자동', got[4].was === '자동' || got[3].was === '자동']);
+r6.push(['입금 1건 → 계약 2개 (ICB)', new Set(got[5].lines.map(l => l.no)).size === 2 && got[5].rest === 0]);
+r6.push(['입금 1건 → 계약 2개 (좋은생각사람들)', new Set(got[24].lines.map(l => l.no)).size === 2 && got[24].rest === 0]);
+r6.push(['임차인 입금 12건 전부 전액 배분', [1,2,3,4,5,6,7,8,9,10,12,24].every(n => got[n] && got[n].rest === 0)]);
+r6.push(['대기 0건 — 모두 처리', W.rcNext() === null && W.rcOpenN() === 0]);
 /* 원장 잔액 — 8월 회차 화면에서는 8월 미납이 「지난 미납」이 아니므로 dueOf 대신 직접 본다 */
 const left = k => W.BILLS.filter(i => i.k === k).reduce((a, i) => a + i.amt - (W.PAID[i.id] || 0), 0);
 const all12 = ['본관8층','본관7층','본관6층','본관5층','본관4층','본관301호','본관302호','본관2층','본관1층','본관B2','별관4층','별관2층'];

@@ -418,6 +418,21 @@ td.c,th.c{text-align:center}
 .schr .cb.on::after{content:'';position:absolute;left:4px;top:1px;width:4px;height:8px;
   border:solid #fff;border-width:0 2px 2px 0;transform:rotate(45deg)}
 .schr .cb.dis{opacity:.3}
+.mw{display:grid;grid-template-columns:370px minmax(0,1fr);gap:18px;align-items:start}
+@media(max-width:1080px){.mw{grid-template-columns:1fr}}
+.mq{border:1px solid var(--line);border-radius:var(--r);background:var(--bg);overflow:hidden;position:sticky;top:12px}
+.mqh{padding:11px 14px;font-weight:700;font-size:12.5px;border-bottom:1px solid var(--line);display:flex;gap:8px;align-items:center}
+.mqi{display:grid;grid-template-columns:70px minmax(0,1fr) auto 74px;align-items:center;gap:0 8px;padding:10px 14px;
+  border-bottom:1px solid var(--line-2);cursor:pointer;font-size:12.5px;white-space:nowrap}
+.mqi:last-child{border-bottom:0}
+.mqi:hover{background:var(--side-hov)}
+.mqi.on{background:var(--pri-bg);box-shadow:inset 3px 0 0 var(--pri)}
+.mqi.dn{color:var(--muted)}
+.mqi .t{color:var(--muted);font-size:11.5px;font-variant-numeric:tabular-nums}
+.mqi .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mqi .n{text-align:right;font-variant-numeric:tabular-nums;font-weight:500}
+.mqi .g{text-align:right}
+table.nowr th,table.nowr td{white-space:nowrap}
 .rcr{grid-template-columns:minmax(160px,.9fr) minmax(150px,1fr) 118px 92px minmax(210px,1.3fr) 110px 140px}
 .rcx{padding:4px 14px 14px 46px;background:var(--soft);border-bottom:1px solid var(--line-2)}
 .rcx table{background:var(--bg);border:1px solid var(--line);border-radius:var(--r-sm)}
@@ -455,7 +470,7 @@ td.c,th.c{text-align:center}
           <div class="nb"><div class="nt">8월 정산 미확정</div>
             <div class="nd">동교동 영준빌딩 · 청구일(19일)까지 4일 남았습니다.</div></div>
           <span class="ng">3시간 전</span></div>
-        <div class="ni" onclick="go('pay-6')"><span class="bd wa">주의</span>
+        <div class="ni" onclick="go('pay-13')"><span class="bd wa">주의</span>
           <div class="nb"><div class="nt">미매칭 입금 4건</div>
             <div class="nd">입금자명으로 계약을 찾지 못했습니다. 수동 확인이 필요합니다.</div></div>
           <span class="ng">5시간 전</span></div>
@@ -510,8 +525,9 @@ const MENU=[
  {k:'청구',g:'청구 · 수납',i:'wallet',over:'pay-12',items:[
    {id:'pay-10',n:'관리비 정산',sid:'PAY-10',i:'calc'},
    {id:'pay-1',n:'청구서 발행',sid:'PAY-1',i:'mail'},
+   {id:'pay-13',n:'입금 매칭',sid:'PAY-13',i:'card'},
+   {id:'pay-6',n:'수납 관리',sid:'PAY-6',i:'list'},
    {id:'pay-2',n:'미납 관리',sid:'PAY-2',i:'wallet'},
-   {id:'pay-6',n:'수납 관리',sid:'PAY-6',i:'card'},
    {id:'pay-4',n:'청구 항목 관리',sid:'PAY-4',i:'list'},
    {id:'pay-11',n:'월 마감',sid:'PAY-11',i:'lock'}]},
  {k:'상대',g:'거래 상대',i:'users',items:[
@@ -1819,7 +1835,7 @@ function TODO(id){
   <div class="tbl"><div class="empty"><div class="t">아직 만들지 않은 화면입니다</div>
     구현된 화면 — <b>PRO-1</b> 건물 목록 · <b>PRO-3</b> 건물 상세 ·
     <b>PAY-12</b> 청구 · 수납 현황 · <b>PAY-10</b> 관리비 정산 · <b>PAY-1</b> 청구서 발행 ·
-    <b>PAY-6</b> 수납 관리</div></div>`;   /* PAY-8 수납 내역은 PAY-6에 합쳤다 */
+    <b>PAY-13</b> 입금 매칭 · <b>PAY-6</b> 수납 관리</div></div>`;   /* PAY-8 수납 내역은 PAY-6에 합쳤다 */
 }
 
 /* ═══ PAY-1 · 청구 약정 ═══ */
@@ -2018,7 +2034,7 @@ function PAY1(){
     <b class="lk" onclick="go('pay-2')">미납 관리로 이동 →</b>
     ${f1.b==='b1'&&rcOpenN()?`<br>은행 거래내역 입금 <b>${rcOpenN()}건이 아직 수납 기록되지 않았습니다.</b>
       기록 전이면 이미 낸 임차인도 미납으로 안내됩니다.
-      <b class="lk" onclick="go('pay-6')">수납 관리로 이동 →</b>`:''}</div>`:''}
+      <b class="lk" onclick="go('pay-13')">입금 매칭으로 이동 →</b>`:''}</div>`:''}
   ${!rows.length?`<div class="tbl"><div class="empty"><div class="t">발행할 청구서가 없습니다</div>
      진행중인 계약이 없거나 조건에 맞는 건이 없습니다.</div></div>`
   :`<div class="tbl schl">
@@ -2168,7 +2184,7 @@ Object.entries(AUG).forEach(([no,ls])=>ls.forEach(([n,amt])=>
 const PAID={};
 
 /* 수납 기록 화면 상태 */
-const RC={b:'b1',P:parseBank(BANK_RAW),dec:{},op:{},sel:{},alias:{},pre:{},
+const RC={b:'b1',P:parseBank(BANK_RAW),dec:{},op:{},alias:{},pre:{},reg:{},cur:null,
           f:{b:'b1',ym:'2026-08',st:''}};   /* 필터 — 건물 · 청구년월 · 배분 결과 */
 const setRC=(k,v)=>{RC.f[k]=v;render();};
 /* 배분 결과 — 입금 기준. 필터와 목록 열이 같은 값을 쓴다 */
@@ -2204,28 +2220,6 @@ function rcPlan(amt,keys,paid){
   return {how:open.length?'우선순위 배분':'청구 없음',lines,rest:r};
 }
 
-/* 매칭 — 입금을 시간순으로 처리한다. 앞선 입금의 배분이 뒤 입금의 미납액을 줄인다
-   (에스씨케이컴퍼니 13:05:36 임대료 → 13:05:37 나머지) → 4.6.5 */
-function rcRun(){
-  const B=rcBiz(), paid={...PAID}, res={};
-  [...RC.P.dep].sort((a,b)=>a.dt<b.dt?-1:a.dt>b.dt?1:0).forEach(d=>{
-    const dec=RC.dec[d.no]||{}, nm=normName(d.name);
-    if(dec.done){res[d.no]=dec.done;return;}
-    if(dec.ex){res[d.no]={st:'제외',nm};return;}
-    let biz=null,basis='',st='';
-    if(dec.biz){biz=dec.biz;basis='담당자 지정';st='지정';}
-    else{const a=rcAlias(nm);if(a){biz=a;basis='등록된 입금자명';st='자동';}}
-    if(!biz||!B[biz]){const auto=rcPrefix(nm,B);
-      res[d.no]={st:auto?'후보':'미매칭',cand:RC.pre[d.no]||auto,nm,
-        basis:auto?(auto===nm?'상호 일치':'상호 앞자리 일치'):''};return;}
-    const keys=dec.ctr?[dec.ctr]:B[biz].ctrs.map(c=>c.b+c.no);
-    const pl=rcPlan(d.amt,keys,paid);
-    pl.lines.forEach(l=>paid[l.id]=(paid[l.id]||0)+l.pay);
-    res[d.no]={st,biz,nm,basis,...pl};
-  });
-  return res;
-}
-
 /* 원장에 아직 기록되지 않은 입금 건수 — PAY-1 안내에 쓴다 */
 const rcOpenN=()=>RC.P.dep.filter(d=>{const x=RC.dec[d.no]||{};return !x.done&&!x.ex;}).length;
 /* 계약별 미납 — 지난 회차 청구 − 원장에 기록된 수납 */
@@ -2237,110 +2231,218 @@ function dueOf(k){
   return {n:o.length,amt:o.reduce((a,v)=>a+v,0),from};
 }
 
+/* 매칭 추정 — 담당자가 고른 임차인 → 등록된 입금자명 → 상호 일치·앞자리 일치(후보) 순 */
+function rcGuess(d,B){
+  const nm=normName(d.name);
+  if(RC.pre[d.no]) return {biz:RC.pre[d.no],st:'지정',basis:'담당자 지정',nm};
+  const a=rcAlias(nm);
+  if(a&&B[a]) return {biz:a,st:'자동',basis:'등록된 입금자명',nm};
+  const c=rcPrefix(nm,B);
+  if(c) return {biz:c,st:'후보',basis:c===nm?'상호 일치':'상호 앞자리 일치',nm};
+  return {biz:null,st:'미매칭',basis:'',nm};
+}
+/* 배분 미리보기 — 이미 확정된 입금만 반영한 원장 기준이다. 보이는 그대로 기록된다 → PAY-13 */
+function rcPreview(d,biz,B){
+  if(!biz||!B[biz]) return null;
+  return rcPlan(d.amt,B[biz].ctrs.map(c=>c.b+c.no),PAID);
+}
+/* 목록 상태 — 기록 완료 · 무시 · 대기(자동/후보/미매칭) */
+function rcRun(){
+  const B=rcBiz(), res={};
+  RC.P.dep.forEach(d=>{
+    const dec=RC.dec[d.no]||{};
+    if(dec.done){res[d.no]=dec.done;return;}
+    if(dec.ex){res[d.no]={st:'제외',nm:normName(d.name)};return;}
+    const g=rcGuess(d,B);
+    res[d.no]={...g,cand:g.biz,wait:true};
+  });
+  return res;
+}
+/* 대기열 — 입금일시 오름차순. 같은 임차인이 나눠 낸 입금은 앞 것을 먼저 확정해야 한다 */
+const rcQueue=()=>[...RC.P.dep].sort((a,b)=>a.dt<b.dt?-1:a.dt>b.dt?1:0);
+const rcIsOpen=d=>{const x=RC.dec[d.no]||{};return !x.done&&!x.ex;};
+const rcNext=()=>(rcQueue().find(rcIsOpen)||{}).no||null;
+function rcSel(no){RC.cur=no;render(true);}
+function rcPickBiz(no,v){if(v)RC.pre[no]=v;else delete RC.pre[no];render(true);}
+function rcRegTog(no,v){RC.reg[no]=v;}
+/* 확정 — 한 건만. 원장에 기록하고 다음 대기 입금으로 넘어간다 */
+function rcConfirm(no){
+  const B=rcBiz(), d=RC.P.dep.find(x=>x.no===no), g=rcGuess(d,B);
+  if(!g.biz) return;
+  const pl=rcPreview(d,g.biz,B);
+  pl.lines.forEach(l=>PAID[l.id]=(PAID[l.id]||0)+l.pay);
+  if(RC.reg[no]!==false&&g.st!=='자동') RC.alias[g.nm]=g.biz;   /* 입금자명 등록 */
+  RC.dec[no]={done:{st:'기록 완료',was:g.st,biz:g.biz,basis:g.basis,nm:g.nm,...pl}};
+  RC.cur=rcNext(); render(true);
+}
+function rcIgnore(no){RC.dec[no]={ex:true};RC.cur=rcNext();render(true);}
+function rcUnignore(no){delete RC.dec[no];RC.cur=no;render(true);}
+
+/* 테스트·목업 시연용 — 대기 입금을 순서대로 모두 확정한다 */
+function rcConfirmAll(){rcQueue().filter(rcIsOpen).forEach(d=>{
+  const g=rcGuess(d,rcBiz()); if(g.biz) rcConfirm(d.no);});}
+
 const rcTog=no=>{RC.op[no]=!RC.op[no];render(true);};
 const P6open=v=>{RC.P.dep.forEach(d=>RC.op[d.no]=v);render(true);};
-const rcPick=(no,e)=>{e.stopPropagation();RC.sel[no]=RC.sel[no]===false;render(true);};
-function rcAssign(no){
-  const biz=$('#rcb'+no).value;if(!biz) return;
-  const ce=$('#rcc'+no), reg=$('#rca'+no);
-  const d=RC.P.dep.find(x=>x.no===no), nm=normName(d.name);
-  RC.dec[no]={biz,ctr:ce&&ce.value?ce.value:null};
-  /* 별칭으로 등록하면 같은 이름의 다른 입금도 다시 매칭된다 */
-  if(reg&&reg.checked) RC.alias[nm]=biz;
-  render(true);
-}
-function rcExclude(no){RC.dec[no]={ex:true};render(true);}
-function rcUndo(no){delete RC.dec[no];render(true);}
-function rcApprove(){
-  const R=rcRun();let n=0;
-  Object.entries(R).forEach(([no,r])=>{
-    if((r.st==='자동'||r.st==='지정')&&RC.sel[no]!==false){
-      r.lines.forEach(l=>PAID[l.id]=(PAID[l.id]||0)+l.pay);
-      RC.dec[no]={...(RC.dec[no]||{}),done:{...r,st:'기록 완료',was:r.st}};n++;}
-  });
-  render(true);
-}
-/* 계약 선택 목록 */
-const rcCtrOpts=(biz,B)=>(B[biz]?B[biz].ctrs:[]).map(c=>
-  `<option value="${c.b+c.no}">${cname(BUILDINGS[0].alias,c.no,c.ten)}</option>`).join('');
+const BADGE6={'자동':'ok','지정':'ac','후보':'wa','미매칭':'da','제외':'mu','기록 완료':'mu'};
+const LABEL6={'자동':'자동 매칭','지정':'담당자 지정','후보':'후보','미매칭':'미매칭','제외':'무시','기록 완료':'기록 완료'};
 
+/* ═══ PAY-13 입금 매칭 — 작업 화면. 한 건씩 크게 보고 한 건씩 확정한다 ═══ */
+function PAY13(){
+  const B=rcBiz(), bn=BUILDINGS.find(x=>x.id===RC.b);
+  const has=RC.f.b===RC.b&&RC.f.ym==='2026-08';
+  const Q=has?rcQueue():[];
+  const done=Q.filter(d=>!rcIsOpen(d)).length;
+  if(has&&(RC.cur==null||!Q.some(d=>d.no===RC.cur))) RC.cur=rcNext()||(Q[0]||{}).no;
+  const d=Q.find(x=>x.no===RC.cur);
+  const head=`
+  <div class="ph"><h1>입금 매칭</h1><span class="sid">PAY-13</span>
+    <div class="act">
+      <button class="btn" onclick="alert('은행 거래내역 업로드 — 건물을 고르고 은행에서 내려받은 파일을 그대로 올린다.\\n머리말 행과 출금 행은 시스템이 걸러낸다 → 4.6.1')">은행 거래내역 업로드</button>
+      <button class="btn" onclick="alert('수동 입력 — 임차인·입금일·입금액·결제수단을 넣으면 대기열에 한 건으로 들어간다. 아직 미구현')">수동 입력</button></div>
+  </div>
+  <div class="fbar">
+    <select onchange="setRC('b',this.value)">
+      ${BUILDINGS.map(b=>`<option value="${b.id}" ${RC.f.b===b.id?'selected':''}>${b.name}</option>`).join('')}
+    </select>
+    <select onchange="setRC('ym',this.value)">
+      ${[['2026-08','2026년 8월'],['2026-07','2026년 7월'],['2026-06','2026년 6월']].map(([v,t])=>
+        `<option value="${v}" ${RC.f.ym===v?'selected':''}>${t}</option>`).join('')}
+    </select>
+    ${Q.length?`<span class="c2" style="margin-left:auto">처리 <b style="color:var(--ink)">${done}</b> / ${Q.length}건</span>`:''}
+  </div>`;
+  if(!Q.length) return head+`<div class="tbl"><div class="empty"><div class="t">은행 거래내역이 없습니다</div>
+    이 건물·월의 거래내역을 올리면 입금이 대기열에 들어옵니다.</div></div>`;
+
+  /* 대기열 */
+  const queue=Q.map(q=>{
+    const x=RC.dec[q.no]||{}, on=q.no===RC.cur;
+    const tag=x.done?'<span style="color:var(--ok);font-weight:700">✓</span>'
+      :x.ex?'<span class="bd mu">무시</span>'
+      :(g=>`<span class="bd ${BADGE6[g.st]}">${LABEL6[g.st]}</span>`)(rcGuess(q,B));
+    return `<div class="mqi ${on?'on':''} ${x.done||x.ex?'dn':''}" onclick="rcSel(${q.no})">
+      <span class="t">${q.dt.slice(5,16)}</span><span class="nm">${q.name}</span>
+      <span class="n">${won(q.amt)}</span><span class="g">${tag}</span></div>`;
+  }).join('');
+
+  /* 선택한 입금 */
+  let panel='';
+  const x=RC.dec[d.no]||{};
+  if(x.done){
+    const r=x.done;
+    panel=`<div class="card"><div class="cc" style="padding:18px 20px">
+      <div class="c2" style="margin:0">기록 완료 · ${r.basis}</div>
+      <div style="font-size:15px;font-weight:700;margin:6px 0">${d.name} <span style="font-weight:400;color:var(--muted)">→ ${B[r.biz]?B[r.biz].n:''}</span></div>
+      <div class="big">${won(d.amt)}</div>
+      <div class="hint">원장에 기록되었습니다. 고치려면 수납 관리에서 수정·취소하세요.
+        <b class="lk" onclick="go('pay-6')">수납 관리로 이동 →</b></div></div></div>`;
+  }else if(x.ex){
+    panel=`<div class="card"><div class="cc" style="padding:18px 20px">
+      <div class="c2" style="margin:0">무시함 — 수납으로 기록하지 않습니다</div>
+      <div style="font-size:15px;font-weight:700;margin:6px 0">${d.name}</div><div class="big">${won(d.amt)}</div>
+      <div style="margin-top:14px"><button class="btn sm" onclick="rcUnignore(${d.no})">되돌리기</button></div></div></div>`;
+  }else{
+    const g=rcGuess(d,B), pl=rcPreview(d,g.biz,B);
+    const registered=g.st==='자동';
+    const sumBefore=pl?pl.lines.reduce((a,l)=>a,0):0;
+    const openAll=g.biz?BILLS.filter(i=>B[g.biz].ctrs.some(c=>c.b+c.no===i.k))
+      .reduce((a,i)=>a+Math.max(0,i.amt-(PAID[i.id]||0)),0):0;
+    const tbl=!pl?'':!pl.lines.length?`<div class="empty" style="padding:24px">이 임차인에게 미납 청구가 없습니다. 입금 전액이 미배분으로 남습니다.</div>`
+      :`<div class="tw"><table class="nowr">
+        <thead><tr><th>청구년월</th><th>계약고유명</th><th>청구항목</th><th class="c">우선순위</th>
+          <th class="n">배분 전 미납</th><th class="n">배분액</th><th class="n">배분 후 미납</th></tr></thead>
+        <tbody>${pl.lines.map(l=>{const c=CTRS.find(y=>y.b===RC.b&&y.no===l.no);return `<tr>
+          <td>${l.ym}</td><td>${cnameHTML(bn.alias,l.no,c.ten)}</td><td>${l.n}</td><td class="c">${l.pr}</td>
+          <td class="n" style="color:var(--muted)">${won(l.due)}</td><td class="n"><b>${won(l.pay)}</b></td>
+          <td class="n">${l.due-l.pay?`<span style="color:var(--warn)">${won(l.due-l.pay)}</span>`:'<span class="bd ok">완납</span>'}</td></tr>`;}).join('')}
+          <tr class="sumr"><td colspan="5">입금 ${won(d.amt)}</td><td class="n">${won(d.amt-pl.rest)}</td>
+            <td class="n">${pl.rest?`<span style="color:var(--warn)">미배분 ${won(pl.rest)}</span>`:'남는 금액 0원'}</td></tr>
+        </tbody></table></div>`;
+    panel=`
+    <div class="card"><div class="cc" style="padding:18px 20px">
+      <div style="display:flex;align-items:center;gap:8px">
+        <span class="bd ${BADGE6[g.st]}">${LABEL6[g.st]}</span>
+        <span class="c2" style="margin:0">${d.dt} · ${d.kind} · 비교용 이름 <b>${g.nm}</b></span></div>
+      <div style="display:flex;align-items:baseline;gap:14px;margin-top:8px">
+        <span style="font-size:17px;font-weight:700">${d.name}</span><span class="big">${won(d.amt)}</span></div>
+    </div></div>
+    <div class="isec"><div class="ish"><span class="isn">1</span>임차인</div>
+      <div class="card"><div class="cc" style="padding:14px 16px;display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+        <select class="inp" style="width:280px;text-align:left" onchange="rcPickBiz(${d.no},this.value)">
+          <option value="">임차인 선택</option>
+          ${Object.values(B).map(b=>`<option value="${b.k}" ${b.k===g.biz?'selected':''}>${b.n} · 계약 ${b.ctrs.length}건</option>`).join('')}
+        </select>
+        ${g.biz?(registered?`<span class="c2" style="margin:0">등록된 입금자명으로 찾았습니다</span>`
+          :`<label style="font-size:12.5px"><input type="checkbox" ${RC.reg[d.no]!==false?'checked':''}
+              onchange="rcRegTog(${d.no},this.checked)"> <b>${d.name}</b>을(를) 이 임차인의 입금자명으로 등록</label>`)
+          :'<span class="c2" style="margin:0">입금자명으로 임차인을 찾지 못했습니다. 직접 고르세요.</span>'}
+      </div></div></div>
+    ${g.biz?`<div class="isec"><div class="ish"><span class="isn">2</span>배분 미리보기
+        <span class="c2" style="margin:0 0 0 6px;font-weight:400">${B[g.biz].n} 미납 ${won(openAll)} → ${won(openAll-(d.amt-pl.rest))}</span></div>
+      <div class="card">${tbl}</div>
+      <div class="hint">오래된 회차부터, 같은 회차 안에서는 우선순위 순서로 채웁니다. 확정하면 이대로 원장에 기록됩니다.</div></div>`:''}
+    <div style="display:flex;gap:8px;margin-top:6px">
+      <button class="btn" onclick="rcIgnore(${d.no})">무시</button>
+      <span class="c2" style="margin:auto 0 auto 4px">임차인 입금이 아닐 때</span>
+      <button class="btn pri" style="margin-left:auto" ${g.biz?'':'disabled'} onclick="rcConfirm(${d.no})">확정하고 다음 입금 →</button>
+    </div>`;
+  }
+  const allDone=Q.every(q=>!rcIsOpen(q));
+  return head+`
+  ${allDone?`<div class="fnd"><span class="h">모든 입금을 처리했습니다</span>
+    기록된 입금은 수납 관리에서 통장과 대조하세요. <b class="lk" onclick="go('pay-6')">수납 관리로 이동 →</b></div>`:''}
+  <div class="mw">
+    <div class="mq"><div class="mqh">대기열 <span class="c2" style="margin:0">입금일시 순</span></div>${queue}</div>
+    <div>${panel}</div>
+  </div>`;
+}
+
+/* ═══ PAY-6 수납 관리 — 조회 화면. 매칭은 PAY-13에서 한다 ═══ */
 function PAY6(){
   const P=RC.P, B=rcBiz(), R=rcRun(), bn=BUILDINGS.find(x=>x.id===RC.b);
-  const cnt=k=>P.dep.filter(d=>R[d.no].st===k).length;
-  const ready=P.dep.filter(d=>(R[d.no].st==='자동'||R[d.no].st==='지정')&&RC.sel[d.no]!==false);
-  const readySum=ready.reduce((a,d)=>a+d.amt,0);
-  const BADGE={'자동':'ok','지정':'ac','후보':'wa','미매칭':'da','제외':'mu','기록 완료':'mu'};
-  const LABEL={'자동':'자동 매칭','지정':'담당자 지정','후보':'후보','미매칭':'미매칭','제외':'무시','기록 완료':'기록 완료'};
+  const has=RC.f.b===RC.b&&RC.f.ym==='2026-08';
+  const rows=has?P.dep.filter(d=>!RC.f.st||rcRes(R[d.no])===RC.f.st):[];
+  const waitN=has?P.dep.filter(rcIsOpen).length:0;
+  const anyOp=rows.some(d=>RC.op[d.no]);
   const ctrCell=r=>{
     const ks=[...new Set((r.lines||[]).map(l=>l.no))];
-    if(ks.length){const c=CTRS.find(x=>x.b===RC.b&&x.no===ks[0]);
-      return cnameHTML(bn.alias,c.no,c.ten)+(ks.length>1?`<span class="c2">외 ${ks.length-1}건</span>`:'');}
-    if(r.cand&&B[r.cand]) return `<span class="c2" style="margin:0">${B[r.cand].n}?</span>`;
-    return '<span style="color:var(--faint)">—</span>';
+    if(!ks.length) return '<span style="color:var(--faint)">—</span>';
+    const c=CTRS.find(x=>x.b===RC.b&&x.no===ks[0]);
+    return cnameHTML(bn.alias,c.no,c.ten)+(ks.length>1?`<span class="c2">외 ${ks.length-1}건</span>`:'');
   };
-  const resCell=(d,r)=>{
+  const resCell=r=>{
     if(r.st==='제외') return '<span style="color:var(--faint)">무시</span>';
     if(!r.lines) return '<span style="color:var(--faint)">배분 전</span>';
-    /* 입금 기준이다. 청구의 완납 여부는 뒤 입금까지 처리해야 정해지므로 여기서 말하지 않는다 */
     if(r.rest>0) return `<span style="color:var(--warn)">미배분 ${won(r.rest)}</span>`;
     return '<span class="c2" style="margin:0">전액 배분</span>';
   };
-  const detail=(d,r)=>{
-    const tbl=r.lines&&r.lines.length?`<table><thead><tr><th>청구년월</th><th>계약</th><th>청구항목</th>
-        <th class="c">우선순위</th><th class="n">미납액</th><th class="n">배분액</th><th class="c">배분 후</th></tr></thead>
-      <tbody>${r.lines.map(l=>{const c=CTRS.find(x=>x.b===RC.b&&x.no===l.no);return `<tr>
-        <td>${l.ym}</td><td>${cnameHTML(bn.alias,l.no,c.ten)}</td><td>${l.n}</td><td class="c">${l.pr}</td>
-        <td class="n">${won(l.due)}</td><td class="n"><b>${won(l.pay)}</b></td>
-        <td class="c"><span class="bd ${l.after==='완납'?'ok':'wa'}">${l.after}</span></td></tr>`;}).join('')}</tbody></table>`:'';
-    const undo=(r.st==='지정'||r.st==='제외')?` <b class="lk" onclick="rcUndo(${d.no})">되돌리기</b>`:'';
-    const rest=r.rest>0?`<div class="ln"><span style="color:var(--warn)">미배분 ${won(r.rest)}</span>
-      입금 기록에 보관하고 환불 또는 다음 회차 배분 중 하나를 고른다. 자동으로 처리하지 않는다.</div>`:'';
-    if(r.st==='자동'||r.st==='지정'||r.st==='기록 완료')
-      return `<div class="rcx"><div class="ln"><span class="c2" style="margin:0">
-        ${r.st==='기록 완료'?'원장에 기록됨 · 계좌이체 · 은행거래내역매칭 · 김영준 · ':''}${r.basis||''} · 오래된 회차 → 우선순위 순 · 비교용 이름 <b>${r.nm}</b></span>${undo}${
-        r.st==='기록 완료'?` <button class="btn sm" style="margin-left:auto" onclick="event.stopPropagation();alert('PAY-9 수납 내역 수정 및 취소 — 배분 재조정 또는 무효 처리. 입금액은 수정할 수 없다')">수정·취소</button>`:''}</div>${tbl}${rest}</div>`;
-    if(r.st==='제외')
-      return `<div class="rcx"><div class="ln">임차인 입금이 아니어서 무시했습니다. 수납으로 기록하지 않습니다.${undo}</div></div>`;
-    /* 후보 · 미매칭 — 사업자를 고르고 계약이 여럿이면 계약도 고른다 */
-    const pickBiz=r.cand||'';
-    const multi=pickBiz&&B[pickBiz]&&B[pickBiz].ctrs.length>1;
-    return `<div class="rcx">
-      ${r.need?`<div class="ln" style="color:var(--warn)">${r.need}</div>`:''}
-      <div class="ln">임차인
-        <select id="rcb${d.no}" onchange="RC.pre[${d.no}]=this.value;render(true)">
-          <option value="">선택</option>
-          ${Object.values(B).map(b=>`<option value="${b.k}" ${b.k===pickBiz?'selected':''}>${b.n} · 계약 ${b.ctrs.length}건</option>`).join('')}
-        </select>
-        ${multi?`<select id="rcc${d.no}"><option value="">계약 자동 (금액 일치)</option>${rcCtrOpts(pickBiz,B)}</select>`:''}
-        <label><input type="checkbox" id="rca${d.no}" checked> <b>${d.name}</b>을(를) 이 임차인의 입금자명으로 등록</label>
-        <button class="btn sm pri" onclick="rcAssign(${d.no})">지정</button></div>
-      <div class="ln"><span class="c2" style="margin:0">임차인 입금이 아니면</span>
-        <button class="btn sm" onclick="rcExclude(${d.no})">무시</button></div></div>`;
-  };
-  /* 은행 거래내역은 건물 × 월 단위로 올린다. 목업 자료는 영준빌딩 2026년 8월뿐이다 */
-  const has=RC.f.b===RC.b&&RC.f.ym==='2026-08';
-  const rows=has?P.dep.filter(d=>!RC.f.st||rcRes(R[d.no])===RC.f.st):[];
-  const anyOp=rows.some(d=>RC.op[d.no]);
+  const detail=(d,r)=>`<div class="rcx"><div class="ln"><span class="c2" style="margin:0">
+      계좌이체 · 은행거래내역매칭 · 김영준 · ${r.basis||''} · 비교용 이름 <b>${r.nm}</b></span>
+      <button class="btn sm" style="margin-left:auto" onclick="event.stopPropagation();alert('PAY-9 수납 내역 수정 및 취소 — 배분 재조정 또는 무효 처리. 입금액은 수정할 수 없다')">수정·취소</button></div>
+    <table><thead><tr><th>청구년월</th><th>계약</th><th>청구항목</th><th class="c">우선순위</th>
+      <th class="n">청구액</th><th class="n">배분액</th><th class="c">배분 후</th></tr></thead>
+    <tbody>${r.lines.map(l=>{const c=CTRS.find(x=>x.b===RC.b&&x.no===l.no);return `<tr>
+      <td>${l.ym}</td><td>${cnameHTML(bn.alias,l.no,c.ten)}</td><td>${l.n}</td><td class="c">${l.pr}</td>
+      <td class="n">${won(l.amt)}</td><td class="n"><b>${won(l.pay)}</b></td>
+      <td class="c"><span class="bd ${l.after==='완납'?'ok':'wa'}">${l.after}</span></td></tr>`;}).join('')}</tbody></table>
+    ${r.rest>0?`<div class="ln"><span style="color:var(--warn)">미배분 ${won(r.rest)}</span>
+      <button class="btn sm">환불</button><button class="btn sm">다음 회차 배분</button></div>`:''}</div>`;
   const body=rows.map(d=>{
-    const r=R[d.no], op=!!RC.op[d.no], can=r.st==='자동'||r.st==='지정', on=RC.sel[d.no]!==false;
-    return `<div class="schr rcr grp" onclick="rcTog(${d.no})">
-      <div class="nm">${can?`<span class="cb ${on?'on':''}" onclick="rcPick(${d.no},event)"></span>`
-          :'<span class="cb dis"></span>'}<span class="tg ${op?'op':''}">${ic('chev',16)}</span>${d.dt.slice(5,16)}</div>
+    const r=R[d.no], rec=r.st==='기록 완료', op=rec&&!!RC.op[d.no];
+    const st=r.wait?'<span class="bd mu">대기</span>':`<span class="bd ${BADGE6[r.st]}">${LABEL6[r.st]}</span>`;
+    return `<div class="schr rcr grp" onclick="${rec?`rcTog(${d.no})`:r.wait?`RC.cur=${d.no};go('pay-13')`:''}">
+      <div class="nm"><span class="tg ${op?'op':''}" style="${rec?'':'visibility:hidden'}">${ic('chev',16)}</span>${d.dt.slice(5,16)}</div>
       <div>${d.name}</div>
       <div class="n"><b>${won(d.amt)}</b></div>
-      <div class="c"><span class="bd ${BADGE[r.st]}">${LABEL[r.st]}</span></div>
+      <div class="c">${st}</div>
       <div>${ctrCell(r)}</div>
-      <div class="c2" style="margin:0">${r.basis||''}</div>
-      <div class="n">${resCell(d,r)}</div>
+      <div class="c2" style="margin:0">${rec?r.basis||'':''}</div>
+      <div class="n">${resCell(r)}</div>
     </div>`+(op?detail(d,r):'');
   }).join('');
   return `
   <div class="ph"><h1>수납 관리</h1><span class="sid">PAY-6</span>
-    <div class="act">
-      <button class="btn" onclick="alert('은행 거래내역 업로드 — 건물을 고르고 은행에서 내려받은 파일을 그대로 올린다.\n머리말 행과 출금 행은 시스템이 걸러낸다 → 4.6.1')">은행 거래내역 업로드</button>
-      <button class="btn" onclick="alert('수동 입력 — 임차인·입금일·입금액·결제수단을 직접 넣는다. 아직 미구현')">수동 입력</button>
-      <button class="btn pri" ${ready.length?'':'disabled'} onclick="rcApprove()">
-        ${ready.length?`${ready.length}건 승인 · ${won(readySum)}`:'승인할 입금 없음'}</button></div>
+    <div class="act">${waitN?`<button class="btn pri" onclick="go('pay-13')">입금 매칭 ${waitN}건 →</button>`:''}</div>
   </div>
   <div class="fbar">
     <select onchange="setRC('b',this.value)">
@@ -2357,7 +2459,7 @@ function PAY6(){
       <button class="btn sm" onclick="P6open(${anyOp?'false':'true'})">${anyOp?'전체 접기':'전체 펼치기'}</button></span>`:''}
   </div>
   ${!rows.length?`<div class="tbl"><div class="empty"><div class="t">${has?'조건에 맞는 입금이 없습니다':'은행 거래내역이 없습니다'}</div>
-     ${has?'다른 상태를 선택해 보세요.':'이 건물·월의 거래내역을 올리면 입금이 표시됩니다.'}</div></div>`
+     ${has?'다른 상태를 선택해 보세요.':'입금 매칭에서 이 건물·월의 거래내역을 올리면 입금이 표시됩니다.'}</div></div>`
   :`<div class="tbl schl">
     <div class="schr rcr hd"><div>입금일시</div><div>입금자명</div><div class="n">입금액</div>
       <div class="c">매칭</div><div>계약</div><div>매칭 근거</div><div class="n">배분 결과</div></div>
@@ -2365,15 +2467,14 @@ function PAY6(){
     <div class="schr rcr sum"><div>합계 <span class="lock">입금 ${rows.length}</span></div><div></div>
       <div class="n">${won(rows.reduce((a,d)=>a+d.amt,0))}</div><div></div><div></div><div></div><div></div></div>
   </div>
-  ${has?(()=>{
+  ${(()=>{
     /* 일자별 소계 — 통장의 당일 입금 합계와 대조한다. 필터와 무관하게 이 달의 모든 입금을 센다 */
     const g={};P.dep.forEach(d=>{const k=d.dt.slice(5,10);(g[k]=g[k]||{n:0,a:0});g[k].n++;g[k].a+=d.amt;});
     return `<div class="c2" style="margin-top:10px;white-space:normal">일자별 입금 · ${
-      Object.entries(g).map(([k,v])=>`${k} <b>${v.n}건 ${won(v.a)}</b>`).join(' · ')}</div>`;})():''}`}
+      Object.entries(g).map(([k,v])=>`${k} <b>${v.n}건 ${won(v.a)}</b>`).join(' · ')}</div>`;})()}`}
   <div class="hint">
-    자동 매칭된 입금은 배분을 펼쳐 확인한 뒤 승인하세요. 승인해야 원장에 기록됩니다.<br>
-    후보·미매칭은 펼쳐서 임차인을 고르세요. 입금자명을 등록해 두면 다음 달부터 자동으로 매칭됩니다.<br>
-    임차인 입금이 아니면 무시하세요.</div>`;
+    기록된 입금을 통장과 맞춰 보는 화면입니다. 대기 중인 입금은 입금 매칭에서 한 건씩 처리하세요.<br>
+    기록을 고치려면 행을 펼쳐 수정·취소를 누르세요.</div>`;
 }
 
 /* ═══ 라우터 ═══ */
@@ -2390,6 +2491,7 @@ function render(keep){
   else if(id==='pay-12'){html=PAY12();crumb='<b>청구 · 수납</b>';}
   else if(id==='pay-1'){html=PAY1();crumb='청구 · 수납 <span>›</span> <b>청구서 발행</b>';}
   else if(id==='pay-6'){html=PAY6();crumb='청구 · 수납 <span>›</span> <b>수납 관리</b>';}
+  else if(id==='pay-13'){html=PAY13();crumb='청구 · 수납 <span>›</span> <b>입금 매칭</b>';}
   else{html=TODO(id);const g=MENU.find(m=>m.items&&m.items.some(i=>i.id===id));
     const m=ALL.find(i=>i.id===id);
     crumb=(g?g.g+' <span>›</span> ':'')+`<b>${m?m.n:'—'}</b>`;}
