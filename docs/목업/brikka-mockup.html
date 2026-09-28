@@ -1243,8 +1243,10 @@ function ddBadge(end){
 
 /* ═══ 네비 ═══ */
 const navLink=(i,sub)=>`<a onclick="go('${i.id}')" data-id="${i.id}" data-n="${i.n}">${sub?'':ic(i.i)}<span>${i.n}</span><span class="sid">${i.sid}</span></a>`;
+/* 상세 화면은 목록 메뉴를 켠다 */
+const NAV_PARENT={'ctr-3':'ctr-1','pro-3':'pro-1'};
 function paintNav(cur){
-  const active=(cur||'').split('/')[0];
+  const a0=(cur||'').split('/')[0], active=NAV_PARENT[a0]||a0;
   $('#nav').innerHTML=MENU.map(m=>{
     if(!m.items) return navLink(m);
     const hasOn=m.items.some(i=>i.id===active)||m.over===active;
@@ -2534,7 +2536,7 @@ function PAY6(){
   const dash='<span style="color:var(--faint)">—</span>';
   const body=rows.map(x=>{
     const op=g6Open(x.k);
-    const sub=!op?'':`<div class="schr ctr sub"><div class="nm"><b class="lk" onclick="event.stopPropagation();go('ctr-3/${x.k}')">계약 원장 보기 →</b></div><div></div><div></div><div></div><div></div></div>`+x.it.map(i=>`
+    const sub=!op?'':x.it.map(i=>`
       <div class="schr ctr sub"><div class="nm">${i.n}</div>
         <div class="n c2">${won(i.amt)}</div><div class="n c2">${i.paid?won(i.paid):dash}</div>
         <div class="n">${i.due?`<span style="color:var(--warn)">${won(i.due)}</span>`:dash}</div>
@@ -2632,10 +2634,7 @@ function PAY2(){
       <div class="n">${a.days?`${a.days}일`:dash}</div>
       <div class="n">연 ${a.rate}%</div>
       <div class="n">${a.fee?won(a.fee):dash}</div>
-    </div>`+(!op||!can?'':`
-    <div class="schr arr sub"><div class="nm"><b class="lk" onclick="event.stopPropagation();go('ctr-3/${a.k}')">계약 원장 보기 →</b></div>
-      <div></div><div></div><div></div><div></div><div></div></div>`
-    +a.months.map(m=>`
+    </div>`+(!op||!can?'':a.months.map(m=>`
     <div class="schr arr sub mo" onclick="RC.f.b='${RC.b}';RC.f.ym='${m.ym}';RC.f.st='';go('pay-6')">
       <div class="nm">${m.ym.replace('-','년 ')}월분 <span class="c2">청구 ${won(m.bill)} · 수납 ${m.paid?won(m.paid):'0원'} · 마감 ${md(dueStr(m.ym))}</span></div>
       <div><span class="bd ${PST[m.st]}">${m.st}</span></div>
@@ -2679,7 +2678,92 @@ function PAY2(){
   </div>`}
   <div class="hint">
     지금까지 쌓인 미납과 청구하지 않은 연체료를 계약별로 모았습니다. 펼치면 최근 달부터 보입니다.<br>
-    거래 하나하나는 계약 원장에서 봅니다. 연체료는 청구하기 전까지 표시만 합니다.</div>`;
+    거래 하나하나는 계약 관리 › 계약 상세의 원장에서 봅니다. 연체료는 청구하기 전까지 표시만 합니다.</div>`;
+}
+
+/* 계약 조건 — 종료일은 기본값(시작일로부터 2년 후 전날), 유형은 확정기간계약, 보증금은 예시값(월 임대료 × 10) → 3.5 */
+const ctrEnd=c=>{const d=new Date(c.base+'T00:00:00Z');d.setUTCFullYear(d.getUTCFullYear()+2);d.setUTCDate(d.getUTCDate()-1);
+  let e=d.toISOString().slice(0,10);
+  /* 이미 끝났어야 할 진행중 계약은 한 번 갱신된 것으로 본다 */
+  while(c.st==='진행중'&&dnum(e)<dnum(TODAY_S)){const x=new Date(e+'T00:00:00Z');x.setUTCFullYear(x.getUTCFullYear()+2);e=x.toISOString().slice(0,10);}
+  return e;};
+const ctrAmt=(c,n)=>((c.it||[]).find(x=>x[0]===n)||[])[1]||0;
+const ctrDeposit=c=>ctrAmt(c,'임대료')*10;
+const man=n=>n>=1e8?(n/1e8).toFixed(n%1e8?1:0)+'억':n>=1e4?num(Math.round(n/1e4))+'만':num(n);
+
+/* ═══ CTR-1 계약 목록 ═══ */
+let f1c={b:'',st:'진행중',dd:''};
+const setF1c=(k,v)=>{f1c[k]=v;render();};
+function CTR1(){
+  const rows=CTRS.filter(c=>(!f1c.b||c.b===f1c.b)&&(!f1c.st||c.st===f1c.st)).map(c=>({c,end:ctrEnd(c),dd:dday(ctrEnd(c))}))
+    .filter(x=>!f1c.dd||(f1c.dd==='0'?x.dd<0:x.dd>=0&&x.dd<=+f1c.dd)).sort((a,b)=>a.dd-b.dd);
+  const BA=id=>(BUILDINGS.find(x=>x.id===id)||{}).alias||'';
+  const d8=d=>d.replace(/-/g,'.');
+  return `
+  <div class="ph"><h1>계약 목록</h1><span class="sid">CTR-1</span>
+    <div class="act"><button class="btn pri" onclick="alert('CTR-2 새로운 계약 등록 — 아직 미구현')">+ 새로운 계약 등록</button></div>
+  </div>
+  <div class="fbar">
+    <select onchange="setF1c('b',this.value)"><option value="">전체 건물</option>
+      ${BUILDINGS.map(b=>`<option value="${b.id}" ${f1c.b===b.id?'selected':''}>${b.name}</option>`).join('')}</select>
+    <select onchange="setF1c('st',this.value)">
+      ${[['','전체 계약상태'],['준비중','준비중'],['진행중','진행중'],['종료됨','종료됨'],['파기됨','파기됨']].map(([v,t])=>`<option value="${v}" ${f1c.st===v?'selected':''}>${t}</option>`).join('')}</select>
+    <select onchange="setF1c('dd',this.value)">
+      ${[['','만료 남은 일수 전체'],['0','만료됨'],['30','30일 이하'],['90','90일 이하'],['180','180일 이하']].map(([v,t])=>`<option value="${v}" ${f1c.dd===v?'selected':''}>${t}</option>`).join('')}</select>
+  </div>
+  <div class="tbl"><div class="tw"><table class="nowr">
+    <thead><tr><th>만료까지 <span class="so">⇅</span></th><th>계약고유명</th><th>계약상태</th><th>계약 조건 <span class="c2" style="margin:0">(부가세 별도)</span></th><th>계약유형</th></tr></thead>
+    <tbody>${rows.map(({c,end,dd})=>`<tr onclick="tab3c='요약';go('ctr-3/${c.b+c.no}')">
+      <td>${c.st==='진행중'?ddBadge(end):'<span style="color:var(--faint)">—</span>'}</td>
+      <td>${cnameHTML(BA(c.b),c.no,c.ten)}</td>
+      <td><span class="bd ${c.st==='진행중'?'ok':'mu'}">${c.st}</span></td>
+      <td>${d8(c.base)} - ${d8(end)} <span class="c2" style="margin:0 0 0 6px">보증금 ${man(ctrDeposit(c))} · 임대료 ${man(ctrAmt(c,'임대료'))} · 관리비 ${man(ctrAmt(c,'고정관리비'))}</span></td>
+      <td class="c2" style="margin:0">확정기간계약</td></tr>`).join('')}
+      ${rows.length?'':'<tr><td colspan="5"><div class="empty">조건에 맞는 계약이 없습니다</div></td></tr>'}
+    </tbody></table></div></div>
+  <div class="hint">행을 누르면 계약 상세로 들어갑니다. 원장은 계약 상세의 원장정보 탭에 있습니다.<br>
+    목업의 계약 종료일·유형·보증금은 예시값입니다.</div>`;
+}
+
+/* CTR-3 머리 — 제목 · 버튼 · 탭 */
+function CTR3head(c,k){
+  const bn=BUILDINGS.find(x=>x.id===c.b)||BUILDINGS[0];
+  return `
+  <div class="ph"><h1>${cnameHTML(bn.alias,c.no,c.ten).replace('class="cn"','class="cn" style="font-size:19px"')}</h1><span class="sid">CTR-3</span>
+    <div class="act">
+      <button class="btn" onclick="go('ctr-1')">목록</button>
+      <button class="btn" onclick="alert('수납 처리 — 입금 매칭(PAY-13)의 수동 입력으로 연결한다. 이 계약의 임차인을 미리 채운다')">수납 처리</button>
+      ${tab3c==='원장정보'?`<button class="btn pri" onclick="alert('원장 출력 — 선택한 기간·계정의 원장을 거래내역서 PDF로 내려받거나 임차인 담당자에게 보낸다')">원장 출력</button>`:''}</div>
+  </div>
+  <div class="tabs">
+    ${['요약','임차인정보','원장정보','청구항목정보','자료보관'].map(t=>`<button class="${t===tab3c?'on':''}" onclick="tab3c='${t}';render()">${t}</button>`).join('')}
+  </div>`;
+}
+/* CTR-3 요약 탭 — 계약·임대 정보. 잔액은 원장에서 */
+function CTR3sum(c,k){
+  const bn=BUILDINGS.find(x=>x.id===c.b)||BUILDINGS[0], L=ledgerOf(k), end=ctrEnd(c);
+  const d8=d=>d.replace(/-/g,'.');
+  return `
+  <div class="two">
+    <div class="card"><div class="ct">계약정보<span class="ca"><button class="btn sm">수정</button></span></div><div class="cc"><dl class="dl">
+      <dt>건물</dt><dd>${bn.name}<span class="lock">건물주 ${bn.owner}</span></dd>
+      <dt>유닛</dt><dd>${c.no}<span class="lock">수정 불가</span></dd>
+      <dt>대표임차인</dt><dd>${c.ten}</dd>
+      <dt>계약상태</dt><dd><span class="bd ${c.st==='진행중'?'ok':'mu'}">${c.st}</span></dd>
+      <dt>계약유형</dt><dd>확정기간계약</dd>
+      <dt>계약기간</dt><dd>${d8(c.base)} - ${d8(end)} ${c.st==='진행중'?ddBadge(end):''}</dd>
+    </dl></div></div>
+    <div class="card"><div class="ct">임대정보</div><div class="cc"><dl class="dl">
+      <dt>미납 잔액</dt><dd><b style="${L.bal.수익?'color:var(--warn)':''}">${won(L.bal.수익)}</b>
+        <span class="lk" style="margin-left:8px;font-size:12px" onclick="tab3c='원장정보';render()">원장 보기</span></dd>
+      <dt>보증금 잔액</dt><dd>${won(L.bal.부채)}</dd>
+      <dt>임대료</dt><dd>${won(ctrAmt(c,'임대료'))}<span class="lock">월 · 부가세 별도</span></dd>
+      <dt>고정관리비</dt><dd>${ctrAmt(c,'고정관리비')?won(ctrAmt(c,'고정관리비')):'—'}<span class="lock">월 · 부가세 별도</span></dd>
+      <dt>청구일 · 납부마감일</dt><dd>${bn.billDay} · ${bn.dueDay}</dd>
+      <dt>연체이자율</dt><dd>연 ${rateOf(k)}%</dd>
+    </dl></div></div>
+  </div>
+  <div class="hint">목업의 계약 종료일·유형·보증금은 예시값입니다.</div>`;
 }
 
 /* ═══ CTR-3 계약 원장 — 이 계약의 모든 돈 거래를 있는 그대로. 추가만 하고 고치지 않는다 ═══ */
@@ -2703,9 +2787,12 @@ function ledgerOf(k){
   rows.forEach(r=>{bal[r.acc]+=(r.inc||0)-(r.dec||0);r.bal=bal[r.acc];});
   return {c,rows,bal};
 }
+let tab3c='요약';
 function CTR3(k){
   const c=CTRS.find(x=>x.b+x.no===k);
   if(!c) return TODO('ctr-1');
+  if(tab3c!=='원장정보') return CTR3head(c,k)+(tab3c==='요약'?CTR3sum(c,k)
+    :`<div class="tbl"><div class="empty"><div class="t">아직 만들지 않은 탭입니다</div>목업에는 요약과 원장정보 탭만 있습니다.</div></div>`);
   const bn=BUILDINGS.find(x=>x.id===c.b)||BUILDINGS[0];
   const L=ledgerOf(k);
   const from=f3.per?new Date(Date.UTC(2026,8,23-({'1':30,'3':91}[f3.per])))
@@ -2714,15 +2801,7 @@ function CTR3(k){
   const fee=[...new Set(BILLS.filter(i=>i.k===k).map(i=>i.ym))].reduce((a,ym)=>a+lateCalc(k,ym).fee,0);
   const TP={'청구':'ac','수납':'ok','보증금 예치':'mu'};
   const dash='<span style="color:var(--faint)">—</span>';
-  return `
-  <div class="ph"><h1>${cnameHTML(bn.alias,c.no,c.ten).replace('class="cn"','class="cn" style="font-size:19px"')}</h1><span class="sid">CTR-3</span>
-    <div class="act">
-      <button class="btn" onclick="alert('수납 처리 — 입금 매칭(PAY-13)의 수동 입력으로 연결한다. 이 계약의 임차인을 미리 채운다')">수납 처리</button>
-      <button class="btn pri" onclick="alert('원장 출력 — 선택한 기간·계정의 원장을 거래내역서 PDF로 내려받거나 임차인 담당자에게 보낸다')">원장 출력</button></div>
-  </div>
-  <div class="tabs">
-    ${['요약','임차인정보','원장정보','청구항목정보','자료보관'].map(t=>`<button class="${t==='원장정보'?'on':''}" ${t==='원장정보'?'':'disabled'}>${t}</button>`).join('')}
-  </div>
+  return CTR3head(c,k)+`
   <div class="fbar">
     <select onchange="setF3('per',this.value)">
       ${[['','모든 거래'],['1','최근 1개월'],['3','최근 3개월']].map(([v,t])=>`<option value="${v}" ${f3.per===v?'selected':''}>${t}</option>`).join('')}
@@ -2770,8 +2849,9 @@ function render(keep){
   else if(id==='pay-12'){html=PAY12();crumb='<b>청구 · 수납</b>';}
   else if(id==='pay-1'){html=PAY1();crumb='청구 · 수납 <span>›</span> <b>청구서 발행</b>';}
   else if(id==='pay-6'){html=PAY6();crumb='청구 · 수납 <span>›</span> <b>수납 내역</b>';}
+  else if(id==='ctr-1'){html=CTR1();crumb='<b>계약 관리</b>';}
   else if(id==='ctr-3'){html=CTR3(decodeURIComponent(arg||''));const c=CTRS.find(x=>x.b+x.no===decodeURIComponent(arg||''));
-    crumb=`계약 관리 <span>›</span> <b>${c?cname(BUILDINGS[0].alias,c.no,c.ten):'—'}</b>`;}
+    crumb=`<span class="c" onclick="go('ctr-1')">계약 관리</span> <span>›</span> <b>${c?cname(BUILDINGS[0].alias,c.no,c.ten):'—'}</b>`;}
   else if(id==='pay-2'){html=PAY2();crumb='청구 · 수납 <span>›</span> <b>미납 기록</b>';}
   else if(id==='pay-13'){html=PAY13();crumb='청구 · 수납 <span>›</span> <b>입금 매칭</b>';}
   else{html=TODO(id);const g=MENU.find(m=>m.items&&m.items.some(i=>i.id===id));
