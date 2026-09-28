@@ -113,7 +113,7 @@ for (const m of Z.MASTER) {
 if (orphan.length) fail = 1;
 console.log('⑤ 유닛 번호 정합성 ' + (orphan.length ? '✗ ' + orphan.join(', ') : 'OK'));
 /* ⑥ 수납 기록 — 8월 실제 거래내역으로 매칭·배분·미납을 검산한다 → 4.3 · 4.6 */
-const W = new Function(stub + bare + '; return {RC,ctrPay,ctrDeps,rcRun,rcQueue,rcGuess,rcBiz,rcConfirm,rcIgnore,rcNext,rcOpenN,dueOf,normName,PAID,BILLS};')();
+const W = new Function(stub + bare + '; return {RC,rcPreview,ctrPay,ctrDeps,rcRun,rcQueue,rcGuess,rcBiz,rcConfirm,rcIgnore,rcNext,rcOpenN,dueOf,normName,PAID,BILLS};')();
 const P6 = W.RC.P;
 const r6 = [];
 r6.push(['거래 56 · 입금 14 · 출금 42', P6.rows.length === 56 && P6.dep.length === 14 && P6.wd.length === 42]);
@@ -122,6 +122,10 @@ const first = W.rcRun();
 const auto = P6.dep.filter(d => first[d.no].st === '자동').length;
 r6.push(['첫 달 자동 매칭 0건 — 등록된 입금자명만 자동', auto === 0]);
 r6.push(['상호가 같으면 후보', first[9].st === '후보' && first[9].basis === '상호 일치']);
+/* 배분 미리보기는 채우지 못하는 청구까지 보여야 한다 — 비씨에이전시 배분 후 미납 112,299 */
+const pvB = W.rcPreview(P6.dep.find(d => d.no === 12), '비씨에이전시', W.rcBiz());
+r6.push(['미리보기 — 비씨에이전시 배분 후 미납 112,299 (6개 항목 모두 표시)',
+  pvB.all.length === 6 && pvB.all.reduce((a, l) => a + l.due - l.pay, 0) === 112299]);
 /* 입금 매칭 — 대기열 순서(입금일시 오름차순)대로 한 건씩 임차인을 고르고 확정한다 */
 const PICK = {1:'루비뮤직', 2:'케이큐엔터테이먼트', 3:'케이더블유인터내셔널', 5:'아이씨비', 7:'에스씨케이컴퍼니',
   8:'아마데우스', 9:'고우컴퍼니', 10:'유니버셜대부', 12:'비씨에이전시', 24:'좋은생각사람들'};

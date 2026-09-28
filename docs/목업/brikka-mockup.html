@@ -595,6 +595,8 @@ const BUILDINGS=[
    {t:'건축물대장.pdf',sz:'2.1 MB',c:'건축물대장',by:'김영준',at:'2025-03-02 11:40'},
    {t:'2026년 화재보험증권.pdf',sz:'880 KB',c:'기타',by:'박수민',at:'2026-01-08 16:05'}],
   charge:[
+   {it:'임대료',use:1,bill:'세금계산서',cycle:'매월',meter:'',mtr:'',basis:'',doc:'임대차계약서',fixed:true},
+   {it:'고정관리비',use:1,bill:'세금계산서',cycle:'매월',meter:'',mtr:'',basis:'',doc:'임대차계약서',fixed:true},
    {it:'전기요금',use:1,bill:'세금계산서',meter:'13개 유닛',mtr:'청구함',rest:'전체 유닛',basis:'사용량',doc:'한국전력 고지서'},
    {it:'수도요금',use:1,bill:'계산서',meter:'101호',mtr:'청구함',rest:'전체 유닛',basis:'사용량+임대면적',doc:'상수도사업본부 고지서'},
    {it:'전력기금',use:1,bill:'일반내역서',meter:'없음',mtr:'—',rest:'전체 유닛',basis:'사용량',ref:'전기요금',doc:'한국전력 고지서'},
@@ -665,16 +667,19 @@ const UNITS_B1=[
  {no:'별관3층',  st:'사용중', ten:'(주)비씨에이전시',        ar:95.0},
  {no:'별관2층',  st:'사용중', ten:'㈜케이더블유인터내셔널',   ar:95.0},
 ];
-/* 정산 대상 항목 — 기준표 3.3 중 산정방식이 「정산」인 것 */
+/* 청구 항목 — 기준표 3.3. fixed는 고정액(계약 약정액), 나머지는 정산 항목이다.
+   pr은 기본 배분 우선순위다. 건물 관리비 설정(PRO-3)에서 건물별로 덮어쓴다 → prioOf */
 const MASTER=[
- {code:'elec', name:'전기요금',      bill:'세금계산서', unit:'kWh', cycle:'매월',   tax:true,  src:'한국전력', doc:'고지서'},
- {code:'water',name:'수도요금',      bill:'계산서', unit:'톤',  cycle:'격월',   tax:false, src:'상수도사업본부', doc:'고지서'},
- {code:'fund', name:'전력기금',      bill:'일반내역서', unit:null, cycle:'매월', tax:false, src:'한국전력', doc:'고지서'},
- {code:'tv',   name:'TV수신료',      bill:'일반내역서', unit:null, cycle:'매월', tax:false, src:'한국전력', doc:'고지서'},
- {code:'gas',  name:'가스요금',      bill:'세금계산서', unit:'㎥',  cycle:'매월',   tax:true,  src:'도시가스', doc:'고지서'},
- {code:'traffic',name:'교통유발부담금',bill:'계산서', unit:null, cycle:'연1회', tax:false, src:'구청', doc:'고지서'},
- {code:'septic',name:'정화조청소비',  bill:'계산서', unit:null, cycle:'반기',   tax:false, src:'청소업체', doc:'내역서'},
- {code:'parking',name:'주차비',      bill:'세금계산서', unit:null, cycle:'매월',   tax:true,  src:'경비실', doc:'내역서'},
+ {code:'rent', name:'임대료',        bill:'세금계산서', unit:null, cycle:'매월',   tax:true,  src:'', doc:'임대차계약서', fixed:true, pr:1},
+ {code:'mgmt', name:'고정관리비',     bill:'세금계산서', unit:null, cycle:'매월',   tax:true,  src:'', doc:'임대차계약서', fixed:true, pr:2},
+ {code:'elec', name:'전기요금',      bill:'세금계산서', unit:'kWh', cycle:'매월',   tax:true,  src:'한국전력', doc:'고지서', pr:4},
+ {code:'water',name:'수도요금',      bill:'계산서', unit:'톤',  cycle:'격월',   tax:false, src:'상수도사업본부', doc:'고지서', pr:13},
+ {code:'fund', name:'전력기금',      bill:'일반내역서', unit:null, cycle:'매월', tax:false, src:'한국전력', doc:'고지서', pr:16},
+ {code:'tv',   name:'TV수신료',      bill:'일반내역서', unit:null, cycle:'매월', tax:false, src:'한국전력', doc:'고지서', pr:17},
+ {code:'gas',  name:'가스요금',      bill:'세금계산서', unit:'㎥',  cycle:'매월',   tax:true,  src:'도시가스', doc:'고지서', pr:12},
+ {code:'traffic',name:'교통유발부담금',bill:'계산서', unit:null, cycle:'연1회', tax:false, src:'구청', doc:'고지서', pr:14},
+ {code:'septic',name:'정화조청소비',  bill:'계산서', unit:null, cycle:'반기',   tax:false, src:'청소업체', doc:'내역서', pr:15},
+ {code:'parking',name:'주차비',      bill:'세금계산서', unit:null, cycle:'매월',   tax:true,  src:'경비실', doc:'내역서', pr:3},
 ];
 const M=c=>MASTER.find(x=>x.code===c);
 const codeOf=name=>{const m=MASTER.find(x=>x.name===name);return m?m.code:'elec';};
@@ -697,6 +702,7 @@ const BILL={
  gas:{on:false,date:'2026-09-09',use:1840,supply:2208000,vat:220800,
    read:{'본관1층':[4820,null],'본관B2':[1150,null],'별관2층':[2340,null]},
    readDate:'2026-09-06', adj:{}},   /* 영준빌딩은 가스를 청구하지 않는다 — 실제 청구서에 열이 없다 */
+ rent:{on:false,fixed:true}, mgmt:{on:false,fixed:true},   /* 고정액 — 정산하지 않는다 */
  traffic:{on:false,date:'',use:null,supply:0,vat:0,read:null,adj:{}},
  septic:{on:false,date:'',use:null,supply:0,vat:0,read:null,adj:{}},
  parking:{on:true,date:'2026-08-31',use:null,supply:0,vat:22100,read:null,adj:{},
@@ -711,7 +717,10 @@ const PROG={
  b4:{settle:'미착수',inv:0,invN:14,amt:0,paid:0,paidN:0,closed:false,closedAt:null,due:'09-30'},
  b5:{settle:'확정', inv:13,invN:13,amt:98640000,paid:71200000,paidN:9,closed:true, closedAt:'09-24',due:'09-30'},
 };
-const selItems=()=>MASTER.filter(m=>BILL[m.code].on);
+const selItems=()=>MASTER.filter(m=>!m.fixed&&BILL[m.code].on);
+/* 배분 우선순위 — 건물 설정이 있으면 그것, 없으면 기준표 기본값 → PRO-3 · 4.3 */
+const prioOf=name=>{const m=MASTER.find(x=>x.name===name);if(!m)return 99;
+  const b=BSET[m.code];return (b&&b.pr)||m.pr||99;};
 let pCode='elec';
 const setPStep=i=>{pStep=i;render()};
 const setPItem=c=>{pCode=c;render()};
@@ -784,7 +793,8 @@ function loadCS(code){
       useMeter:mt.length>0, meters:mt,
       basis:b.basis||'임대면적', ref:b.ref||null, editing:!!row,
       ct:{...(CTMUL[code]||{})},
-      doc:b.doc||m.doc||'고지서', by:b.by||m.src||''};
+      doc:b.doc||m.doc||'고지서', by:b.by||m.src||'',
+      fixed:!!m.fixed, pr:(b&&b.pr)||m.pr||99};
 }
 function openCS(code){
   if(code) loadCS(code);
@@ -795,7 +805,7 @@ function openCS(code){
   DRAWER='chargeset'; render();
 }
 function csNew(){
-  cs={neu:true, item:null, name:'', bill:'세금계산서', cycle:'매월',
+  cs={neu:true, item:null, name:'', bill:'세금계산서', cycle:'매월', pr:18,
       useMeter:false, meters:[], ct:{},
       basis:'임대면적', ref:null, editing:false};
 }
@@ -851,17 +861,23 @@ function csApply(){
     if(MASTER.some(x=>x.name===nm)){alert('이미 있는 항목명입니다.');return;}
     code='c'+Date.now().toString(36);
     MASTER.push({code,name:nm,bill:cs.bill,unit:null,cycle:cs.cycle,
-      tax:isTax(cs.bill),src:'직접 입력',doc:cs.doc,custom:true});
+      tax:isTax(cs.bill),src:'직접 입력',doc:cs.doc,custom:true,pr:cs.pr});
     BILL[code]={on:false,date:'',use:null,supply:0,vat:0,read:null,adj:{}};
     METER[code]=[];
   }else{
     const m=M(code); m.bill=cs.bill; m.cycle=cs.cycle; m.tax=isTax(cs.bill);
   }
+  if(cs.fixed){   /* 고정액 — 배분 설정이 없다. 발행 문서·주기·우선순위만 */
+    BSET[code]={...(BSET[code]||{}),pr:cs.pr};
+    const row=BUILDINGS[0].charge.find(c=>c.it===cs.name);
+    if(row) Object.assign(row,{bill:cs.bill,cycle:cs.cycle});
+    DRAWER=null; cs=null; render(); return;
+  }
   const A=csAuto();
   METER[code]=cs.useMeter?[...cs.meters]:[];
   CTMUL[code]=cs.useMeter?{...(cs.ct||{})}:{};   /* 계기배율도 함께 저장한다 */
   if(METER[code].length) BILL[code].read=BILL[code].read||{};
-  BSET[code]={basis:cs.basis,doc:cs.doc,by:cs.by,
+  BSET[code]={basis:cs.basis,doc:cs.doc,by:cs.by,pr:cs.pr,
     ref:cs.ref,excl:(BSET[code]||{}).excl||{}};
   const m=M(code), bc=BUILDINGS[0].charge, row=bc.find(c=>c.it===m.name);
   const mm=METER[code];
@@ -1089,9 +1105,15 @@ function csHTML(){
           <select onchange="csSet('cycle',this.value)">
             ${CYCLES.map(c=>`<option value="${c}" ${cs.cycle===c?'selected':''}>${c}</option>`).join('')}
           </select></div>
+        <div class="fr"><span class="fk">배분 우선순위</span>
+          <input class="inp w" type="number" min="1" max="99" step="1" value="${cs.pr}"
+            onchange="csSet('pr',Math.max(1,Math.min(99,parseInt(this.value)||99)))"></div>
+        <div class="hint" style="margin:-3px 0 0 114px">입금이 모자랄 때 먼저 채우는 순서입니다. 숫자가 작을수록 먼저입니다.${
+          (()=>{const d=BUILDINGS[0].charge.filter(c=>c.use&&c.it!==cs.name&&prioOf(c.it)===cs.pr).map(c=>c.it);
+            return d.length?`<br><span style="color:var(--warn)">${d.join('·')}와 순위가 같습니다. 같으면 기준표 순서를 따릅니다.</span>`:'';})()}</div>
       </div>
 
-      <div class="fg"><div class="fl">근거 문서</div>
+      ${cs.fixed?'':`<div class="fg"><div class="fl">근거 문서</div>
         <div class="fr"><span class="fk">문서 종류</span>
           <select onchange="csSet('doc',this.value)">
             ${['고지서','내역서','계약서','집계표'].map(o=>`<option value="${o}" ${cs.doc===o?'selected':''}>${o}</option>`).join('')}
@@ -1099,8 +1121,10 @@ function csHTML(){
         <div class="fr"><span class="fk">발행처</span>
           <input class="inp" style="flex:1" value="${cs.by||''}" placeholder="한국전력"
             onchange="csSet('by',this.value)"></div>
-      </div>
+      </div>`}
 
+      ${cs.fixed?`<div class="prev"><div class="pt">고정액 항목</div>
+        계약에 등록된 약정액을 그대로 청구합니다. 배분·계량기 설정이 없습니다.</div>`:`
       <div class="fg"><div class="fl">배분 방식</div>
         <div class="fr"><span class="fk">배분 기준</span>
           <select onchange="csBasis(this.value)">
@@ -1137,10 +1161,10 @@ function csHTML(){
       <div class="hint" style="margin-top:-4px">
         <b>공용분은 언제나 전 유닛이 부담합니다.</b> 계량기가 있어도 복도·화장실을
         쓰기 때문입니다. 특정 유닛을 빼려면 정산 시 배율을 0으로 두세요.</div>`}
-      ${prev}
+      ${prev}`}
     </div>
     <div class="df">
-      ${cs.editing?`<button class="btn ex" style="margin-right:auto" onclick="csDrop()">이 청구항목 미사용</button>`:''}
+      ${cs.editing&&!cs.fixed?`<button class="btn ex" style="margin-right:auto" onclick="csDrop()">이 청구항목 미사용</button>`:''}
       <button class="btn" onclick="closeDrawer()">취소</button>
       <button class="btn pri" onclick="csApply()">저장</button></div>
   </div></div>`;
@@ -1148,7 +1172,7 @@ function csHTML(){
 function drawerHTML(){
   if(DRAWER==='chargeset') return csHTML();
   if(DRAWER!=='additem') return '';
-  const rest=MASTER.filter(m=>!BILL[m.code].on);
+  const rest=MASTER.filter(m=>!m.fixed&&!BILL[m.code].on);
   const card=m=>{
     const on=dPick.includes(m.code);
     return `<div class="pick ${on?'on':''}" onclick="dToggle('${m.code}')">
@@ -1418,19 +1442,21 @@ function t청구(b){
   if(!b.charge.length) return `<div class="tbl"><div class="empty"><div class="t">등록된 관리비 항목이 없습니다</div>건물에서 부과할 항목을 추가하세요.</div></div>`;
   return `
   <div class="card"><div class="ct">관리비 설정
+    <span class="sub">배분 우선순위 — 입금이 모자랄 때 먼저 채우는 순서</span>
     <span class="ca"><button class="btn pri sm" onclick="openCS()">+ 항목 추가</button></span></div>
     <div class="tw"><table>
-      <thead><tr><th>청구항목</th><th>사용여부</th><th>발행 문서</th><th>반복주기</th>
+      <thead><tr><th class="c">배분 우선순위</th><th>청구항목</th><th>사용여부</th><th>발행 문서</th><th>반복주기</th>
         <th>배분 기준</th><th>계량기 보유 유닛</th><th>근거 문서</th>
         <th class="c" style="width:70px"></th></tr></thead>
-      <tbody>${b.charge.map(c=>{const m=M(codeOf(c.it)), st=resolve(codeOf(c.it));
+      <tbody>${[...b.charge].sort((x,y)=>(y.use-x.use)||(prioOf(x.it)-prioOf(y.it))).map(c=>{const m=M(codeOf(c.it)), st=resolve(codeOf(c.it));
         return `<tr style="${c.use?'':'opacity:.55'}">
+        <td class="c"><b>${prioOf(c.it)}</b></td>
         <td class="c1">${c.it}</td>
         <td>${c.use?'<span class="bd ok">사용</span>':'<span class="bd mu">미사용</span>'}</td>
         <td>${c.bill||m.bill||'—'}<div class="c2">${
           isTax(c.bill||m.bill)?'과세':(c.bill||m.bill)==='계산서'?'면세':'비과세'}</div></td>
         <td>${c.cycle||m.cycle||'—'}</td>
-        <td>${c.basis||'—'}${c.ref?`<div class="c2">${c.ref} 검침값 참조</div>`:''}</td>
+        <td>${c.fixed?'<span style="color:var(--muted)">계약 약정액</span>':(c.basis||'—')}${c.ref?`<div class="c2">${c.ref} 검침값 참조</div>`:''}</td>
         <td>${!c.meter?'—':c.meter==='없음'?'<span style="color:var(--faint)">없음</span>':`<b>${c.meter}</b>`}</td>
         <td>${c.doc||`${st.by||m.src||''} ${st.doc||m.doc||''}`.trim()||'—'}</td>
         <td class="c"><span class="det" onclick="openCS(codeOf('${c.it}'))">수정</span></td></tr>`}).join('')}</tbody>
@@ -2181,10 +2207,9 @@ const AUG={
  '별관3층':[['임대료',3465000],['고정관리비',1342000],['전기요금',198172],['전력기금',4864],['TV수신료',116],['수도요금',102147]],
  '별관2층':[['임대료',4070000],['고정관리비',550000],['전기요금',187767],['전력기금',4608],['TV수신료',110],['수도요금',102147]],
 };
-const PRIO={'임대료':1,'고정관리비':2,'주차비':3,'전기요금':4,'가스요금':12,'수도요금':13,'전력기금':16,'TV수신료':17,'전력기금·TV수신료':16};
 const BILLS=[];
 Object.entries(AUG).forEach(([no,ls])=>ls.forEach(([n,amt])=>
-  BILLS.push({id:`2026-08|${no}|${n}`,ym:'2026-08',k:'b1'+no,no,n,pr:PRIO[n.split(' ')[0]],amt})));
+  BILLS.push({id:`2026-08|${no}|${n}`,ym:'2026-08',k:'b1'+no,no,n,amt})));
 
 /* 원장에 기록된 수납 배분 — 청구 건별 누적액 */
 const PAID={};
@@ -2227,12 +2252,14 @@ function rcPrefix(nm,B){
 function rcPlan(amt,keys,paid){
   const ci=k=>CTRS.findIndex(c=>c.b+c.no===k);
   const open=BILLS.filter(i=>keys.includes(i.k))
-    .map(i=>({...i,due:i.amt-(paid[i.id]||0)})).filter(i=>i.due>0)
+    .map(i=>({...i,pr:prioOf(i.n.split(' ')[0]),due:i.amt-(paid[i.id]||0)})).filter(i=>i.due>0)
     .sort((a,b)=>a.ym<b.ym?-1:a.ym>b.ym?1:a.pr!==b.pr?a.pr-b.pr:ci(a.k)-ci(b.k));
   let r=amt;const lines=[];
   for(const i of open){if(r<=0)break;const a=Math.min(r,i.due);
     lines.push({...i,pay:a,after:a===i.due?'완납':'부분납'});r-=a;}
-  return {how:open.length?'우선순위 배분':'청구 없음',lines,rest:r};
+  /* all — 이 입금이 채우지 못한 미납 청구까지. 미리보기는 배분 후 남는 미납을 모두 보여줘야 한다 */
+  const all=open.map(i=>{const l=lines.find(x=>x.id===i.id);return l||{...i,pay:0,after:'납부전'};});
+  return {how:open.length?'우선순위 배분':'청구 없음',lines,all,rest:r};
 }
 
 /* 원장에 아직 기록되지 않은 입금 건수 — PAY-1 안내에 쓴다 */
@@ -2361,6 +2388,10 @@ function PAY13(){
     ${r.rest>0?`<div class="fnd wa3"><span class="h">미배분 ${won(r.rest)}</span>
       입금액이 미납보다 많아 남았습니다. 자동으로 처리하지 않습니다.
       <div style="margin-top:8px;display:flex;gap:8px"><button class="btn sm">환불</button><button class="btn sm">다음 회차 배분</button></div></div>`:''}
+    ${(()=>{const left=BILLS.filter(i=>B[r.biz]&&B[r.biz].ctrs.some(c=>c.b+c.no===i.k))
+        .reduce((a,i)=>a+Math.max(0,i.amt-(PAID[i.id]||0)),0);
+      return left?`<div class="fnd wa3"><span class="h">${B[r.biz].n} 남은 미납 ${won(left)}</span>
+        이 입금으로 채우지 못한 청구가 있습니다. 수납 내역·미납 관리에서 확인하세요.</div>`:'';})()}
     <div class="hint">배분 후 미납은 지금 원장 기준입니다. 계약별 납부상태는 수납 내역에서 봅니다.
       <b class="lk" onclick="go('pay-6')">수납 내역으로 이동 →</b></div>`;
   }else if(x.ex){
@@ -2378,13 +2409,17 @@ function PAY13(){
       :`<div class="tw"><table class="nowr">
         <thead><tr><th>청구년월</th><th>계약고유명</th><th>청구항목</th><th class="c">우선순위</th>
           <th class="n">배분 전 미납</th><th class="n">배분액</th><th class="n">배분 후 미납</th></tr></thead>
-        <tbody>${pl.lines.map(l=>{const c=CTRS.find(y=>y.b===RC.b&&y.no===l.no);return `<tr>
+        <tbody>${pl.all.map(l=>{const c=CTRS.find(y=>y.b===RC.b&&y.no===l.no);return `<tr${l.pay?'':' class="dim"'}>
           <td>${l.ym}</td><td>${cnameHTML(bn.alias,l.no,c.ten)}</td><td>${l.n}</td><td class="c">${l.pr}</td>
-          <td class="n" style="color:var(--muted)">${won(l.due)}</td><td class="n"><b>${won(l.pay)}</b></td>
+          <td class="n" style="color:var(--muted)">${won(l.due)}</td><td class="n">${l.pay?`<b>${won(l.pay)}</b>`:'—'}</td>
           <td class="n">${l.due-l.pay?`<span style="color:var(--warn)">${won(l.due-l.pay)}</span>`:'<span class="bd ok">완납</span>'}</td></tr>`;}).join('')}
-          <tr class="sumr"><td colspan="5">입금 ${won(d.amt)}</td><td class="n">${won(d.amt-pl.rest)}</td>
-            <td class="n">${pl.rest?`<span style="color:var(--warn)">미배분 ${won(pl.rest)}</span>`:'남는 금액 0원'}</td></tr>
-        </tbody></table></div>`;
+          <tr class="sumr"><td colspan="4">합계</td>
+            <td class="n">${won(pl.all.reduce((a,l)=>a+l.due,0))}</td>
+            <td class="n">${won(d.amt-pl.rest)}</td>
+            <td class="n">${(v=>v?`<span style="color:var(--warn)">${won(v)}</span>`:'0원')(pl.all.reduce((a,l)=>a+l.due-l.pay,0))}</td></tr>
+        </tbody></table></div>
+        ${pl.rest?`<div class="fnd wa3" style="margin:0;border-radius:0 0 var(--r) var(--r)"><span class="h">남는 금액 ${won(pl.rest)}</span>
+          미납보다 많이 들어왔습니다. 확정하면 미배분으로 보관합니다.</div>`:''}`;
     panel=`
     <div class="card"><div class="cc" style="padding:18px 20px">
       <div style="display:flex;align-items:center;gap:8px">
