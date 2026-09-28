@@ -433,7 +433,8 @@ td.c,th.c{text-align:center}
 .mqi .n{text-align:right;font-variant-numeric:tabular-nums;font-weight:500}
 .mqi .g{text-align:right}
 table.nowr th,table.nowr td{white-space:nowrap}
-.rcr{grid-template-columns:minmax(160px,.9fr) minmax(150px,1fr) 118px 92px minmax(210px,1.3fr) 110px 140px}
+.rcr{grid-template-columns:minmax(150px,.7fr) minmax(170px,1fr) 130px minmax(240px,1.4fr) 180px}
+.rcr > :nth-child(4){padding-left:28px}
 .rcx{padding:4px 14px 14px 46px;background:var(--soft);border-bottom:1px solid var(--line-2)}
 .rcx table{background:var(--bg);border:1px solid var(--line);border-radius:var(--r-sm)}
 .rcx td,.rcx th{padding:7px 12px}
@@ -2417,7 +2418,7 @@ function PAY6(){
       +`<span class="bd ${c}">${k}</span>`;
   };
   const detail=(d,r)=>`<div class="rcx"><div class="ln"><span class="c2" style="margin:0">
-      계좌이체 · 은행거래내역매칭 · 김영준 · ${r.basis||''} · 비교용 이름 <b>${r.nm}</b></span>
+      계좌이체 · 은행거래내역매칭 · 김영준 · 매칭 근거 <b>${r.basis||''}</b> · 비교용 이름 <b>${r.nm}</b></span>
       <button class="btn sm" style="margin-left:auto" onclick="event.stopPropagation();alert('PAY-9 수납 내역 수정 및 취소 — 배분 재조정 또는 무효 처리. 입금액은 수정할 수 없다')">수정·취소</button></div>
     <table><thead><tr><th>청구년월</th><th>계약</th><th>청구항목</th><th class="c">우선순위</th>
       <th class="n">청구액</th><th class="n">배분액</th><th class="c">배분 후</th></tr></thead>
@@ -2429,14 +2430,11 @@ function PAY6(){
       <button class="btn sm">환불</button><button class="btn sm">다음 회차 배분</button></div>`:''}</div>`;
   const body=rows.map(d=>{
     const r=R[d.no], rec=r.st==='기록 완료', op=rec&&!!RC.op[d.no];
-    const st=r.wait?'<span class="bd mu">대기</span>':`<span class="bd ${BADGE6[r.st]}">${LABEL6[r.st]}</span>`;
     return `<div class="schr rcr grp" onclick="${rec?`rcTog(${d.no})`:r.wait?`RC.cur=${d.no};go('pay-13')`:''}">
       <div class="nm"><span class="tg ${op?'op':''}" style="${rec?'':'visibility:hidden'}">${ic('chev',16)}</span>${d.dt.slice(5,16)}</div>
       <div>${d.name}</div>
       <div class="n"><b>${won(d.amt)}</b></div>
-      <div class="c">${st}</div>
       <div>${ctrCell(r)}</div>
-      <div class="c2" style="margin:0">${rec?r.basis||'':''}</div>
       <div class="n">${resCell(r)}</div>
     </div>`+(op?detail(d,r):'');
   }).join('');
@@ -2462,10 +2460,10 @@ function PAY6(){
      ${has?'다른 상태를 선택해 보세요.':'입금 매칭에서 이 건물·월의 거래내역을 올리면 입금이 표시됩니다.'}</div></div>`
   :`<div class="tbl schl">
     <div class="schr rcr hd"><div>입금일시</div><div>입금자명</div><div class="n">입금액</div>
-      <div class="c">매칭</div><div>계약</div><div>매칭 근거</div><div class="n">납부상태</div></div>
+      <div>계약</div><div class="n">납부상태</div></div>
     ${body}
     <div class="schr rcr sum"><div>합계 <span class="lock">입금 ${rows.length}</span></div><div></div>
-      <div class="n">${won(rows.reduce((a,d)=>a+d.amt,0))}</div><div></div><div></div><div></div><div></div></div>
+      <div class="n">${won(rows.reduce((a,d)=>a+d.amt,0))}</div><div></div><div></div></div>
   </div>
   ${(()=>{
     /* 일자별 소계 — 통장의 당일 입금 합계와 대조한다. 필터와 무관하게 이 달의 모든 입금을 센다 */
