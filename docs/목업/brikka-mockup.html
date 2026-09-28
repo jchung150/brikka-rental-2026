@@ -533,7 +533,6 @@ const MENU=[
    {id:'pay-13',n:'입금 매칭',sid:'PAY-13',i:'card'},
    {id:'pay-6',n:'수납 내역',sid:'PAY-6',i:'list'},
    {id:'pay-2',n:'미납 기록',sid:'PAY-2',i:'wallet'},
-   {id:'pay-4',n:'청구 항목 관리',sid:'PAY-4',i:'list'},
    {id:'pay-11',n:'월 마감',sid:'PAY-11',i:'lock'}]},
  {k:'상대',g:'거래 상대',i:'users',items:[
    {id:'user-6',n:'임차인',sid:'USER-6',i:'users'},
@@ -796,6 +795,8 @@ function loadCS(code){
       fixed:!!m.fixed, pr:(b&&b.pr)||m.pr||99};
 }
 function openCS(code){
+  /* 건물당 청구 항목은 최대 99개 — 우선순위 1~99와 짝 */
+  if(!code&&BUILDINGS[0].charge.length>=99){alert('이 건물의 청구 항목이 99개입니다. 더 추가할 수 없습니다.');return;}
   if(code) loadCS(code);
   else{
     const m=MASTER.find(x=>!BUILDINGS[0].charge.some(c=>c.it===x.name));
@@ -852,8 +853,11 @@ function csUnit(no){
   render();
 }
 function csAll(v){cs.meters=v?UNITS_B1.map(u=>u.no):[];render();}
+/* 우선순위 중복 — 같은 건물의 다른 항목이 이미 쓰는 번호 */
+const prDup=()=>{const d=BUILDINGS[0].charge.filter(c=>c.it!==cs.name&&prioOf(c.it)===cs.pr).map(c=>c.it);return d.join('·');};
 function csApply(){
   let code=cs.item;
+  if(prDup()){alert(`우선순위 ${cs.pr}번은 ${prDup()}이(가) 이미 씁니다. 다른 번호를 넣으세요.`);return;}
   if(cs.neu){
     const nm=(cs.name||'').trim();
     if(!nm){alert('항목명을 입력하세요.');return;}
@@ -1092,7 +1096,7 @@ function csHTML(){
         ${cs.neu?`<div class="fr"><span class="fk">항목명</span>
           <input type="text" value="${cs.name}" placeholder="예: 공용 회의실 사용료"
             oninput="cs.name=this.value" onchange="csSet('name',this.value)"></div>
-          <div class="hint" style="margin:-3px 0 9px 114px">운영사 전체 공통 마스터에 등록되며 다른 건물에서도 선택할 수 있습니다.</div>`:''}
+          <div class="hint" style="margin:-3px 0 9px 114px">이 건물에만 추가됩니다. 건물마다 청구 항목을 따로 관리합니다.</div>`:''}
         <div class="fr"><span class="fk">발행 문서</span>
           <select onchange="csSet('bill',this.value)">
             ${BILLDOC.map(b=>`<option value="${b.k}" ${cs.bill===b.k?'selected':''}>${b.k}(${b.t})</option>`).join('')}
@@ -1107,9 +1111,8 @@ function csHTML(){
         <div class="fr"><span class="fk">배분 우선순위</span>
           <input class="inp w" type="number" min="1" max="99" step="1" value="${cs.pr}"
             onchange="csSet('pr',Math.max(1,Math.min(99,parseInt(this.value)||99)))"></div>
-        <div class="hint" style="margin:-3px 0 0 114px">입금이 모자랄 때 먼저 채우는 순서입니다. 숫자가 작을수록 먼저입니다.${
-          (()=>{const d=BUILDINGS[0].charge.filter(c=>c.use&&c.it!==cs.name&&prioOf(c.it)===cs.pr).map(c=>c.it);
-            return d.length?`<br><span style="color:var(--warn)">${d.join('·')}와 순위가 같습니다. 같으면 기준표 순서를 따릅니다.</span>`:'';})()}</div>
+        <div class="hint" style="margin:-3px 0 0 114px">입금이 모자랄 때 먼저 채우는 순서입니다. 숫자가 작을수록 먼저입니다. 건물 안에서 겹칠 수 없습니다.${
+          (()=>{const d=prDup();return d?`<br><span style="color:var(--danger)">${d}이(가) 이미 ${cs.pr}번을 씁니다. 다른 번호를 넣으세요.</span>`:'';})()}</div>
       </div>
 
       ${cs.fixed?'':`<div class="fg"><div class="fl">근거 문서</div>
