@@ -432,9 +432,14 @@ td.c,th.c{text-align:center}
 .mqi .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .mqi .n{text-align:right;font-variant-numeric:tabular-nums;font-weight:500}
 .mqi .g{text-align:right}
+.mqf{padding:12px 14px;border-top:1px solid var(--line);background:var(--soft)}
+.mqs{display:grid;grid-template-columns:52px 40px 1fr;font-size:12px;padding:2px 0;color:var(--muted)}
+.mqs b{text-align:right;color:var(--ink);font-weight:500;font-variant-numeric:tabular-nums}
 table.nowr th,table.nowr td{white-space:nowrap}
 .rcr{grid-template-columns:minmax(150px,.7fr) minmax(170px,1fr) 130px minmax(240px,1.4fr) 180px}
 .rcr > :nth-child(4){padding-left:28px}
+.ctr{grid-template-columns:minmax(260px,1fr) 150px 150px 150px 100px}
+.schr.dep .nm{color:var(--muted)}
 .rcx{padding:4px 14px 14px 46px;background:var(--soft);border-bottom:1px solid var(--line-2)}
 .rcx table{background:var(--bg);border:1px solid var(--line);border-radius:var(--r-sm)}
 .rcx td,.rcx th{padding:7px 12px}
@@ -2188,9 +2193,17 @@ const PAID={};
 const RC={b:'b1',P:parseBank(BANK_RAW),dec:{},op:{},alias:{},pre:{},reg:{},cur:null,
           f:{b:'b1',ym:'2026-08',st:''}};   /* 필터 — 건물 · 청구년월 · 납부상태 */
 const setRC=(k,v)=>{RC.f[k]=v;render();};
-/* 납부상태 — 이 입금이 배분된 청구들의 지금 상태. 뒤 입금이 기록되면 앞 입금도 완납이 된다 → PAY-6 */
-const rcRes=r=>r.st==='제외'?'무시':!r.lines?'매칭 전'
-  :r.lines.every(l=>{const b=BILLS.find(i=>i.id===l.id);return b&&b.amt-(PAID[l.id]||0)<=0;})?'완납':'부분납';
+/* 계약 × 청구년월 수납 — 청구액·수납액·미납액·납부상태 → PAY-6 · 3.2 */
+function ctrPay(k,ym){
+  const it=BILLS.filter(i=>i.k===k&&i.ym===ym).map(i=>{const p=Math.min(PAID[i.id]||0,i.amt);
+    return {...i,paid:p,due:i.amt-p,st:i.amt-p<=0?'완납':p===0?'납부전':'부분납'};});
+  const bill=it.reduce((a,i)=>a+i.amt,0), paid=it.reduce((a,i)=>a+i.paid,0);
+  return {it,bill,paid,due:bill-paid,st:!it.length?null:paid>=bill?'완납':paid===0?'납부전':'부분납'};
+}
+/* 이 계약에 배분된 입금 — 입금 하나가 여러 계약에 나뉘면 자기 몫만 */
+const ctrDeps=k=>RC.P.dep.filter(d=>(RC.dec[d.no]||{}).done)
+  .map(d=>({d,pay:RC.dec[d.no].done.lines.filter(l=>l.k===k).reduce((a,l)=>a+l.pay,0)})).filter(x=>x.pay>0);
+const PST={'완납':'ok','부분납':'wa','납부전':'da'};
 
 /* 사업자 — 같은 사업자의 계약은 입금 1건으로 함께 낼 수 있다 */
 function rcBiz(){
@@ -2284,8 +2297,6 @@ function rcUnignore(no){delete RC.dec[no];RC.cur=no;render(true);}
 function rcConfirmAll(){rcQueue().filter(rcIsOpen).forEach(d=>{
   const g=rcGuess(d,rcBiz()); if(g.biz) rcConfirm(d.no);});}
 
-const rcTog=no=>{RC.op[no]=!RC.op[no];render(true);};
-const P6open=v=>{RC.P.dep.forEach(d=>RC.op[d.no]=v);render(true);};
 const BADGE6={'자동':'ok','지정':'ac','후보':'wa','미매칭':'da','제외':'mu','기록 완료':'mu'};
 const LABEL6={'자동':'자동 매칭','지정':'담당자 지정','후보':'후보','미매칭':'미매칭','제외':'무시','기록 완료':'기록 완료'};
 
@@ -2333,11 +2344,25 @@ function PAY13(){
   if(x.done){
     const r=x.done;
     panel=`<div class="card"><div class="cc" style="padding:18px 20px">
-      <div class="c2" style="margin:0">기록 완료 · ${r.basis}</div>
-      <div style="font-size:15px;font-weight:700;margin:6px 0">${d.name} <span style="font-weight:400;color:var(--muted)">→ ${B[r.biz]?B[r.biz].n:''}</span></div>
-      <div class="big">${won(d.amt)}</div>
-      <div class="hint">원장에 기록되었습니다. 고치려면 수납 내역에서 수정·취소하세요.
-        <b class="lk" onclick="go('pay-6')">수납 내역으로 이동 →</b></div></div></div>`;
+      <div style="display:flex;align-items:center;gap:8px"><span class="bd ok">기록 완료</span>
+        <span class="c2" style="margin:0">${d.dt} · 계좌이체 · 은행거래내역매칭 · 김영준 · 매칭 근거 <b>${r.basis}</b></span>
+        <button class="btn sm" style="margin-left:auto" onclick="alert('PAY-9 수납 내역 수정 및 취소 — 배분 재조정 또는 무효 처리. 입금액은 수정할 수 없다')">수정·취소</button></div>
+      <div style="display:flex;align-items:baseline;gap:14px;margin-top:8px">
+        <span style="font-size:17px;font-weight:700">${d.name}</span><span class="big">${won(d.amt)}</span>
+        <span class="c2" style="margin:0">→ ${B[r.biz]?B[r.biz].n:''}</span></div></div></div>
+    <div class="card"><div class="tw"><table class="nowr">
+      <thead><tr><th>청구년월</th><th>계약고유명</th><th>청구항목</th><th class="c">우선순위</th>
+        <th class="n">청구액</th><th class="n">배분액</th><th class="n">배분 후 미납</th></tr></thead>
+      <tbody>${r.lines.map(l=>{const c=CTRS.find(y=>y.b===RC.b&&y.no===l.no), left=l.amt-(PAID[l.id]||0);return `<tr>
+        <td>${l.ym}</td><td>${cnameHTML(bn.alias,l.no,c.ten)}</td><td>${l.n}</td><td class="c">${l.pr}</td>
+        <td class="n" style="color:var(--muted)">${won(l.amt)}</td><td class="n"><b>${won(l.pay)}</b></td>
+        <td class="n">${left>0?`<span style="color:var(--warn)">${won(left)}</span>`:'<span class="bd ok">완납</span>'}</td></tr>`;}).join('')}
+      </tbody></table></div></div>
+    ${r.rest>0?`<div class="fnd wa3"><span class="h">미배분 ${won(r.rest)}</span>
+      입금액이 미납보다 많아 남았습니다. 자동으로 처리하지 않습니다.
+      <div style="margin-top:8px;display:flex;gap:8px"><button class="btn sm">환불</button><button class="btn sm">다음 회차 배분</button></div></div>`:''}
+    <div class="hint">배분 후 미납은 지금 원장 기준입니다. 계약별 납부상태는 수납 내역에서 봅니다.
+      <b class="lk" onclick="go('pay-6')">수납 내역으로 이동 →</b></div>`;
   }else if(x.ex){
     panel=`<div class="card"><div class="cc" style="padding:18px 20px">
       <div class="c2" style="margin:0">무시함 — 수납으로 기록하지 않습니다</div>
@@ -2392,51 +2417,55 @@ function PAY13(){
   const allDone=Q.every(q=>!rcIsOpen(q));
   return head+`
   ${allDone?`<div class="fnd"><span class="h">모든 입금을 처리했습니다</span>
-    기록된 입금은 수납 내역에서 통장과 대조하세요. <b class="lk" onclick="go('pay-6')">수납 내역으로 이동 →</b></div>`:''}
+    계약별로 다 받았는지는 수납 내역에서 확인하세요. <b class="lk" onclick="go('pay-6')">수납 내역으로 이동 →</b></div>`:''}
   <div class="mw">
-    <div class="mq"><div class="mqh">대기열 <span class="c2" style="margin:0">입금일시 순</span></div>${queue}</div>
+    <div class="mq"><div class="mqh">대기열 <span class="c2" style="margin:0">입금일시 순</span></div>${queue}
+      <div class="mqf">${(()=>{
+        /* 일자별 소계 — 통장의 당일 입금 합계와 대조한다. 무시한 입금도 센다 */
+        const g={};Q.forEach(q=>{const k=q.dt.slice(5,10);(g[k]=g[k]||{n:0,a:0});g[k].n++;g[k].a+=q.amt;});
+        return `<div class="mqh" style="border:0;padding:0 0 6px">일자별 입금 <span class="c2" style="margin:0">통장 대조</span></div>`+
+          Object.entries(g).map(([k,v])=>`<div class="mqs"><span>${k}</span><span>${v.n}건</span><b>${won(v.a)}</b></div>`).join('')
+          +`<div class="mqs" style="border-top:1px solid var(--line);padding-top:6px;margin-top:4px"><span>합계</span><span>${Q.length}건</span>
+             <b>${won(Q.reduce((a,q)=>a+q.amt,0))}</b></div>`;})()}</div></div>
     <div>${panel}</div>
   </div>`;
 }
 
-/* ═══ PAY-6 수납 내역 — 조회 화면. 매칭은 PAY-13에서 한다 ═══ */
+/* ═══ PAY-6 수납 내역 — 계약 기준 조회 화면. 한 계약 × 한 달이 한 행 ═══ */
+let g6={}, g6All=false;
+const g6Open=k=>(k in g6)?g6[k]:g6All;
+const g6Tog=k=>{g6[k]=!g6Open(k);render(true);};
+const g6Set=v=>{g6All=v;g6={};render(true);};
 function PAY6(){
-  const P=RC.P, B=rcBiz(), R=rcRun(), bn=BUILDINGS.find(x=>x.id===RC.b);
+  const bn=BUILDINGS.find(x=>x.id===RC.f.b)||BUILDINGS[0];
   const has=RC.f.b===RC.b&&RC.f.ym==='2026-08';
-  const rows=has?P.dep.filter(d=>!RC.f.st||rcRes(R[d.no])===RC.f.st):[];
-  const waitN=has?P.dep.filter(rcIsOpen).length:0;
-  const anyOp=rows.some(d=>RC.op[d.no]);
-  const ctrCell=r=>{
-    const ks=[...new Set((r.lines||[]).map(l=>l.no))];
-    if(!ks.length) return '<span style="color:var(--faint)">—</span>';
-    const c=CTRS.find(x=>x.b===RC.b&&x.no===ks[0]);
-    return cnameHTML(bn.alias,c.no,c.ten)+(ks.length>1?`<span class="c2">외 ${ks.length-1}건</span>`:'');
-  };
-  const resCell=r=>{
-    const k=rcRes(r), c={'완납':'ok','부분납':'wa','매칭 전':'mu','무시':'mu'}[k];
-    return (r.rest>0?`<span class="c2" style="color:var(--warn);margin:0 6px 0 0">미배분 ${won(r.rest)}</span>`:'')
-      +`<span class="bd ${c}">${k}</span>`;
-  };
-  const detail=(d,r)=>`<div class="rcx"><div class="ln"><span class="c2" style="margin:0">
-      계좌이체 · 은행거래내역매칭 · 김영준 · 매칭 근거 <b>${r.basis||''}</b> · 비교용 이름 <b>${r.nm}</b></span>
-      <button class="btn sm" style="margin-left:auto" onclick="event.stopPropagation();alert('PAY-9 수납 내역 수정 및 취소 — 배분 재조정 또는 무효 처리. 입금액은 수정할 수 없다')">수정·취소</button></div>
-    <table><thead><tr><th>청구년월</th><th>계약</th><th>청구항목</th><th class="c">우선순위</th>
-      <th class="n">청구액</th><th class="n">배분액</th><th class="c">배분 후</th></tr></thead>
-    <tbody>${r.lines.map(l=>{const c=CTRS.find(x=>x.b===RC.b&&x.no===l.no);return `<tr>
-      <td>${l.ym}</td><td>${cnameHTML(bn.alias,l.no,c.ten)}</td><td>${l.n}</td><td class="c">${l.pr}</td>
-      <td class="n">${won(l.amt)}</td><td class="n"><b>${won(l.pay)}</b></td>
-      <td class="c"><span class="bd ${l.after==='완납'?'ok':'wa'}">${l.after}</span></td></tr>`;}).join('')}</tbody></table>
-    ${r.rest>0?`<div class="ln"><span style="color:var(--warn)">미배분 ${won(r.rest)}</span>
-      <button class="btn sm">환불</button><button class="btn sm">다음 회차 배분</button></div>`:''}</div>`;
-  const body=rows.map(d=>{
-    const r=R[d.no], rec=r.st==='기록 완료', op=rec&&!!RC.op[d.no];
-    return `<div class="schr rcr grp" onclick="${rec?`rcTog(${d.no})`:r.wait?`RC.cur=${d.no};go('pay-13')`:''}">
-      <div class="nm"><span class="tg ${op?'op':''}" style="${rec?'':'visibility:hidden'}">${ic('chev',16)}</span>${d.dt.slice(5,16)}</div>
-      <div>${d.name}</div>
-      <div class="n"><b>${won(d.amt)}</b></div>
-      <div>${ctrCell(r)}</div>
-      <div class="n">${resCell(r)}</div>
-    </div>`+(op?detail(d,r):'');
+  const waitN=has?RC.P.dep.filter(rcIsOpen).length:0;
+  const all=has?CTRS.filter(c=>c.b===RC.b&&c.st==='진행중')
+    .map(c=>({c,k:c.b+c.no,...ctrPay(c.b+c.no,RC.f.ym)})).filter(x=>x.st):[];
+  const rows=all.filter(x=>!RC.f.st||x.st===RC.f.st);
+  const anyOp=rows.some(x=>g6Open(x.k));
+  const T=rows.reduce((a,x)=>({bill:a.bill+x.bill,paid:a.paid+x.paid,due:a.due+x.due}),{bill:0,paid:0,due:0});
+  const dash='<span style="color:var(--faint)">—</span>';
+  const body=rows.map(x=>{
+    const op=g6Open(x.k);
+    const sub=!op?'':x.it.map(i=>`
+      <div class="schr ctr sub"><div class="nm">${i.n}</div>
+        <div class="n c2">${won(i.amt)}</div><div class="n c2">${i.paid?won(i.paid):dash}</div>
+        <div class="n">${i.due?`<span style="color:var(--warn)">${won(i.due)}</span>`:dash}</div>
+        <div class="c"><span class="bd ${PST[i.st]}">${i.st}</span></div></div>`).join('')
+      +(()=>{const ds=ctrDeps(x.k);
+        return ds.length?ds.map(({d,pay})=>`
+      <div class="schr ctr sub dep"><div class="nm">입금 ${d.dt.slice(5,16)} · ${d.name}${
+          pay<d.amt?`<span class="c2">${won(d.amt)} 중</span>`:''}</div>
+        <div></div><div class="n"><b>${won(pay)}</b></div><div></div>
+        <div class="c"><button class="btn sm" onclick="event.stopPropagation();alert('PAY-9 수납 내역 수정 및 취소 — 배분 재조정 또는 무효 처리. 입금액은 수정할 수 없다')">수정·취소</button></div></div>`).join('')
+        :`<div class="schr ctr sub dep"><div class="nm" style="color:var(--muted)">입금 없음</div><div></div><div></div><div></div><div></div></div>`;})();
+    return `<div class="schr ctr grp" onclick="g6Tog('${x.k}')">
+      <div class="nm"><span class="tg ${op?'op':''}">${ic('chev',16)}</span>${cnameHTML(bn.alias,x.c.no,x.c.ten)}</div>
+      <div class="n">${won(x.bill)}</div>
+      <div class="n">${x.paid?won(x.paid):dash}</div>
+      <div class="n">${x.due?`<b style="color:var(--warn)">${won(x.due)}</b>`:dash}</div>
+      <div class="c"><span class="bd ${PST[x.st]}">${x.st}</span></div></div>`+sub;
   }).join('');
   return `
   <div class="ph"><h1>수납 내역</h1><span class="sid">PAY-6</span>
@@ -2451,28 +2480,27 @@ function PAY6(){
         `<option value="${v}" ${RC.f.ym===v?'selected':''}>${t}</option>`).join('')}
     </select>
     <select onchange="setRC('st',this.value)">
-      ${['','완납','부분납','매칭 전','무시'].map(v=>`<option value="${v}" ${RC.f.st===v?'selected':''}>${v||'전체 납부상태'}</option>`).join('')}
+      ${['','완납','부분납','납부전'].map(v=>`<option value="${v}" ${RC.f.st===v?'selected':''}>${v||'전체 납부상태'}</option>`).join('')}
     </select>
     ${rows.length?`<span style="margin-left:auto;display:flex;gap:8px">
-      <button class="btn sm" onclick="P6open(${anyOp?'false':'true'})">${anyOp?'전체 접기':'전체 펼치기'}</button></span>`:''}
+      <button class="btn sm" onclick="g6Set(${anyOp?'false':'true'})">${anyOp?'전체 접기':'전체 펼치기'}</button></span>`:''}
   </div>
-  ${!rows.length?`<div class="tbl"><div class="empty"><div class="t">${has?'조건에 맞는 입금이 없습니다':'은행 거래내역이 없습니다'}</div>
-     ${has?'다른 상태를 선택해 보세요.':'입금 매칭에서 이 건물·월의 거래내역을 올리면 입금이 표시됩니다.'}</div></div>`
+  ${waitN?`<div class="fnd wa3"><span class="h">매칭 전 입금 ${waitN}건</span>
+    아직 기록되지 않은 입금이 있어 이미 낸 계약도 <b>납부전</b>으로 보일 수 있습니다.
+    <b class="lk" onclick="go('pay-13')">입금 매칭으로 이동 →</b></div>`:''}
+  ${!rows.length?`<div class="tbl"><div class="empty"><div class="t">${has?'조건에 맞는 계약이 없습니다':'이 달의 청구가 없습니다'}</div>
+     ${has?'다른 납부상태를 선택해 보세요.':'청구서를 발행하면 계약별 수납 상태가 표시됩니다.'}</div></div>`
   :`<div class="tbl schl">
-    <div class="schr rcr hd"><div>입금일시</div><div>입금자명</div><div class="n">입금액</div>
-      <div>계약</div><div class="n">납부상태</div></div>
+    <div class="schr ctr hd"><div>계약고유명 · 청구항목</div><div class="n">청구액</div><div class="n">수납액</div>
+      <div class="n">미납액</div><div class="c">납부상태</div></div>
     ${body}
-    <div class="schr rcr sum"><div>합계 <span class="lock">입금 ${rows.length}</span></div><div></div>
-      <div class="n">${won(rows.reduce((a,d)=>a+d.amt,0))}</div><div></div><div></div></div>
-  </div>
-  ${(()=>{
-    /* 일자별 소계 — 통장의 당일 입금 합계와 대조한다. 필터와 무관하게 이 달의 모든 입금을 센다 */
-    const g={};P.dep.forEach(d=>{const k=d.dt.slice(5,10);(g[k]=g[k]||{n:0,a:0});g[k].n++;g[k].a+=d.amt;});
-    return `<div class="c2" style="margin-top:10px;white-space:normal">일자별 입금 · ${
-      Object.entries(g).map(([k,v])=>`${k} <b>${v.n}건 ${won(v.a)}</b>`).join(' · ')}</div>`;})()}`}
+    <div class="schr ctr sum"><div>합계 <span class="lock">계약 ${rows.length}</span></div>
+      <div class="n">${won(T.bill)}</div><div class="n">${won(T.paid)}</div>
+      <div class="n">${T.due?`<span style="color:var(--warn)">${won(T.due)}</span>`:'—'}</div><div></div></div>
+  </div>`}
   <div class="hint">
-    기록된 입금을 통장과 맞춰 보는 화면입니다. 대기 중인 입금은 입금 매칭에서 한 건씩 처리하세요.<br>
-    기록을 고치려면 행을 펼쳐 수정·취소를 누르세요.</div>`;
+    선택한 달의 청구를 계약별로 다 받았는지 봅니다. 금액은 부가세 포함입니다.<br>
+    밀린 달 전부의 미납과 독촉은 미납 관리에서, 입금 한 건 한 건은 입금 매칭에서 봅니다.</div>`;
 }
 
 /* ═══ 라우터 ═══ */

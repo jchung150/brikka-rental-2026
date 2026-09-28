@@ -46,14 +46,14 @@ run('PAY-1 전체 펼침', "f1={b:'b1',st:''};g1All=true;PAY1()");
 run('PAY-1 선택 발행', "f1={b:'b1',st:''};sel1['b1101호']=true;PAY1()");
 run('미구현 화면', "TODO('pay-2')");
 run('PAY-6', 'PAY6()');
-run('PAY-6 전체 펼침', 'RC.P.dep.forEach(d=>RC.op[d.no]=true);PAY6()');
+run('PAY-6 전체 펼침', 'g6All=true;PAY6()');
 run('PAY-13', 'PAY13()');
 run('PAY-13 임차인 선택', "RC.pre[8]='아마데우스';RC.cur=8;PAY13()");
 run('PAY-13 미매칭', "RC.cur=5;PAY13()");
 run('PAY-13 무시', "RC.dec[17]={ex:true};RC.cur=17;PAY13()");
-run('PAY-13 전체 처리', "Object.assign(RC.alias,{'루비뮤직':'루비뮤직'});RC.cur=1;rcConfirm(1);PAY13();PAY6()");
+run('PAY-13 전체 처리', "Object.assign(RC.alias,{'루비뮤직':'루비뮤직'});RC.cur=1;rcConfirm(1);RC.cur=1;PAY13();g6All=true;PAY6()");
 run('PAY-13 다른 건물', "RC.f.b='b2';PAY13()");
-for (const f of ["RC.f.st='완납'", "RC.f.st='부분납'", "RC.f.st='매칭 전'", "RC.f.st='무시'", "RC.f.b='b2'", "RC.f.ym='2026-07'"])
+for (const f of ["RC.f.st='완납'", "RC.f.st='부분납'", "RC.f.st='납부전'", "RC.f.b='b2'", "RC.f.ym='2026-07'"])
   run('PAY-6 필터 ' + f, "RC.f={b:'b1',ym:'2026-08',st:''};" + f + ';PAY6()');
 if (!fail) console.log('② 전 화면 렌더                  OK');
 
@@ -113,7 +113,7 @@ for (const m of Z.MASTER) {
 if (orphan.length) fail = 1;
 console.log('⑤ 유닛 번호 정합성 ' + (orphan.length ? '✗ ' + orphan.join(', ') : 'OK'));
 /* ⑥ 수납 기록 — 8월 실제 거래내역으로 매칭·배분·미납을 검산한다 → 4.3 · 4.6 */
-const W = new Function(stub + bare + '; return {RC,rcRes,rcRun,rcQueue,rcGuess,rcBiz,rcConfirm,rcIgnore,rcNext,rcOpenN,dueOf,normName,PAID,BILLS};')();
+const W = new Function(stub + bare + '; return {RC,ctrPay,ctrDeps,rcRun,rcQueue,rcGuess,rcBiz,rcConfirm,rcIgnore,rcNext,rcOpenN,dueOf,normName,PAID,BILLS};')();
 const P6 = W.RC.P;
 const r6 = [];
 r6.push(['거래 56 · 입금 14 · 출금 42', P6.rows.length === 56 && P6.dep.length === 14 && P6.wd.length === 42]);
@@ -140,10 +140,11 @@ r6.push(['입금 1건 → 계약 2개 (ICB)', new Set(got[5].lines.map(l => l.no
 r6.push(['입금 1건 → 계약 2개 (좋은생각사람들)', new Set(got[24].lines.map(l => l.no)).size === 2 && got[24].rest === 0]);
 r6.push(['임차인 입금 12건 전부 전액 배분', [1,2,3,4,5,6,7,8,9,10,12,24].every(n => got[n] && got[n].rest === 0)]);
 r6.push(['대기 0건 — 모두 처리', W.rcNext() === null && W.rcOpenN() === 0]);
-/* 납부상태 — 비씨에이전시만 부분납, 케이더블유인터 첫 입금은 뒤 입금까지 기록되어 완납 */
-const R6 = W.rcRun();
-r6.push(['수납 내역 납부상태 — 비씨에이전시 부분납 · 나머지 완납',
-  W.rcRes(R6[12]) === '부분납' && [1,2,3,4,5,6,7,8,9,10,24].every(n => W.rcRes(R6[n]) === '완납') && W.rcRes(R6[17]) === '무시']);
+/* 계약별 납부상태 — 비씨에이전시만 부분납, 나머지 완납 → PAY-6 */
+const st6 = n => W.ctrPay('b1' + n, '2026-08').st;
+r6.push(['수납 내역 — 비씨에이전시 부분납 · 나머지 12계약 완납',
+  st6('별관3층') === '부분납' && ['본관8층','본관7층','본관6층','본관5층','본관4층','본관301호','본관302호','본관2층','본관1층','본관B2','별관4층','별관2층'].every(n => st6(n) === '완납')]);
+r6.push(['케이더블유인터 두 입금이 각 계약에 자기 몫만', W.ctrDeps('b1본관5층').length >= 1 && W.ctrDeps('b1별관2층').length >= 1]);
 /* 원장 잔액 — 8월 회차 화면에서는 8월 미납이 「지난 미납」이 아니므로 dueOf 대신 직접 본다 */
 const left = k => W.BILLS.filter(i => i.k === k).reduce((a, i) => a + i.amt - (W.PAID[i.id] || 0), 0);
 const all12 = ['본관8층','본관7층','본관6층','본관5층','본관4층','본관301호','본관302호','본관2층','본관1층','본관B2','별관4층','별관2층'];
