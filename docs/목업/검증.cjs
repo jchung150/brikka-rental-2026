@@ -121,7 +121,7 @@ r6.push(['머리말 2행 건너뜀', P6.skip === 2]);
 const first = W.rcRun();
 const auto = P6.dep.filter(d => first[d.no].st === '자동').length;
 r6.push(['첫 달 자동 매칭 0건 — 등록된 입금자명만 자동', auto === 0]);
-r6.push(['상호가 같으면 후보', first[9].st === '후보' && first[9].basis === '상호 일치']);
+r6.push(['상호가 같으면 미매칭이되 임차인을 미리 채움', first[9].st === '후보' && first[9].cand === '고우컴퍼니']);
 /* 배분 미리보기는 채우지 못하는 청구까지 보여야 한다 — 비씨에이전시 배분 후 미납 112,299 */
 const pvB = W.rcPreview(P6.dep.find(d => d.no === 12), '비씨에이전시', W.rcBiz());
 r6.push(['미리보기 — 비씨에이전시 배분 후 미납 112,299 (6개 항목 모두 표시)',

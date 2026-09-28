@@ -2288,7 +2288,8 @@ function rcPreview(d,biz,B){
   if(!biz||!B[biz]) return null;
   return rcPlan(d.amt,B[biz].ctrs.map(c=>c.b+c.no),PAID);
 }
-/* 목록 상태 — 기록 완료 · 무시 · 대기(자동/후보/미매칭) */
+/* 상태는 넷뿐이다 — 처리 전: 자동 매칭 · 미매칭 / 처리 후: 확정 · 무시.
+   내부의 후보(비슷한 상호)·지정(담당자가 고름)은 화면에서 모두 미매칭이다 → PAY-13 */
 function rcRun(){
   const B=rcBiz(), res={};
   RC.P.dep.forEach(d=>{
@@ -2304,6 +2305,8 @@ function rcRun(){
 const rcQueue=()=>[...RC.P.dep].sort((a,b)=>a.dt<b.dt?-1:a.dt>b.dt?1:0);
 const rcIsOpen=d=>{const x=RC.dec[d.no]||{};return !x.done&&!x.ex;};
 const rcNext=()=>(rcQueue().find(rcIsOpen)||{}).no||null;
+/* 청구항목 — 이번 회차가 아닌 청구(밀린 달)만 달을 붙인다 */
+const ymTag=l=>l.n+(l.ym!==RC.f.ym?` <span class="c2" style="color:var(--warn);margin-left:4px">${l.ym.slice(2).replace('-','.')}월분</span>`:'');
 function rcSel(no){RC.cur=no;render(true);}
 function rcPickBiz(no,v){if(v)RC.pre[no]=v;else delete RC.pre[no];render(true);}
 function rcRegTog(no,v){RC.reg[no]=v;}
@@ -2314,7 +2317,7 @@ function rcConfirm(no){
   const pl=rcPreview(d,g.biz,B);
   pl.lines.forEach(l=>PAID[l.id]=(PAID[l.id]||0)+l.pay);
   if(RC.reg[no]!==false&&g.st!=='자동') RC.alias[g.nm]=g.biz;   /* 입금자명 등록 */
-  RC.dec[no]={done:{st:'기록 완료',was:g.st,biz:g.biz,basis:g.basis,nm:g.nm,...pl}};
+  RC.dec[no]={done:{st:'확정',was:g.st,biz:g.biz,basis:g.basis,nm:g.nm,...pl}};
   RC.cur=rcNext(); render(true);
 }
 function rcIgnore(no){RC.dec[no]={ex:true};RC.cur=rcNext();render(true);}
@@ -2324,8 +2327,8 @@ function rcUnignore(no){delete RC.dec[no];RC.cur=no;render(true);}
 function rcConfirmAll(){rcQueue().filter(rcIsOpen).forEach(d=>{
   const g=rcGuess(d,rcBiz()); if(g.biz) rcConfirm(d.no);});}
 
-const BADGE6={'자동':'ok','지정':'ac','후보':'wa','미매칭':'da','제외':'mu','기록 완료':'mu'};
-const LABEL6={'자동':'자동 매칭','지정':'담당자 지정','후보':'후보','미매칭':'미매칭','제외':'무시','기록 완료':'기록 완료'};
+const BADGE6={'자동':'ok','지정':'da','후보':'da','미매칭':'da','제외':'mu','확정':'ok'};
+const LABEL6={'자동':'자동 매칭','지정':'미매칭','후보':'미매칭','미매칭':'미매칭','제외':'무시','확정':'확정'};
 
 /* ═══ PAY-13 입금 매칭 — 작업 화면. 한 건씩 크게 보고 한 건씩 확정한다 ═══ */
 function PAY13(){
@@ -2357,7 +2360,7 @@ function PAY13(){
   /* 대기열 */
   const queue=Q.map(q=>{
     const x=RC.dec[q.no]||{}, on=q.no===RC.cur;
-    const tag=x.done?'<span style="color:var(--ok);font-weight:700">✓</span>'
+    const tag=x.done?'<span class="bd ok">확정</span>'
       :x.ex?'<span class="bd mu">무시</span>'
       :(g=>`<span class="bd ${BADGE6[g.st]}">${LABEL6[g.st]}</span>`)(rcGuess(q,B));
     return `<div class="mqi ${on?'on':''} ${x.done||x.ex?'dn':''}" onclick="rcSel(${q.no})">
@@ -2371,17 +2374,17 @@ function PAY13(){
   if(x.done){
     const r=x.done;
     panel=`<div class="card"><div class="cc" style="padding:18px 20px">
-      <div style="display:flex;align-items:center;gap:8px"><span class="bd ok">기록 완료</span>
+      <div style="display:flex;align-items:center;gap:8px"><span class="bd ok">확정</span>
         <span class="c2" style="margin:0">${d.dt} · 계좌이체 · 은행거래내역매칭 · 김영준 · 매칭 근거 <b>${r.basis}</b></span>
         <button class="btn sm" style="margin-left:auto" onclick="alert('PAY-9 수납 내역 수정 및 취소 — 배분 재조정 또는 무효 처리. 입금액은 수정할 수 없다')">수정·취소</button></div>
       <div style="display:flex;align-items:baseline;gap:14px;margin-top:8px">
         <span style="font-size:17px;font-weight:700">${d.name}</span><span class="big">${won(d.amt)}</span>
         <span class="c2" style="margin:0">→ ${B[r.biz]?B[r.biz].n:''}</span></div></div></div>
     <div class="card"><div class="tw"><table class="nowr">
-      <thead><tr><th>청구년월</th><th>계약고유명</th><th>청구항목</th><th class="c">우선순위</th>
+      <thead><tr><th>계약고유명</th><th>청구항목</th><th class="c">우선순위</th>
         <th class="n">청구액</th><th class="n">배분액</th><th class="n">배분 후 미납</th></tr></thead>
       <tbody>${r.lines.map(l=>{const c=CTRS.find(y=>y.b===RC.b&&y.no===l.no), left=l.amt-(PAID[l.id]||0);return `<tr>
-        <td>${l.ym}</td><td>${cnameHTML(bn.alias,l.no,c.ten)}</td><td>${l.n}</td><td class="c">${l.pr}</td>
+        <td>${cnameHTML(bn.alias,l.no,c.ten)}</td><td>${ymTag(l)}</td><td class="c">${l.pr}</td>
         <td class="n" style="color:var(--muted)">${won(l.amt)}</td><td class="n"><b>${won(l.pay)}</b></td>
         <td class="n">${left>0?`<span style="color:var(--warn)">${won(left)}</span>`:'<span class="bd ok">완납</span>'}</td></tr>`;}).join('')}
       </tbody></table></div></div>
@@ -2407,13 +2410,13 @@ function PAY13(){
       .reduce((a,i)=>a+Math.max(0,i.amt-(PAID[i.id]||0)),0):0;
     const tbl=!pl?'':!pl.lines.length?`<div class="empty" style="padding:24px">이 임차인에게 미납 청구가 없습니다. 입금 전액이 미배분으로 남습니다.</div>`
       :`<div class="tw"><table class="nowr">
-        <thead><tr><th>청구년월</th><th>계약고유명</th><th>청구항목</th><th class="c">우선순위</th>
+        <thead><tr><th>계약고유명</th><th>청구항목</th><th class="c">우선순위</th>
           <th class="n">배분 전 미납</th><th class="n">배분액</th><th class="n">배분 후 미납</th></tr></thead>
         <tbody>${pl.all.map(l=>{const c=CTRS.find(y=>y.b===RC.b&&y.no===l.no);return `<tr${l.pay?'':' class="dim"'}>
-          <td>${l.ym}</td><td>${cnameHTML(bn.alias,l.no,c.ten)}</td><td>${l.n}</td><td class="c">${l.pr}</td>
+          <td>${cnameHTML(bn.alias,l.no,c.ten)}</td><td>${ymTag(l)}</td><td class="c">${l.pr}</td>
           <td class="n" style="color:var(--muted)">${won(l.due)}</td><td class="n">${l.pay?`<b>${won(l.pay)}</b>`:'—'}</td>
           <td class="n">${l.due-l.pay?`<span style="color:var(--warn)">${won(l.due-l.pay)}</span>`:'<span class="bd ok">완납</span>'}</td></tr>`;}).join('')}
-          <tr class="sumr"><td colspan="4">합계</td>
+          <tr class="sumr"><td colspan="3">합계</td>
             <td class="n">${won(pl.all.reduce((a,l)=>a+l.due,0))}</td>
             <td class="n">${won(d.amt-pl.rest)}</td>
             <td class="n">${(v=>v?`<span style="color:var(--warn)">${won(v)}</span>`:'0원')(pl.all.reduce((a,l)=>a+l.due-l.pay,0))}</td></tr>
@@ -2435,7 +2438,8 @@ function PAY13(){
           ${Object.values(B).map(b=>`<option value="${b.k}" ${b.k===g.biz?'selected':''}>${b.n} · 계약 ${b.ctrs.length}건</option>`).join('')}
         </select>
         ${g.biz?(registered?`<span class="c2" style="margin:0">등록된 입금자명으로 찾았습니다</span>`
-          :`<label style="font-size:12.5px"><input type="checkbox" ${RC.reg[d.no]!==false?'checked':''}
+          :`${g.st==='후보'?`<span class="c2" style="margin:0;color:var(--warn)">상호가 비슷한 임차인을 미리 골랐습니다. 맞는지 확인하세요.</span>`:''}
+            <label style="font-size:12.5px"><input type="checkbox" ${RC.reg[d.no]!==false?'checked':''}
               onchange="rcRegTog(${d.no},this.checked)"> <b>${d.name}</b>을(를) 이 임차인의 입금자명으로 등록</label>`)
           :'<span class="c2" style="margin:0">입금자명으로 임차인을 찾지 못했습니다. 직접 고르세요.</span>'}
       </div></div></div>
@@ -2520,7 +2524,7 @@ function PAY6(){
     ${rows.length?`<span style="margin-left:auto;display:flex;gap:8px">
       <button class="btn sm" onclick="g6Set(${anyOp?'false':'true'})">${anyOp?'전체 접기':'전체 펼치기'}</button></span>`:''}
   </div>
-  ${waitN?`<div class="fnd wa3"><span class="h">매칭 전 입금 ${waitN}건</span>
+  ${waitN?`<div class="fnd wa3"><span class="h">확정 전 입금 ${waitN}건</span>
     아직 기록되지 않은 입금이 있어 이미 낸 계약도 <b>납부전</b>으로 보일 수 있습니다.
     <b class="lk" onclick="go('pay-13')">입금 매칭으로 이동 →</b></div>`:''}
   ${!rows.length?`<div class="tbl"><div class="empty"><div class="t">${has?'조건에 맞는 계약이 없습니다':'이 달의 청구가 없습니다'}</div>
