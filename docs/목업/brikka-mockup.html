@@ -437,7 +437,7 @@ table.nowr th,table.nowr td{white-space:nowrap}
 .rcr > :nth-child(4){padding-left:28px}
 .ctr{grid-template-columns:minmax(260px,1fr) 150px 150px 150px 100px}
 .schr.dep .nm{color:var(--muted)}
-.arr{grid-template-columns:minmax(300px,1.6fr) 150px 140px 90px 100px 130px}
+.arr{grid-template-columns:minmax(300px,1.6fr) 210px 90px 100px 130px}
 .schr.arr.mo{border-top:1px solid var(--line-2)}
 .rcx{padding:4px 14px 14px 46px;background:var(--soft);border-bottom:1px solid var(--line-2)}
 .rcx table{background:var(--bg);border:1px solid var(--line);border-radius:var(--r-sm)}
@@ -2627,9 +2627,8 @@ function PAY2(){
     const op=g2Open(a.k), on=!!sel2[a.k], can=a.due>0||a.fee>0;
     return `<div class="schr arr grp" onclick="g2Tog('${a.k}')">
       <div class="nm">${can?`<span class="cb ${on?'on':''}" onclick="pick2('${a.k}',event)"></span>`:'<span class="cb dis"></span>'}<span class="tg ${op?'op':''}" style="${can?'':'visibility:hidden'}">${ic('chev',16)}</span>${cnameHTML(bn.alias,a.c.no,a.c.ten)}${
-        a.c.st!=='진행중'?` <span class="bd mu">${a.c.st}</span>`:''}</div>
-      <div>${a.owe.length?`<b>${a.owe.length}개월</b><span class="c2" style="margin-left:6px">${ymK(a.from)}부터</span>`
-        :a.fee?'<span class="c2" style="margin:0">미납 없음 · 연체료 미청구</span>':'<span class="c2" style="margin:0">미납 없음</span>'}</div>
+        a.c.st!=='진행중'?` <span class="bd mu">${a.c.st}</span>`:''}${
+        !a.due?`<span class="c2">${a.fee?'미납 없음 · 연체료 미청구':'미납 없음'}</span>`:''}</div>
       <div class="n">${a.due?`<b style="color:var(--warn)">${won(a.due)}</b>`:dash}</div>
       <div class="n">${a.days?`${a.days}일`:dash}</div>
       <div class="n">연 ${a.rate}%</div>
@@ -2637,8 +2636,7 @@ function PAY2(){
     </div>`+(!op||!can?'':a.months.map(m=>`
     <div class="schr arr sub mo" onclick="RC.f.b='${RC.b}';RC.f.ym='${m.ym}';RC.f.st='';go('pay-6')">
       <div class="nm">${m.ym.replace('-','년 ')}월분 <span class="c2">청구 ${won(m.bill)} · 수납 ${m.paid?won(m.paid):'0원'} · 마감 ${md(dueStr(m.ym))}</span></div>
-      <div><span class="bd ${PST[m.st]}">${m.st}</span></div>
-      <div class="n">${m.due?`<span style="color:var(--warn)">${won(m.due)}</span>`:dash}</div>
+      <div class="n">${m.due?`<span style="color:var(--warn)">${won(m.due)}</span>`:dash} <span class="bd ${PST[m.st]}" style="margin-left:6px">${m.st}</span></div>
       <div class="n c2" style="margin:0">${m.days?`${m.days}일`:'—'}</div>
       <div></div>
       <div class="n">${m.fee?won(m.fee):'—'}</div>
@@ -2669,10 +2667,10 @@ function PAY2(){
   ${!rows.length?`<div class="tbl"><div class="empty"><div class="t">${has?'미납이 없습니다':'자료가 없습니다'}</div>
      ${has?'모든 계약이 완납 상태이고 청구 전 연체료도 없습니다.':'목업 자료는 동교동 영준빌딩뿐입니다.'}</div></div>`
   :`<div class="tbl schl">
-    <div class="schr arr hd"><div>계약고유명 · 청구년월</div><div>미납 기간</div><div class="n">미납액</div>
+    <div class="schr arr hd"><div>계약고유명 · 청구년월</div><div class="n">미납액</div>
       <div class="n">연체일수</div><div class="n">연체이자율</div><div class="n">연체료(예상)</div></div>
     ${body}
-    <div class="schr arr sum"><div>합계 <span class="lock">계약 ${act.length}</span></div><div></div>
+    <div class="schr arr sum"><div>합계 <span class="lock">계약 ${act.length}</span></div>
       <div class="n">${T.due?`<span style="color:var(--warn)">${won(T.due)}</span>`:'—'}</div><div></div><div></div>
       <div class="n">${T.fee?won(T.fee):'—'}</div></div>
   </div>`}
