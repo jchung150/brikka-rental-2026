@@ -526,7 +526,7 @@ const MENU=[
    {id:'pay-10',n:'관리비 정산',sid:'PAY-10',i:'calc'},
    {id:'pay-1',n:'청구서 발행',sid:'PAY-1',i:'mail'},
    {id:'pay-13',n:'입금 매칭',sid:'PAY-13',i:'card'},
-   {id:'pay-6',n:'수납 관리',sid:'PAY-6',i:'list'},
+   {id:'pay-6',n:'수납 내역',sid:'PAY-6',i:'list'},
    {id:'pay-2',n:'미납 관리',sid:'PAY-2',i:'wallet'},
    {id:'pay-4',n:'청구 항목 관리',sid:'PAY-4',i:'list'},
    {id:'pay-11',n:'월 마감',sid:'PAY-11',i:'lock'}]},
@@ -1835,7 +1835,7 @@ function TODO(id){
   <div class="tbl"><div class="empty"><div class="t">아직 만들지 않은 화면입니다</div>
     구현된 화면 — <b>PRO-1</b> 건물 목록 · <b>PRO-3</b> 건물 상세 ·
     <b>PAY-12</b> 청구 · 수납 현황 · <b>PAY-10</b> 관리비 정산 · <b>PAY-1</b> 청구서 발행 ·
-    <b>PAY-13</b> 입금 매칭 · <b>PAY-6</b> 수납 관리</div></div>`;   /* PAY-8 수납 내역은 PAY-6에 합쳤다 */
+    <b>PAY-13</b> 입금 매칭 · <b>PAY-6</b> 수납 내역</div></div>`;   /* PAY-8 수납 내역은 PAY-6에 합쳤다 */
 }
 
 /* ═══ PAY-1 · 청구 약정 ═══ */
@@ -2072,7 +2072,7 @@ function PAY1(){
     발행하면 원장에 <b>청구</b> 거래로 기록되고 임차인 담당자에게 이메일이 발송된다.</div>`;
 }
 
-/* ═══ PAY-6 수납 관리 ═══ */
+/* ═══ PAY-6 수납 내역 ═══ */
 /* 2026-08 동교동 영준빌딩 운영계좌 거래내역 — 은행에서 내려받은 형식 그대로다.
    임차인 입금액만 시스템 계산 청구액에 맞춰 고쳤다. (주)비씨에이전시는 112,299원을 덜 냈다 → 미납
    거래후 잔액 열은 원본 값이며 계산에 쓰지 않는다.
@@ -2185,10 +2185,11 @@ const PAID={};
 
 /* 수납 기록 화면 상태 */
 const RC={b:'b1',P:parseBank(BANK_RAW),dec:{},op:{},alias:{},pre:{},reg:{},cur:null,
-          f:{b:'b1',ym:'2026-08',st:''}};   /* 필터 — 건물 · 청구년월 · 배분 결과 */
+          f:{b:'b1',ym:'2026-08',st:''}};   /* 필터 — 건물 · 청구년월 · 납부상태 */
 const setRC=(k,v)=>{RC.f[k]=v;render();};
-/* 배분 결과 — 입금 기준. 필터와 목록 열이 같은 값을 쓴다 */
-const rcRes=r=>r.st==='제외'?'무시':!r.lines?'배분 전':r.rest>0?'미배분':'전액 배분';
+/* 납부상태 — 이 입금이 배분된 청구들의 지금 상태. 뒤 입금이 기록되면 앞 입금도 완납이 된다 → PAY-6 */
+const rcRes=r=>r.st==='제외'?'무시':!r.lines?'매칭 전'
+  :r.lines.every(l=>{const b=BILLS.find(i=>i.id===l.id);return b&&b.amt-(PAID[l.id]||0)<=0;})?'완납':'부분납';
 
 /* 사업자 — 같은 사업자의 계약은 입금 1건으로 함께 낼 수 있다 */
 function rcBiz(){
@@ -2334,8 +2335,8 @@ function PAY13(){
       <div class="c2" style="margin:0">기록 완료 · ${r.basis}</div>
       <div style="font-size:15px;font-weight:700;margin:6px 0">${d.name} <span style="font-weight:400;color:var(--muted)">→ ${B[r.biz]?B[r.biz].n:''}</span></div>
       <div class="big">${won(d.amt)}</div>
-      <div class="hint">원장에 기록되었습니다. 고치려면 수납 관리에서 수정·취소하세요.
-        <b class="lk" onclick="go('pay-6')">수납 관리로 이동 →</b></div></div></div>`;
+      <div class="hint">원장에 기록되었습니다. 고치려면 수납 내역에서 수정·취소하세요.
+        <b class="lk" onclick="go('pay-6')">수납 내역으로 이동 →</b></div></div></div>`;
   }else if(x.ex){
     panel=`<div class="card"><div class="cc" style="padding:18px 20px">
       <div class="c2" style="margin:0">무시함 — 수납으로 기록하지 않습니다</div>
@@ -2390,14 +2391,14 @@ function PAY13(){
   const allDone=Q.every(q=>!rcIsOpen(q));
   return head+`
   ${allDone?`<div class="fnd"><span class="h">모든 입금을 처리했습니다</span>
-    기록된 입금은 수납 관리에서 통장과 대조하세요. <b class="lk" onclick="go('pay-6')">수납 관리로 이동 →</b></div>`:''}
+    기록된 입금은 수납 내역에서 통장과 대조하세요. <b class="lk" onclick="go('pay-6')">수납 내역으로 이동 →</b></div>`:''}
   <div class="mw">
     <div class="mq"><div class="mqh">대기열 <span class="c2" style="margin:0">입금일시 순</span></div>${queue}</div>
     <div>${panel}</div>
   </div>`;
 }
 
-/* ═══ PAY-6 수납 관리 — 조회 화면. 매칭은 PAY-13에서 한다 ═══ */
+/* ═══ PAY-6 수납 내역 — 조회 화면. 매칭은 PAY-13에서 한다 ═══ */
 function PAY6(){
   const P=RC.P, B=rcBiz(), R=rcRun(), bn=BUILDINGS.find(x=>x.id===RC.b);
   const has=RC.f.b===RC.b&&RC.f.ym==='2026-08';
@@ -2411,10 +2412,9 @@ function PAY6(){
     return cnameHTML(bn.alias,c.no,c.ten)+(ks.length>1?`<span class="c2">외 ${ks.length-1}건</span>`:'');
   };
   const resCell=r=>{
-    if(r.st==='제외') return '<span style="color:var(--faint)">무시</span>';
-    if(!r.lines) return '<span style="color:var(--faint)">배분 전</span>';
-    if(r.rest>0) return `<span style="color:var(--warn)">미배분 ${won(r.rest)}</span>`;
-    return '<span class="c2" style="margin:0">전액 배분</span>';
+    const k=rcRes(r), c={'완납':'ok','부분납':'wa','매칭 전':'mu','무시':'mu'}[k];
+    return (r.rest>0?`<span class="c2" style="color:var(--warn);margin:0 6px 0 0">미배분 ${won(r.rest)}</span>`:'')
+      +`<span class="bd ${c}">${k}</span>`;
   };
   const detail=(d,r)=>`<div class="rcx"><div class="ln"><span class="c2" style="margin:0">
       계좌이체 · 은행거래내역매칭 · 김영준 · ${r.basis||''} · 비교용 이름 <b>${r.nm}</b></span>
@@ -2441,7 +2441,7 @@ function PAY6(){
     </div>`+(op?detail(d,r):'');
   }).join('');
   return `
-  <div class="ph"><h1>수납 관리</h1><span class="sid">PAY-6</span>
+  <div class="ph"><h1>수납 내역</h1><span class="sid">PAY-6</span>
     <div class="act">${waitN?`<button class="btn pri" onclick="go('pay-13')">입금 매칭 ${waitN}건 →</button>`:''}</div>
   </div>
   <div class="fbar">
@@ -2453,7 +2453,7 @@ function PAY6(){
         `<option value="${v}" ${RC.f.ym===v?'selected':''}>${t}</option>`).join('')}
     </select>
     <select onchange="setRC('st',this.value)">
-      ${['','배분 전','전액 배분','미배분','무시'].map(v=>`<option value="${v}" ${RC.f.st===v?'selected':''}>${v||'전체 상태'}</option>`).join('')}
+      ${['','완납','부분납','매칭 전','무시'].map(v=>`<option value="${v}" ${RC.f.st===v?'selected':''}>${v||'전체 납부상태'}</option>`).join('')}
     </select>
     ${rows.length?`<span style="margin-left:auto;display:flex;gap:8px">
       <button class="btn sm" onclick="P6open(${anyOp?'false':'true'})">${anyOp?'전체 접기':'전체 펼치기'}</button></span>`:''}
@@ -2462,7 +2462,7 @@ function PAY6(){
      ${has?'다른 상태를 선택해 보세요.':'입금 매칭에서 이 건물·월의 거래내역을 올리면 입금이 표시됩니다.'}</div></div>`
   :`<div class="tbl schl">
     <div class="schr rcr hd"><div>입금일시</div><div>입금자명</div><div class="n">입금액</div>
-      <div class="c">매칭</div><div>계약</div><div>매칭 근거</div><div class="n">배분 결과</div></div>
+      <div class="c">매칭</div><div>계약</div><div>매칭 근거</div><div class="n">납부상태</div></div>
     ${body}
     <div class="schr rcr sum"><div>합계 <span class="lock">입금 ${rows.length}</span></div><div></div>
       <div class="n">${won(rows.reduce((a,d)=>a+d.amt,0))}</div><div></div><div></div><div></div><div></div></div>
@@ -2490,7 +2490,7 @@ function render(keep){
   else if(id==='pay-10'){html=PAY10();crumb='청구 · 수납 <span>›</span> <b>관리비 정산</b>';}
   else if(id==='pay-12'){html=PAY12();crumb='<b>청구 · 수납</b>';}
   else if(id==='pay-1'){html=PAY1();crumb='청구 · 수납 <span>›</span> <b>청구서 발행</b>';}
-  else if(id==='pay-6'){html=PAY6();crumb='청구 · 수납 <span>›</span> <b>수납 관리</b>';}
+  else if(id==='pay-6'){html=PAY6();crumb='청구 · 수납 <span>›</span> <b>수납 내역</b>';}
   else if(id==='pay-13'){html=PAY13();crumb='청구 · 수납 <span>›</span> <b>입금 매칭</b>';}
   else{html=TODO(id);const g=MENU.find(m=>m.items&&m.items.some(i=>i.id===id));
     const m=ALL.find(i=>i.id===id);
