@@ -49,7 +49,9 @@ run('PAY-6', 'PAY6()');
 run('PAY-6 전체 펼침', 'g6All=true;PAY6()');
 run('PAY-13', 'PAY13()');
 run('PAY-12 7월', "f12='2026-07';PAY12()");
-run('PAY-2 연체료만 남은 계약 포함 · 펼침', "g2All=true;f2.view='fee';PAY2()");
+run('PAY-2 펼침', "seedJuly();g2All=true;PAY2()");
+run('PAY-11 테온하우스 (7월 마감 대기)', "seedJuly();mcBld('b2');PAY11()");
+run('수납 처리 패널 연체료 50% 감면', "seedJuly();openPay('b1별관3층');setPm('feeMode','half');payHTML()");
 run('PAY-11', "seedJuly();PAY11()");
 for (const [b, ym] of [['b2','2026-07'],['b1','2026-08'],['b4','2026-05'],['b3','2026-08']])
   run('PAY-11 ' + b + ' ' + ym, "seedJuly();s11={b:'" + b + "',ym:'" + ym + "'};PAY11()");
@@ -215,7 +217,7 @@ W.openPay('b1별관3층'); W.setPm('amt', 99999999); W.payConfirm();
 r6.push(['미납보다 많이 받으면 확정되지 않음', left('b1별관3층') === 3292820]);
 /* 연체료 — 받지 않으면 계속 쌓이고, 받으면 낮춘 금액만 청구·수납되고 그날까지는 다시 세지 않는다 → 4.4.3 */
 const fee0 = W.feeUntil('b1별관3층', '2026-08-10');
-W.openPay('b1별관3층'); W.setPm('feeOn', '1'); W.setPm('fee', '100000');
+W.openPay('b1별관3층'); W.setPm('feeMode', 'custom'); W.setPm('fee', '100000');
 const amtF = W.pm.amt;
 W.payConfirm();
 const LF = W.ledgerOf('b1별관3층');
@@ -224,7 +226,7 @@ r6.push(['연체료 낮춰 받기 — 받을 금액 = 미납 + 10만 · 연체�
   fee0 > 100000 && amtF === 3292820 + 100000 && left('b1별관3층') === 0 && LF.bal.매출채권 === 0
   && feeRow && feeRow.inc === 100000 && /감면/.test(feeRow.item) && W.feeUntil('b1별관3층', '2026-08-10') === 0]);
 const ruby0 = W.feeUntil('b1본관B2', '2026-08-10');
-W.openPay('b1본관B2'); W.setPm('feeOn', '1'); W.setPm('fee', '0'); W.payConfirm();
+W.openPay('b1본관B2'); W.setPm('feeMode', 'waive'); W.payConfirm();
 r6.push(['연체료 전액 감면 — 루비뮤직 2,615 → 0 · 청구 없음',
   ruby0 === 2615 && W.feeUntil('b1본관B2', '2026-08-10') === 0 && !W.BILLS.some(i => i.k === 'b1본관B2' && i.fee)]);
 /* 미납액 먼저 — 6월 미납이 있으면 7월 청구서와 같은 금액이 와도 6월부터 채운다 → 4.3.3 */
@@ -260,6 +262,16 @@ M.mcx.why = '수납 배분 재조정'; M.mcApply(); const undone = !M.MC.b1['202
 M.mcOpen('close'); M.mcApply();
 r6.push(['월 마감 — 이준빌딩 7월 확인 6항목 통과 · 사유 없으면 취소 안 됨 · 취소 후 다시 마감 · 이력 2줄',
   okAll && kept && undone && !!M.MC.b1['2026-07'] && M.MC_LOG['b1|2026-07'].length === 2]);
+/* 연체료 50% 감면 · 연체료만 남은 계약도 미납 관리에 — 화면을 연 상태(7월 처리 완료)에서 */
+const H = new Function(stub + bare + '; seedJuly(); return {openPay,setPm,payConfirm,ledgerOf,arrears,CTRS,get pm(){return pm;},f2,PAY2};')();
+H.openPay('b1본관B2'); const rubyMode = H.pm.feeMode === 'full' && H.pm.amt === 2615;
+H.openPay('b1별관3층'); H.setPm('feeMode', 'half');
+const half = H.pm.fee === 94011 && H.pm.amt === 10292820 + 94011;
+H.payConfirm();
+const LH = H.ledgerOf('b1별관3층'), hRow = LH.rows.find(r => r.type === '청구' && /^연체료/.test(r.item));
+r6.push(['연체료 50% 감면 — 188,022 → 94,011 받음 · 94,011 감면 표기 · 미납 0 · 루비뮤직은 연체료 전액이 기본',
+  rubyMode && half && LH.bal.매출채권 === 0 && hRow && hRow.inc === 94011 && /94,011원 감면/.test(hRow.item)]);
+r6.push(['연체료만 남은 루비뮤직도 미납 관리 기본 보기에', /본관B2/.test(H.PAY2())]);
 const bad6 = r6.filter(x => !x[1]);
 if (bad6.length) fail = 1;
 console.log('⑥ 수납 기록 ' + (bad6.length ? '✗ ' + bad6.map(x => x[0]).join(' / ') : 'OK — ' + r6.length + '개 검산'));
