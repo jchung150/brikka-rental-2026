@@ -48,6 +48,10 @@ run('미구현 화면', "TODO('pay-2')");
 run('PAY-6', 'PAY6()');
 run('PAY-6 전체 펼침', 'g6All=true;PAY6()');
 run('PAY-13', 'PAY13()');
+run('수납 처리 패널', "openPay('b1별관3층');payHTML()");
+run('수납 처리 패널 보증금상계', "openPay('b1별관3층');setPm('how','보증금상계');payHTML()");
+run('수납 처리 패널 초과', "openPay('b1별관3층');setPm('amt','99999999');payHTML()");
+run('수납 처리 패널 미납 없음', "openPay('b1본관8층');payHTML()");
 run('PAY-2', 'PAY2()');
 run('CTR-1', 'CTR1()');
 for (const f of ["f1c.st=''", "f1c.b='b2'", "f1c.dd='90'", "f1c.dd='0'"]) run('CTR-1 필터 ' + f, "f1c={b:'',st:'진행중',dd:''};" + f + ';CTR1()');
@@ -126,7 +130,7 @@ for (const m of Z.MASTER) {
 if (orphan.length) fail = 1;
 console.log('⑤ 유닛 번호 정합성 ' + (orphan.length ? '✗ ' + orphan.join(', ') : 'OK'));
 /* ⑥ 수납 기록 — 8월 실제 거래내역으로 매칭·배분·미납을 검산한다 → 4.3 · 4.6 */
-const W = new Function(stub + bare + '; return {RC,ledgerOf,lateCalc,rcPreview,ctrPay,ctrDeps,rcRun,rcQueue,rcGuess,rcBiz,rcConfirm,rcIgnore,rcNext,rcOpenN,dueOf,normName,PAID,BILLS};')();
+const W = new Function(stub + bare + '; return {RC,ledgerOf,lateCalc,rcPreview,ctrPay,ctrDeps,rcRun,rcQueue,rcGuess,rcBiz,rcConfirm,rcIgnore,rcNext,rcOpenN,dueOf,normName,PAID,BILLS,openPay,setPm,payPlan,payConfirm,get pm(){return pm;}};')();
 const P6 = W.RC.P;
 const r6 = [];
 r6.push(['거래 56 · 입금 14 · 출금 42', P6.rows.length === 56 && P6.dep.length === 14 && P6.wd.length === 42]);
@@ -179,6 +183,22 @@ r6.push(['원장 — 비씨에이전시 수익계정 잔액 10,318,254 · 청구
 const left = k => W.BILLS.filter(i => i.k === k).reduce((a, i) => a + i.amt - (W.PAID[i.id] || 0), 0);
 const all12 = ['본관8층','본관7층','본관6층','본관5층','본관4층','본관301호','본관302호','본관2층','본관1층','본관B2','별관4층','별관2층'];
 r6.push(['미납 관리 — 비씨에이전시 10,318,254원만 남음 (루비뮤직 7월분 해소)', all12.every(n => left('b1' + n) === 0) && left('b1별관3층') === 10318254]);
+/* 현장 수납 — 입금 매칭을 다 끝낸 뒤 비씨에이전시가 현금 600만 원을 들고 왔다 → PAY-2 수납 처리 */
+W.openPay('b1별관3층'); W.setPm('amt', 6000000);
+const pc = W.payPlan();
+W.payConfirm();
+const LC = W.ledgerOf('b1별관3층');
+r6.push(['현장 수납 현금 600만 — 오래된 달부터 · 미납 4,318,254 · 원장 수익 잔액 일치 · 「현금 수납」 기록',
+  pc.lines[0].ym <= pc.lines[pc.lines.length - 1].ym && pc.rest === 0 && left('b1별관3층') === 4318254
+  && LC.bal.수익 === 4318254 && LC.rows.some(r => r.type === '수납' && r.hand && / 현금$/.test(r.src))]);
+const dep0 = LC.bal.부채;
+W.openPay('b1별관3층'); W.setPm('how', '보증금상계'); W.setPm('amt', 1000000); W.payConfirm();
+const LD = W.ledgerOf('b1별관3층');
+r6.push(['보증금상계 100만 — 미납 3,318,254 · 보증금 잔액 100만 감소 · 보증금 차감 행',
+  left('b1별관3층') === 3318254 && LD.bal.수익 === 3318254 && LD.bal.부채 === dep0 - 1000000
+  && LD.rows.some(r => r.type === '보증금 차감' && r.dec === 1000000)]);
+W.openPay('b1별관3층'); W.setPm('amt', 99999999); W.payConfirm();
+r6.push(['미납보다 많이 받으면 확정되지 않음', left('b1별관3층') === 3318254]);
 /* 미납액 먼저 — 7월 미납이 있으면 8월 청구서와 같은 금액이 와도 7월부터 채운다 → 4.3.3 */
 const V = new Function(stub + bare + '; return {rcPlan,BILLS};')();
 { const keep = V.BILLS.filter(i => !(i.k === 'b1본관302호' && i.ym !== '2026-08')); V.BILLS.length = 0; V.BILLS.push(...keep); }
