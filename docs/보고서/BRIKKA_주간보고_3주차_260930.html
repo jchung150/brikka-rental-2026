@@ -1,0 +1,528 @@
+<title>BRIKKA 주간 보고</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap">
+<style>
+  :root{
+    --bg:#FFFFFF;
+    --ink:#1F2226;
+    --ink-soft:#3C4043;
+    --muted:#5F6368;
+    --rule:#CFD3D7;
+    --rule-soft:#E4E7EA;
+    --head:#EEF1F3;
+    --accent:#14507C;
+    --accent-bg:#E9F0F5;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#16181B;
+      --ink:#E4E6E9;
+      --ink-soft:#C3C7CB;
+      --muted:#99A0A6;
+      --rule:#3A3F45;
+      --rule-soft:#282C31;
+      --head:#22262A;
+      --accent:#86B6DA;
+      --accent-bg:#1B252E;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#16181B;
+    --ink:#E4E6E9;
+    --ink-soft:#C3C7CB;
+    --muted:#99A0A6;
+    --rule:#3A3F45;
+    --rule-soft:#282C31;
+    --head:#22262A;
+    --accent:#86B6DA;
+    --accent-bg:#1B252E;
+  }
+
+  *{box-sizing:border-box}
+  body{
+    background:var(--bg);color:var(--ink);
+    font-family:"Noto Sans KR",system-ui,-apple-system,sans-serif;
+    font-weight:400;font-size:14.5px;line-height:1.75;
+    -webkit-font-smoothing:antialiased;
+  }
+  .doc{max-width:1020px;margin:0 auto;padding-inline:28px;padding-block:44px 80px}
+
+  .cover{border-bottom:2px solid var(--ink);padding-bottom:18px;margin-bottom:12px}
+  h1{font-size:23px;font-weight:700;line-height:1.5;margin:0 0 8px;letter-spacing:-.01em;text-wrap:balance}
+  .cover .line{font-size:14px;color:var(--ink-soft);margin:0}
+  .docinfo{
+    display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:2px 24px;
+    font-size:12.5px;color:var(--muted);margin-bottom:34px;padding-top:10px;
+  }
+  .docinfo b{font-weight:500;color:var(--ink-soft)}
+
+  h2{
+    font-size:17px;font-weight:700;line-height:1.5;
+    margin:38px 0 12px;padding-bottom:6px;border-bottom:2px solid var(--rule);text-wrap:balance;
+  }
+  h3{font-size:14.5px;font-weight:700;line-height:1.55;margin:24px 0 8px;text-wrap:balance}
+
+  p{margin:0 0 11px}
+  ul,ol{margin:0 0 13px;padding-left:20px}
+  li{margin-bottom:4px;line-height:1.7}
+  li>ul{margin-top:4px;margin-bottom:2px}
+  strong{font-weight:700}
+
+  .scroller{overflow-x:auto;margin:14px 0 6px}
+  table{border-collapse:collapse;width:100%;font-size:13px;line-height:1.6;min-width:540px}
+  caption{text-align:left;font-size:12.5px;font-weight:700;color:var(--ink-soft);padding-bottom:6px}
+  th,td{border:1px solid var(--rule);padding:7px 10px;text-align:left;vertical-align:top}
+  th{background:var(--head);font-weight:700;font-size:12.5px;line-height:1.45}
+  td.lbl{font-weight:700;white-space:nowrap;background:var(--head)}
+  td.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+  td.c{text-align:center;white-space:nowrap}
+  .dn{color:var(--accent);font-weight:700}
+
+  .fn{font-size:12px;color:var(--muted);line-height:1.65;margin:2px 0 18px}
+
+  .kbox{
+    border:1px solid var(--rule);border-left:3px solid var(--accent);
+    background:var(--accent-bg);padding:13px 18px;margin:14px 0;
+  }
+  .kbox p:last-child{margin-bottom:0}
+  .kbox .t{font-size:12.5px;font-weight:700;color:var(--accent);margin-bottom:3px}
+
+  .foot{font-size:12px;color:var(--muted);line-height:1.7;margin-top:28px;padding-top:12px;border-top:1px solid var(--rule-soft)}
+
+  @media print{
+    html{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+    @page{size:A4;margin:16mm 14mm}
+    body{font-size:10.2pt;line-height:1.62;background:#fff;color:#000}
+    .doc{max-width:none;padding:0}
+    h1{font-size:17pt} h2{font-size:12.5pt;margin:16pt 0 7pt;break-after:avoid}
+    h3{font-size:10.6pt;margin:11pt 0 5pt;break-after:avoid}
+    .docinfo{grid-template-columns:repeat(2,1fr);font-size:9pt;margin-bottom:16pt}
+    .scroller{overflow:visible;margin:7pt 0 4pt}
+    table{min-width:0;font-size:8.8pt;line-height:1.48}
+    thead{display:table-header-group} tr{break-inside:avoid}
+    th,td{padding:4.5pt 6pt} th{font-size:8.6pt}
+    caption{font-size:8.8pt;break-after:avoid}
+    .kbox{break-inside:avoid;padding:9pt 12pt;margin:9pt 0}
+    .fn{font-size:8.4pt;margin:1pt 0 10pt} .foot{font-size:8.6pt}
+    ul,ol{margin-bottom:8pt} li{margin-bottom:2.5pt}
+    p,li{orphans:3;widows:3}
+  }
+
+  @media (max-width:560px){
+    .doc{padding-block:32px 60px}
+    h1{font-size:20px}
+    h2{font-size:16px}
+  }
+
+  /* ── 주간보고 전용 ── */
+  .badge{
+    display:inline-block;font-size:11.5px;font-weight:700;line-height:1;
+    padding:4px 8px;border:1px solid var(--rule);border-radius:2px;
+    white-space:nowrap;vertical-align:2px;background:var(--head);color:var(--ink-soft);
+  }
+  .badge.done{background:var(--accent-bg);border-color:var(--accent);color:var(--accent)}
+  .badge.wip{background:transparent;border-color:var(--ink-soft);color:var(--ink-soft)}
+  .badge.ask{background:transparent;border-color:var(--accent);color:var(--accent)}
+
+  .task{margin:16px 0 4px;display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}
+  .task .nm{font-size:14.5px;font-weight:700;line-height:1.55}
+  .task + .sum{margin:0 0 4px 0;color:var(--ink-soft);font-size:13.5px}
+  .task + .sum + .sum{margin-top:-8px}
+
+  .detail{
+    border-left:2px solid var(--rule);padding:2px 0 2px 16px;margin:14px 0 22px;
+  }
+  .detail > .dt{
+    font-size:13px;font-weight:700;color:var(--muted);margin:0 0 10px;
+    letter-spacing:.01em;
+  }
+  .detail h4{
+    font-size:13.5px;font-weight:700;margin:16px 0 5px;line-height:1.55;
+  }
+  .detail h4:first-of-type{margin-top:0}
+  .detail ul{margin:0 0 8px;padding-left:17px;font-size:13.5px}
+  .detail li{margin-bottom:3px;line-height:1.65}
+  .detail ul ul{margin-top:3px;font-size:13px;color:var(--ink-soft)}
+  .eff{
+    font-size:12.5px;color:var(--ink-soft);margin:6px 0 0;padding-left:0;
+  }
+  .eff b{color:var(--accent);font-weight:700}
+  .st{color:var(--accent);font-weight:700}
+
+  .req{border:1px solid var(--rule);padding:14px 16px;margin:14px 0}
+  .req .rh{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;margin-bottom:9px}
+  .req .rh .nm{font-size:14px;font-weight:700;line-height:1.5}
+  .req dl{margin:0;font-size:13.5px;line-height:1.7}
+  .req dt{font-weight:700;color:var(--ink-soft);font-size:12.5px;margin-top:8px}
+  .req dt:first-child{margin-top:0}
+  .req dd{margin:0 0 0 0}
+
+  @media print{
+    .detail{break-inside:auto}
+    .req{break-inside:avoid;padding:9pt 12pt;margin:9pt 0}
+    .task{margin:11pt 0 3pt;break-after:avoid}
+    .detail h4{font-size:10pt;margin:9pt 0 3pt;break-after:avoid}
+    .detail ul{font-size:9pt} .detail ul ul{font-size:8.7pt}
+    .badge{font-size:8.2pt;padding:2pt 4pt}
+    .eff{font-size:8.6pt}
+  }
+</style>
+
+<div class="doc">
+
+<div class="cover">
+  <h1>BRIKKA 임대관리 시스템<br>상업용 전환 개발 주간보고</h1>
+  <p class="line">주간보고 · 3주차<br>작성 기간: 2026. 09. 22(화) ~ 2026. 09. 29(화)</p>
+</div>
+
+<div class="docinfo">
+  <div><b>보고일</b> 2026. 09. 30</div>
+  <div><b>단계</b> 화면 설계 (진행) → 개발자 선정 (착수)</div>
+  <div><b>기준 산출물</b> 기능정의서 v1.1 · 0~8부 및 부록 6,422행</div>
+  <div><b>개발 범위</b> 1차 35개 화면 / 2차 42개 화면 (변동 없음)</div>
+</div>
+
+<p>본 문서는 2026년 9월 3주차(09.22~09.29) 프로젝트 진행 상황을 정리한 주간보고입니다.</p>
+
+<h2>진행사항</h2>
+
+<div class="task">
+  <span class="badge done">완료</span>
+  <span class="nm">개발 공고 게시 및 지원자 접수</span>
+</div>
+<p class="sum">09.22 게시. 지원 약 40건 접수, 캐나다 거주 후보 3명으로 압축 — 세부내용 하단 참조</p>
+
+<div class="task">
+  <span class="badge done">완료</span>
+  <span class="nm">화면 목업 제작 — 1차분</span>
+</div>
+<p class="sum">1차 35개 화면 중 12개 제작. 월 업무 주기 전 과정이 목업 안에서 이어짐<br>
+진행내역 — 세부내용 하단 참조</p>
+
+<div class="task">
+  <span class="badge done">완료</span>
+  <span class="nm">기능정의서 v1.1 개정</span>
+</div>
+<p class="sum">목업에서 도출된 변경 전건 반영. 5,082행 → 6,422행(+1,340행)<br>
+금액 계산 오류 5건 정정 — 세부내용 하단 참조</p>
+
+<div class="task">
+  <span class="badge done">완료</span>
+  <span class="nm">기존 시스템 코드 삭제</span>
+</div>
+<p class="sum">2주차 신규 개발 결정에 따른 정리. 저장소를 기능정의서·목업만 남긴 상태로 전환</p>
+
+<div class="task">
+  <span class="badge wip">보류</span>
+  <span class="nm">한영 용어집 · 산출물 번역</span>
+</div>
+<p class="sum">위탁 범위가 전체 개발에서 1단계 설계로 축소되어 우선순위 조정. 개발자 선정 후 착수</p>
+
+<hr style="border:0;border-top:1px solid var(--rule-soft);margin:26px 0">
+
+<div class="detail">
+<p class="dt">‣ 화면 목업 제작 진행내역</p>
+
+<h4>제작 완료 12개 화면</h4>
+<ul>
+  <li>건물 — 건물 목록(PRO-1) · 건물 상세(PRO-3, 관리비 설정 포함)</li>
+  <li>계약 — 계약 목록(CTR-1) · 계약 등록(CTR-2) · 계약 상세(CTR-3, 원장 포함)</li>
+  <li>청구·수납 — 청구·수납 현황(PAY-12) · 관리비 정산(PAY-10) · 청구서 발행(PAY-1) ·
+      입금 매칭(PAY-13) · 수납 내역(PAY-6) · 미납 관리(PAY-2) · 월 마감(PAY-11)</li>
+</ul>
+<p class="eff"><b>선정 기준:</b> 금액을 다루거나 판단이 필요한 화면 우선. 단순 목록·등록 화면은 후순위</p>
+
+<h4>월 업무 주기가 목업 안에서 이어짐</h4>
+<ul>
+  <li>검침·정산(PAY-10) → 청구서 발행(PAY-1) → 입금 매칭(PAY-13) → 수납 내역(PAY-6)
+      → 미납 관리(PAY-2) → 월 마감(PAY-11)</li>
+  <li>한 달 업무를 처음부터 끝까지 조작해 볼 수 있는 상태. 화면 단위가 아니라 업무 단위로 검증</li>
+</ul>
+
+<h4>실제 데이터로 검증</h4>
+<ul>
+  <li>영준빌딩 2026년 8월 실제 한국전력·상수도 고지서 및 검침값 적용</li>
+  <li>실제 임차인 14곳, 실제 동·호수 체계, 실제 은행 거래내역 적용</li>
+  <li>기준 시점을 2026-08-10로 고정 — 7월분 마감 완료, 8월분 정산 중인 상태를 재현</li>
+</ul>
+<p class="eff"><b>가상 데이터를 쓰지 않은 이유:</b> 계량기 없는 유닛, 1/30 계량기, 공용 계량기,
+대납 계약 등 실제 건물에만 있는 조건이 계산 규칙의 허점을 드러냄</p>
+
+<h4>자동 검증 도입</h4>
+<ul>
+  <li>목업을 고칠 때마다 계산 결과를 자동으로 검사하는 스크립트 작성</li>
+  <li>검사 범위 — 화면 렌더 57건 / 항목별 총사용량·배분비율·차액 / 수납 기록 36건 검산</li>
+  <li>현재 전 항목 통과</li>
+</ul>
+<p class="eff"><b>기대 효과:</b> 규칙을 하나 바꿀 때 다른 계산이 깨지는지 즉시 확인.
+사람이 매번 검산하지 않음</p>
+</div>
+
+<div class="detail">
+<p class="dt">‣ 목업에서 드러난 계산 규칙 오류 5건</p>
+
+<p style="font-size:13.5px;margin:0 0 10px">
+기능정의서만으로는 맞아 보였으나 실제 숫자를 넣자 드러난 오류입니다.
+전건 정정 후 검산을 다시 수행했습니다.</p>
+
+<div class="scroller">
+<table>
+  <caption>표 1. 정정한 계산 규칙</caption>
+  <thead><tr><th style="width:21%">항목</th><th>드러난 문제</th><th style="width:27%">조치</th></tr></thead>
+  <tbody>
+    <tr>
+      <td class="lbl">연체료 산출식</td>
+      <td>남은 미납액에 전체 연체일수를 곱하는 방식. 중간에 일부를 낸 계약은
+          그 전까지 더 큰 금액이 밀려 있었으나 반영되지 않음.
+          검산 예시에서 <span class="dn">2,019원</span>과 <span class="dn">102,292원</span>으로 50배 차이</td>
+      <td>수납이 들어올 때마다 기간을 끊어 구간별로 계산 후 합산</td>
+    </tr>
+    <tr>
+      <td class="lbl">부가세 배분</td>
+      <td>공급가액과 부가세를 합산액으로 배분. 유닛별 부가세를 알 수 없어
+          <strong>세금계산서 발행 불가</strong></td>
+      <td>공급가액과 부가세를 각각 배분하고 잔차도 각각 처리</td>
+    </tr>
+    <tr>
+      <td class="lbl">절사 잔차</td>
+      <td>유닛마다 원 미만을 절사하므로 합계가 언제나 고지서보다 몇 원 적음.
+          원장 합계가 고지서와 어긋남</td>
+      <td>잔차를 부담 비율 최대 유닛에 가산. 산출 결과에 표시해 임차인 문의에 대응</td>
+    </tr>
+    <tr>
+      <td class="lbl">음수 사용량</td>
+      <td>당월 검침값 미입력 시 사용량이 음수가 되어 공용 사용량이 부풀고
+          해당 유닛 부담분이 <strong>다른 임차인에게 전가.</strong> 총액 검증으로는 잡히지 않음</td>
+      <td>사용량·청구금액 음수 검증을 확정 조건에 추가</td>
+    </tr>
+    <tr>
+      <td class="lbl">조정 배수 적용 지점</td>
+      <td>전용부와 공용 배분에 배수가 이중 적용됨</td>
+      <td>공용 배분에만 적용하도록 안분 규칙 변경. 총량 불변을 검증에 포함</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+<p class="fn">* 연체료 50배 차이는 미납 1,680,000원에 부분납이 두 차례 있는 계약의 검산 결과.</p>
+
+<p class="eff"><b>검토 의견:</b> 다섯 건 모두 금액이 틀어지는 오류이며, 네 건은 임차인에게
+잘못된 금액이 청구되는 사안. 개발 착수 후 발견했다면 코드와 이미 쌓인 원장을 함께 정정해야 함</p>
+</div>
+
+<div class="detail">
+<p class="dt">‣ 기능정의서 개정 내역</p>
+
+<h4>화면 구성 변경 — 총 35개 유지</h4>
+<ul>
+  <li>신설 2건 — 청구·수납 현황(PAY-12), 입금 매칭(PAY-13)</li>
+  <li>흡수 1건 — 청구 항목 관리(PAY-4). 청구 항목을 건물별로 관리하게 되어 건물 상세로 이동</li>
+  <li>통합 1건 — 수납 내역 조회(PAY-8)를 수납 내역(PAY-6)에 통합</li>
+</ul>
+<p class="eff"><b>입금 매칭을 신설한 이유:</b> 은행 거래내역을 한 건씩 확인하고 확정하는 작업 화면.
+매칭 오류가 원장에 남으면 사후 정정이 어려움</p>
+
+<h4>계산 규칙 신설</h4>
+<ul>
+  <li>배분 기준 4종으로 재정의 — 건물마다 다른 배분 방식을 네 가지로 정리</li>
+  <li>계기배율 — 1/30 계량기 등 계량기 표시값과 실사용량이 다른 경우의 환산</li>
+  <li>계량기 공유 — 유닛 여럿이 계량기 하나를 쓰는 경우</li>
+  <li>안분 제외 유닛 — 배분 계산 자체에서 빼는 유닛</li>
+  <li>정산액 부담 계약(대납) — 다른 유닛의 정산액을 대신 부담하는 계약</li>
+  <li>입금자명 별칭 식별 — 사업자명과 다른 이름으로 입금되는 경우의 매칭</li>
+</ul>
+<p class="eff"><b>공통점:</b> 여섯 건 모두 실제 건물 데이터를 넣는 과정에서 발견. 기존 명세에는
+해당 조건 자체가 없었음</p>
+
+<h4>용어 정리</h4>
+<ul>
+  <li>청구 스케줄 → <strong>청구 약정</strong> / 독촉 → <strong>미납 안내</strong> /
+      청구 설정 → <strong>관리비 설정</strong></li>
+  <li>실제 업무에서 쓰는 말로 교체. 화면·명세·목업을 같은 표기로 통일</li>
+</ul>
+
+<h4>남은 미확정 2건</h4>
+<ul>
+  <li>납부 안내 메일의 발송 시점(N일 전)을 건물별로 정할지 시스템 공통으로 둘지</li>
+  <li>여러 달 미납이 이어진 계약을 미납 관리 화면에 따로 표시할지</li>
+</ul>
+<p class="eff"><b>일정 영향:</b> 없음. 둘 다 설계·개발 착수의 선행 조건이 아님</p>
+</div>
+
+<div class="detail">
+<p class="dt">‣ 개발자 모집 진행내역</p>
+
+<h4>공고 및 접수</h4>
+<ul>
+  <li>09.22 게시. 위탁 범위는 <strong>1단계 설계</strong>로 한정 —
+      데이터베이스 스키마, 운영사 격리(RLS), 프로젝트 기본 구조, 참조 구현 1개 모듈, 인계 자료</li>
+  <li>지원 약 40건 접수 → 캐나다 거주 및 경력 요건 충족 <strong>3명</strong>으로 압축</li>
+  <li>나머지 화면은 위 구조를 따라 내부에서 제작</li>
+</ul>
+
+<h4>인터뷰 시점 조정</h4>
+<ul>
+  <li>후보 3명에게 대기를 요청하고 인터뷰를 목업 마무리 이후로 미룸</li>
+  <li>사유 — 목업 진행 중 명세 변경이 계속 도출되는 상태. 확정되지 않은 명세로 스키마를
+      설계하면 설계를 다시 받아야 함</li>
+  <li>스키마는 이후 모든 화면의 전제이므로 확정 후 착수하는 편이 총비용에서 유리</li>
+</ul>
+<p class="eff"><b>기대 효과:</b> 설계 재작업 방지. 다만 후보 대기가 길어지면 이탈 가능 —
+리스크 장에 대응 기재</p>
+</div>
+
+<h2>개발 범위 및 진척</h2>
+
+<div class="scroller">
+<table>
+  <caption>표 2. 1차 35개 화면의 목업 제작 현황</caption>
+  <thead><tr><th>영역</th><th class="c">1차 화면</th><th class="c">목업 제작</th><th>비고</th></tr></thead>
+  <tbody>
+    <tr><td class="lbl">건물</td><td class="n">4</td><td class="n">2</td><td>관리비 설정 포함</td></tr>
+    <tr><td class="lbl">계약</td><td class="n">4</td><td class="n">3</td><td>계약 원장 포함</td></tr>
+    <tr><td class="lbl">청구·수납</td><td class="n">10</td><td class="n"><span class="dn">7</span></td><td>월 업무 주기 전 과정</td></tr>
+    <tr><td class="lbl">사용자·시스템</td><td class="n">9</td><td class="n">0</td><td>단순 등록·조회</td></tr>
+    <tr><td class="lbl">문서·이력·보고</td><td class="n">8</td><td class="n">0</td><td>단순 목록·출력</td></tr>
+    <tr><td class="lbl">합계</td><td class="n"><strong>35</strong></td><td class="n"><strong>12</strong></td><td>35% 제작</td></tr>
+  </tbody>
+</table>
+</div>
+<p class="fn">* 제작하지 않은 23개는 금액 계산이 없고 배치가 단순한 화면. 명세만으로 구현 가능한 범위로 판단.</p>
+<p class="fn">* 2차 42개 화면은 범위 밖이며 변동 없음.</p>
+
+<div class="kbox">
+  <p class="t">핵심 판단</p>
+  <p>목업의 목적은 화면을 미리 그려 보는 것이 아니라 <strong>명세의 오류를 개발 착수 전에
+  드러내는 것</strong>입니다. 이번 주 정정한 계산 규칙 5건과 신설 규칙 6건은 모두 실제 고지서와
+  실제 임차인 데이터를 넣는 과정에서 나왔습니다. 목업 단계의 수정 비용은 사실상 없으나
+  개발 착수 후 같은 변경은 코드와 누적된 원장을 함께 정정해야 합니다.</p>
+</div>
+
+<h2>차주 예정사항</h2>
+
+<div class="task">
+  <span class="badge wip">예정</span>
+  <span class="nm">개발자 인터뷰 및 선정</span>
+</div>
+<p class="sum">후보 3명 인터뷰. 설계 접근 방식과 격리 구현 경험을 확인하고 계약 조건 확정</p>
+
+<div class="task">
+  <span class="badge wip">예정</span>
+  <span class="nm">목업 마무리 및 명세 반영</span>
+</div>
+<p class="sum">인터뷰와 병행. 남은 변경을 기능정의서에 반영하고 명세를 확정 상태로 전환</p>
+
+<h2>향후 일정</h2>
+
+<div class="scroller">
+<table>
+  <caption>표 3. 착수 순서</caption>
+  <thead><tr><th class="c" style="width:7%">#</th><th style="width:24%">단계</th><th>내용</th><th style="width:18%">비고</th></tr></thead>
+  <tbody>
+    <tr><td class="c">1</td><td class="lbl">목업 마무리 · 명세 확정</td><td>남은 변경 반영 후 기능정의서 확정</td><td>진행 중</td></tr>
+    <tr><td class="c">2</td><td class="lbl">개발자 선정 · 계약</td><td>후보 3명 인터뷰 및 계약 체결</td><td>차주</td></tr>
+    <tr><td class="c">3</td><td class="lbl">산출물 영문화</td><td>용어집 선행 확정 후 명세 번역</td><td>계약 확정 후</td></tr>
+    <tr><td class="c">4</td><td class="lbl">스키마 설계 위탁</td><td>테이블 설계 · 운영사 격리 · 기본 구조</td><td>1단계 위탁</td></tr>
+    <tr><td class="c">5</td><td class="lbl">참조 구현 인계</td><td>건물 모듈 1개를 완성 형태로 인계받음</td><td></td></tr>
+    <tr><td class="c">6</td><td class="lbl">나머지 화면 개발</td><td>인계받은 구조를 따라 내부 제작</td><td></td></tr>
+  </tbody>
+</table>
+</div>
+<p class="fn">* 2주차 보고의 일정과 비교해 번역(3)이 개발자 선정 이후로 이동했습니다. 위탁 범위가
+1단계 설계로 좁아져 전면 번역의 선행 필요성이 낮아진 데 따른 조정입니다.</p>
+
+<h2>예측 및 발견된 리스크</h2>
+
+<div class="scroller">
+<table>
+  <caption>표 4. 리스크 및 대응</caption>
+  <thead><tr><th style="width:32%">리스크</th><th>대응</th></tr></thead>
+  <tbody>
+    <tr>
+      <td class="lbl">명세 변경이 계속 도출됨</td>
+      <td>목업 단계에서 종결한다. 변경이 줄어드는 시점을 확정 기준으로 삼고 그 이후 설계를 위탁.
+          개발 착수 후 변경은 코드와 원장을 함께 정정해야 하므로 비용 차이가 큼</td>
+    </tr>
+    <tr>
+      <td class="lbl">후보 개발자 대기 중 이탈</td>
+      <td>3명 모두 대기 중이나 장기화 시 이탈 가능. 목업 마무리 시점을 명시해 공유하고,
+          차주 인터뷰를 선행해 선정만 먼저 확정</td>
+    </tr>
+    <tr>
+      <td class="lbl">금액 계산 오류</td>
+      <td>자동 검증 스크립트를 목업 수정 시마다 실행. 실제 고지서 금액과 대조.
+          현재 검사 항목 전 건 통과</td>
+    </tr>
+    <tr>
+      <td class="lbl">개인정보 관련 법률 검토 미착수</td>
+      <td>2주차 요청 후 아직 논의되지 않음. 오픈 이후 소급 적용이 곤란하므로
+          아래 협조 요청으로 재상신</td>
+    </tr>
+    <tr>
+      <td class="lbl">장애 대응 주체 미정</td>
+      <td>복구 목표(데이터 유실 24시간 / 복구 4시간)가 성립하려면 대응 주체가 필요.
+          아래 협조 요청으로 재상신</td>
+    </tr>
+    <tr>
+      <td class="lbl">번역 품질에 따른 구현 오류</td>
+      <td>용어집 선행 확정 원칙 유지. 임대차 도메인 용어는 임의 번역을 허용하지 않음</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+<h2>협의 및 협조 요청사항</h2>
+
+<p style="font-size:13.5px">아래 세 건은 2주차 보고에서 요청드린 사항입니다. 현재까지 논의되지
+않아 다시 올립니다. 세 건 모두 개발 착수 전에 결정이 필요합니다.</p>
+
+<div class="req">
+  <div class="rh"><span class="badge ask">결정 필요</span><span class="nm">개발 인력 계약 형태</span></div>
+  <dl>
+    <dt>변경된 상황</dt>
+    <dd>후보 <strong>3명으로 압축 완료.</strong> 차주 인터뷰 예정이므로 2주차 대비 시급도가 올라갔습니다</dd>
+    <dt>검토 필요 사항</dt>
+    <dd>계약 형태(도급 / 위촉), 대금 지급 방식 및 통화, 원천징수 처리,
+        저작권 및 소스코드 귀속, 비밀유지 조항</dd>
+    <dt>일정 영향</dt>
+    <dd>계약 조건이 확정되지 않으면 인터뷰 후 선정까지 진행하더라도 착수가 지연됩니다.
+        비밀유지 조항은 운영 데이터 접근 허용의 전제 조건입니다</dd>
+    <dt>요청 사항</dt>
+    <dd>계약 형태 확정 및 표준 계약서 검토 — 차주 중 회신</dd>
+  </dl>
+</div>
+
+<div class="req">
+  <div class="rh"><span class="badge ask">확인 필요</span><span class="nm">개인정보 처리 관련 법률 검토</span></div>
+  <dl>
+    <dt>현행</dt>
+    <dd>임차인이 사업자이므로 <strong>주민등록번호를 수집하지 않습니다.</strong>
+        다만 임차인 측 실무 담당자의 성명·연락처·이메일은 수집 대상입니다</dd>
+    <dt>확인 필요 사유</dt>
+    <dd>담당자 정보가 개인정보보호법 적용 대상인 경우 처리방침 게시와 수집 동의 절차가 필요합니다.
+        오픈 이후 소급 적용은 곤란합니다</dd>
+    <dt>확인 항목</dt>
+    <dd>처리방침 게시 의무 여부 / 보존 기간의 법령 부합 여부(원장 영구·보안 로그 1년) /
+        계약 종료 5년 경과 후 마스킹 기준의 적정성</dd>
+    <dt>요청 사항</dt>
+    <dd>법무 검토 회신. 오픈 전 완료 필요</dd>
+  </dl>
+</div>
+
+<div class="req">
+  <div class="rh"><span class="badge ask">확인 필요</span><span class="nm">유지보수 계약 체결 여부</span></div>
+  <dl>
+    <dt>현행</dt>
+    <dd>비기능 요건에 복구 목표를 데이터 유실 24시간 / 복구 소요 4시간으로 정의했습니다</dd>
+    <dt>확인 필요 사유</dt>
+    <dd>장애 대응 주체가 확정되어야 복구 목표가 성립합니다.
+        대응 인력이 부재한 상태에서는 목표 시간이 의미를 갖지 않습니다</dd>
+    <dt>요청 사항</dt>
+    <dd>개발 완료 후 유지보수 계약 체결 여부 및 대응 시간·연락 체계 확정</dd>
+  </dl>
+</div>
+
+<p class="foot">
+BRIKKA 임대관리 시스템 상업용 전환 · 주간보고 3주차<br>
+기능정의서 원문: docs/기능정의서/ · 화면 목업: docs/목업/
+</p>
+
+</div>
