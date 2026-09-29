@@ -187,7 +187,13 @@ tr.exr td{background:var(--line-2);color:var(--muted)}
 .pgrid td.st{cursor:pointer}
 .pgrid td.st:hover{background:var(--pri-bg)}
 .mcl tr.on td{background:var(--pri-bg)}
+.mcl tr.mdt td{background:var(--line-2);padding:10px 16px 12px 40px;cursor:default}
+.mck{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px 24px;font-size:12.5px}
+.mck .it{display:flex;align-items:center;gap:8px}.mck .k{color:var(--muted);min-width:132px}.mck .lk{font-size:12px}
+@media(max-width:1080px){.mck{grid-template-columns:1fr}}
 .mcl tbody tr:hover td{background:var(--pri-bg)}
+.mcl tbody tr.mdt:hover td{background:var(--line-2)}
+.mcl .mtg{display:inline-flex;width:20px;color:var(--muted);vertical-align:-3px;transition:transform .15s}.mcl .mtg.op{transform:rotate(90deg)}
 .stp{display:inline-flex;align-items:center;gap:5px;font-size:12px}
 .stp .dot2{width:6px;height:6px;border-radius:50%;flex:none}
 .bar{height:5px;background:var(--line-2);border-radius:99px;overflow:hidden;margin-top:4px;width:84px}
@@ -1946,7 +1952,6 @@ function mcChecks(b,ym){
 const mcState=(b,ym)=>{const c=(MC[b]||{})[ym];
   if(c) return {k:'마감',c};
   return {k:ym==='2026-08'?'진행 중':'열림',bad:mcChecks(b,ym).filter(x=>!x.ok).length};};
-function mcSel(b,ym){s11={b,ym};render(true);}
 function mcOpen(mode){mcx={mode,why:''};DRAWER='mclose';render(true);}
 function mcApply(){
   const {b,ym}=s11, k=mcKey(b,ym), now=TODAY_S.slice(5)+' 11:30';
@@ -1980,54 +1985,39 @@ function mcHTML(){
 }
 /* 이 건물에서 지금 마감할 차례인 달 — 열려 있는 가장 오래된 달. 없으면 진행 중인 이번 달 */
 const mcNext=b=>MC_YMS.find(v=>mcState(b,v).k==='열림')||MC_YMS[MC_YMS.length-1];
-function mcBld(b){s11={b,ym:mcNext(b)};render();}
+let o11={};                                   /* 펼친 달 — 기본은 마감할 차례인 달만 */
+const o11Open=v=>(v in o11)?o11[v]:v===mcNext(s11.b);
+function mcBld(b){s11={b,ym:mcNext(b)};o11={};render();}
+function mcTog(v){o11[v]=!o11Open(v);render(true);}
+function mcDo(v,mode){s11={b:s11.b,ym:v};mcOpen(mode);}
 function PAY11(){
-  const {b,ym}=s11, bn=BUILDINGS.find(x=>x.id===b);
+  const {b}=s11, bn=BUILDINGS.find(x=>x.id===b);
   const nx=mcNext(b), NS=mcState(b,nx), ymL=v=>v.replace('-','년 ').replace(/년 0/,'년 ')+'월';
-  const btn=NS.k==='열림'
-    ?`<button class="btn pri" onclick="s11={b:'${b}',ym:'${nx}'};mcOpen('close')">${ymL(nx)} 마감</button>`
-    :`<span class="c2" style="margin-right:4px">청구서 발행 전이라 마감할 수 없습니다</span><button class="btn pri" disabled>${ymL(nx)} 마감</button>`;
-  /* 달 목록 — 최근 달이 위 */
-  const rows=MC_YMS.slice().reverse().map(v=>{const S=mcState(b,v), N=mcNum(b,v), on=v===ym;
+  const dash='<span style="color:var(--faint)">—</span>';
+  /* 달 목록 — 최근 달이 위. 행을 누르면 마감 전 확인이 펼쳐진다 */
+  const rows=MC_YMS.slice().reverse().map(v=>{const S=mcState(b,v), N=mcNum(b,v), op=o11Open(v);
     const set=v<'2026-08'?'확정':PROG[b].settle;
-    return `<tr class="${on?'on':''}" style="cursor:pointer" onclick="mcSel('${b}','${v}')">
-      <td><b>${ymL(v)}</b></td>
+    const act=S.k==='마감'?`<button class="btn sm" onclick="event.stopPropagation();mcDo('${v}','undo')">마감 취소</button>`
+      :S.k==='진행 중'?`<button class="btn sm pri" disabled title="청구서 발행 전">마감</button>`
+      :`<button class="btn sm pri" onclick="event.stopPropagation();mcDo('${v}','close')">마감</button>`;
+    const C=mcChecks(b,v);
+    const det=!op?'':`<tr class="mdt"><td colspan="9"><div class="mck">${C.map(x=>`<div class="it">
+        <span class="k">${x.t}</span><span class="v" style="${x.ok?'':'color:var(--warn);font-weight:600'}">${x.v}</span>${
+        !x.ok&&x.go?`<b class="lk" onclick="go('${x.go}')">이동 →</b>`:''}</div>`).join('')}</div></td></tr>`;
+    return `<tr class="${op?'on':''}" style="cursor:pointer" onclick="mcTog('${v}')">
+      <td><span class="mtg ${op?'op':''}">${ic('chev',16)}</span><b>${ymL(v)}</b></td>
       <td class="c"><span class="stp"><span class="dot2" style="background:var(--${set==='확정'?'ok':set==='작성중'?'warn':'faint'})"></span>${set}</span></td>
       <td class="n">${N.n?`${N.n} / ${N.N}건`:`<span style="color:var(--faint)">미발행</span>`}</td>
-      <td class="n">${N.bill?won(N.bill):'—'}</td>
-      <td class="n">${N.bill?won(N.paid):'—'}</td>
-      <td class="n">${N.bill-N.paid>0?`<span style="color:var(--warn)">${won(N.bill-N.paid)}</span>`:N.bill?'<span class="bd ok">완납</span>':'—'}</td>
+      <td class="n">${N.bill?won(N.bill):dash}</td>
+      <td class="n">${N.bill?won(N.paid):dash}</td>
+      <td class="n">${N.bill-N.paid>0?`<span style="color:var(--warn)">${won(N.bill-N.paid)}</span>`:N.bill?'<span class="bd ok">완납</span>':dash}</td>
       <td class="c">${S.k==='마감'?'<span class="bd ok">마감</span>':S.k==='진행 중'?'<span class="bd mu">진행 중</span>'
-        :`<span class="bd wa">열림</span>${S.bad?`<div class="c2">확인 ${S.bad}건</div>`:''}`}</td>
+        :`<span class="bd wa">열림</span>`}</td>
       <td class="c2">${S.k==='마감'?`${S.c.at.replace('-','.')} · ${S.c.by}`:''}</td>
-    </tr>`;}).join('');
-  const S=mcState(b,ym), C=mcChecks(b,ym), N=mcNum(b,ym), log=MC_LOG[mcKey(b,ym)]||[];
-  const carry=b==='b1'?CTRS.filter(c=>c.b==='b1').reduce((a,c)=>a+BILLS.filter(i=>i.k===c.b+c.no&&i.ym<=ym).reduce((s,i)=>s+i.amt-Math.min(i.amt,PAID[i.id]||0),0),0):N.bill-N.paid;
-  const detail=`<div class="two" style="grid-template-columns:1.1fr 1fr;align-items:start">
-    <div class="card" style="margin:0"><div class="ct">마감 전 확인<span class="sub">걸리는 항목이 있어도 마감은 할 수 있습니다</span></div>
-      <div class="cc"><dl class="dl">${C.map(x=>`<dt>${x.t}</dt><dd style="display:flex;align-items:center;gap:8px">
-        <span class="bd ${x.ok?'ok':'wa'}">${x.ok?'확인':'주의'}</span>${x.v}
-        ${!x.ok&&x.go?`<b class="lk" style="margin-left:auto;font-size:12px" onclick="go('${x.go}')">이동 →</b>`:''}</dd>`).join('')}</dl></div></div>
-    <div>
-      <div class="card" style="margin:0 0 12px"><div class="ct">이 달의 숫자<span class="sub">부가세 포함</span></div>
-        <div class="cc"><dl class="dl">
-          <dt>청구액</dt><dd>${N.bill?won(N.bill):'—'} <span class="c2">청구서 ${N.n}건</span></dd>
-          <dt>수납액</dt><dd>${N.bill?won(N.paid):'—'}</dd>
-          <dt>이 달 청구분 미납</dt><dd>${N.bill-N.paid>0?`<b style="color:var(--warn)">${won(N.bill-N.paid)}</b>`:N.bill?'<span class="bd ok">완납</span>':'—'}</dd>
-          <dt>다음 달로 넘어가는 미납</dt><dd>${carry>0?`<b style="color:var(--warn)">${won(carry)}</b>${carry>N.bill-N.paid?' <span class="c2">지난 달 미납 포함</span>':''}`:'없음'}</dd>
-        </dl></div></div>
-      <div class="card" style="margin:0"><div class="ct">마감 기록
-        <span class="ca">${S.k==='마감'?`<button class="btn sm" onclick="mcOpen('undo')">마감 취소</button>`
-          :S.k==='진행 중'?`<button class="btn sm pri" disabled>마감</button>`
-          :`<button class="btn sm pri" onclick="mcOpen('close')">마감</button>`}</span></div>
-        <div class="cc">${S.k==='마감'?`<div style="margin-bottom:8px"><span class="bd ok">마감</span> ${S.c.at.replace('-','.')} · ${S.c.by}</div>`
-          :S.k==='진행 중'?`<div class="c2" style="margin:0 0 8px">청구서를 발행하기 전입니다. 이 달이 끝나고 수납까지 정리한 뒤 마감합니다.</div>`
-          :`<div class="c2" style="margin:0 0 8px">아직 마감하지 않았습니다.</div>`}
-          ${log.map(l=>`<div class="c2" style="margin:4px 0">${l.at.replace('-','.')} · ${l.by} · <b style="color:var(--ink)">${l.act}</b>${l.why?` — ${l.why}`:''}</div>`).join('')}
-        </div></div>
-    </div></div>`;
+      <td class="c">${act}</td>
+    </tr>${det}`;}).join('');
   return `
-  <div class="ph"><h1>월 마감</h1><span class="sid">PAY-11</span><div class="act">${btn}</div></div>
+  <div class="ph"><h1>월 마감</h1><span class="sid">PAY-11</span></div>
   <div class="fbar">
     <select onchange="mcBld(this.value)">
       ${BUILDINGS.map(x=>`<option value="${x.id}" ${b===x.id?'selected':''}>${x.name}</option>`).join('')}
@@ -2036,19 +2026,14 @@ function PAY11(){
   </div>
   <div class="tbl"><div class="tw"><table class="pgrid mcl">
     <thead><tr><th>청구년월</th><th class="c">정산</th><th class="n">청구서</th><th class="n">청구액</th><th class="n">수납액</th>
-      <th class="n">이 달 청구분 미납</th><th class="c">마감</th><th>마감일시 · 마감자</th></tr></thead>
+      <th class="n">이 달 청구분 미납</th><th class="c">마감</th><th>마감일시 · 마감자</th><th></th></tr></thead>
     <tbody>${rows}</tbody></table></div></div>
-  <div style="display:flex;align-items:center;gap:8px;margin:18px 0 10px">
-    <b style="font-size:14px">${ymL(ym)}</b>
-    ${S.k==='마감'?'<span class="bd ok">마감</span>':S.k==='진행 중'?'<span class="bd mu">진행 중</span>':'<span class="bd wa">열림</span>'}
-    <span class="c2">달을 누르면 그 달의 확인 항목과 숫자가 나옵니다</span></div>
-  ${detail}
   <div class="hint">
     <b>월 마감</b>은 그 달의 장부를 잠그는 일입니다. 마감한 달의 청구·수납·정산은 고칠 수 없고, 정정은 다음 달의 조정 거래로 합니다.<br>
-    오른쪽 위 버튼은 <b>지금 마감할 차례인 달</b>(열려 있는 가장 오래된 달)을 마감합니다. 청구서를 발행하기 전인 달은 마감할 수 없습니다.<br>
+    달을 누르면 마감 전에 볼 것이 펼쳐집니다. <span style="color:var(--warn);font-weight:600">주황색</span>은 아직 끝나지 않은 일입니다. 그래도 마감할 수 있습니다.<br>
     <b>미납이 남아 있어도 마감합니다.</b> 미납은 사라지지 않고 다음 달로 넘어가 미납 관리에 계속 보입니다.<br>
-    보통 순서는 정산 확정 → 청구서 발행 → 납부마감일 → 입금 처리 → 임대인 보고서 발송 → 마감입니다.
-    마감 취소는 슈퍼관리자만 할 수 있고 사유를 남깁니다.</div>`;
+    청구서를 발행하기 전인 달은 마감할 수 없습니다. 마감 취소는 슈퍼관리자만 할 수 있고 사유를 남깁니다.
+    마감·마감 취소 기록은 변경 이력에 남습니다.</div>`;
 }
 
 /* ═══ 미구현 ═══ */
@@ -2747,15 +2732,7 @@ function PAY6(){
       <div class="schr ctr sub"><div class="nm">${i.n}</div>
         <div class="n c2">${won(i.amt)}</div><div class="n c2">${i.paid?won(i.paid):dash}</div>
         <div class="n">${i.due?`<span style="color:var(--warn)">${won(i.due)}</span>`:dash}</div>
-        <div class="c"><span class="bd ${PST[i.st]}">${i.st}</span></div></div>`).join('')
-      +(()=>{const ds=ctrDeps(x.k,RC.f.ym);
-        if(!ds.length&&x.paid) return `<div class="schr ctr sub dep"><div class="nm" style="color:var(--muted)">이전에 기록된 입금 ${won(x.paid)} — 목업에는 입금 원본이 없다</div><div></div><div></div><div></div><div></div></div>`;
-        return ds.length?ds.map(({d,pay})=>`
-      <div class="schr ctr sub dep"><div class="nm">입금 ${d.dt.slice(5,16)} · ${d.name}${
-          pay<d.amt?`<span class="c2">${won(d.amt)} 중</span>`:''}</div>
-        <div></div><div class="n"><b>${won(pay)}</b></div><div></div>
-        <div class="c"><button class="btn sm" onclick="event.stopPropagation();alert('PAY-9 수납 내역 수정 및 취소 — 배분 재조정 또는 무효 처리. 입금액은 수정할 수 없다')">수정·취소</button></div></div>`).join('')
-        :`<div class="schr ctr sub dep"><div class="nm" style="color:var(--muted)">입금 없음</div><div></div><div></div><div></div><div></div></div>`;})();
+        <div class="c"><span class="bd ${PST[i.st]}">${i.st}</span></div></div>`).join('');
     return `<div class="schr ctr grp" onclick="g6Tog('${x.k}')">
       <div class="nm"><span class="tg ${op?'op':''}">${ic('chev',16)}</span>${cnameHTML(bn.alias,x.c.no,x.c.ten)}</div>
       <div class="n">${won(x.bill)}</div>

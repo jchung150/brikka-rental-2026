@@ -55,6 +55,8 @@ run('수납 처리 패널 연체료 50% 감면', "seedJuly();openPay('b1별관3�
 run('PAY-11', "seedJuly();PAY11()");
 for (const [b, ym] of [['b2','2026-07'],['b1','2026-08'],['b4','2026-05'],['b3','2026-08']])
   run('PAY-11 ' + b + ' ' + ym, "seedJuly();s11={b:'" + b + "',ym:'" + ym + "'};PAY11()");
+run('PAY-11 모든 달 펼침', "seedJuly();MC_YMS.forEach(v=>o11[v]=true);PAY11()");
+run('PAY-11 테온하우스 7월 마감 → 목록', "seedJuly();mcBld('b2');mcDo('2026-07','close');mcApply();PAY11()");
 run('PAY-11 마감 패널', "s11={b:'b2',ym:'2026-07'};mcOpen('close');mcHTML()");
 run('PAY-11 마감 취소 패널', "mcOpen('undo');mcHTML()");
 run('PAY-6 8월 (발행 전)', "RC.f.ym='2026-08';PAY6()");
