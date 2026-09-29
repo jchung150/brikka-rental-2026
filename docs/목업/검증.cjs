@@ -49,6 +49,12 @@ run('PAY-6', 'PAY6()');
 run('PAY-6 전체 펼침', 'g6All=true;PAY6()');
 run('PAY-13', 'PAY13()');
 run('PAY-12 7월', "f12='2026-07';PAY12()");
+run('PAY-2 연체료만 남은 계약 포함 · 펼침', "g2All=true;f2.view='fee';PAY2()");
+run('PAY-11', "seedJuly();PAY11()");
+for (const [b, ym] of [['b2','2026-07'],['b1','2026-08'],['b4','2026-05'],['b3','2026-08']])
+  run('PAY-11 ' + b + ' ' + ym, "seedJuly();s11={b:'" + b + "',ym:'" + ym + "'};PAY11()");
+run('PAY-11 마감 패널', "s11={b:'b2',ym:'2026-07'};mcOpen('close');mcHTML()");
+run('PAY-11 마감 취소 패널', "mcOpen('undo');mcHTML()");
 run('PAY-6 8월 (발행 전)', "RC.f.ym='2026-08';PAY6()");
 run('PAY-13 7월 처리 완료', "seedJuly();PAY13()");
 run('수납 처리 패널', "openPay('b1별관3층');payHTML()");
@@ -66,7 +72,7 @@ run('CTR-3 원장 비씨에이전시', "tab3c='원장정보';CTR3('b1별관3층'
 run('CTR-3 원장 전체 펼침', "tab3c='원장정보';g3All=true;CTR3('b1본관1층')");
 run('CTR-3 원장 필터', "tab3c='원장정보';f3={per:'3',acc:'매출채권'};CTR3('b1본관302호')");
 run('CTR-3 없는 계약', "CTR3('b9없음')");
-run('PAY-2 전체 펼침 · 전체 계약', "g2All=true;f2.all=true;PAY2()");
+run('PAY-2 전체 펼침 · 전체 계약', "g2All=true;f2.view='all';PAY2()");
 run('PAY-2 종료 계약', "f2.cs='종료';PAY2()");
 run('PAY-2 다른 건물', "f2.b='b2';PAY2()");
 run('PAY-6 7월', "RC.f.ym='2026-07';g6All=true;PAY6()");
@@ -246,6 +252,14 @@ r6.push(['나눠 보낸 입금 — 1차 부분납 100만 미납 → 2차 자동 
 const O = new Function(stub + bare + '; seedJuly(); return {rcOpenN,dueOf,ctrPay,BILLS};')();
 r6.push(['첫 화면 — 7월 입금 대기 0건 · 비씨에이전시 미납 10,292,820 · 8월 청구 없음',
   O.rcOpenN() === 0 && O.dueOf('b1별관3층').amt === 10292820 && !O.BILLS.some(i => i.ym === '2026-08')]);
+/* 월 마감 — 7월 이준빌딩: 확인 항목 모두 통과 · 취소는 사유가 있어야 · 다시 마감 */
+const M = new Function(stub + bare + '; seedJuly(); return {MC,MC_LOG,mcChecks,mcOpen,mcApply,get mcx(){return mcx;},s11};')();
+const okAll = M.mcChecks('b1', '2026-07').every(x => x.ok);
+M.mcOpen('undo'); M.mcApply(); const kept = !!M.MC.b1['2026-07'];
+M.mcx.why = '수납 배분 재조정'; M.mcApply(); const undone = !M.MC.b1['2026-07'];
+M.mcOpen('close'); M.mcApply();
+r6.push(['월 마감 — 이준빌딩 7월 확인 6항목 통과 · 사유 없으면 취소 안 됨 · 취소 후 다시 마감 · 이력 2줄',
+  okAll && kept && undone && !!M.MC.b1['2026-07'] && M.MC_LOG['b1|2026-07'].length === 2]);
 const bad6 = r6.filter(x => !x[1]);
 if (bad6.length) fail = 1;
 console.log('⑥ 수납 기록 ' + (bad6.length ? '✗ ' + bad6.map(x => x[0]).join(' / ') : 'OK — ' + r6.length + '개 검산'));

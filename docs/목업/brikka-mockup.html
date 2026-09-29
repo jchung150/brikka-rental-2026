@@ -186,6 +186,7 @@ tr.exr td{background:var(--line-2);color:var(--muted)}
 /* 진행 현황 */
 .pgrid td.st{cursor:pointer}
 .pgrid td.st:hover{background:var(--pri-bg)}
+.mcg td.mc.on{background:var(--pri-bg);box-shadow:inset 0 0 0 2px var(--pri)}
 .stp{display:inline-flex;align-items:center;gap:5px;font-size:12px}
 .stp .dot2{width:6px;height:6px;border-radius:50%;flex:none}
 .bar{height:5px;background:var(--line-2);border-radius:99px;overflow:hidden;margin-top:4px;width:84px}
@@ -340,7 +341,7 @@ td.c,th.c{text-align:center}
 .card > .cc{padding:3px 16px 16px}
 .card > .ct + .tw table th{border-top:1px solid var(--line)}
 
-.dl{display:grid;grid-template-columns:124px 1fr;font-size:12.5px}
+.dl{display:grid;grid-template-columns:minmax(124px,auto) 1fr;column-gap:12px;font-size:12.5px}
 .dl dt{padding:8px 0;color:var(--muted);border-bottom:1px solid var(--line-2);font-size:12px}
 .dl dd{padding:8px 0;margin:0;border-bottom:1px solid var(--line-2)}
 .dl dt:last-of-type,.dl dd:last-of-type{border-bottom:0}
@@ -535,7 +536,7 @@ const MENU=[
    {id:'pay-1',n:'청구서 발행',sid:'PAY-1',i:'mail'},
    {id:'pay-13',n:'입금 매칭',sid:'PAY-13',i:'card'},
    {id:'pay-6',n:'수납 내역',sid:'PAY-6',i:'list'},
-   {id:'pay-2',n:'미납 기록',sid:'PAY-2',i:'wallet'},
+   {id:'pay-2',n:'미납 관리',sid:'PAY-2',i:'wallet'},
    {id:'pay-11',n:'월 마감',sid:'PAY-11',i:'lock'}]},
  {k:'상대',g:'거래 상대',i:'users',items:[
    {id:'user-6',n:'임차인',sid:'USER-6',i:'users'},
@@ -720,7 +721,7 @@ const PROG={
 };
 /* 지난 회차(7월) — 모두 발행·마감했다. 이준빌딩은 원장에서 계산한다 → PAY12 */
 const PROG7={
- b2:{settle:'확정',inv:22,invN:22,amt:186420000,paid:186420000,paidN:22,closed:true,closedAt:'08-12',due:'08-10'},
+ b2:{settle:'확정',inv:22,invN:22,amt:186420000,paid:171300000,paidN:20,closed:false,closedAt:null,due:'08-10'},
  b3:{settle:'확정',inv:40,invN:40,amt:312800000,paid:309650000,paidN:39,closed:true,closedAt:'08-04',due:'07-31'},
  b4:{settle:'확정',inv:12,invN:12,amt:61200000,paid:61200000,paidN:12,closed:true,closedAt:'08-06',due:'07-31'},
  b5:{settle:'확정',inv:13,invN:13,amt:98640000,paid:98640000,paidN:13,closed:true,closedAt:'08-03',due:'07-31'},
@@ -1184,6 +1185,7 @@ function csHTML(){
 function drawerHTML(){
   if(DRAWER==='chargeset') return csHTML();
   if(DRAWER==='pay') return payHTML();
+  if(DRAWER==='mclose') return mcHTML();
   if(DRAWER!=='additem') return '';
   const rest=MASTER.filter(m=>!m.fixed&&!BILL[m.code].on);
   const card=m=>{
@@ -1827,7 +1829,8 @@ function prog7b1(){
   return {settle:'확정',inv:ks.length,invN:ks.length,amt:P.reduce((a,p)=>a+p.bill,0),paid:P.reduce((a,p)=>a+p.paid,0),
     paidN:P.filter(p=>p.st==='완납').length,closed:true,closedAt:'08-05',due:'07-31'};
 }
-const progOf=id=>f12==='2026-08'?PROG[id]:id==='b1'?prog7b1():PROG7[id];
+const progOf=id=>{const p=f12==='2026-08'?PROG[id]:id==='b1'?prog7b1():PROG7[id], c=(MC[id]||{})[f12];
+  return {...p,closed:!!c,closedAt:c?c.at.slice(0,5):null};};
 function PAY12(){
   const S={설정:{c:'mu',t:'미착수'},미착수:{c:'mu'},작성중:{c:'wa'},확정:{c:'ok'}};
   const rows=BUILDINGS.map(b=>{
@@ -1888,6 +1891,144 @@ function PAY12(){
     <b>미납이 남아 있어도 마감한다.</b> 미납액은 채권으로 이월된다.</div>`;
 }
 
+/* ═══ PAY-11 월 마감 — 건물 × 월로 장부를 잠근다. 모든 건물의 몇 달 치를 한 화면에서 본다 ═══ */
+const MC_YMS=['2026-05','2026-06','2026-07','2026-08'];
+/* 마감 기록 — 이준빌딩 외에는 예시값. 테온하우스는 납부마감이 익월 10일(오늘)이라 7월이 아직 열려 있다 */
+const MC={
+ b1:{'2026-05':{at:'06-04 17:20',by:'김영준'},'2026-06':{at:'07-03 16:40',by:'김영준'},'2026-07':{at:'08-05 18:10',by:'김영준'}},
+ b2:{'2026-05':{at:'06-12 11:05',by:'박수민'},'2026-06':{at:'07-13 10:30',by:'박수민'}},
+ b3:{'2026-05':{at:'06-03 15:00',by:'김영준'},'2026-06':{at:'07-02 14:10',by:'김영준'},'2026-07':{at:'08-04 16:45',by:'김영준'}},
+ b4:{'2026-05':{at:'06-05 09:50',by:'이하늘'},'2026-06':{at:'07-06 10:15',by:'이하늘'},'2026-07':{at:'08-06 11:20',by:'이하늘'}},
+ b5:{'2026-05':{at:'06-02 18:00',by:'김영준'},'2026-06':{at:'07-02 17:40',by:'김영준'},'2026-07':{at:'08-03 17:55',by:'김영준'}},
+};
+/* 마감·마감 취소 이력 — 건물·월별 */
+const MC_LOG={'b1|2026-06':[{at:'07-02 15:10',by:'김영준',act:'마감'},{at:'07-03 09:20',by:'김영준',act:'마감 취소',why:'루비뮤직 6월 수납 배분을 잘못 기록해 재조정'},
+  {at:'07-03 16:40',by:'김영준',act:'마감'}]};
+/* 임대인 보고서 발송일 → REP-1 */
+const REPS={b1:{'2026-05':'06-03','2026-06':'07-02','2026-07':'08-04'},b3:{'2026-05':'06-02','2026-06':'07-01','2026-07':'08-03'},
+  b4:{'2026-05':'06-04','2026-06':'07-05','2026-07':'08-05'},b5:{'2026-05':'06-01','2026-06':'07-01','2026-07':'08-02'},
+  b2:{'2026-05':'06-11','2026-06':'07-12'}};
+/* 이준빌딩 외 건물의 7월 미처리 입금 — 예시값 */
+const MC_WAIT={b2:{'2026-07':3}};
+let s11={b:'b1',ym:'2026-07'}, mcx=null;
+const mcKey=(b,ym)=>b+'|'+ym;
+const mcDue=(b,ym)=>{const bd=BUILDINGS.find(x=>x.id===b);   /* 납부마감일 — 익월 10일인 건물이 있다 */
+  if(/익월 10일/.test(bd.dueDay||'')){const [y,m]=ym.split('-').map(Number);return new Date(Date.UTC(y,m,10)).toISOString().slice(0,10);}
+  return dueStr(ym);};
+/* 금액 — 이준빌딩은 원장에서 센다. 나머지는 예시값(5·6월은 완납) */
+function mcNum(b,ym){
+  if(b==='b1'){const ks=[...new Set(BILLS.filter(i=>i.ym===ym&&i.k.startsWith('b1')&&!i.fee).map(i=>i.k))];
+    const P=ks.map(k=>ctrPay(k,ym));
+    return {n:ks.length,N:ym<'2026-08'?ks.length:PROG.b1.invN,bill:P.reduce((a,p)=>a+p.bill,0),paid:P.reduce((a,p)=>a+p.paid,0)};}
+  if(ym==='2026-08'){const p=PROG[b];return {n:p.inv,N:p.invN,bill:p.amt,paid:p.paid};}
+  const p=PROG7[b];
+  return ym==='2026-07'?{n:p.inv,N:p.invN,bill:p.amt,paid:p.paid}:{n:p.inv,N:p.invN,bill:p.amt,paid:p.amt};
+}
+/* 마감 전 확인 — 걸리는 것이 있어도 막지 않는다. 관리자가 판단한다 → PAY-11 */
+function mcChecks(b,ym){
+  const settle=ym<'2026-08'?'확정':PROG[b].settle, N=mcNum(b,ym), due=mcDue(b,ym);
+  const wait=b==='b1'?(ym==='2026-07'?rcOpenN():0):((MC_WAIT[b]||{})[ym]||0);
+  const rest=b==='b1'&&ym==='2026-07'?RC.P.dep.reduce((a,d)=>{const x=(RC.dec[d.no]||{}).done;return a+(x?x.rest:0);},0):0;
+  const rep=(REPS[b]||{})[ym];
+  return [
+    {t:'관리비 정산 확정',ok:settle==='확정',v:settle,go:'pay-10'},
+    {t:'청구서 발행',ok:N.N>0&&N.n===N.N,v:`${N.n} / ${N.N}건`,go:'pay-1'},
+    {t:'납부마감일 경과',ok:dnum(TODAY_S)>dnum(due),v:`${due.slice(5).replace('-','.')}${dnum(TODAY_S)>dnum(due)?'':' (아직 전)'}`},
+    {t:'처리하지 않은 입금',ok:!wait,v:wait?`${wait}건`:'없음',go:'pay-13'},
+    {t:'배분하지 못한 입금 잔액',ok:!rest,v:rest?won(rest):'없음',go:'pay-13'},
+    {t:'임대인 보고서 발송',ok:!!rep,v:rep?`${rep.replace('-','.')} 발송`:'미발송',go:'rep-1'},
+  ];
+}
+const mcState=(b,ym)=>{const c=(MC[b]||{})[ym];
+  if(c) return {k:'마감',c};
+  return {k:ym==='2026-08'?'진행 중':'열림',bad:mcChecks(b,ym).filter(x=>!x.ok).length};};
+function mcSel(b,ym){s11={b,ym};render(true);}
+function mcOpen(mode){mcx={mode,why:''};DRAWER='mclose';render(true);}
+function mcApply(){
+  const {b,ym}=s11, k=mcKey(b,ym), now=TODAY_S.slice(5)+' 11:30';
+  if(mcx.mode==='undo'){if(!mcx.why.trim()) return; delete MC[b][ym];
+    (MC_LOG[k]=MC_LOG[k]||[]).push({at:now,by:'김영준',act:'마감 취소',why:mcx.why.trim()});}
+  else{(MC[b]=MC[b]||{})[ym]={at:now,by:'김영준'};(MC_LOG[k]=MC_LOG[k]||[]).push({at:now,by:'김영준',act:'마감'});}
+  DRAWER=null;mcx=null;render(true);
+}
+function mcHTML(){
+  if(DRAWER!=='mclose'||!mcx) return '';
+  const {b,ym}=s11, bn=BUILDINGS.find(x=>x.id===b), undo=mcx.mode==='undo';
+  const bad=mcChecks(b,ym).filter(x=>!x.ok);
+  return `<div class="dro"><div class="ov" onclick="closeDrawer()"></div><div class="pn">
+    <div class="dh"><div><div class="t">${undo?'마감 취소':'월 마감'}</div>
+      <div class="s">${bn.name} · ${ym.replace('-','년 ')}월</div></div>
+      <button class="x" onclick="closeDrawer()">✕</button></div>
+    <div class="db">
+      ${undo?`<div class="prev warn2"><div class="pt">마감을 풀면 이 달의 장부를 다시 고칠 수 있게 됩니다</div>
+          이미 보낸 임대인 보고서와 숫자가 달라질 수 있습니다. 고친 뒤 다시 마감하세요.</div>
+        <div class="fg" style="margin-top:14px"><div class="fl">취소 사유 (필수)</div>
+          <textarea rows="3" style="width:100%;border:1px solid var(--line);border-radius:var(--r-sm);padding:8px;font:inherit"
+            placeholder="예: 7월 수납 배분을 잘못 기록해 재조정" oninput="mcx.why=this.value;document.getElementById('mcok').disabled=!this.value.trim()">${mcx.why}</textarea></div>`
+      :`${bad.length?`<div class="prev warn2"><div class="pt">확인할 항목 ${bad.length}건</div>
+          ${bad.map(x=>`· ${x.t}: ${x.v}`).join('<br>')}<br>그래도 마감할 수 있습니다. 마감 후에는 이 달의 청구·수납·정산을 고칠 수 없습니다.</div>`
+        :`<div class="prev"><div class="pt">확인 항목을 모두 통과했습니다</div>
+          마감하면 이 달의 청구·수납·정산을 고칠 수 없습니다. 이후 정정은 다음 달의 조정 거래로 합니다.</div>`}`}
+    </div>
+    <div class="df"><button class="btn" onclick="closeDrawer()">닫기</button>
+      <button class="btn pri" id="mcok" ${undo&&!mcx.why.trim()?'disabled':''} onclick="mcApply()">${undo?'마감 취소':'마감'}</button></div>
+  </div></div>`;
+}
+function PAY11(){
+  const {b,ym}=s11, bn=BUILDINGS.find(x=>x.id===b);
+  const ymL=v=>`${+v.slice(5)}월`;
+  const cell=(bid,v)=>{const S=mcState(bid,v), on=bid===b&&v===ym;
+    return `<td class="st c mc ${on?'on':''}" onclick="mcSel('${bid}','${v}')">${
+      S.k==='마감'?`<span class="bd ok">마감</span><div class="c2">${S.c.at.slice(0,5).replace('-','.')}</div>`
+      :S.k==='진행 중'?`<span class="bd mu">진행 중</span><div class="c2">발행 전</div>`
+      :`<span class="bd wa">열림</span><div class="c2">${S.bad?`확인 ${S.bad}건`:'마감 가능'}</div>`}</td>`;};
+  const cnt=v=>BUILDINGS.filter(x=>(MC[x.id]||{})[v]).length;
+  const grid=`<div class="tbl"><div class="tw"><table class="pgrid mcg">
+    <thead><tr><th>건물</th>${MC_YMS.map(v=>`<th class="c">${v.replace('-','년 ')}월</th>`).join('')}</tr></thead>
+    <tbody>${BUILDINGS.map(x=>`<tr><td><div class="c1">${x.name}</div><div class="c2">납부마감 ${x.dueDay||'매월 말일'}</div></td>
+      ${MC_YMS.map(v=>cell(x.id,v)).join('')}</tr>`).join('')}
+    <tr class="sumr"><td>마감</td>${MC_YMS.map(v=>`<td class="c">${cnt(v)} / ${BUILDINGS.length}</td>`).join('')}</tr>
+    </tbody></table></div></div>`;
+  const S=mcState(b,ym), C=mcChecks(b,ym), N=mcNum(b,ym), log=MC_LOG[mcKey(b,ym)]||[];
+  const carry=b==='b1'?CTRS.filter(c=>c.b==='b1').reduce((a,c)=>a+BILLS.filter(i=>i.k===c.b+c.no&&i.ym<=ym).reduce((s,i)=>s+i.amt-Math.min(i.amt,PAID[i.id]||0),0),0):N.bill-N.paid;
+  const detail=`<div class="two" style="grid-template-columns:1.1fr 1fr;align-items:start">
+    <div class="card" style="margin:0"><div class="ct">마감 전 확인<span class="sub">걸리는 항목이 있어도 마감은 할 수 있습니다</span></div>
+      <div class="cc"><dl class="dl">${C.map(x=>`<dt>${x.t}</dt><dd style="display:flex;align-items:center;gap:8px">
+        <span class="bd ${x.ok?'ok':'wa'}">${x.ok?'확인':'주의'}</span>${x.v}
+        ${!x.ok&&x.go?`<b class="lk" style="margin-left:auto;font-size:12px" onclick="go('${x.go}')">이동 →</b>`:''}</dd>`).join('')}</dl></div></div>
+    <div>
+      <div class="card" style="margin:0 0 12px"><div class="ct">이 달의 숫자<span class="sub">부가세 포함</span></div>
+        <div class="cc"><dl class="dl">
+          <dt>청구액</dt><dd>${N.bill?won(N.bill):'—'} <span class="c2">청구서 ${N.n}건</span></dd>
+          <dt>수납액</dt><dd>${N.bill?won(N.paid):'—'}</dd>
+          <dt>이 달 청구분 미납</dt><dd>${N.bill-N.paid>0?`<b style="color:var(--warn)">${won(N.bill-N.paid)}</b>`:N.bill?'<span class="bd ok">완납</span>':'—'}</dd>
+          <dt>다음 달로 넘어가는 미납</dt><dd>${carry>0?`<b style="color:var(--warn)">${won(carry)}</b>${carry>N.bill-N.paid?' <span class="c2">지난 달 미납 포함</span>':''}`:'없음'}</dd>
+        </dl></div></div>
+      <div class="card" style="margin:0"><div class="ct">마감 기록
+        <span class="ca">${S.k==='마감'?`<button class="btn sm" onclick="mcOpen('undo')">마감 취소</button>`
+          :S.k==='진행 중'?`<button class="btn sm pri" disabled>마감</button>`
+          :`<button class="btn sm pri" onclick="mcOpen('close')">마감</button>`}</span></div>
+        <div class="cc">${S.k==='마감'?`<div style="margin-bottom:8px"><span class="bd ok">마감</span> ${S.c.at.replace('-','.')} · ${S.c.by}</div>`
+          :S.k==='진행 중'?`<div class="c2" style="margin:0 0 8px">청구서를 발행하기 전입니다. 이 달이 끝나고 수납까지 정리한 뒤 마감합니다.</div>`
+          :`<div class="c2" style="margin:0 0 8px">아직 마감하지 않았습니다.</div>`}
+          ${log.length?log.map(l=>`<div class="c2" style="margin:4px 0">${l.at.replace('-','.')} · ${l.by} · <b style="color:var(--ink)">${l.act}</b>${l.why?` — ${l.why}`:''}</div>`).join(''):''}
+        </div></div>
+    </div></div>`;
+  return `
+  <div class="ph"><h1>월 마감</h1><span class="sid">PAY-11</span></div>
+  <div class="c2" style="margin:-6px 0 12px">오늘 ${TODAY_S.replace(/-/g,'.')} · 칸을 누르면 아래에 그 건물·월의 마감 전 확인과 숫자가 나옵니다.</div>
+  ${grid}
+  <div style="display:flex;align-items:center;gap:8px;margin:18px 0 10px">
+    <b style="font-size:14px">${bn.name} · ${ym.replace('-','년 ')}월</b>
+    ${S.k==='마감'?'<span class="bd ok">마감</span>':S.k==='진행 중'?'<span class="bd mu">진행 중</span>':'<span class="bd wa">열림</span>'}</div>
+  ${detail}
+  <div class="hint">
+    <b>월 마감</b>은 그 달의 장부를 잠그는 일입니다. 마감한 달의 청구·수납·정산은 고칠 수 없고, 정정은 다음 달의 조정 거래로 합니다.<br>
+    <b>미납이 남아 있어도 마감합니다.</b> 미납은 사라지지 않고 다음 달로 넘어가 미납 관리에 계속 보입니다.<br>
+    보통 순서는 정산 확정 → 청구서 발행 → 납부마감일 → 입금 처리 → 임대인 보고서 발송 → 마감입니다.
+    마감 취소는 슈퍼관리자만 할 수 있고 사유를 남깁니다.</div>`;
+}
+
 /* ═══ 미구현 ═══ */
 function TODO(id){
   const m=ALL.find(i=>i.id===id);
@@ -1895,7 +2036,7 @@ function TODO(id){
   <div class="tbl"><div class="empty"><div class="t">아직 만들지 않은 화면입니다</div>
     구현된 화면 — <b>PRO-1</b> 건물 목록 · <b>PRO-3</b> 건물 상세 ·
     <b>PAY-12</b> 청구 · 수납 현황 · <b>PAY-10</b> 관리비 정산 · <b>PAY-1</b> 청구서 발행 ·
-    <b>PAY-13</b> 입금 매칭 · <b>PAY-6</b> 수납 내역 · <b>PAY-2</b> 미납 기록</div></div>`;   /* PAY-8 수납 내역은 PAY-6에 합쳤다 */
+    <b>PAY-13</b> 입금 매칭 · <b>PAY-6</b> 수납 내역 · <b>PAY-2</b> 미납 관리 · <b>PAY-11</b> 월 마감</div></div>`;   /* PAY-8 수납 내역은 PAY-6에 합쳤다 */
 }
 
 /* ═══ PAY-1 · 청구 약정 ═══ */
@@ -2092,7 +2233,7 @@ function PAY1(){
     <b class="lk" onclick="go('pay-10')">관리비 정산으로 이동 →</b></div>`}
   ${dues.length?`<div class="fnd wa3"><span class="h">미납이 있는 계약 ${dues.length}건 · ${won(dueSum)}</span>
     청구서에 <b>별도 안내</b>로 표기됩니다. <b>청구 합계에는 포함되지 않습니다.</b>
-    <b class="lk" onclick="go('pay-2')">미납 기록로 이동 →</b>
+    <b class="lk" onclick="go('pay-2')">미납 관리로 이동 →</b>
     ${f1.b==='b1'&&rcOpenN()?`<br>은행 거래내역 입금 <b>${rcOpenN()}건이 아직 수납 기록되지 않았습니다.</b>
       기록 전이면 이미 낸 임차인도 미납으로 안내됩니다.
       <b class="lk" onclick="go('pay-13')">입금 매칭으로 이동 →</b>`:''}</div>`:''}
@@ -2493,7 +2634,7 @@ function PAY13(){
     ${(()=>{const left=BILLS.filter(i=>B[r.biz]&&B[r.biz].ctrs.some(c=>c.b+c.no===i.k))
         .reduce((a,i)=>a+Math.max(0,i.amt-(PAID[i.id]||0)),0);
       return left?`<div class="fnd wa3"><span class="h">${B[r.biz].n} 남은 미납 ${won(left)}</span>
-        이 입금으로 채우지 못한 청구가 있습니다. 수납 내역·미납 기록에서 확인하세요.</div>`:'';})()}
+        이 입금으로 채우지 못한 청구가 있습니다. 수납 내역·미납 관리에서 확인하세요.</div>`:'';})()}
     <div class="hint">배분 후 미납은 지금 원장 기준입니다. 계약별 납부상태는 수납 내역에서 봅니다.
       <b class="lk" onclick="go('pay-6')">수납 내역으로 이동 →</b></div>`;
   }else if(x.ex){
@@ -2632,7 +2773,7 @@ function PAY6(){
   </div>`}
   <div class="hint">
     선택한 달의 청구를 계약별로 다 받았는지 봅니다. 금액은 부가세 포함입니다.<br>
-    밀린 달 전부의 미납과 미납 안내는 미납 기록에서, 입금 한 건 한 건은 입금 매칭에서 봅니다.</div>`;
+    밀린 달 전부의 미납과 미납 안내는 미납 관리에서, 입금 한 건 한 건은 입금 매칭에서 봅니다.</div>`;
 }
 
 /* ═══ 수납 처리 — 현금·카드로 받았거나 보증금에서 뺀 돈. 은행 입금은 입금 매칭(PAY-13)에서 → PAY-2 · CTR-3 ═══ */
@@ -2742,8 +2883,9 @@ function payHTML(){
   </div></div>`;
 }
 
-/* ═══ PAY-2 미납 기록 — 계약별로 지금까지 쌓인 미납액 전부. 청구년월로 자르지 않는다 ═══ */
-let f2={b:'b1',cs:'',all:false}, g2={}, g2All=false, sel2={};
+/* ═══ PAY-2 미납 관리 — 미납이 있는 계약을 따로 관리한다. 계약별로 지금까지 쌓인 미납액 전부. 청구년월로 자르지 않는다 ═══ */
+/* 보기 — due: 미납 있는 계약(기본) · fee: 연체료만 남은 계약까지 · all: 전체 계약 */
+let f2={b:'b1',cs:'',view:'due'}, g2={}, g2All=false, sel2={};
 const setF2=(k,v)=>{f2[k]=v;render();};
 const g2Open=k=>(k in g2)?g2[k]:g2All;
 const g2Tog=k=>{g2[k]=!g2Open(k);render(true);};
@@ -2752,7 +2894,13 @@ const pick2=(k,e)=>{e.stopPropagation();sel2[k]=!sel2[k];render(true);};
 function arrears(c){
   const k=c.b+c.no, yms=[...new Set(BILLS.filter(i=>i.k===k).map(i=>i.ym))].sort().reverse();
   const months=yms.map(ym=>{const p=ctrPay(k,ym), L=lateCalc(k,ym);
-    return {ym,due:p.due,bill:p.bill,paid:p.paid,st:p.st,days:p.due?lateDays(ym):0,fee:L.fee,periods:L.periods};})
+    /* 늦게라도 다 낸 달 — 마지막 수납일까지 며칠 늦었는지. 연체료가 왜 남았는지 보여준다 */
+    const byD={};
+    p.it.forEach(i=>(PAYEV[i.id]||[]).forEach(e=>{byD[e.date]=(byD[e.date]||0)+e.amt;}));
+    const pays=Object.entries(byD).sort((x,y)=>x[0]<y[0]?-1:1).map(([date,amt])=>({date,amt}));
+    const lastPay=pays.length?pays[pays.length-1].date:null;
+    const lateDone=!p.due&&lastPay?Math.max(0,dnum(lastPay)-dnum(dueStr(ym))):0;
+    return {ym,due:p.due,bill:p.bill,paid:p.paid,st:p.st,days:p.due?lateDays(ym):0,fee:L.fee,periods:L.periods,pays,lastPay,lateDone};})
     .filter(m=>m.due>0||m.fee>0);
   const owe=months.filter(m=>m.due>0);
   const lastDep=RC.P.dep.filter(d=>{const x=RC.dec[d.no];return x&&x.done&&x.done.lines.some(l=>l.k===k);})
@@ -2764,7 +2912,8 @@ function PAY2(){
   const bn=BUILDINGS.find(x=>x.id===f2.b)||BUILDINGS[0];
   const has=f2.b===RC.b;
   const all=has?CTRS.filter(c=>c.b===RC.b&&(!f2.cs||(f2.cs==='진행중'?c.st==='진행중':c.st!=='진행중'))).map(arrears):[];
-  const rows=all.filter(a=>f2.all||a.due>0||a.fee>0).sort((x,y)=>(y.due-x.due)||(y.fee-x.fee));
+  const rows=all.filter(a=>f2.view==='all'||a.due>0||(f2.view==='fee'&&a.fee>0)).sort((x,y)=>(y.due-x.due)||(y.fee-x.fee));
+  const feeOnly=all.filter(a=>!a.due&&a.fee>0);
   const act=rows.filter(a=>a.due>0||a.fee>0);
   const T={due:act.reduce((a,x)=>a+x.due,0),fee:act.reduce((a,x)=>a+x.fee,0)};
   const nSel=rows.filter(a=>sel2[a.k]&&(a.due>0||a.fee>0)).length;
@@ -2778,7 +2927,8 @@ function PAY2(){
     return `<div class="schr arr grp" onclick="g2Tog('${a.k}')">
       <div class="nm">${can?`<span class="cb ${on?'on':''}" onclick="pick2('${a.k}',event)"></span>`:'<span class="cb dis"></span>'}<span class="tg ${op?'op':''}" style="${can?'':'visibility:hidden'}">${ic('chev',16)}</span>${cnameHTML(bn.alias,a.c.no,a.c.ten)}${
         a.c.st!=='진행중'?` <span class="bd mu">${a.c.st}</span>`:''}${
-        !a.due?`<span class="c2">${a.fee?'미납 없음 · 연체료만 있음':'미납 없음'}</span>`:''}</div>
+        !a.due?`<span class="c2">${a.fee?(()=>{const m=a.months.find(x=>x.fee&&x.lateDone);
+          return m?`미납 없음 · ${ymK(m.ym)}분 ${m.lateDone}일 늦게 완납 → 연체료만 남음`:'미납 없음 · 연체료만 남음';})():'미납 없음'}</span>`:''}</div>
       <div class="n">${a.due?`<b style="color:var(--warn)">${won(a.due)}</b>`:dash}</div>
       <div class="n">${a.days?`${a.days}일`:dash}</div>
       <div class="n">연 ${a.rate}%</div>
@@ -2786,16 +2936,18 @@ function PAY2(){
       <div class="c">${a.due||a.fee?`<button class="btn sm" onclick="event.stopPropagation();openPay('${a.k}')">수납</button>`:''}</div>
     </div>`+(!op||!can?'':a.months.map(m=>`
     <div class="schr arr sub mo" onclick="RC.f.b='${RC.b}';RC.f.ym='${m.ym}';RC.f.st='';go('pay-6')">
-      <div class="nm">${m.ym.replace('-','년 ')}월분 <span class="c2">청구 ${won(m.bill)} · 수납 ${m.paid?won(m.paid):'0원'} · 마감 ${md(dueStr(m.ym))}</span></div>
+      <div class="nm" style="flex-wrap:wrap">${m.ym.replace('-','년 ')}월분 <span class="c2">청구 ${won(m.bill)} · 납부마감 ${md(dueStr(m.ym))}</span>
+        <div class="c2" style="flex-basis:100%;margin:3px 0 0">수납 ${m.pays.length?m.pays.map(x=>`${md(x.date)} ${won(x.amt)}`).join(' · '):'없음'}${
+          m.periods.length?` <span style="color:var(--faint)">|</span> 늦은 돈 ${m.periods.map(q=>`${won(q.bal)} ${q.days}일`).join(' + ')}`:''}</div></div>
       <div class="n">${m.due?`<span style="color:var(--warn)">${won(m.due)}</span>`:dash} <span class="bd ${PST[m.st]}" style="margin-left:6px">${m.st}</span></div>
-      <div class="n c2" style="margin:0">${m.days?`${m.days}일`:'—'}</div>
+      <div class="n c2" style="margin:0">${m.days?`${m.days}일`:m.lateDone?`${m.lateDone}일 늦게 완납`:'—'}</div>
       <div></div>
       <div class="n">${m.fee?won(m.fee):'—'}</div>
       <div></div>
     </div>`).join(''));
   }).join('');
   return `
-  <div class="ph"><h1>미납 기록</h1><span class="sid">PAY-2</span>
+  <div class="ph"><h1>미납 관리</h1><span class="sid">PAY-2</span>
     <div class="act">
       <button class="btn pri" ${nSel?'':'disabled'} onclick="alert('미납 안내 메일 — 월별 미납액·연체일수·연체료 내역을 담아 임차인 담당자에게 보낸다')">미납 안내 메일${nSel?` ${nSel}건`:''}</button></div>
   </div>
@@ -2806,14 +2958,17 @@ function PAY2(){
     <select onchange="setF2('cs',this.value)">
       ${[['','전체 계약상태'],['진행중','진행중'],['종료','종료됨·파기됨']].map(([v,t])=>`<option value="${v}" ${f2.cs===v?'selected':''}>${t}</option>`).join('')}
     </select>
-    <select onchange="setF2('all',this.value==='1')">
-      <option value="" ${!f2.all?'selected':''}>미납·연체료 있는 계약</option><option value="1" ${f2.all?'selected':''}>전체 계약</option>
+    <select onchange="setF2('view',this.value)">
+      ${[['due','미납 있는 계약'],['fee','연체료만 남은 계약 포함'],['all','전체 계약']].map(([v,t])=>`<option value="${v}" ${f2.view===v?'selected':''}>${t}</option>`).join('')}
     </select>
     ${rows.length?`<span style="margin-left:auto"><button class="btn sm" onclick="g2All=${anyOp?'false':'true'};g2={};render(true)">${anyOp?'전체 접기':'전체 펼치기'}</button></span>`:''}
   </div>
   ${waitN?`<div class="fnd wa3"><span class="h">확정 전 입금 ${waitN}건</span>
     아직 기록되지 않은 입금이 있어 이미 낸 계약도 미납으로 보입니다.
     <b class="lk" onclick="go('pay-13')">입금 매칭으로 이동 →</b></div>`:''}
+  ${f2.view==='due'&&feeOnly.length?`<div class="fnd"><span class="h">연체료만 남은 계약 ${feeOnly.length}건 · ${won(feeOnly.reduce((a,x)=>a+x.fee,0))}</span>
+    미납은 다 냈지만 늦게 내서 연체료가 남은 계약입니다. 받거나 감면해 정리할 수 있습니다.
+    <b class="lk" onclick="setF2('view','fee')">함께 보기 →</b></div>`:''}
   ${!rows.length?`<div class="tbl"><div class="empty"><div class="t">${has?'미납이 없습니다':'자료가 없습니다'}</div>
      ${has?'모든 계약이 완납 상태이고 연체료도 없습니다.':'목업 자료는 동교동 이준빌딩뿐입니다.'}</div></div>`
   :`<div class="tbl schl">
@@ -2825,7 +2980,8 @@ function PAY2(){
       <div class="n">${T.fee?won(T.fee):'—'}</div><div></div></div>
   </div>`}
   <div class="hint">
-    지금까지 쌓인 미납과 연체료(예상)를 계약별로 모았습니다. 펼치면 최근 달부터 보입니다.<br>
+    미납이 있는 계약을 모았습니다. 펼치면 달마다 청구액·수납 일자·며칠 늦었는지가 최근 달부터 보입니다.<br>
+    연체료(예상)는 늦은 돈 × 늦은 일수로 생깁니다. 다 냈어도 늦게 냈다면 연체료가 남습니다.<br>
     현금·카드로 받았거나 보증금에서 빼면 계약 줄의 수납을 누르세요. 은행 입금은 입금 매칭에서 처리합니다.<br>
     연체료는 수납할 때 받을지 정합니다. 금액을 낮춰 받을 수 있습니다.</div>`;
 }
@@ -3027,12 +3183,13 @@ function render(keep){
     html=PRO3(arg);crumb=`<span class="c" onclick="go('pro-1')">건물 관리</span> <span>›</span> <b>${b.name}</b>`;}
   else if(id==='pay-10'){html=PAY10();crumb='청구 · 수납 <span>›</span> <b>관리비 정산</b>';}
   else if(id==='pay-12'){html=PAY12();crumb='<b>청구 · 수납</b>';}
+  else if(id==='pay-11'){html=PAY11();crumb='청구 · 수납 <span>›</span> <b>월 마감</b>';}
   else if(id==='pay-1'){html=PAY1();crumb='청구 · 수납 <span>›</span> <b>청구서 발행</b>';}
   else if(id==='pay-6'){html=PAY6();crumb='청구 · 수납 <span>›</span> <b>수납 내역</b>';}
   else if(id==='ctr-1'){html=CTR1();crumb='<b>계약 관리</b>';}
   else if(id==='ctr-3'){html=CTR3(decodeURIComponent(arg||''));const c=CTRS.find(x=>x.b+x.no===decodeURIComponent(arg||''));
     crumb=`<span class="c" onclick="go('ctr-1')">계약 관리</span> <span>›</span> <b>${c?cname(BUILDINGS[0].alias,c.no,c.ten):'—'}</b>`;}
-  else if(id==='pay-2'){html=PAY2();crumb='청구 · 수납 <span>›</span> <b>미납 기록</b>';}
+  else if(id==='pay-2'){html=PAY2();crumb='청구 · 수납 <span>›</span> <b>미납 관리</b>';}
   else if(id==='pay-13'){html=PAY13();crumb='청구 · 수납 <span>›</span> <b>입금 매칭</b>';}
   else{html=TODO(id);const g=MENU.find(m=>m.items&&m.items.some(i=>i.id===id));
     const m=ALL.find(i=>i.id===id);
