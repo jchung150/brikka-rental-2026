@@ -680,7 +680,7 @@ const MASTER=[
 const M=c=>MASTER.find(x=>x.code===c);
 const codeOf=name=>{const m=MASTER.find(x=>x.name===name);return m?m.code:'elec';};
 /* 이번 회차 입력값 — 기본은 전기·수도 2종 */
-const BILL={
+let BILL={
  elec:{on:true,date:'2026-08-09',use:37703,supply:7719702,vat:771970,
    /* 2026-08 검침 — 대표 제공. 본관6층·본관B1은 달 중간에 계량기를 교체했다.
       직전 값은 교체 전 계량기 것이라, 대표가 준 사용량(6층 85 · B1 464)에 맞춰 「당월 − 사용량」으로 둔다 */
@@ -704,6 +704,42 @@ const BILL={
  parking:{on:true,date:'2026-08-10',use:null,supply:0,vat:22100,read:null,adj:{},
    direct:{'본관8층':71000,'본관4층':100000,'본관302호':50000}},   /* 공급가액. 부가세는 자동 */
 };
+/* ── 지난 회차 입력값 — 6·7월 고지서와 검침. 8월을 기준으로 한 달씩 거슬러 만든 예시값이다 ──
+   그 달 당월 검침값 = 다음 달 직전 검침값. 유닛마다 사용량이 조금씩 다르다.
+   6·7월 청구서는 이 입력값으로 정산 엔진이 계산한 금액이다 → BILLS */
+const USE_VAR={'2026-07':[.92,.95,1.1,.9,.97,.93,.96,1.02,.94,.9,.98,.91,.95],
+               '2026-06':[.84,.88,.97,.82,.9,.86,.88,.93,.87,.8,.9,.85,.88]};
+function billBefore(nx,ym,day){
+  const v=USE_VAR[ym], r2=x=>Math.round(x*100)/100, o=JSON.parse(JSON.stringify(nx));
+  const ym2=ym.replace('-','-'), d=dd=>`${ym}-${dd}`;
+  /* 전기 — 유닛별 사용량을 달리하고, 고지서 총사용량·공급가액은 유닛 합계 비율로 */
+  let su=0,sn=0;
+  Object.keys(nx.elec.read).forEach((no,i)=>{const [p,c]=nx.elec.read[no];
+    /* 계량기 지침은 정수다. 본관1층만 소수 둘째 자리까지 나온다 */
+    const u=Number.isInteger(p)&&Number.isInteger(c)?Math.round((c-p)*v[i]):r2((c-p)*v[i]);
+    su+=c-p; sn+=u; o.elec.read[no]=[r2(p-u),p];});
+  const k=sn/su;
+  o.elec.use=Math.round(nx.elec.use*k); o.elec.supply=Math.round(nx.elec.supply*k); o.elec.vat=Math.round(o.elec.supply*0.1);
+  o.elec.date=d(day); o.elec.readDate=d(day);
+  const [wp,wc]=nx.water.read['본관1층'], wu=Math.round((wc-wp)*v[7]);
+  o.water.read['본관1층']=[wp-wu,wp]; o.water.use=Math.round(nx.water.use*wu/(wc-wp));
+  o.water.supply=Math.round(nx.water.supply*wu/(wc-wp)); o.water.date=d('07'); o.water.readDate=d('07');
+  o.fund.supply=Math.round(o.elec.supply*nx.fund.supply/nx.elec.supply); o.fund.date=d(day);
+  o.tv.date=d(day); o.parking.date=d('10');
+  if(ym==='2026-06') o.parking.direct={'본관8층':71000,'본관4층':100000};
+  Object.values(o).forEach(b=>{if(b&&b.adj) b.adj={};});
+  return o;
+}
+const BILL_M={'2026-08':BILL};
+BILL_M['2026-07']=billBefore(BILL,'2026-07','09');
+BILL_M['2026-06']=billBefore(BILL_M['2026-07'],'2026-06','09');
+/* 그 달의 입력값으로 잠깐 바꿔 계산한다 — 지난 회차 화면·청구서가 모두 이것을 쓴다 */
+let PAST_CTX=null;
+function withMonth(ym,fn){
+  if(ym==='2026-08'||!BILL_M[ym]) return fn();
+  const kb=BILL, kp=PAST_CTX; BILL=BILL_M[ym]; PAST_CTX=ym;
+  try{return fn();} finally{BILL=kb; PAST_CTX=kp;}
+}
 const SETTLE={ym:'2026-08',status:'작성중'};
 /* 항목별 저장 — 저장해야 탭에 ✓가 붙는다. 저장 후 고치면 다시 저장 전이 된다. 주차비는 아직 저장하지 않았다 → PAY-10 */
 const SAVED={elec:'08-09 17:40',water:'08-07 15:10',fund:'08-09 17:41',tv:'08-09 17:41',parking:null};
@@ -923,7 +959,7 @@ function onceAdd(){ONCE.rows.push({k:'',n:'',amt:'',doc:'세금계산서',memo:'
 function onceSet(i,f,v){ONCE.rows[i][f]=f==='amt'?numOf(v):v;render(true);}
 function onceDrop(){ONCE.on=false;ONCE.rows=[];pCode=(selItems()[0]||{}).code||'elec';render();}
 /* 청구서에 실리는 일회성 청구 줄 — 부가세 포함 금액에서 역산 */
-const onceLines=k=>!ONCE.on?[]:ONCE.rows.filter(r=>r.k===k&&r.amt>0).map(r=>{
+const onceLines=k=>!ONCE.on||PAST_CTX?[]:ONCE.rows.filter(r=>r.k===k&&r.amt>0).map(r=>{
   const tax=r.doc==='세금계산서', sup=tax?Math.floor(r.amt*10/11):r.amt;
   return {n:r.n||'일회성 청구',bill:r.doc,src:`일회성 청구${r.memo?' · '+r.memo:''}`,supply:sup,vat:r.amt-sup,amt:r.amt};});
 function setMul(code,no,v){
@@ -1544,30 +1580,11 @@ function itemFlag(m){
   }
   return {t:'완료',c:'ok'};
 }
-/* 지난 회차 — 확정된 정산 결과를 볼 수만 있다. 마감한 달은 잠기고, 월 마감에서 마감을 취소해야 풀린다 → PAY-11 */
-function pay10Past(ym){
-  const c=(MC.b1||{})[ym], ymL=ym.replace('-','년 ').replace(/년 0/,'년 ')+'월';
-  const names=['전기요금','전력기금','TV수신료','수도요금','주차비'];
-  const rows=names.map(n=>{const it=BILLS.filter(i=>i.ym===ym&&i.k.startsWith('b1')&&i.n.split(' ')[0]===n);
-    return {n,cnt:new Set(it.map(i=>i.k)).size,sum:it.reduce((a,i)=>a+i.amt,0)};}).filter(r=>r.cnt);
-  return `
-  ${c?`<div class="fnd"><span class="h">${ic('lock',14)} 마감된 회차입니다</span>
-    ${ymL}은 ${c.at.replace('-','.')}에 마감했습니다(${c.by}). 이 회차의 정산은 볼 수만 있습니다.
-    고치려면 월 마감에서 <b>마감 취소</b>를 먼저 하세요. <b class="lk" onclick="s11={b:'b1',ym:'${ym}'};go('pay-11')">월 마감으로 이동 →</b></div>`
-  :`<div class="fnd wa3"><span class="h">마감이 풀린 회차입니다</span>
-    ${ymL}은 정산 확정·청구서 발행이 끝났지만 지금 마감이 풀려 있어 고칠 수 있습니다. 고친 뒤 다시 마감하세요.
-    <b class="lk" onclick="s11={b:'b1',ym:'${ym}'};go('pay-11')">월 마감으로 이동 →</b></div>`}
-  <div class="tbl"><div class="tw"><table>
-    <thead><tr><th>청구 항목</th><th class="c">상태</th><th class="n">청구한 계약</th><th class="n">청구 합계 (부가세 포함)</th></tr></thead>
-    <tbody>${rows.map(r=>`<tr><td><b>${r.n}</b></td><td class="c"><span class="bd ok">정산 확정</span></td>
-      <td class="n">${r.cnt}건</td><td class="n">${won(r.sum)}</td></tr>`).join('')}
-    <tr class="sumr"><td>합계</td><td></td><td></td><td class="n">${won(rows.reduce((a,r)=>a+r.sum,0))}</td></tr></tbody></table></div></div>
-  <div class="hint">지난 회차는 확정된 결과만 보입니다. 목업에는 지난 회차의 고지서·검침 입력값이 없어 항목별 합계만 보여 줍니다.</div>`;
-}
 function PAY10(){
-  if(f10ym!=='2026-08') return pay10Head(null)+pay10Past(f10ym);
+  /* 지난 회차(6·7월)도 같은 항목 페이지로 본다. 그 달의 입력값으로 계산하고 입력 칸은 잠근다 */
+  if(!PAST_CTX&&f10ym!=='2026-08') return withMonth(f10ym,PAY10);
   const sel=selItems();
-  if(ONCE.on&&(pCode==='once'||!sel.length)) return pay10Head(sel)+oncePage();
+  if(!PAST_CTX&&ONCE.on&&(pCode==='once'||!sel.length)) return pay10Head(sel)+oncePage();
   if(!sel.length) return `
   ${pay10Head(null)}
   <div class="tbl"><div class="empty"><div class="t">이번 회차에 정산할 항목이 없습니다</div>
@@ -1577,6 +1594,14 @@ function PAY10(){
   const body=itemSecs(m).map(([t,h],i)=>`
       <div class="isec"><div class="ish"><span class="isn">${i+1}</span>${t}</div>${h}</div>`).join('');
   const f=itemFlag(m), sv=SAVED[m.code];
+  if(PAST_CTX){const c=(MC.b1||{})[PAST_CTX], ymL=PAST_CTX.replace('-','년 ').replace(/년 0/,'년 ')+'월';
+    return `${pay10Head(sel)}
+    ${c?`<div class="fnd"><span class="h">${ic('lock',14)} 마감된 회차입니다</span>
+      ${ymL}은 ${c.at.replace('-','.')}에 마감했습니다(${c.by}). 정산 입력값을 볼 수만 있습니다.
+      고치려면 월 마감에서 <b>마감 취소</b>를 먼저 하세요. <b class="lk" onclick="s11={b:'b1',ym:'${PAST_CTX}'};go('pay-11')">월 마감으로 이동 →</b></div>`
+    :`<div class="fnd wa3"><span class="h">마감이 풀린 회차입니다</span>
+      ${ymL} 정산은 확정·발행이 끝났지만 지금 마감이 풀려 있어 고칠 수 있습니다. 고친 뒤 다시 마감하세요.</div>`}
+    <div class="${c?'locked':''}">${body}</div>`;}
   return `
   ${pay10Head(sel)}
   ${body}
@@ -1595,14 +1620,14 @@ function pay10Head(sel){
     <select onchange="f10ym=this.value;render()">${[['2026-08','2026년 8월'],['2026-07','2026년 7월'],['2026-06','2026년 6월']]
       .map(([v,t])=>`<option value="${v}" ${f10ym===v?'selected':''}>${t}</option>`).join('')}</select>
   </div>
-  ${!sel||f10ym!=='2026-08'?'':`<div class="itab">
-    ${(sel||[]).map(x=>{const f0=itemFlag(x), f=f0.c==='ok'&&!SAVED[x.code]?{t:'',c:'plain'}:f0, on=pCode!=='once'&&x.code===(pCode||sel[0].code);return `
+  ${!sel?'':`<div class="itab">
+    ${(sel||[]).map(x=>{const f0=itemFlag(x), f=f0.c==='ok'&&!SAVED[x.code]&&!PAST_CTX?{t:'',c:'plain'}:f0, on=(PAST_CTX||pCode!=='once')&&x.code===((sel.some(y=>y.code===pCode)&&pCode)||sel[0].code);return `
     <button class="${on?'on':''}" onclick="setPItem('${x.code}')">${
       f.c==='ok'?'<span class="okd">✓</span>':''}${x.name}${
       f.c==='ok'||f.c==='plain'?'':`<span class="bd ${f.c}" style="margin-left:5px">${f.t}</span>`}</button>`}).join('')}
-    ${ONCE.on?`<button class="${pCode==='once'?'on':''}" onclick="setPItem('once')">일회성 청구${
+    ${ONCE.on&&!PAST_CTX?`<button class="${pCode==='once'?'on':''}" onclick="setPItem('once')">일회성 청구${
       ONCE.rows.filter(r=>r.k&&r.amt).length?` <span class="bd mu" style="margin-left:5px">${ONCE.rows.filter(r=>r.k&&r.amt).length}건</span>`:''}</button>`:''}
-    <button class="add" onclick="openDrawer('additem')">+ 청구 항목 추가</button>
+    ${PAST_CTX?'':`<button class="add" onclick="openDrawer('additem')">+ 청구 항목 추가</button>`}
   </div>`}`;
 }
 function oncePage(){
@@ -1967,17 +1992,17 @@ function PAY12(){
 const MC_YMS=['2026-06','2026-07','2026-08'];
 /* 마감 기록 — 카리나빌딩 외에는 예시값. 테온하우스는 납부마감이 익월 10일(오늘)이라 7월이 아직 열려 있다 */
 const MC={
- b1:{'2026-05':{at:'06-04 17:20',by:'슈퍼관리자'},'2026-06':{at:'07-03 16:40',by:'슈퍼관리자'},'2026-07':{at:'08-05 18:10',by:'슈퍼관리자'}},
- b2:{'2026-05':{at:'06-12 11:05',by:'슈퍼관리자'},'2026-06':{at:'07-13 10:30',by:'슈퍼관리자'}},
- b4:{'2026-05':{at:'06-05 09:50',by:'슈퍼관리자'},'2026-06':{at:'07-06 10:15',by:'슈퍼관리자'},'2026-07':{at:'08-06 11:20',by:'슈퍼관리자'}},
+ b1:{'2026-06':{at:'07-03 16:40',by:'슈퍼관리자'},'2026-07':{at:'08-05 18:10',by:'슈퍼관리자'}},
+ b2:{'2026-06':{at:'07-13 10:30',by:'슈퍼관리자'}},
+ b4:{'2026-06':{at:'07-06 10:15',by:'슈퍼관리자'},'2026-07':{at:'08-06 11:20',by:'슈퍼관리자'}},
 };
 /* 마감·마감 취소 이력 — 건물·월별 */
 const MC_LOG={'b1|2026-06':[{at:'07-02 15:10',by:'슈퍼관리자',act:'마감'},{at:'07-03 09:20',by:'슈퍼관리자',act:'마감 취소',why:'루비뮤직 6월 수납 배분을 잘못 기록해 재조정'},
   {at:'07-03 16:40',by:'슈퍼관리자',act:'마감'}]};
 /* 임대인 보고서 발송일 → REP-1 */
-const REPS={b1:{'2026-05':'06-03','2026-06':'07-02','2026-07':'08-04'},
-  b4:{'2026-05':'06-04','2026-06':'07-05','2026-07':'08-05'},
-  b2:{'2026-05':'06-11','2026-06':'07-12'}};
+const REPS={b1:{'2026-06':'07-02','2026-07':'08-04'},
+  b4:{'2026-06':'07-05','2026-07':'08-05'},
+  b2:{'2026-06':'07-12'}};
 /* 카리나빌딩 외 건물의 7월 미처리 입금 — 예시값 */
 const MC_WAIT={b2:{'2026-07':3}};
 let s11={b:'b1',ym:'2026-07'}, mcx=null;
@@ -2192,7 +2217,8 @@ const pickAll=v=>{ISSUE().forEach(c=>sel1[c.k]=v&&c.st==='발행 대기');render
               → PAY-1 「이번 회차 대상 항목만 올린다」
    대상이 아닌 항목은 화면에 올리지 않는다. 그 판단은 1단계에서 이미 끝났다. */
 function ISSUE(){
-  const P=PROG[f1.b]||{}, done=P.inv>0, fixed=P.settle==='확정';
+  /* 지난 회차는 정산 확정 · 발행 완료다 */
+  const P=PAST_CTX?{inv:1,settle:'확정'}:PROG[f1.b]||{}, done=P.inv>0, fixed=P.settle==='확정';
   const all=CTRS.filter(c=>c.b===f1.b&&c.st==='진행중');
   return all.map(c=>{
     /* 정산액을 다른 계약이 부담하는 유닛 — 그 유닛의 안분 결과를 이 계약에 얹는다 */
@@ -2234,42 +2260,16 @@ function ISSUE(){
     const miss=lines.filter(l=>l.amt==null).length;
     const k=ckey(c);
     return {...c,k,lines,sum,sup,vat,miss,via,
-            due:dueOf(k),st:done?'발행 완료':'발행 대기'};
+            due:dueOf(k,PAST_CTX||SETTLE.ym),st:done?'발행 완료':'발행 대기'};
   });
 }
-/* 지난 회차 — 이미 발행한 청구서. 여기서는 볼 수만 있다. 고치는 일은 발행 청구 수정·취소(PAY-5)에서 */
-function pay1Past(){
-  const ym=f1.ym, bn=BUILDINGS.find(x=>x.id===f1.b), c=(MC[f1.b]||{})[ym], ymL=ym.replace('-','년 ').replace(/년 0/,'년 ')+'월';
-  const cs=f1.b==='b1'?[...new Set(BILLS.filter(i=>i.ym===ym&&i.k.startsWith('b1')&&!i.fee).map(i=>i.k))].map(k=>{
-    const it=BILLS.filter(i=>i.ym===ym&&i.k===k&&!i.fee), ct=CTRS.find(x=>ckey(x)===k);
-    const sp=it.reduce((a,i)=>a+(isTaxItem(i.n)?Math.floor(i.amt*10/11):i.amt),0), tot=it.reduce((a,i)=>a+i.amt,0);
-    return {ct,n:it.length,sp,vat:tot-sp,tot};}):[];
-  return `
-  <div class="ph"><h1>청구서 발행</h1><span class="sid">PAY-1</span></div>
-  <div class="fbar">
-    <select onchange="setF1('b',this.value)">${BUILDINGS.map(b=>`<option value="${b.id}" ${f1.b===b.id?'selected':''}>${b.name}</option>`).join('')}</select>
-    <select onchange="setF1('ym',this.value)">${[['2026-08','2026년 8월'],['2026-07','2026년 7월'],['2026-06','2026년 6월']]
-      .map(([v,t])=>`<option value="${v}" ${f1.ym===v?'selected':''}>${t}</option>`).join('')}</select></div>
-  ${c?`<div class="fnd"><span class="h">${ic('lock',14)} 마감된 회차입니다</span>
-    ${ymL}은 ${c.at.replace('-','.')}에 마감했습니다(${c.by}). 발행한 청구서를 볼 수만 있습니다.
-    고치려면 월 마감에서 <b>마감 취소</b>를 먼저 하세요. <b class="lk" onclick="s11={b:'${f1.b}',ym:'${ym}'};go('pay-11')">월 마감으로 이동 →</b></div>`
-   :`<div class="fnd wa3"><span class="h">발행이 끝난 회차입니다</span>
-    ${ymL} 청구서는 이미 발행했습니다. 발행한 청구서를 고치거나 취소하는 일은 발행 청구 수정·취소(PAY-5)에서 합니다.</div>`}
-  ${!cs.length?`<div class="tbl"><div class="empty"><div class="t">자료가 없습니다</div>목업의 청구 자료는 카리나빌딩뿐입니다.</div></div>`
-  :`<div class="tbl"><div class="tw"><table>
-    <thead><tr><th>계약고유명</th><th class="n">청구 건수</th><th class="n">공급가액</th><th class="n">부가세</th><th class="n">합계</th><th class="c">상태</th></tr></thead>
-    <tbody>${cs.map(x=>`<tr><td>${cnameHTML(bn.alias,x.ct.no,x.ct.ten)}</td><td class="n">${x.n}건</td>
-      <td class="n c2">${won(x.sp)}</td><td class="n c2">${won(x.vat)}</td><td class="n"><b>${won(x.tot)}</b></td>
-      <td class="c"><span class="bd ok">발행 완료</span><div class="c2">${ym.slice(5)}.19</div></td></tr>`).join('')}
-    <tr class="sumr"><td>합계 · 계약 ${cs.length}</td><td></td><td class="n">${won(cs.reduce((a,x)=>a+x.sp,0))}</td>
-      <td class="n">${won(cs.reduce((a,x)=>a+x.vat,0))}</td><td class="n">${won(cs.reduce((a,x)=>a+x.tot,0))}</td><td></td></tr>
-    </tbody></table></div></div>`}`;
-}
+/* 지난 회차(6·7월)도 같은 표로 본다. 그 달의 정산 입력값으로 계산하고, 발행 완료라 체크·발행이 막힌다 */
 function PAY1(){
-  if(f1.ym&&f1.ym!=='2026-08') return pay1Past();
+  if(!PAST_CTX&&f1.ym&&f1.ym!=='2026-08') return withMonth(f1.ym,PAY1);
   const BN=id=>(BUILDINGS.find(x=>x.id===id)||{}).name||id;
   const BA=id=>(BUILDINGS.find(x=>x.id===id)||{}).alias||'';
-  const P=PROG[f1.b]||{}, ok=P.settle==='확정';
+  const P=PAST_CTX?{settle:'확정'}:PROG[f1.b]||{}, ok=P.settle==='확정';
+  const lk=PAST_CTX?(MC[f1.b]||{})[PAST_CTX]:null, ymL=(f1.ym||'2026-08').replace('-','년 ').replace(/년 0/,'년 ')+'월';
   const rows=ISSUE().filter(c=>!f1.st||c.st===f1.st);
   const wait=rows.filter(c=>c.st==='발행 대기');
   const nSel=wait.filter(c=>sel1[c.k]).length;
@@ -2317,8 +2317,8 @@ function PAY1(){
   <div class="ph"><h1>청구서 발행</h1><span class="sid">PAY-1</span>
     <div class="act"><button class="btn" onclick="go('pay-2')">미납 조회</button>
       <button class="btn">미리보기</button>
-      <button class="btn pri" ${ok?'':'disabled'}
-        onclick="alert('${nSel?nSel+'건':'전체 '+wait.length+'건'} 발행 → 원장 기록 + 임차인 담당자 이메일 발송')">
+      <button class="btn pri" ${ok&&!PAST_CTX?'':'disabled'}
+        onclick=""alert('${nSel?nSel+'건':'전체 '+wait.length+'건'} 발행 → 원장 기록 + 임차인 담당자 이메일 발송')">
         ${nSel?`선택 ${nSel}건 발행`:`전체 ${wait.length}건 발행`}</button></div>
   </div>
   <div class="fbar">
@@ -2334,6 +2334,11 @@ function PAY1(){
       <button class="btn sm" onclick="pickAll(${nSel?'false':'true'})">${nSel?'선택 해제':'전체 선택'}</button>
       <button class="btn sm" onclick="gAll(${anyOpen?'false':'true'})">${anyOpen?'전체 접기':'전체 펼치기'}</button></span>`:''}
   </div>
+  ${PAST_CTX?(lk?`<div class="fnd"><span class="h">${ic('lock',14)} 마감된 회차입니다</span>
+    ${ymL}은 ${lk.at.replace('-','.')}에 마감했습니다(${lk.by}). 발행한 청구서를 볼 수만 있습니다.
+    고치려면 월 마감에서 <b>마감 취소</b>를 먼저 하세요. <b class="lk" onclick="s11={b:'${f1.b}',ym:'${PAST_CTX}'};go('pay-11')">월 마감으로 이동 →</b></div>`
+   :`<div class="fnd wa3"><span class="h">발행이 끝난 회차입니다</span>
+    ${ymL} 청구서는 이미 발행했습니다. 발행한 청구서를 고치거나 취소하는 일은 발행 청구 수정·취소(PAY-5)에서 합니다.</div>`):''}
   ${ok?'':`<div class="fnd"><span class="h">정산이 확정되지 않았습니다</span>
     ${BN(f1.b)}의 2026년 8월 정산 상태는 <b>${P.settle}</b>입니다.
     정산을 확정해야 정산 항목의 금액이 확정되고 청구서를 발행할 수 있습니다.
@@ -2341,7 +2346,7 @@ function PAY1(){
   ${dues.length?`<div class="fnd wa3"><span class="h">미납이 있는 계약 ${dues.length}건 · ${won(dueSum)}</span>
     청구서에 <b>별도 안내</b>로 표기됩니다. <b>청구 합계에는 포함되지 않습니다.</b>
     <b class="lk" onclick="go('pay-2')">미납 관리로 이동 →</b>
-    ${f1.b==='b1'&&rcOpenN()?`<br>은행 거래내역 입금 <b>${rcOpenN()}건이 아직 수납 기록되지 않았습니다.</b>
+    ${f1.b==='b1'&&!PAST_CTX&&rcOpenN()?`<br>은행 거래내역 입금 <b>${rcOpenN()}건이 아직 수납 기록되지 않았습니다.</b>
       기록 전이면 이미 낸 임차인도 미납으로 안내됩니다.
       <b class="lk" onclick="go('pay-13')">입금 매칭으로 이동 →</b>`:''}</div>`:''}
   ${!rows.length?`<div class="tbl"><div class="empty"><div class="t">발행할 청구서가 없습니다</div>
@@ -2384,22 +2389,22 @@ function PAY1(){
 /* ═══ PAY-6 수납 내역 ═══ */
 /* 2026-07 카리나빌딩 운영계좌 거래내역 — 은행에서 내려받은 형식 그대로다. 7/20 ~ 7/31분.
    8월 실제 거래내역의 날짜를 7월로 옮기고, 임차인 입금액은 7월 청구액에 맞춰 만든 예시값이다.
-   (주)비씨에이전시는 5·6·7월분 중 5,000,000원만 냈다 · 주식회사루비뮤직은 6월 부족분 385,000원을 얹어 냈다
+   (주)비씨에이전시는 6·7월분 중 5,000,000원만 냈다 · 주식회사루비뮤직은 6월 부족분 385,000원을 얹어 냈다
    거래후 잔액 열은 원본 값이며 계산에 쓰지 않는다.
    앞 2행은 머리말, 출금 행과 임대 외 입금이 섞여 있다. 시스템이 걸러내야 한다 → 4.6.1 */
 const BANK_RAW=`카리나빌딩
 조회기간 : 2026.07.01~2026.07.31 조회일시 : 2026.08.03 07:30:28
 No.    거래일시    적요    기재내용    지급(원)    입금(원)    거래후 잔액(원)    취급점    메모    수표·어음·증권금액(원)
-1    2026.07.31 19:01:55    인터넷    주식회사루비뮤직    0    2,920,086    128,641,416    기업은행(003045)        0
-2    2026.07.31 16:26:06    인터넷    (주)케이큐엔터테인    0    16,587,265    126,331,919    199555        0
-3    2026.07.31 15:48:24    인터넷    (주)케이더블유인터    0    14,490,830    109,577,547    하나은행(081569)        0
-4    2026.07.31 15:48:23    인터넷    (주)케이더블유인터    0    4,890,158    95,105,912    하나은행(081569)        0
-5    2026.07.31 15:39:16    타행대량    ICB    0    28,625,411    90,150,687    기업은행(003472)        0
-6    2026.07.31 13:05:37    펌뱅킹    에스씨케이컴퍼니    0    5,667,071    61,360,720    본점기업영업지원팀        0
+1    2026.07.31 19:01:55    인터넷    주식회사루비뮤직    0    2,948,160    128,641,416    기업은행(003045)        0
+2    2026.07.31 16:26:06    인터넷    (주)케이큐엔터테인    0    16,659,264    126,331,919    199555        0
+3    2026.07.31 15:48:24    인터넷    (주)케이더블유인터    0    14,505,276    109,577,547    하나은행(081569)        0
+4    2026.07.31 15:48:23    인터넷    (주)케이더블유인터    0    4,903,057    95,105,912    하나은행(081569)        0
+5    2026.07.31 15:39:16    타행대량    ICB    0    28,719,173    90,150,687    기업은행(003472)        0
+6    2026.07.31 13:05:37    펌뱅킹    에스씨케이컴퍼니    0    6,002,814    61,360,720    본점기업영업지원팀        0
 7    2026.07.31 13:05:36    펌뱅킹    에스씨케이컴퍼니    0    13,200,000    53,811,426    본점기업영업지원팀        0
-8    2026.07.31 12:34:01    ＰＣ뱅킹    AMADEUS KO    0    13,659,175    40,611,426    HSBC은행(054002)        0
+8    2026.07.31 12:34:01    ＰＣ뱅킹    AMADEUS KO    0    13,694,892    40,611,426    HSBC은행(054002)        0
 9    2026.07.31 12:04:11    인터넷    유한회사 고우컴퍼니    0    396,000    27,001,395    서교중앙금융센터        0
-10    2026.07.31 11:54:55    인터넷    (유)유니버셜대부    0    13,619,678    26,605,395    도산대로금융센터        0
+10    2026.07.31 11:54:55    인터넷    (유)유니버셜대부    0    13,651,511    26,605,395    도산대로금융센터        0
 11    2026.07.31 11:30:42    수수료    SMS수수료    900    0    12,980,083    동부이촌동지점        0
 12    2026.07.31 08:43:10    인터넷    (주)비씨에이전시    0    5,000,000    12,980,983    국민은행(004069)        0
 13    2026.07.31 03:21:42    지로자동    수도2607일반    4,788,240    0    7,811,580    동부이촌동지점        0
@@ -2413,7 +2418,7 @@ No.    거래일시    적요    기재내용    지급(원)    입금(원)    �
 21    2026.07.25 16:16:21    인터넷    하나소독방역비    200,000    0    31,839,580    동부이촌동지점        0
 22    2026.07.25 16:16:20    인터넷    농협주차지원비    176,000    0    32,039,580    동부이촌동지점        0
 23    2026.07.25 16:16:19    인터넷    기업에어컨수리    55,000    0    32,215,580    동부이촌동지점        0
-24    2026.07.25 10:16:55    인터넷    (주) 좋은생각 사    0    17,995,093    32,270,580    서교중앙금융센터        0
+24    2026.07.25 10:16:55    인터넷    (주) 좋은생각 사    0    18,055,858    32,270,580    서교중앙금융센터        0
 25    2026.07.25 03:22:42    ＣＭＳ    SK렌터카    11,050    0    14,181,371    동부이촌동지점        0
 26    2026.07.25 03:20:56    ＣＭＳ    SK인텔릭스요금    19,900    0    14,192,421    동부이촌동지점        0
 27    2026.07.25 03:02:01    통신요금    SKYLIFE2607    17,006    0    14,212,321    동부이촌동지점        0
@@ -2447,9 +2452,34 @@ No.    거래일시    적요    기재내용    지급(원)    입금(원)    �
 55    2026.07.21 14:14:25    타행건별    SK렌터카(주)    0    1,938,620    158,820,108    신한은행(088699)        0
 56    2026.07.20 11:04:33    인터넷    기업연단구입    162,800    0    156,881,488    동부이촌동지점        0`;
 
+/* 2026-06 카리나빌딩 운영계좌 거래내역 — 목업 예시값. 6월 청구액을 6/24 ~ 6/30에 받았다.
+   (주)비씨에이전시는 내지 않았다 · 주식회사루비뮤직은 385,000원을 덜 냈다 · 국세환급금은 임차인 입금이 아니다
+   아마데우스는 7월과 입금자명이 다르다(AMADEUS KOREA) — 7월에는 자동 매칭되지 않는다 */
+const BANK_JUN=`카리나빌딩
+조회기간 : 2026.06.01~2026.06.30 조회일시 : 2026.07.02 08:10:14
+No.    거래일시    적요    기재내용    지급(원)    입금(원)    거래후 잔액(원)    취급점    메모    수표·어음·증권금액(원)
+1    2026.06.30 18:42:10    인터넷    주식회사루비뮤직    0    2,134,287    131,806,211    기업은행(003045)        0
+2    2026.06.30 16:05:51    인터넷    (주)케이큐엔터테인    0    16,522,246    129,671,981    199555        0
+3    2026.06.30 15:41:02    인터넷    (주)케이더블유인터    0    14,376,968    113,149,897    하나은행(081569)        0
+4    2026.06.30 15:41:01    인터넷    (주)케이더블유인터    0    4,871,281    98,772,885    하나은행(081569)        0
+5    2026.06.30 15:22:37    타행대량    ICB    0    28,298,673    93,901,668    기업은행(003472)        0
+6    2026.06.30 13:02:15    펌뱅킹    에스씨케이컴퍼니    0    18,891,511    65,603,280    본점기업영업지원팀        0
+7    2026.06.30 12:30:44    ＰＣ뱅킹    AMADEUS KOREA    0    13,668,194    46,711,787    HSBC은행(054002)        0
+8    2026.06.30 12:01:09    인터넷    유한회사 고우컴퍼니    0    396,000    33,043,665    서교중앙금융센터        0
+9    2026.06.30 11:50:27    인터넷    (유)유니버셜대부    0    13,477,517    32,647,665    도산대로금융센터        0
+10    2026.06.30 03:20:11    지로자동    수도2606일반    4,450,000    0    19,169,992    동부이촌동지점        0
+11    2026.06.30 03:12:40    전기요금    06월 전기요금    8,900,000    0    23,619,992    동부이촌동지점        0
+12    2026.06.26 10:12:33    인터넷    (주) 좋은생각 사    0    17,946,956    32,519,992    서교중앙금융센터        0
+13    2026.06.25 16:16:22    인터넷    신한이씀운영용역비    5,500,000    0    14,572,996    동부이촌동지점        0
+14    2026.06.24 14:02:18    대체입금    국세환급금    0    128,400    20,072,996    동부이촌동지점        0
+15    2026.06.22 11:15:17    인터넷    신한위탁운영수수료    31,200,000    0    19,944,596    동부이촌동지점        0
+16    2026.06.05 15:07:39    인터넷    경비미화용역비    14,190,000    0    51,144,596    동부이촌동지점        0
+17    2026.06.05 15:07:36    인터넷    신한세무기장료    330,000    0    65,334,596    동부이촌동지점        0
+18    2026.06.02 10:20:05    인터넷    기업연단구입    88,000    0    65,664,596    동부이촌동지점        0`;
+
 /* 거래내역 해석 — 머리글 행을 찾아 그 앞을 버리고, 열 이름으로 네 열을 찾는다 → 4.6.1
    은행마다 열 이름과 순서가 다르므로 위치가 아니라 이름으로 찾고, 결과는 은행별로 저장한다 */
-function parseBank(raw){
+function parseBank(raw,base){
   const cut=l=>l.split(/\t| {2,}/).map(x=>x.trim());
   const lines=raw.split('\n').map(l=>l.trim()).filter(Boolean);
   const hi=lines.findIndex(l=>/거래일시/.test(l)&&/입금/.test(l));
@@ -2458,7 +2488,7 @@ function parseBank(raw){
   const map={dt:col(/거래일시/),kind:col(/^적요$/),name:col(/기재내용/),amt:col(/^입금/),out:col(/^지급/)};
   const n=v=>+String(v||'0').replace(/,/g,'')||0;
   const rows=lines.slice(hi+1).map((l,i)=>{const c=cut(l);
-    return {no:+c[0]||i+1,dt:(c[map.dt]||'').replace(/\./g,'-'),kind:(c[map.kind]||'').normalize('NFKC'),
+    return {no:(base||0)+(+c[0]||i+1),dt:(c[map.dt]||'').replace(/\./g,'-'),kind:(c[map.kind]||'').normalize('NFKC'),
             name:c[map.name]||'',amt:n(c[map.amt]),out:n(c[map.out])};});
   return {skip:hi,head,map,rows,dep:rows.filter(r=>r.amt>0),wd:rows.filter(r=>!(r.amt>0))};
 }
@@ -2467,61 +2497,37 @@ function parseBank(raw){
 const normName=s=>String(s||'').normalize('NFKC')
   .replace(/\(주\)|\(유\)|주식회사|유한회사/g,'').replace(/\s+/g,'');
 
-/* 2026-07 회차 청구 — 7/19 발행 완료분. 납부마감일 7/31.
-   임대료·고정관리비는 실제 청구서와 같다. 정산 항목(전기·수도 등)은 8월 실제 청구서를 바탕으로 만든 예시값이다 */
-const JUL={
- '본관8층':[['임대료',9790000],['고정관리비',2915000],['전기요금',697568],['전력기금',17118],['TV수신료',410],['수도요금',329990],['주차비',78100]],
- '본관7층':[['임대료',9790000],['고정관리비',2915000],['전기요금',1719039],['전력기금',42185],['TV수신료',1011],['수도요금',329990]],
- '본관6층':[['임대료',10230000],['고정관리비',3080000],['전기요금',18715],['전력기금',459],['TV수신료',11],['수도요금',329990]],
- '본관5층':[['임대료',10649100],['고정관리비',2970000],['전기요금',528461],['전력기금',12968],['TV수신료',311],['수도요금',329990]],
- '본관4층':[['임대료',11770000],['고정관리비',3443000],['전기요금',911374],['전력기금',22365],['TV수신료',536],['수도요금',329990],['주차비',110000]],
- '본관301호':[['임대료',396000]],
- '본관302호':[['임대료',10164000],['고정관리비',2475000],['전기요금',581086],['전력기금',14260],['TV수신료',342],['수도요금',164995],['주차비',55000],['수도요금 (본관301호 대납)',164995]],
- '본관2층':[['임대료',9900000],['고정관리비',3382500],['전기요금',447209],['전력기금',10975],['TV수신료',263],['수도요금',329990]],
- '본관1층':[['임대료',13200000],['고정관리비',2200000],['전기요금',2193785],['전력기금',53835],['TV수신료',1290],['수도요금',1218161]],
- '본관B2':[['임대료',1650000],['고정관리비',473000],['전기요금',89837],['전력기금',2205],['TV수신료',53],['수도요금',319991]],
- '별관4층':[['임대료',3080000],['고정관리비',660000],['전기요금',86974],['전력기금',2134],['TV수신료',51],['수도요금',94997]],
- '별관3층':[['임대료',3465000],['고정관리비',1342000],['전기요금',180337],['전력기금',4425],['TV수신료',106],['수도요금',94997]],
- '별관2층':[['임대료',4070000],['고정관리비',550000],['전기요금',170868],['전력기금',4193],['TV수신료',100],['수도요금',94997]],
-};
+
 /* 날짜 — 시간대 영향 없이 날 단위로 센다 */
 const TODAY_S='2026-08-10';   /* 오늘 — 7월 청구서는 7/19 발행 · 7/31 납부마감 · 8/5 월 마감. 8월 청구서는 8/19 발행 예정 */
 const dnum=d=>{const [y,m,dd]=d.slice(0,10).split('-').map(Number);return Date.UTC(y,m-1,dd)/864e5;};
 const dueStr=ym=>{const [y,m]=ym.split('-').map(Number);const d=new Date(Date.UTC(y,m,0));return d.toISOString().slice(0,10);};
 const BILLS=[];
-Object.entries(JUL).forEach(([no,ls])=>ls.forEach(([n,amt])=>
-  BILLS.push({id:`2026-07|${no}|${n}`,ym:'2026-07',k:'b1'+no,no,n,amt})));
-
 /* 원장에 기록된 수납 배분 — 청구 건별 누적액 */
 const PAID={};
 /* 수납 일자 — 청구 건별 [{date,amt}]. 연체료 구간 계산에 쓴다 → 4.4 */
 const PAYEV={};
 let paySeq=0;   /* 기록 순서 — 같은 날 여러 건이면 기록한 순서대로 원장에 쌓는다 */
 const addPay=(id,amt,date,src,dep)=>{PAID[id]=(PAID[id]||0)+amt;(PAYEV[id]=PAYEV[id]||[]).push({date,amt,src:src||'이전 입금',dep:dep||'prev',sq:++paySeq});};
-
-/* 2026-05 · 06 회차 — 지난달까지의 원장. 대부분 계약은 7월과 같은 금액을 청구받아 제때 완납했다.
-   (주)비씨에이전시는 5·6월 모두 한 푼도 내지 않았다 → 7/31 입금 5,000,000원이 5월분부터 채운다
-   주식회사루비뮤직은 6월분 385,000원을 덜 냈다 → 7월 입금에 그만큼 더 얹어 보냈다 */
-const PAST={
- '2026-05':{'별관3층':[['임대료',3465000],['고정관리비',1342000],['전기요금',176420],['전력기금',4330],['TV수신료',104],['수도요금',98660]]},
- '2026-06':{'별관3층':[['임대료',3465000],['고정관리비',1342000],['전기요금',205880],['전력기금',5050],['TV수신료',121],['수도요금',101390]],
-            '본관B2':[['임대료',1650000],['고정관리비',473000],['전기요금',101230],['전력기금',2480],['TV수신료',60],['수도요금',70110]]},
-};
-['2026-05','2026-06'].forEach(ym=>Object.entries(JUL).forEach(([no,ls])=>{
-  (PAST[ym][no]||ls).forEach(([n,amt])=>{
-    const id=`${ym}|${no}|${n}`;
-    BILLS.push({id,ym,k:'b1'+no,no,n,amt});
-    if(no!=='별관3층') addPay(id,amt,dueStr(ym));          /* 제때 냈다. 비씨에이전시는 5·6월 수납 0 */
-  });
+/* 6·7월 청구 — 6/19 · 7/19 발행 완료분. 그 달 관리비 정산 입력값(BILL_M)으로 청구서 발행과 같은 계산을 거친 금액이다.
+   임대료·고정관리비는 실제 청구서와 같다. 목업 자료는 이 3개월(6·7·8월)뿐이다 */
+['2026-06','2026-07'].forEach(ym=>withMonth(ym,()=>{
+  const kb=f1.b; f1.b='b1';
+  ISSUE().forEach(c=>c.lines.forEach(l=>{if(!l.amt) return;
+    const n=l.via?`${l.n} (${l.via.split('|')[0]} 대납)`:l.n;
+    BILLS.push({id:`${ym}|${c.no}|${n}`,ym,k:ckey(c),no:c.no,n,amt:l.amt});}));
+  f1.b=kb;
 }));
-/* 루비뮤직 6월 — 6/30에 1,911,880원만 받았다. 우선순위대로 임대료 → 고정관리비 일부 */
-['고정관리비','전기요금','전력기금','TV수신료','수도요금'].forEach(n=>{
-  delete PAID['2026-06|본관B2|'+n]; delete PAYEV['2026-06|본관B2|'+n];});
-addPay('2026-06|본관B2|고정관리비',261880,'2026-06-30');
+
+
 
 /* 수납 기록 화면 상태 */
-const RC={b:'b1',P:parseBank(BANK_RAW),dec:{},op:{},alias:{},pre:{},reg:{},cur:null,
-          f:{b:'b1',ym:'2026-07',st:''}};   /* 필터 — 건물 · 청구년월 · 납부상태 */
+/* 달마다 올린 거래내역 — 번호가 겹치지 않게 6월은 100번대 */
+const BANKS={'2026-06':parseBank(BANK_JUN,100),'2026-07':parseBank(BANK_RAW)};
+const NO_BANK={skip:0,head:[],map:{},rows:[],dep:[],wd:[]};
+const RC={b:'b1',dec:{},op:{},alias:{},pre:{},reg:{},cur:null,
+          f:{b:'b1',ym:'2026-07',st:''},   /* 필터 — 건물 · 청구년월 · 납부상태 */
+          get P(){return BANKS[this.f.ym]||NO_BANK;}};
 const setRC=(k,v)=>{RC.f[k]=v;render();};
 /* 계약 × 청구년월 수납 — 청구액·수납액·미납액·납부상태 → PAY-6 · 3.2 */
 /* 납부마감일 — 카리나빌딩은 매월 말일 → 3.5 */
@@ -2598,9 +2604,9 @@ function rcPlan(amt,keys,paid,extra){
 /* 원장에 아직 기록되지 않은 입금 건수 — PAY-1 안내에 쓴다 */
 const rcOpenN=()=>RC.P.dep.filter(d=>{const x=RC.dec[d.no]||{};return !x.done&&!x.ex;}).length;
 /* 계약별 미납 — 지난 회차 청구 − 원장에 기록된 수납 */
-function dueOf(k){
+function dueOf(k,before){
   if(!k.startsWith('b1')) return UNPAID[k]||null;
-  const o=BILLS.filter(i=>i.k===k&&i.ym<SETTLE.ym).map(i=>i.amt-(PAID[i.id]||0)).filter(v=>v>0);
+  const o=BILLS.filter(i=>i.k===k&&i.ym<(before||SETTLE.ym)).map(i=>i.amt-(PAID[i.id]||0)).filter(v=>v>0);
   if(!o.length) return null;
   const from=BILLS.filter(i=>i.k===k&&i.amt>(PAID[i.id]||0)).map(i=>i.ym).sort()[0];
   return {n:o.length,amt:o.reduce((a,v)=>a+v,0),from};
@@ -2662,14 +2668,27 @@ let QUIET=false;
 function seedJuly(){
   const PK={1:'루비뮤직',2:'케이큐엔터테이먼트',3:'케이더블유인터내셔널',4:'케이더블유인터내셔널',5:'아이씨비',7:'에스씨케이컴퍼니',
     8:'아마데우스',9:'고우컴퍼니',10:'유니버셜대부',12:'비씨에이전시',24:'좋은생각사람들'};
-  QUIET=true;
+  const kf=RC.f.ym; RC.f.ym='2026-07'; QUIET=true;
   rcQueue().forEach(d=>{
     if(d.no===17||d.no===55){rcIgnore(d.no);return;}          /* 자금반환 · 렌터카 — 임차인 입금이 아니다 */
     const g=rcGuess(d,rcBiz()); if(g.st!=='자동'&&PK[d.no]) RC.pre[d.no]=PK[d.no];
     rcConfirm(d.no);
   });
-  QUIET=false; RC.cur=null;
+  QUIET=false; RC.cur=null; RC.f.ym=kf;
 }
+/* 6월 입금 — 7월보다 먼저 처리됐다(7/3 마감). 원장 자료이므로 검증에서도 처리된 상태로 시작한다.
+   첫 달이라 등록된 입금자명이 없어 모두 담당자가 골랐다 → 이때 등록한 입금자명으로 7월 입금은 대부분 자동 매칭된다 */
+function seedMonth(ym,pk,ign){
+  const kf=RC.f.ym; RC.f.ym=ym; QUIET=true;
+  rcQueue().forEach(d=>{
+    if(ign.includes(d.no)){rcIgnore(d.no);return;}
+    const g=rcGuess(d,rcBiz()); if(g.st!=='자동'&&pk[d.no]) RC.pre[d.no]=pk[d.no];
+    rcConfirm(d.no);
+  });
+  QUIET=false; RC.cur=null; RC.f.ym=kf;
+}
+seedMonth('2026-06',{101:'루비뮤직',102:'케이큐엔터테이먼트',103:'케이더블유인터내셔널',104:'케이더블유인터내셔널',105:'아이씨비',
+  106:'에스씨케이컴퍼니',107:'아마데우스',108:'고우컴퍼니',109:'유니버셜대부',112:'좋은생각사람들'},[114]);
 /* 테스트·목업 시연용 — 대기 입금을 순서대로 모두 확정한다 */
 function rcConfirmAll(){rcQueue().filter(rcIsOpen).forEach(d=>{
   const g=rcGuess(d,rcBiz()); if(g.biz) rcConfirm(d.no);});}
@@ -2680,7 +2699,7 @@ const LABEL6={'자동':'자동 매칭','지정':'미매칭','후보':'미매칭'
 /* ═══ PAY-13 입금 매칭 — 작업 화면. 한 건씩 크게 보고 한 건씩 확정한다 ═══ */
 function PAY13(){
   const B=rcBiz(), bn=BUILDINGS.find(x=>x.id===RC.b);
-  const has=RC.f.b===RC.b&&RC.f.ym==='2026-07';
+  const has=RC.f.b===RC.b&&!!BANKS[RC.f.ym];
   const Q=has?rcQueue():[];
   const done=Q.filter(d=>!rcIsOpen(d)).length;
   if(has&&(RC.cur==null||!Q.some(d=>d.no===RC.cur))) RC.cur=rcNext()||(Q[0]||{}).no;
@@ -2822,7 +2841,7 @@ const g6Tog=k=>{g6[k]=!g6Open(k);render(true);};
 const g6Set=v=>{g6All=v;g6={};render(true);};
 function PAY6(){
   const bn=BUILDINGS.find(x=>x.id===RC.f.b)||BUILDINGS[0];
-  const has=RC.f.b===RC.b&&['2026-05','2026-06','2026-07'].includes(RC.f.ym);
+  const has=RC.f.b===RC.b&&['2026-06','2026-07'].includes(RC.f.ym);
   const waitN=RC.f.b===RC.b?RC.P.dep.filter(rcIsOpen).length:0;
   const all=has?CTRS.filter(c=>c.b===RC.b&&c.st==='진행중')
     .map(c=>({c,k:ckey(c),...ctrPay(ckey(c),RC.f.ym)})).filter(x=>x.st):[];
