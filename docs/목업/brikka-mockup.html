@@ -187,13 +187,6 @@ tr.exr td{background:var(--line-2);color:var(--muted)}
 .pgrid td.st{cursor:pointer}
 .pgrid td.st:hover{background:var(--pri-bg)}
 .mcl tr.on td{background:var(--pri-bg)}
-.mcl tr.mdt td{background:var(--line-2);padding:10px 16px 12px 40px;cursor:default}
-.mck{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px 24px;font-size:12.5px}
-.mck .it{display:flex;align-items:center;gap:8px}.mck .k{color:var(--muted);min-width:132px}.mck .lk{font-size:12px}
-@media(max-width:1080px){.mck{grid-template-columns:1fr}}
-.mcl tbody tr:hover td{background:var(--pri-bg)}
-.mcl tbody tr.mdt:hover td{background:var(--line-2)}
-.mcl .mtg{display:inline-flex;width:20px;color:var(--muted);vertical-align:-3px;transition:transform .15s}.mcl .mtg.op{transform:rotate(90deg)}
 .stp{display:inline-flex;align-items:center;gap:5px;font-size:12px}
 .stp .dot2{width:6px;height:6px;border-radius:50%;flex:none}
 .bar{height:5px;background:var(--line-2);border-radius:99px;overflow:hidden;margin-top:4px;width:84px}
@@ -274,7 +267,7 @@ table.bt2 td{padding:9px 12px}
 .crumb .c{cursor:pointer}.crumb .c:hover{color:var(--ink-2)}
 .crumb b{color:var(--ink-2);font-weight:400}
 .top .sp{flex:1}
-.today{font-size:12.5px;color:var(--muted);white-space:nowrap}.today b{color:var(--ink);font-weight:600}
+.today{font-size:12px;color:var(--faint);white-space:nowrap}
 .mock{font-size:11px;color:var(--warn);background:var(--warn-bg);padding:3px 9px;border-radius:99px;font-weight:500}
 .wrap{padding:6px 28px 64px;max-width:1560px}
 .ph{display:flex;align-items:center;gap:10px;margin:2px 0 18px;flex-wrap:wrap}
@@ -424,10 +417,10 @@ td.c,th.c{text-align:center}
 .schr.sub .nm{padding-left:32px}
 .schr.sum{background:var(--head);font-weight:600}
 .schr .cb{margin-right:7px;vertical-align:-3px;cursor:pointer}
-.schr .cb.on{background:var(--pri);border-color:var(--pri);position:relative}
-.schr .cb.on::after{content:'';position:absolute;left:4px;top:1px;width:4px;height:8px;
+.schr .cb.on,.mcl .cb.on{background:var(--pri);border-color:var(--pri);position:relative}
+.schr .cb.on::after,.mcl .cb.on::after{content:'';position:absolute;left:4px;top:1px;width:4px;height:8px;
   border:solid #fff;border-width:0 2px 2px 0;transform:rotate(45deg)}
-.schr .cb.dis{opacity:.3}
+.schr .cb.dis,.mcl .cb.dis{opacity:.3}
 .mw{display:grid;grid-template-columns:370px minmax(0,1fr);gap:18px;align-items:start}
 @media(max-width:1080px){.mw{grid-template-columns:1fr}}
 .mq{border:1px solid var(--line);border-radius:var(--r);background:var(--bg);overflow:hidden;position:sticky;top:12px}
@@ -503,7 +496,7 @@ table.nowr th,table.nowr td{white-space:nowrap}
     <header class="top">
       <div class="crumb" id="crumb"></div>
       <div class="sp"></div>
-      <div class="today" title="목업의 기준 시점">오늘 <b>2026년 8월 10일</b> (월)</div>
+      <div class="today" title="오늘 — 목업의 기준 시점">2026년 8월 10일(월)</div>
     </header>
     <div class="wrap" id="view"></div>
   </div>
@@ -1985,27 +1978,30 @@ function mcHTML(){
 }
 /* 이 건물에서 지금 마감할 차례인 달 — 열려 있는 가장 오래된 달. 없으면 진행 중인 이번 달 */
 const mcNext=b=>MC_YMS.find(v=>mcState(b,v).k==='열림')||MC_YMS[MC_YMS.length-1];
-let o11={};                                   /* 펼친 달 — 기본은 마감할 차례인 달만 */
-const o11Open=v=>(v in o11)?o11[v]:v===mcNext(s11.b);
-function mcBld(b){s11={b,ym:mcNext(b)};o11={};render();}
-function mcTog(v){o11[v]=!o11Open(v);render(true);}
+let sel11={};                                 /* 보고서를 발행할 달 — 마감한 달만 고를 수 있다 */
+function mcBld(b){s11={b,ym:mcNext(b)};sel11={};render();}
+function mcPick(v,e){if(e)e.stopPropagation();sel11[v]=!sel11[v];render(true);}
+/* 월 마감 보고서 — 고른 달마다 PDF 한 부. 마감한 숫자 그대로라 다시 뽑아도 같다 → PAY-11 */
+function mcReport(){
+  const bn=BUILDINGS.find(x=>x.id===s11.b), vs=MC_YMS.filter(v=>sel11[v]&&mcState(s11.b,v).k==='마감');
+  if(!vs.length) return;
+  alert(`월 마감 보고서 ${vs.length}부 발행\n${bn.name} · ${vs.map(v=>v.replace('-','년 ')+'월').join(', ')}\n\n`
+    +'담는 내용: 청구서 발행 건수 · 청구액 · 수납액 · 이 달 청구분 미납 · 다음 달로 넘어가는 미납(계약별) · 마감일시·마감자');
+}
 function mcDo(v,mode){s11={b:s11.b,ym:v};mcOpen(mode);}
 function PAY11(){
   const {b}=s11, bn=BUILDINGS.find(x=>x.id===b);
   const nx=mcNext(b), NS=mcState(b,nx), ymL=v=>v.replace('-','년 ').replace(/년 0/,'년 ')+'월';
   const dash='<span style="color:var(--faint)">—</span>';
   /* 달 목록 — 최근 달이 위. 행을 누르면 마감 전 확인이 펼쳐진다 */
-  const rows=MC_YMS.slice().reverse().map(v=>{const S=mcState(b,v), N=mcNum(b,v), op=o11Open(v);
+  const rows=MC_YMS.slice().reverse().map(v=>{const S=mcState(b,v), N=mcNum(b,v), can=S.k==='마감', on=can&&!!sel11[v];
     const set=v<'2026-08'?'확정':PROG[b].settle;
-    const act=S.k==='마감'?`<button class="btn sm" onclick="event.stopPropagation();mcDo('${v}','undo')">마감 취소</button>`
+    const act=S.k==='마감'?`<button class="btn sm" onclick="mcDo('${v}','undo')">마감 취소</button>`
       :S.k==='진행 중'?`<button class="btn sm pri" disabled title="청구서 발행 전">마감</button>`
-      :`<button class="btn sm pri" onclick="event.stopPropagation();mcDo('${v}','close')">마감</button>`;
-    const C=mcChecks(b,v);
-    const det=!op?'':`<tr class="mdt"><td colspan="9"><div class="mck">${C.map(x=>`<div class="it">
-        <span class="k">${x.t}</span><span class="v" style="${x.ok?'':'color:var(--warn);font-weight:600'}">${x.v}</span>${
-        !x.ok&&x.go?`<b class="lk" onclick="go('${x.go}')">이동 →</b>`:''}</div>`).join('')}</div></td></tr>`;
-    return `<tr class="${op?'on':''}" style="cursor:pointer" onclick="mcTog('${v}')">
-      <td><span class="mtg ${op?'op':''}">${ic('chev',16)}</span><b>${ymL(v)}</b></td>
+      :`<button class="btn sm pri" onclick="mcDo('${v}','close')">마감</button>`;
+    return `<tr class="${on?'on':''}">
+      <td>${can?`<span class="cb ${on?'on':''}" style="cursor:pointer" onclick="mcPick('${v}',event)"></span>`:'<span class="cb dis" title="마감한 달만 보고서를 발행할 수 있습니다"></span>'}
+        <b style="margin-left:8px">${ymL(v)}</b></td>
       <td class="c"><span class="stp"><span class="dot2" style="background:var(--${set==='확정'?'ok':set==='작성중'?'warn':'faint'})"></span>${set}</span></td>
       <td class="n">${N.n?`${N.n} / ${N.N}건`:`<span style="color:var(--faint)">미발행</span>`}</td>
       <td class="n">${N.bill?won(N.bill):dash}</td>
@@ -2015,9 +2011,11 @@ function PAY11(){
         :`<span class="bd wa">열림</span>`}</td>
       <td class="c2">${S.k==='마감'?`${S.c.at.replace('-','.')} · ${S.c.by}`:''}</td>
       <td class="c">${act}</td>
-    </tr>${det}`;}).join('');
+    </tr>`;}).join('');
+  const nSel=MC_YMS.filter(v=>sel11[v]&&mcState(b,v).k==='마감').length;
   return `
-  <div class="ph"><h1>월 마감</h1><span class="sid">PAY-11</span></div>
+  <div class="ph"><h1>월 마감</h1><span class="sid">PAY-11</span>
+    <div class="act"><button class="btn pri" ${nSel?'':'disabled'} onclick="mcReport()">월 마감 보고서 발행${nSel?` ${nSel}건`:''}</button></div></div>
   <div class="fbar">
     <select onchange="mcBld(this.value)">
       ${BUILDINGS.map(x=>`<option value="${x.id}" ${b===x.id?'selected':''}>${x.name}</option>`).join('')}
@@ -2030,7 +2028,7 @@ function PAY11(){
     <tbody>${rows}</tbody></table></div></div>
   <div class="hint">
     <b>월 마감</b>은 그 달의 장부를 잠그는 일입니다. 마감한 달의 청구·수납·정산은 고칠 수 없고, 정정은 다음 달의 조정 거래로 합니다.<br>
-    달을 누르면 마감 전에 볼 것이 펼쳐집니다. <span style="color:var(--warn);font-weight:600">주황색</span>은 아직 끝나지 않은 일입니다. 그래도 마감할 수 있습니다.<br>
+    마감한 달을 체크하고 <b>월 마감 보고서 발행</b>을 누르면 고른 달마다 보고서가 한 부씩 나옵니다.<br>
     <b>미납이 남아 있어도 마감합니다.</b> 미납은 사라지지 않고 다음 달로 넘어가 미납 관리에 계속 보입니다.<br>
     청구서를 발행하기 전인 달은 마감할 수 없습니다. 마감 취소는 슈퍼관리자만 할 수 있고 사유를 남깁니다.
     마감·마감 취소 기록은 변경 이력에 남습니다.</div>`;
