@@ -108,7 +108,8 @@ svg{flex:none}
   font-size:10.5px;display:inline-flex;align-items:center;justify-content:center;flex:none}
 .stepv .sp2.on .nm{background:var(--pri);color:#fff}
 .stepv .sp2.dn .nm{background:var(--ok-bg);color:var(--ok)}
-.itab{display:flex;gap:6px;margin-bottom:14px}
+.itab{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap}
+.once td{vertical-align:middle}.once input,.once select{border:1px solid var(--line);background:var(--bg);padding:6px 8px;border-radius:var(--r-sm);font-size:12.5px;font-family:inherit}
 .itab button{border:1px solid var(--line);background:var(--bg);padding:6px 13px;border-radius:99px;
   cursor:pointer;font-size:12.5px;color:var(--ink-2);font-family:inherit}
 .itab button.on{background:var(--ink);border-color:var(--ink);color:var(--bg);font-weight:500}
@@ -905,8 +906,18 @@ function csDrop(){
 function openDrawer(k){DRAWER=k;dPick=[];render();}
 function closeDrawer(){DRAWER=null;cs=null;render();}
 function dToggle(c){dPick.includes(c)?dPick=dPick.filter(x=>x!==c):dPick.push(c);render();}
-function dApply(){dPick.forEach(c=>BILL[c].on=true);DRAWER=null;dPick=[];render();}
+function dApply(){dPick.forEach(c=>{if(c==='once'){ONCE.on=true;if(!ONCE.rows.length) ONCE.rows.push({k:'',n:'',amt:'',doc:'세금계산서',memo:''});pCode='once';}else BILL[c].on=true;});DRAWER=null;dPick=[];render();}
 function delItem(code){BILL[code].on=false;render();}
+/* 일회성 청구 — 이번 회차에만 특정 계약에 붙는 돈. 엘리베이터 사용료, 파손 수리비 등. 안분하지 않는다 → PAY-10 */
+const ONCE={on:false,rows:[]};
+const ONCE_DOC=['세금계산서','계산서','일반내역서'];
+function onceAdd(){ONCE.rows.push({k:'',n:'',amt:'',doc:'세금계산서',memo:''});render(true);}
+function onceSet(i,f,v){ONCE.rows[i][f]=f==='amt'?numOf(v):v;render(true);}
+function onceDrop(){ONCE.on=false;ONCE.rows=[];pCode=(selItems()[0]||{}).code||'elec';render();}
+/* 청구서에 실리는 일회성 청구 줄 — 부가세 포함 금액에서 역산 */
+const onceLines=k=>!ONCE.on?[]:ONCE.rows.filter(r=>r.k===k&&r.amt>0).map(r=>{
+  const tax=r.doc==='세금계산서', sup=tax?Math.floor(r.amt*10/11):r.amt;
+  return {n:r.n||'일회성 청구',bill:r.doc,src:`일회성 청구${r.memo?' · '+r.memo:''}`,supply:sup,vat:r.amt-sup,amt:r.amt};});
 function setMul(code,no,v){
   const b=BILL[code], m=parseFloat(v);
   /* 배율 0은 「부담 없음」이라는 유효한 값이다. 기본값 1.0일 때만 기록을 지운다. */
@@ -1176,6 +1187,7 @@ function drawerHTML(){
   if(DRAWER==='mclose') return mcHTML();
   if(DRAWER!=='additem') return '';
   const rest=MASTER.filter(m=>!m.fixed&&!BILL[m.code].on);
+  if(!ONCE.on) rest.push({code:'once',name:'일회성 청구 — 이번 회차에만 특정 계약에 (엘리베이터 사용료, 수리비 등)'});
   const card=m=>{
     const on=dPick.includes(m.code);
     return `<div class="pick ${on?'on':''}" onclick="dToggle('${m.code}')">
@@ -1523,6 +1535,7 @@ function itemFlag(m){
 }
 function PAY10(){
   const sel=selItems();
+  if(ONCE.on&&(pCode==='once'||!sel.length)) return pay10Head(sel)+oncePage();
   if(!sel.length) return `
   ${pay10Head(null)}
   <div class="tbl"><div class="empty"><div class="t">이번 회차에 정산할 항목이 없습니다</div>
@@ -1545,12 +1558,39 @@ function pay10Head(sel){
     <select><option>2026년 8월</option><option>2026년 7월</option><option>2026년 6월</option></select>
   </div>
   ${!sel?'':`<div class="itab">
-    ${sel.map(x=>{const f=itemFlag(x), on=x.code===(pCode||sel[0].code);return `
+    ${(sel||[]).map(x=>{const f=itemFlag(x), on=pCode!=='once'&&x.code===(pCode||sel[0].code);return `
     <button class="${on?'on':''}" onclick="setPItem('${x.code}')">${
       f.c==='ok'?'<span class="okd">✓</span>':''}${x.name}${
       f.c==='ok'?'':`<span class="bd ${f.c}" style="margin-left:5px">${f.t}</span>`}</button>`}).join('')}
+    ${ONCE.on?`<button class="${pCode==='once'?'on':''}" onclick="setPItem('once')">일회성 청구${
+      ONCE.rows.filter(r=>r.k&&r.amt).length?` <span class="bd mu" style="margin-left:5px">${ONCE.rows.filter(r=>r.k&&r.amt).length}건</span>`:''}</button>`:''}
     <button class="add" onclick="openDrawer('additem')">+ 청구 항목 추가</button>
   </div>`}`;
+}
+function oncePage(){
+  const cs=CTRS.filter(c=>c.b==='b1'&&c.st==='진행중'), BA=(BUILDINGS[0]||{}).alias;
+  const rows=ONCE.rows.map((r,i)=>`<tr>
+    <td><select onchange="onceSet(${i},'k',this.value)" style="width:100%"><option value="">계약 선택</option>
+      ${cs.map(c=>`<option value="${ckey(c)}" ${r.k===ckey(c)?'selected':''}>${cname(BA,c.no,c.ten)}</option>`).join('')}</select></td>
+    <td><input type="text" value="${r.n}" placeholder="예: 엘리베이터 사용료" onchange="onceSet(${i},'n',this.value)" style="width:100%"></td>
+    <td class="n"><input type="text" inputmode="numeric" value="${r.amt?num(r.amt):''}" placeholder="부가세 포함" oninput="kwLive(this)"
+      onchange="onceSet(${i},'amt',this.value)" style="width:120px;text-align:right"><span class="kw" style="margin-left:6px">${korWon(r.amt)}</span></td>
+    <td><select onchange="onceSet(${i},'doc',this.value)">${ONCE_DOC.map(d=>`<option ${r.doc===d?'selected':''}>${d}</option>`).join('')}</select></td>
+    <td><input type="text" value="${r.memo}" placeholder="근거 · 메모" onchange="onceSet(${i},'memo',this.value)" style="width:100%"></td>
+    <td class="c"><button class="btn sm" onclick="ONCE.rows.splice(${i},1);render(true)">삭제</button></td></tr>`).join('');
+  const tot=ONCE.rows.reduce((a,r)=>a+(r.k?r.amt||0:0),0);
+  return `
+  <div class="card"><div class="ct">일회성 청구<span class="sub">이번 회차에만 · 나눠 매기지 않고 고른 계약에 그대로</span>
+    <span class="ca"><button class="btn ex sm" onclick="onceDrop()">이번 회차 제외</button></span></div>
+    <div class="tw"><table class="once">
+      <thead><tr><th style="width:26%">계약</th><th style="width:20%">항목명</th><th class="n">금액</th><th>발행 문서</th><th>근거 · 메모</th><th></th></tr></thead>
+      <tbody>${rows||'<tr><td colspan="6"><div class="empty">아래 버튼으로 한 줄씩 추가합니다</div></td></tr>'}</tbody></table></div>
+    <div class="cc" style="display:flex;align-items:center;gap:10px;padding-top:12px">
+      <button class="btn sm" onclick="onceAdd()">+ 한 줄 추가</button>
+      <span class="c2" style="margin-left:auto">합계 <b style="color:var(--ink)">${won(tot)}</b></span></div></div>
+  <div class="hint">
+    이사할 때 엘리베이터 사용료, 부순 시설의 수리비처럼 <b>한 번만 받는 돈</b>을 넣습니다. 금액은 부가세 포함입니다.<br>
+    정산을 확정하면 고른 계약의 이번 달 청구서에 함께 실립니다(청구서 발행 화면에서 확인).</div>`;
 }
 /* 항목 하나의 고지서 입력 */
 function stBillOne(m){
@@ -2138,7 +2178,8 @@ function ISSUE(){
       const sm=k=>rs.reduce((a,r)=>a+r[k],0);
       return {...S,supply:sm('supply'),vat:sm('vat'),amt:sm('amt')};
     };
-    const lines=c.it.map(x=>lineOf(x,c.units||c.no)).filter(Boolean);
+    const lines=c.it.map(x=>lineOf(x,c.units||c.no)).filter(Boolean)
+      .concat(onceLines(ckey(c)).map(l=>({...l,st:fixed?'정산 확정':'정산 미확정',stc:fixed?'ok':'wa'})));
     /* 대납분 — 자기 정산 항목을 그 유닛에 적용해 산출한다 */
     /* 대납분 — 금액이 0인 항목은 싣지 않는다. 계량기를 공유해 사용분이 0인 경우다 */
     via.forEach(d=>c.it.filter(x=>CITEM[x[0]].calc==='정산').forEach(x=>{
@@ -3084,7 +3125,8 @@ function ncSave(welcome){
   const c={b:nc.b,no:nc.no,ten:nc.ten.trim(),st:nc.st,base:nc.start,end:nc.end||ncEnd(nc.start),rate:+nc.rate||8,
     dep:numOf(nc.dep)||null,payTo:nc.payTo||undefined,fresh:true,
     /* 기산일 — 렌트프리면 체크한 항목만 기산일부터, 나머지는 계약시작일부터 청구한다 */
-    from:ncFrom()!==nc.start?ncFrom():null,rf:nc.rf==='있음'?{end:nc.rfEnd,rent:nc.rfRent,mgmt:nc.rfMgmt,vars:nc.rfVar}:null,
+    from:ncFrom()!==nc.start?ncFrom():null,
+    adj:nc.adj.filter(x=>x.d&&(numOf(x.rent)||numOf(x.mgmt))).map(x=>({d:x.d,rent:numOf(x.rent)||null,mgmt:numOf(x.mgmt)||null})),rf:nc.rf==='있음'?{end:nc.rfEnd,rent:nc.rfRent,mgmt:nc.rfMgmt,vars:nc.rfVar}:null,
     it:[['임대료',ncSup(numOf(nc.rent))],['고정관리비',ncSup(numOf(nc.mgmt))],...vars.map(n=>[n])]};
   if(CTRS.some(x=>x.b===c.b&&x.no===c.no)) c.key=`${c.b}${c.no}@${c.base}`;
   CTRS.push(c);
@@ -3097,6 +3139,8 @@ function rfEndOf(start,m){
   d.setUTCMonth(d.getUTCMonth()+w); d.setUTCDate(d.getUTCDate()+Math.round((v-w)*30)-1);
   return d.toISOString().slice(0,10);
 }
+/* 입력하는 동안 옆의 읽기 쉬운 금액을 바로 바꾼다 — 화면 전체를 다시 그리지 않는다 */
+function kwLive(el){const k=el.parentNode.querySelector('.kw');if(k) k.textContent=korWon(numOf(el.value));}
 /* 금액을 읽기 쉽게 — 5000000 → 500만원, 100000000 → 1억원, 123456789 → 1억 2,345만 6,789원 */
 function korWon(n){
   if(!n) return '';
@@ -3124,14 +3168,13 @@ function CTR2(){
   const bd=BUILDINGS.find(x=>x.id===nc.b), U=ncUnits(nc.b), cl=ncClash(), miss=nc.tried?ncMissing():[];
   const T=(f,ph,w)=>`<input type="text" value="${nc[f]}" placeholder="${ph||''}" onchange="ncSet('${f}',this.value)"${w?` style="max-width:${w}px"`:''}>`;
   const D=f=>`<input type="date" value="${nc[f]}" onchange="ncSet('${f}',this.value)">`;
-  const N=(f,ph)=>`<input type="text" inputmode="numeric" value="${nc[f]?numOf(nc[f]).toLocaleString('ko-KR'):''}" placeholder="${ph||''}" onchange="ncSet('${f}',this.value)" style="text-align:right">
+  const N=(f,ph)=>`<input type="text" inputmode="numeric" value="${nc[f]?numOf(nc[f]).toLocaleString('ko-KR'):''}" placeholder="${ph||''}"
+    oninput="kwLive(this)" onchange="ncSet('${f}',this.value)" style="text-align:right">
     <span class="kw">${korWon(numOf(nc[f]))}</span>`;
   const S=(f,opts)=>`<select onchange="ncSet('${f}',this.value)">${opts.map(o=>{const [v,t]=Array.isArray(o)?o:[o,o];
     return `<option value="${v}" ${String(nc[f])===String(v)?'selected':''}>${t}</option>`;}).join('')}</select>`;
   const C=(f,t)=>`<label class="ck"><input type="checkbox" ${nc[f]?'checked':''} onchange="ncSet('${f}',this.checked)">${t}</label>`;
   const R=(k,body,req)=>`<div class="fr"><span class="fk">${k}${req?' <b style="color:var(--warn)">*</b>':''}</span>${body}</div>`;
-  /* 부가세 포함 금액에서 역산 — 공급가액 = 합계 ÷ 1.1 원 미만 절사, 부가세 = 합계 − 공급가액 → 4.2.6 */
-  const vat=v=>{const n=numOf(v), sp=ncSup(n);return n?`<div class="c2" style="margin:-4px 0 9px 114px">공급가액 ${won(sp)} · 부가세 ${won(n-sp)}</div>`:'';};
   const d8=d=>d?d.replace(/-/g,'.'):'';
   const others=CTRS.filter(c=>c.b===nc.b&&(c.st==='진행중'||c.st==='준비중')&&c.no!==nc.no);
   const card=(t,body,sub)=>`<div class="card" style="margin:0 0 16px"><div class="ct">${t}${sub?`<span class="sub">${sub}</span>`:''}</div><div class="cc">${body}</div></div>`;
@@ -3170,8 +3213,8 @@ function CTR2(){
   const vl=ncVarList(bd);
   const right=
     card('임대료 · 관리비','<div class="c2" style="margin:-4px 0 10px">부가세를 포함한 월 금액으로 입력합니다</div>'
-      +R('임대료',N('rent','월 금액 (부가세 포함)'),1)+vat(nc.rent)
-      +R('고정관리비',N('mgmt','월 금액 (부가세 포함)'),1)+vat(nc.mgmt)
+      +R('임대료',N('rent','월 금액 (부가세 포함)'),1)
+      +R('고정관리비',N('mgmt','월 금액 (부가세 포함)'),1)
       +R('청구일 · 마감일',`<span class="fv">${bd.billDay} · ${bd.dueDay} <span class="c2">건물 기본값</span></span>`))
     +card('렌트프리 · 기산일',(()=>{
       const from=ncFrom(), rfTo=nc.rf==='있음'?nc.rfEnd:'', rfDays=rfTo&&nc.start?dnum(rfTo)-dnum(nc.start)+1:0;
@@ -3195,11 +3238,14 @@ function CTR2(){
         :'<div class="c2" style="margin:0">이 건물에 설정된 정산 항목이 없습니다</div>')
       +`<div style="margin-top:12px">${R('정산액 부담 계약',S('payTo',[['','없음 (이 계약이 낸다)'],...others.map(c=>[c.no,`${c.no} · ${c.ten}`])]))}</div>`)
     +card('임대조건 조정 일정',
-      (nc.adj.map((x,i)=>`<div class="fr"><input type="date" value="${x.d}" onchange="ncRow('adj',${i},'d',this.value)" style="max-width:140px">
-        <select onchange="ncRow('adj',${i},'t',this.value)" style="max-width:120px">${['임대료','고정관리비','둘 다'].map(o=>`<option ${x.t===o?'selected':''}>${o}</option>`).join('')}</select>
-        <input type="text" value="${x.amt}" placeholder="조정 후 금액 (부가세 포함)" onchange="ncRow('adj',${i},'amt',this.value)" style="text-align:right">
-        <button class="btn sm" onclick="nc.adj.splice(${i},1);render(true)">삭제</button></div>`).join('')||'<div class="c2" style="margin:0 0 8px">계약서에 「0000년 00월부터 임대료 000원」이 있을 때만 넣습니다</div>')
-      +`<button class="btn sm" onclick="nc.adj.push({d:'',t:'임대료',amt:''});render(true)">+ 일정 추가</button>`,'적용일에 알림 · 자동 변경하지 않음')
+      '<div class="c2" style="margin:-4px 0 10px;white-space:normal">계약서에 「0000년 00월 00일부터 임대료·관리비 얼마」가 있으면 넣습니다. <b>적용일부터 새 금액으로 자동 청구</b>합니다. 30일 전에 알려 드립니다.</div>'
+      +nc.adj.map((x,i)=>{const K=(f,ph)=>`<input type="text" inputmode="numeric" value="${x[f]?numOf(x[f]).toLocaleString('ko-KR'):''}" placeholder="${ph}"
+          oninput="kwLive(this)" onchange="ncRow('adj',${i},'${f}',this.value)" style="text-align:right"><span class="kw">${korWon(numOf(x[f]))}</span>`;
+        return `<div style="border:1px solid var(--line);border-radius:var(--r-sm);padding:10px 12px 2px;margin-bottom:10px">
+          ${R('적용일',`<input type="date" value="${x.d}" onchange="ncRow('adj',${i},'d',this.value)"><button class="btn sm" onclick="nc.adj.splice(${i},1);render(true)">삭제</button>`)}
+          ${R('임대료',K('rent','바뀐 금액 (부가세 포함)'))}${R('고정관리비',K('mgmt','바뀐 금액 (부가세 포함)'))}
+          <div class="c2" style="margin:-4px 0 8px 114px">비워 두면 그 항목은 그대로입니다</div></div>`;}).join('')
+      +`<button class="btn sm" onclick="nc.adj.push({d:'',rent:'',mgmt:''});render(true)">+ 일정 추가</button>`)
     +card('자료 · 메모',`<div style="border:1.5px dashed var(--line);border-radius:var(--r-sm);padding:18px;text-align:center;color:var(--muted);font-size:12.5px;margin-bottom:10px">
         계약서 · 사업자등록증 파일을 끌어다 놓으세요</div>
       <textarea rows="3" placeholder="메모" style="width:100%;border:1px solid var(--line);border-radius:var(--r-sm);padding:8px;font:inherit;font-size:12.5px"

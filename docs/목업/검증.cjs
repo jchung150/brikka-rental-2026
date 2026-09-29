@@ -33,6 +33,9 @@ for (const c of ['elec', 'water', 'gas', 'parking'])
   run('PAY-10 ' + c, "pCode='" + c + "';PAY10()");
 run('PAY-10 항목 없음', "Object.keys(BILL).forEach(k=>BILL[k].on=false);PAY10()");
 run('PAY-10 패널', "DRAWER='additem';dPick=['fund'];drawerHTML()");
+run('PAY-10 일회성 청구', "dPick=['once'];dApply();onceSet(0,'k','b1본관B2');onceSet(0,'amt','110000');onceAdd();PAY10()+drawerHTML()");
+run('PAY-10 일회성 청구만', "Object.keys(BILL).forEach(k=>BILL[k].on=false);ONCE.on=true;pCode='once';PAY10()");
+run('CTR-2 변경 일정', "nc=null;CTR2();nc.adj.push({d:'2028-11-01',rent:'3465000',mgmt:''});CTR2()");
 run('PRO-1', 'PRO1()');
 run('CTR-2 빈 화면', "nc=null;CTR2()");
 run('CTR-2 입력 · 조회 · 토글', "nc=null;CTR2();ncSet('no','본관302호');ncSet('start','2026-09-01');nc.biz='211-86-40519';ncLookup();ncSet('diff',true);ncSet('proxy',true);ncSet('agent',true);ncSet('late',true);nc.adj.push({d:'',t:'임대료',amt:''});ncVarTog('주차비');CTR2()");
@@ -298,6 +301,12 @@ run('CTR-3 새로 등록한 계약', "seedJuly();CTRS.push({b:'b1',no:'본관302
 const KW = new Function(stub + bare + '; return korWon;')();
 r6.push(['금액 읽기 — 500만원 · 1억원 · 1억 2,345만 6,789원 · 55만원',
   KW(5000000) === '500만원' && KW(100000000) === '1억원' && KW(123456789) === '1억 2,345만 6,789원' && KW(550000) === '55만원']);
+/* 일회성 청구 — 관리비 정산에서 넣으면 그 계약의 이번 청구서에 실린다 → PAY-10 · PAY-1 */
+const Q = new Function(stub + bare + '; return {dApply,onceSet,ISSUE,ONCE,set dPick(v){dPick=v;}};')();
+Q.dPick = ['once']; Q.dApply(); Q.onceSet(0, 'k', 'b1본관B2'); Q.onceSet(0, 'n', '엘리베이터 사용료'); Q.onceSet(0, 'amt', '110000');
+const qb = Q.ISSUE().find(c => c.no === '본관B2'), ql = qb && qb.lines.find(l => l.n === '엘리베이터 사용료');
+r6.push(['일회성 청구 11만 → 루비뮤직 8월 청구서에 한 줄 · 공급가액 100,000 · 부가세 10,000',
+  Q.ONCE.on && ql && ql.amt === 110000 && ql.supply === 100000 && ql.vat === 10000]);
 const bad6 = r6.filter(x => !x[1]);
 if (bad6.length) fail = 1;
 console.log('⑥ 수납 기록 ' + (bad6.length ? '✗ ' + bad6.map(x => x[0]).join(' / ') : 'OK — ' + r6.length + '개 검산'));
