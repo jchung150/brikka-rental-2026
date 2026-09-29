@@ -54,6 +54,7 @@ for (const f of ["f1c.st=''", "f1c.b='b2'", "f1c.dd='90'", "f1c.dd='0'"]) run('C
 run('CTR-3 요약', "tab3c='요약';CTR3('b1별관3층')");
 run('CTR-3 빈 탭', "tab3c='자료보관';CTR3('b1별관3층')");
 run('CTR-3 원장 비씨에이전시', "tab3c='원장정보';CTR3('b1별관3층')");
+run('CTR-3 원장 전체 펼침', "tab3c='원장정보';g3All=true;CTR3('b1본관1층')");
 run('CTR-3 원장 필터', "tab3c='원장정보';f3={per:'3',acc:'수익'};CTR3('b1본관302호')");
 run('CTR-3 없는 계약', "CTR3('b9없음')");
 run('PAY-2 전체 펼침 · 전체 계약', "g2All=true;f2.all=true;PAY2()");

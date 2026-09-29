@@ -437,6 +437,8 @@ table.nowr th,table.nowr td{white-space:nowrap}
 .rcr > :nth-child(4){padding-left:28px}
 .ctr{grid-template-columns:minmax(260px,1fr) 150px 150px 150px 100px}
 .schr.dep .nm{color:var(--muted)}
+.led{grid-template-columns:96px 92px 40px minmax(200px,1fr) 104px 90px 112px 112px 124px}
+.schr.led.sub .nm{padding-left:14px}
 .arr{grid-template-columns:minmax(300px,1.6fr) 210px 90px 100px 130px}
 .schr.arr.mo{border-top:1px solid var(--line-2)}
 .rcx{padding:4px 14px 14px 46px;background:var(--soft);border-bottom:1px solid var(--line-2)}
@@ -2228,7 +2230,7 @@ Object.entries(AUG).forEach(([no,ls])=>ls.forEach(([n,amt])=>
 const PAID={};
 /* 수납 일자 — 청구 건별 [{date,amt}]. 연체료 구간 계산에 쓴다 → 4.4 */
 const PAYEV={};
-const addPay=(id,amt,date,src)=>{PAID[id]=(PAID[id]||0)+amt;(PAYEV[id]=PAYEV[id]||[]).push({date,amt,src:src||'이전 입금'});};
+const addPay=(id,amt,date,src,dep)=>{PAID[id]=(PAID[id]||0)+amt;(PAYEV[id]=PAYEV[id]||[]).push({date,amt,src:src||'이전 입금',dep:dep||'prev'});};
 
 /* 2026-06 · 07 회차 — 지난달까지의 원장. 대부분 계약은 8월과 같은 금액을 청구받아 완납했다.
    (주)비씨에이전시는 6·7월 모두 한 푼도 내지 않았다 → 8월 입금 5,000,000원이 6월분부터 채운다
@@ -2373,7 +2375,7 @@ function rcConfirm(no){
   const B=rcBiz(), d=RC.P.dep.find(x=>x.no===no), g=rcGuess(d,B);
   if(!g.biz) return;
   const pl=rcPreview(d,g.biz,B);
-  pl.lines.forEach(l=>addPay(l.id,l.pay,d.dt.slice(0,10).replace(/\./g,'-'),`${d.dt.slice(5,16)} ${d.name} ${won(d.amt)}`));
+  pl.lines.forEach(l=>addPay(l.id,l.pay,d.dt.slice(0,10).replace(/\./g,'-'),`${d.dt.slice(11,19)} ${d.name}`,'d'+d.no));
   if(RC.reg[no]!==false&&g.st!=='자동') RC.alias[g.nm]=g.biz;   /* 입금자명 등록 */
   RC.dec[no]={done:{st:'확정',was:g.st,biz:g.biz,basis:g.basis,nm:g.nm,...pl}};
   RC.cur=rcNext(); render(true);
@@ -2775,20 +2777,23 @@ function ledgerOf(k){
   const c=CTRS.find(x=>x.b+x.no===k), rows=[];
   const rent=((c.it||[]).find(x=>x[0]==='임대료')||[])[1]||0;
   /* 보증금 — 목업 예시값(월 임대료 × 10) */
-  rows.push({date:c.base,type:'보증금 예치',acc:'부채',memo:'계약 보증금 (예시값)',inc:rent*10,sup:null,vat:null,ord:0});
+  rows.push({date:c.base,type:'보증금 예치',acc:'부채',memo:'계약 보증금 (예시값)',item:'계약 보증금 (예시값)',g:'dep',inc:rent*10,sup:null,vat:null,ord:0});
   BILLS.filter(i=>i.k===k).forEach(i=>{
     const tax=isTaxItem(i.n), sup=tax?Math.round(i.amt/1.1):i.amt;
-    rows.push({date:i.ym+'-19',type:'청구',acc:'수익',memo:`${i.ym.slice(2).replace('-','.')}월분 ${i.n}`,
+    const ymL=i.ym.slice(2).replace('-','.')+'월분';
+    rows.push({date:i.ym+'-19',type:'청구',acc:'수익',memo:`${ymL} ${i.n}`,item:`${ymL} ${i.n}`,g:'bill'+i.ym,ym:i.ym,
       inc:i.amt,sup,vat:i.amt-sup,ord:1,pr:prioOf(i.n.split(' ')[0])});
     (PAYEV[i.id]||[]).forEach(e=>rows.push({date:e.date,type:'수납',acc:'수익',
-      memo:`${i.ym.slice(2).replace('-','.')}월분 ${i.n} ← ${e.src}`,dec:e.amt,sup:null,vat:null,ord:2,pr:prioOf(i.n.split(' ')[0])}));
+      memo:`${ymL} ${i.n} ← ${e.src}`,item:`${ymL} ${i.n}`,src:e.src,g:'pay'+e.dep,dec:e.amt,sup:null,vat:null,ord:2,pr:prioOf(i.n.split(' ')[0])}));
   });
   rows.sort((a,b)=>dnum(a.date)-dnum(b.date)||a.ord-b.ord||(a.pr||0)-(b.pr||0));
   const bal={수익:0,부채:0};
   rows.forEach(r=>{bal[r.acc]+=(r.inc||0)-(r.dec||0);r.bal=bal[r.acc];});
   return {c,rows,bal};
 }
-let tab3c='요약';
+let tab3c='요약', g3={}, g3All=false;
+const g3Open=k=>(k in g3)?g3[k]:g3All;
+const g3Tog=k=>{g3[k]=!g3Open(k);render(true);};
 function CTR3(k){
   const c=CTRS.find(x=>x.b+x.no===k);
   if(!c) return TODO('ctr-1');
@@ -2813,23 +2818,44 @@ function CTR3(k){
     <span class="c2" style="margin-left:auto">미납 잔액 <b style="color:${L.bal.수익?'var(--warn)':'var(--ink)'}">${won(L.bal.수익)}</b>
       · 보증금 잔액 <b style="color:var(--ink)">${won(L.bal.부채)}</b>${fee?` · 청구 전 연체료 ${won(fee)}`:''}</span>
   </div>
-  <div class="tbl"><div class="tw"><table class="nowr">
-    <thead><tr><th>날짜</th><th>거래유형</th><th>계정</th><th>내용</th>
-      <th class="n">공급가액</th><th class="n">부가세</th><th class="n">증가</th><th class="n">감소</th><th class="n">잔액</th></tr></thead>
-    <tbody>${rows.map(r=>`<tr>
-      <td>${r.date.slice(2).replace(/-/g,'.')}</td>
-      <td><span class="bd ${TP[r.type]||'mu'}">${r.type}</span></td>
-      <td class="c2" style="margin:0">${r.acc}</td>
-      <td>${r.memo}</td>
-      <td class="n c2" style="margin:0">${r.sup!=null?won(r.sup):''}</td>
-      <td class="n c2" style="margin:0">${r.vat?won(r.vat):''}</td>
-      <td class="n">${r.inc?won(r.inc):''}</td>
-      <td class="n">${r.dec?won(r.dec):''}</td>
-      <td class="n"><b>${won(r.bal)}</b></td></tr>`).join('')}
-    ${rows.length?'':`<tr><td colspan="9"><div class="empty">이 기간에 거래가 없습니다</div></td></tr>`}
-    </tbody></table></div></div>
+  ${(()=>{
+    /* 묶음 — 청구는 청구서 하나, 수납은 입금 하나, 보증금은 거래 하나. rows는 이미 최근 순이다 */
+    const G=[];rows.forEach(r=>{const last=G[G.length-1];
+      if(last&&last.g===r.g&&last.date===r.date) last.items.push(r); else G.push({g:r.g,date:r.date,type:r.type,acc:r.acc,items:[r]});});
+    G.forEach(x=>{const it=x.items;x.bal=it[0].bal;   /* 최근 순이므로 첫 행이 묶음 끝의 잔액 */
+      x.inc=it.reduce((a,r)=>a+(r.inc||0),0);x.dec=it.reduce((a,r)=>a+(r.dec||0),0);
+      x.sup=it.some(r=>r.sup!=null)?it.reduce((a,r)=>a+(r.sup||0),0):null;x.vat=it.reduce((a,r)=>a+(r.vat||0),0);
+      x.title=x.type==='청구'?`${it[0].ym.slice(2).replace('-','.')}월분 청구서`:x.type==='수납'?(it[0].src==='이전 입금'?'이전 입금':`${it[0].src} 입금`):it[0].item;
+      x.key=x.g+'|'+x.date;});
+    const anyOp=G.some(x=>g3Open(x.key));
+    const body=G.map(x=>{const op=g3Open(x.key), many=x.items.length>1;
+      return `<div class="schr led grp" onclick="${many?`g3Tog('${x.key}')`:''}">
+        <div class="nm"><span class="tg ${op?'op':''}" style="${many?'':'visibility:hidden'}">${ic('chev',16)}</span>${x.date.slice(2).replace(/-/g,'.')}</div>
+        <div><span class="bd ${TP[x.type]||'mu'}">${x.type}</span></div>
+        <div class="c2" style="margin:0">${x.acc}</div>
+        <div>${x.title}${many?`<span class="c2" style="margin-left:6px">${x.type==='수납'?`${x.items.length}건에 배분`:`${x.items.length}건`}</span>`:''}</div>
+        <div class="n c2" style="margin:0">${x.sup!=null?won(x.sup):''}</div>
+        <div class="n c2" style="margin:0">${x.vat?won(x.vat):''}</div>
+        <div class="n">${x.inc?won(x.inc):''}</div>
+        <div class="n">${x.dec?won(x.dec):''}</div>
+        <div class="n"><b>${won(x.bal)}</b></div></div>`
+      +(!op||!many?'':x.items.map(r=>`<div class="schr led sub">
+        <div></div><div></div><div></div>
+        <div class="nm">${r.item}</div>
+        <div class="n c2" style="margin:0">${r.sup!=null?won(r.sup):''}</div>
+        <div class="n c2" style="margin:0">${r.vat?won(r.vat):''}</div>
+        <div class="n c2" style="margin:0">${r.inc?won(r.inc):''}</div>
+        <div class="n c2" style="margin:0">${r.dec?won(r.dec):''}</div>
+        <div class="n c2" style="margin:0">${won(r.bal)}</div></div>`).join(''));}).join('');
+    return `<div style="display:flex;justify-content:flex-end;margin:-6px 0 8px">${G.length?`<button class="btn sm" onclick="g3All=${anyOp?'false':'true'};g3={};render(true)">${anyOp?'전체 접기':'전체 펼치기'}</button>`:''}</div>
+    <div class="tbl schl">
+      <div class="schr led hd"><div>날짜</div><div>거래유형</div><div>계정</div><div>내용</div>
+        <div class="n">공급가액</div><div class="n">부가세</div><div class="n">증가</div><div class="n">감소</div><div class="n">잔액</div></div>
+      ${body||'<div class="empty">이 기간에 거래가 없습니다</div>'}
+    </div>`;})()}
   <div class="hint">
-    이 계약의 모든 돈 거래입니다. 최근 거래가 위에 있고, 잔액은 그 거래 직후의 금액입니다. 수익계정과 부채계정의 잔액은 따로 셉니다.<br>
+    이 계약의 모든 돈 거래입니다. 청구서 한 장, 입금 한 건을 한 줄로 묶었습니다. 펼치면 항목별로 보입니다.<br>
+    최근 거래가 위에 있고, 잔액은 그 거래 직후의 금액입니다. 수익계정과 부채계정의 잔액은 따로 셉니다.<br>
     원장은 고치지 않습니다. 잘못된 거래는 취소 거래를 추가해 바로잡습니다. 연체료는 청구해야 원장에 올라옵니다.</div>`;
 }
 
