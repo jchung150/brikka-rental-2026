@@ -2563,7 +2563,6 @@ function PAY6(){
   }).join('');
   return `
   <div class="ph"><h1>수납 내역</h1><span class="sid">PAY-6</span>
-    <div class="act">${waitN?`<button class="btn pri" onclick="go('pay-13')">입금 매칭 ${waitN}건 →</button>`:''}</div>
   </div>
   <div class="fbar">
     <select onchange="setRC('b',this.value)">
@@ -2594,7 +2593,7 @@ function PAY6(){
   </div>`}
   <div class="hint">
     선택한 달의 청구를 계약별로 다 받았는지 봅니다. 금액은 부가세 포함입니다.<br>
-    밀린 달 전부의 미납과 독촉은 미납 기록에서, 입금 한 건 한 건은 입금 매칭에서 봅니다.</div>`;
+    밀린 달 전부의 미납과 미납 안내는 미납 기록에서, 입금 한 건 한 건은 입금 매칭에서 봅니다.</div>`;
 }
 
 /* ═══ PAY-2 미납 기록 — 계약별로 지금까지 쌓인 미납액 전부. 청구년월로 자르지 않는다 ═══ */
@@ -2652,7 +2651,7 @@ function PAY2(){
     <div class="act">
       <button class="btn" onclick="alert('수납 처리 — 입금 매칭(PAY-13)의 수동 입력으로 연결한다. 선택한 계약의 임차인을 미리 채운다')">수납 처리</button>
       <button class="btn" ${nSel?'':'disabled'} onclick="alert('연체료 청구 — 선택한 계약의 연체료를 청구 항목(우선순위 99)으로 생성하고 원장에 기록한다. 청구한 날까지의 구간은 다시 계산하지 않는다')">연체료 청구${nSel?` ${nSel}건`:''}</button>
-      <button class="btn pri" ${nSel?'':'disabled'} onclick="alert('독촉 메일 발송 — 월별 미납액·연체일수·연체료 내역을 담아 임차인 담당자에게 보낸다')">독촉 메일 발송${nSel?` ${nSel}건`:''}</button></div>
+      <button class="btn pri" ${nSel?'':'disabled'} onclick="alert('미납 안내 메일 — 월별 미납액·연체일수·연체료 내역을 담아 임차인 담당자에게 보낸다')">미납 안내 메일${nSel?` ${nSel}건`:''}</button></div>
   </div>
   <div class="fbar">
     <select onchange="setF2('b',this.value)">
