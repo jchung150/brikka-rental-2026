@@ -203,6 +203,7 @@ tr.exr td{background:var(--line-2);color:var(--muted)}
 .fr select,.fr input[type=text],.fr input[type=date]{flex:1;border:1px solid var(--line);
   background:var(--bg);padding:6px 9px;border-radius:var(--r-sm);font-size:12.5px;font-family:inherit}
 .fr .fv{flex:1}
+.fr .kw{min-width:92px;color:var(--ink-2);font-size:12.5px;white-space:nowrap}
 .ck{display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-size:12.5px}
 .fr .fk b{font-weight:600}
 .ulist{border:1px solid var(--line);border-radius:var(--r-sm);max-height:196px;overflow-y:auto}
@@ -3035,13 +3036,15 @@ function ncInit(){
       kind:'법인',biz:'',found:null,ten:'',ceo:'',addr:'',item:'',alias:'',
       pn:'',pt:'',ptel:'',pmail:'',diff:false,cn:'',cbiz:'',cceo:'',ctel:'',cmail:'',caddr:'',rbank:'',racct:'',rname:'',
       proxy:false,xn:'',xtel:'',xmail:'',xaddr:'',an:'',aceo:'',ano:'',atel:'',aaddr:'',
-      dep:'',depDue:'',depRet:'',park:'0',parkFee:'',rent:'',mgmt:'',late:false,lateD:'',rf:'',rfM:'',rfRent:true,rfMgmt:false,rfVar:false,
-      vars:null,payTo:'',extra:[],adj:[],memo:'',tried:false};
+      dep:'',depDue:'',depRet:'',park:'0',parkFee:'',rent:'',mgmt:'',late:false,lateD:'',rf:'',rfM:'',rfEnd:'',rfRent:true,rfMgmt:false,rfVar:false,
+      vars:null,payTo:'',adj:[],memo:'',tried:false};
 }
 function ncSet(f,v){
   nc[f]=v;
   if(f==='b'){nc.no='';nc.vars=null;nc.payTo='';}
-  if(f==='start'){nc.end=ncEnd(v);if(!nc.depRet) nc.depRet=nc.end;}
+  if(f==='start'){nc.end=ncEnd(v);if(!nc.depRet) nc.depRet=nc.end;if(nc.rfM) nc.rfEnd=rfEndOf(v,nc.rfM);}
+  if(f==='rfM') nc.rfEnd=rfEndOf(nc.start,v);
+  if(f==='rfEnd') nc.rfM='';
   if(f==='end'&&(!nc.depRet||nc.depRet===ncEnd(nc.start))) nc.depRet=v;
   render(true);
 }
@@ -3069,7 +3072,7 @@ function ncMissing(){
   if(!nc.biz.trim()) m.push('사업자등록번호'); if(!nc.ten.trim()) m.push('상호');
   if(!nc.pmail.trim()) m.push('담당자 이메일');
   if(!numOf(nc.rent)) m.push('임대료'); if(!numOf(nc.mgmt)) m.push('고정관리비');
-  if(!nc.rf) m.push('렌트프리 여부'); else if(nc.rf==='있음'&&!(parseInt(nc.rfM)>0)) m.push('렌트프리 기간');
+  if(!nc.rf) m.push('렌트프리 여부'); else if(nc.rf==='있음'&&!ncFrom()) m.push('렌트프리 끝나는 날');
   return m;
 }
 function ncSave(welcome){
@@ -3081,19 +3084,32 @@ function ncSave(welcome){
   const c={b:nc.b,no:nc.no,ten:nc.ten.trim(),st:nc.st,base:nc.start,end:nc.end||ncEnd(nc.start),rate:+nc.rate||8,
     dep:numOf(nc.dep)||null,payTo:nc.payTo||undefined,fresh:true,
     /* 기산일 — 렌트프리면 체크한 항목만 기산일부터, 나머지는 계약시작일부터 청구한다 */
-    from:ncFrom()!==nc.start?ncFrom():null,rf:nc.rf==='있음'?{months:parseInt(nc.rfM),rent:nc.rfRent,mgmt:nc.rfMgmt,vars:nc.rfVar}:null,
+    from:ncFrom()!==nc.start?ncFrom():null,rf:nc.rf==='있음'?{end:nc.rfEnd,rent:nc.rfRent,mgmt:nc.rfMgmt,vars:nc.rfVar}:null,
     it:[['임대료',ncSup(numOf(nc.rent))],['고정관리비',ncSup(numOf(nc.mgmt))],...vars.map(n=>[n])]};
   if(CTRS.some(x=>x.b===c.b&&x.no===c.no)) c.key=`${c.b}${c.no}@${c.base}`;
   CTRS.push(c);
   const k=ckey(c); nc=null; tab3c='요약'; go('ctr-3/'+k);
+}
+/* 렌트프리 끝나는 날 — N개월(소수는 30일 기준 날짜로). 1.5개월 = 1개월 + 15일. 끝나는 날은 직접 고칠 수 있다 */
+function rfEndOf(start,m){
+  const v=parseFloat(m); if(!start||!(v>0)) return '';
+  const w=Math.floor(v), d=new Date(start+'T00:00:00Z');
+  d.setUTCMonth(d.getUTCMonth()+w); d.setUTCDate(d.getUTCDate()+Math.round((v-w)*30)-1);
+  return d.toISOString().slice(0,10);
+}
+/* 금액을 읽기 쉽게 — 5000000 → 500만원, 100000000 → 1억원, 123456789 → 1억 2,345만 6,789원 */
+function korWon(n){
+  if(!n) return '';
+  const e=Math.floor(n/1e8), m=Math.floor(n%1e8/1e4), r=n%1e4, p=[];
+  if(e) p.push(num(e)+'억'); if(m) p.push(num(m)+'만'); if(r) p.push(num(r));
+  return p.join(' ')+'원';
 }
 /* 공급가액 역산 — 정수로 계산한다(1.1로 나누면 소수 오차가 난다) */
 const ncSup=n=>Math.floor(n*10/11);
 /* 기산일 — 렌트프리가 있으면 계약시작일 + N개월, 없으면 계약시작일(따로 정했으면 그 날) */
 function ncFrom(){
   if(!nc.start) return '';
-  if(nc.rf==='있음'){const m=parseInt(nc.rfM)||0; if(!m) return '';
-    const d=new Date(nc.start+'T00:00:00Z'); d.setUTCMonth(d.getUTCMonth()+m); return d.toISOString().slice(0,10);}
+  if(nc.rf==='있음') return nc.rfEnd&&dnum(nc.rfEnd)>=dnum(nc.start)?new Date((dnum(nc.rfEnd)+1)*864e5).toISOString().slice(0,10):'';
   return nc.late&&nc.lateD?nc.lateD:nc.start;
 }
 /* 이 계약에 적용할 변동 항목 — 건물 관리비 설정에서 쓰는 항목만. 기본은 전부 적용 */
@@ -3108,13 +3124,14 @@ function CTR2(){
   const bd=BUILDINGS.find(x=>x.id===nc.b), U=ncUnits(nc.b), cl=ncClash(), miss=nc.tried?ncMissing():[];
   const T=(f,ph,w)=>`<input type="text" value="${nc[f]}" placeholder="${ph||''}" onchange="ncSet('${f}',this.value)"${w?` style="max-width:${w}px"`:''}>`;
   const D=f=>`<input type="date" value="${nc[f]}" onchange="ncSet('${f}',this.value)">`;
-  const N=(f,ph)=>`<input type="text" inputmode="numeric" value="${nc[f]?numOf(nc[f]).toLocaleString('ko-KR'):''}" placeholder="${ph||''}" onchange="ncSet('${f}',this.value)" style="text-align:right">`;
+  const N=(f,ph)=>`<input type="text" inputmode="numeric" value="${nc[f]?numOf(nc[f]).toLocaleString('ko-KR'):''}" placeholder="${ph||''}" onchange="ncSet('${f}',this.value)" style="text-align:right">
+    <span class="kw">${korWon(numOf(nc[f]))}</span>`;
   const S=(f,opts)=>`<select onchange="ncSet('${f}',this.value)">${opts.map(o=>{const [v,t]=Array.isArray(o)?o:[o,o];
     return `<option value="${v}" ${String(nc[f])===String(v)?'selected':''}>${t}</option>`;}).join('')}</select>`;
   const C=(f,t)=>`<label class="ck"><input type="checkbox" ${nc[f]?'checked':''} onchange="ncSet('${f}',this.checked)">${t}</label>`;
   const R=(k,body,req)=>`<div class="fr"><span class="fk">${k}${req?' <b style="color:var(--warn)">*</b>':''}</span>${body}</div>`;
   /* 부가세 포함 금액에서 역산 — 공급가액 = 합계 ÷ 1.1 원 미만 절사, 부가세 = 합계 − 공급가액 → 4.2.6 */
-  const vat=v=>{const n=numOf(v), sp=ncSup(n);return n?`<span class="c2" style="white-space:nowrap">공급가액 ${won(sp)} · 부가세 ${won(n-sp)}</span>`:'';};
+  const vat=v=>{const n=numOf(v), sp=ncSup(n);return n?`<div class="c2" style="margin:-4px 0 9px 114px">공급가액 ${won(sp)} · 부가세 ${won(n-sp)}</div>`:'';};
   const d8=d=>d?d.replace(/-/g,'.'):'';
   const others=CTRS.filter(c=>c.b===nc.b&&(c.st==='진행중'||c.st==='준비중')&&c.no!==nc.no);
   const card=(t,body,sub)=>`<div class="card" style="margin:0 0 16px"><div class="ct">${t}${sub?`<span class="sub">${sub}</span>`:''}</div><div class="cc">${body}</div></div>`;
@@ -3130,7 +3147,7 @@ function CTR2(){
       +R('계약상태',S('st',['준비중','진행중']))
       +R('계약유형',S('type',['확정기간계약','확정기간후자동갱신']))
       +R('계약시작일',D('start'),1)
-      +R('계약종료일',D('end')+(nc.start?`<span class="c2" style="white-space:nowrap">기본 2년</span>`:''))
+      +R('계약종료일',D('end'))
       +R('연체이자율',`${T('rate','',70)}<span class="c2">연 %</span>`))
     +card('임차인 정보','<div class="c2" style="margin:-4px 0 10px">사업자등록번호로 이 시스템에 이미 등록된 임차인인지 확인합니다</div>'
       +R('사업자등록번호',`<input type="text" value="${nc.biz}" placeholder="000-00-00000" onchange="nc.biz=this.value;nc.found=null;render(true)">
@@ -3153,39 +3170,34 @@ function CTR2(){
   const vl=ncVarList(bd);
   const right=
     card('임대료 · 관리비','<div class="c2" style="margin:-4px 0 10px">부가세를 포함한 월 금액으로 입력합니다</div>'
-      +R('임대료',N('rent','월 금액 (부가세 포함)')+vat(nc.rent),1)
-      +R('고정관리비',N('mgmt','월 금액 (부가세 포함)')+vat(nc.mgmt),1)
+      +R('임대료',N('rent','월 금액 (부가세 포함)'),1)+vat(nc.rent)
+      +R('고정관리비',N('mgmt','월 금액 (부가세 포함)'),1)+vat(nc.mgmt)
       +R('청구일 · 마감일',`<span class="fv">${bd.billDay} · ${bd.dueDay} <span class="c2">건물 기본값</span></span>`))
     +card('렌트프리 · 기산일',(()=>{
-      const from=ncFrom(), rfTo=nc.rf==='있음'&&from&&nc.start?new Date((dnum(from)-1)*864e5).toISOString().slice(0,10):'';
+      const from=ncFrom(), rfTo=nc.rf==='있음'?nc.rfEnd:'', rfDays=rfTo&&nc.start?dnum(rfTo)-dnum(nc.start)+1:0;
       return R('렌트프리',`<label class="ck"><input type="radio" name="rf" ${nc.rf==='있음'?'checked':''} onchange="ncSet('rf','있음')">있음</label>
             <label class="ck" style="margin-left:14px"><input type="radio" name="rf" ${nc.rf==='없음'?'checked':''} onchange="ncSet('rf','없음')">없음</label>`,1)
-        +(nc.rf==='있음'?R('기간',`<span class="c2" style="margin:0;white-space:nowrap">계약시작일부터</span>${T('rfM','',60)}<span class="c2" style="margin:0">개월</span>
-              <span class="c2" style="white-space:nowrap">${rfTo?`${d8(nc.start)} ~ ${d8(rfTo)}`:nc.start?'':'계약시작일을 먼저 넣으세요'}</span>`,1)
-          +R('대상',`<div style="display:flex;gap:14px;flex-wrap:wrap">${C('rfRent','임대료')}${C('rfMgmt','고정관리비')}${C('rfVar','정산 항목 (전기·수도 등)')}</div>`)
+        +(nc.rf==='있음'?R('기간',`${T('rfM','',60)}<span class="c2" style="margin:0">개월</span>
+              <span class="c2" style="margin:0 2px">또는 끝나는 날</span>${D('rfEnd')}`,1)
+          +`<div class="c2" style="margin:-4px 0 9px 114px">${!nc.start?'계약시작일을 먼저 넣으세요':rfTo?(rfDays>0?`${d8(nc.start)} ~ ${d8(rfTo)} · <b style="color:var(--ink)">${rfDays}일</b>`:'<b style="color:var(--warn)">끝나는 날이 계약시작일보다 앞입니다</b>'):'개월(1.5 가능)을 넣거나 끝나는 날을 직접 고르세요'}</div>`
+          +R('대상',`<div style="display:flex;gap:14px;flex-wrap:wrap">${C('rfRent','임대료')}${C('rfMgmt','고정관리비')}${C('rfVar','전기·수도 등 청구 항목')}</div>`)
           +'<div class="c2" style="margin:0 0 10px;white-space:normal">체크한 항목은 렌트프리 기간에 청구하지 않고 기산일부터 청구합니다. 체크하지 않은 항목은 계약시작일부터 청구합니다.</div>':'')
         +R('기산일',nc.rf==='있음'
             ?`<span class="fv"><b>${from?d8(from):'—'}</b> <span class="c2">렌트프리가 끝난 다음 날</span></span>`
             :nc.late?D('lateD')+`<span class="c2" style="white-space:nowrap">${nc.lateD&&nc.start&&dnum(nc.lateD)<dnum(nc.start)?'소급':''}</span>`
             :`<span class="fv">${nc.start?d8(nc.start):'—'} <span class="c2">계약시작일과 같음</span></span>`)
         +(nc.rf!=='있음'?R('',C('late','기산일을 따로 정하기 (소급 등)')):'');})())
-    +card('보증금 · 주차',R('보증금',N('dep','약정액'))+R('납부마감일',D('depDue'))+R('반환예정일',D('depRet'))
-      +R('무상 주차',`${T('park','',70)}<span class="c2" style="margin:0">대</span>`)+R('초과 1대 월',N('parkFee','단가')))
-    +card('정산 항목',
-      (vl.length?`<div class="c2" style="margin:-4px 0 10px">${bd.name} 관리비 설정의 항목입니다. 이 계약에 청구할 항목만 남깁니다. 금액은 매달 관리비 정산에서 나옵니다</div>
+    +card('보증금',R('보증금',N('dep','약정액'))+R('납부마감일',D('depDue'))+R('반환예정일',D('depRet')))
+    +card('주차',R('무상 주차',`${T('park','',70)}<span class="c2" style="margin:0">대</span>`)+R('초과 1대 월',N('parkFee','단가 (부가세 포함)')))
+    +card('청구 항목',
+      (vl.length?`<div class="c2" style="margin:-4px 0 10px">${bd.name} 관리비 설정의 항목입니다. 임대료·고정관리비 말고 이 계약에 청구할 항목만 남깁니다. 금액은 매달 관리비 정산에서 나옵니다</div>
         <div style="display:flex;flex-wrap:wrap;gap:8px 16px">${vl.map(x=>`<label class="ck"><input type="checkbox" ${x.on?'checked':''} onchange="ncVarTog('${x.it}')">${x.it}</label>`).join('')}</div>`
         :'<div class="c2" style="margin:0">이 건물에 설정된 정산 항목이 없습니다</div>')
       +`<div style="margin-top:12px">${R('정산액 부담 계약',S('payTo',[['','없음 (이 계약이 낸다)'],...others.map(c=>[c.no,`${c.no} · ${c.ten}`])]))}</div>`)
-    +card('비정기 청구',
-      (nc.extra.map((x,i)=>`<div class="fr"><select onchange="ncRow('extra',${i},'it',this.value)" style="max-width:150px">${['교통유발부담금','정화조청소비','기타'].map(o=>`<option ${x.it===o?'selected':''}>${o}</option>`).join('')}</select>
-        <input type="text" value="${x.amt}" placeholder="금액" onchange="ncRow('extra',${i},'amt',this.value)" style="text-align:right">
-        <input type="text" value="${x.ym}" placeholder="청구년월 2026-09" onchange="ncRow('extra',${i},'ym',this.value)" style="max-width:130px">
-        <button class="btn sm" onclick="nc.extra.splice(${i},1);render(true)">삭제</button></div>`).join('')||'<div class="c2" style="margin:0 0 8px">한 번만 청구하는 항목이 있으면 추가합니다</div>')
-      +`<button class="btn sm" onclick="nc.extra.push({it:'기타',amt:'',ym:''});render(true)">+ 항목 추가</button>`)
     +card('임대조건 조정 일정',
       (nc.adj.map((x,i)=>`<div class="fr"><input type="date" value="${x.d}" onchange="ncRow('adj',${i},'d',this.value)" style="max-width:140px">
         <select onchange="ncRow('adj',${i},'t',this.value)" style="max-width:120px">${['임대료','고정관리비','둘 다'].map(o=>`<option ${x.t===o?'selected':''}>${o}</option>`).join('')}</select>
-        <input type="text" value="${x.amt}" placeholder="조정 후 금액" onchange="ncRow('adj',${i},'amt',this.value)" style="text-align:right">
+        <input type="text" value="${x.amt}" placeholder="조정 후 금액 (부가세 포함)" onchange="ncRow('adj',${i},'amt',this.value)" style="text-align:right">
         <button class="btn sm" onclick="nc.adj.splice(${i},1);render(true)">삭제</button></div>`).join('')||'<div class="c2" style="margin:0 0 8px">계약서에 「0000년 00월부터 임대료 000원」이 있을 때만 넣습니다</div>')
       +`<button class="btn sm" onclick="nc.adj.push({d:'',t:'임대료',amt:''});render(true)">+ 일정 추가</button>`,'적용일에 알림 · 자동 변경하지 않음')
     +card('자료 · 메모',`<div style="border:1.5px dashed var(--line);border-radius:var(--r-sm);padding:18px;text-align:center;color:var(--muted);font-size:12.5px;margin-bottom:10px">
@@ -3195,7 +3207,7 @@ function CTR2(){
   return `
   <div class="ph"><h1>새로운 계약 등록</h1><span class="sid">CTR-2</span>
     <div class="act"><button class="btn" onclick="nc=null;go('ctr-1')">취소</button></div></div>
-  <div class="two" style="align-items:start">${'<div>'+left+'</div><div>'+right+'</div>'}</div>
+  <div class="two" style="align-items:start;grid-template-columns:minmax(0,1fr) minmax(0,1fr)">${'<div>'+left+'</div><div>'+right+'</div>'}</div>
   ${miss.length||(nc.tried&&cl&&cl.block)?`<div class="fnd wa3" style="margin-bottom:12px"><span class="h">저장할 수 없습니다</span>
     ${miss.length?`빠진 항목: <b>${miss.join(' · ')}</b>`:''}${cl&&cl.block?`${miss.length?'<br>':''}같은 유닛의 진행중 계약과 기간이 겹칩니다.`:''}</div>`:''}
   <div style="display:flex;gap:8px;justify-content:flex-end;align-items:center;padding:14px 0;border-top:1px solid var(--line)">

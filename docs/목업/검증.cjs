@@ -35,8 +35,8 @@ run('PAY-10 항목 없음', "Object.keys(BILL).forEach(k=>BILL[k].on=false);PAY1
 run('PAY-10 패널', "DRAWER='additem';dPick=['fund'];drawerHTML()");
 run('PRO-1', 'PRO1()');
 run('CTR-2 빈 화면', "nc=null;CTR2()");
-run('CTR-2 입력 · 조회 · 토글', "nc=null;CTR2();ncSet('no','본관302호');ncSet('start','2026-09-01');nc.biz='211-86-40519';ncLookup();ncSet('diff',true);ncSet('proxy',true);ncSet('agent',true);ncSet('late',true);nc.extra.push({it:'기타',amt:'',ym:''});nc.adj.push({d:'',t:'임대료',amt:''});ncVarTog('주차비');CTR2()");
-run('CTR-2 렌트프리', "nc=null;CTR2();ncSet('start','2026-11-01');ncSet('rf','있음');CTR2();ncSet('rfM','2');ncSet('rfMgmt',true);CTR2();ncSet('rf','없음');ncSet('late',true);ncSet('lateD','2026-10-01');CTR2()");
+run('CTR-2 입력 · 조회 · 토글', "nc=null;CTR2();ncSet('no','본관302호');ncSet('start','2026-09-01');nc.biz='211-86-40519';ncLookup();ncSet('diff',true);ncSet('proxy',true);ncSet('agent',true);ncSet('late',true);nc.adj.push({d:'',t:'임대료',amt:''});ncVarTog('주차비');CTR2()");
+run('CTR-2 렌트프리', "nc=null;CTR2();ncSet('start','2026-11-01');ncSet('rf','있음');CTR2();ncSet('rfM','2');CTR2();ncSet('rfEnd','2026-10-01');ncSet('rfMgmt',true);CTR2();ncSet('rf','없음');ncSet('late',true);ncSet('lateD','2026-10-01');CTR2()");
 run('CTR-2 다른 건물', "nc=null;CTR2();ncSet('b','b2');CTR2()");
 run('PRO-1 검색·필터', "f1p={q:'마포',kind:'오피스빌딩',vac:'0'};PRO1()");
 for (const t of ['요약', '유닛', '자료보관', '관리비 설정'])
@@ -287,13 +287,17 @@ K.nc.biz = '211-86-40519'; K.ncLookup(); K.ncSet('pmail', 'a@b.kr'); K.ncSet('re
 const n0 = K.CTRS.length; K.ncSave(false); const kept2 = K.CTRS.length === n0;
 K.ncSet('start', '2026-11-01'); const endAuto = K.nc.end === '2028-10-31';
 K.ncSave(false); const needRf = K.CTRS.length === n0;
-K.ncSet('rf', '있음'); K.ncSet('rfM', '2');
+K.ncSet('rf', '있음'); K.ncSet('rfM', '1.5'); const r15 = K.nc.rfEnd === '2026-12-15';
+K.ncSet('rfEnd', '2026-12-05'); const d35 = K.nc.rfEnd === '2026-12-05' && K.nc.rfM === '';
 K.ncSave(false); const nw = K.CTRS[K.CTRS.length - 1];
-r6.push(['계약 등록 — 겹침 차단 · 렌트프리 여부 필수 · 렌트프리 2개월 → 기산일 2027.01.01 · 부가세 포함 330만 → 공급가액 300만',
-  blk && kept2 && endAuto && needRf && nw.from === '2027-01-01' && nw.rf.months === 2 && nw.it[0][1] === 3000000 && nw.it[1][1] === 500000 && K.CTRS.length === n0 + 1 && nw.st === '준비중' && nw.ten === '(주)비씨에이전시'
+r6.push(['계약 등록 — 겹침 차단 · 렌트프리 여부 필수 · 렌트프리 1.5개월 → 12/15 · 끝나는 날 12/5 직접 → 기산일 2026.12.06 · 부가세 포함 330만 → 공급가액 300만',
+  blk && kept2 && endAuto && needRf && r15 && d35 && nw.from === '2026-12-06' && nw.rf.end === '2026-12-05' && nw.it[0][1] === 3000000 && nw.it[1][1] === 500000 && K.CTRS.length === n0 + 1 && nw.st === '준비중' && nw.ten === '(주)비씨에이전시'
   && K.ctrEnd(nw) === '2028-10-31' && nw.key === 'b1본관302호@2026-11-01' && !K.ledgerOf(nw.key).rows.some(r => r.type === '보증금 예치')
   && K.ledgerOf('b1본관302호').rows.some(r => r.type === '보증금 예치')]);
 run('CTR-3 새로 등록한 계약', "seedJuly();CTRS.push({b:'b1',no:'본관302호',key:'b1본관302호@2026-11-01',ten:'(주)새임차',st:'준비중',base:'2026-11-01',end:'2028-10-31',rate:8,fresh:true,it:[['임대료',3000000],['고정관리비',500000]]});tab3c='원장정보';CTR3('b1본관302호@2026-11-01')+CTR1()");
+const KW = new Function(stub + bare + '; return korWon;')();
+r6.push(['금액 읽기 — 500만원 · 1억원 · 1억 2,345만 6,789원 · 55만원',
+  KW(5000000) === '500만원' && KW(100000000) === '1억원' && KW(123456789) === '1억 2,345만 6,789원' && KW(550000) === '55만원']);
 const bad6 = r6.filter(x => !x[1]);
 if (bad6.length) fail = 1;
 console.log('⑥ 수납 기록 ' + (bad6.length ? '✗ ' + bad6.map(x => x[0]).join(' / ') : 'OK — ' + r6.length + '개 검산'));
