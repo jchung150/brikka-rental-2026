@@ -34,6 +34,8 @@ for (const c of ['elec', 'water', 'gas', 'parking'])
 run('PAY-10 항목 없음', "Object.keys(BILL).forEach(k=>BILL[k].on=false);PAY10()");
 run('PAY-10 패널', "DRAWER='additem';dPick=['fund'];drawerHTML()");
 run('PAY-10 일회성 청구', "dPick=['once'];dApply();onceSet(0,'k','b1본관B2');onceSet(0,'amt','110000');onceAdd();PAY10()+drawerHTML()");
+run('PAY-10 7월 마감 회차', "f10ym='2026-07';PAY10()");
+run('PAY-10 5월 · 마감 취소 후', "delete MC.b1['2026-05'];f10ym='2026-05';PAY10()");
 run('PAY-10 일회성 청구만', "Object.keys(BILL).forEach(k=>BILL[k].on=false);ONCE.on=true;pCode='once';PAY10()");
 run('CTR-2 변경 일정', "nc=null;CTR2();nc.adj.push({d:'2028-11-01',rent:'3465000',mgmt:''});CTR2()");
 run('PRO-1', 'PRO1()');
@@ -307,6 +309,12 @@ Q.dPick = ['once']; Q.dApply(); Q.onceSet(0, 'k', 'b1본관B2'); Q.onceSet(0, 'n
 const qb = Q.ISSUE().find(c => c.no === '본관B2'), ql = qb && qb.lines.find(l => l.n === '엘리베이터 사용료');
 r6.push(['일회성 청구 11만 → 루비뮤직 8월 청구서에 한 줄 · 공급가액 100,000 · 부가세 10,000',
   Q.ONCE.on && ql && ql.amt === 110000 && ql.supply === 100000 && ql.vat === 10000]);
+/* 항목별 저장 — 저장해야 ✓. 주차비는 저장 전이라 정산 확정 불가. 저장 후 고치면 다시 저장 전 → PAY-10 */
+const SV = new Function(stub + bare + '; return {PAY10,saveItem,setDirect,SAVED,set pCode(v){pCode=v;}};')();
+const h0 = SV.PAY10(); const block0 = /저장 전: 주차비/.test(h0);
+SV.saveItem('parking'); const ok1 = !!SV.SAVED.parking && !/저장 전: /.test(SV.PAY10());
+SV.setDirect('parking', '본관8층', '80000'); const back = SV.SAVED.parking === null;
+r6.push(['관리비 정산 항목 저장 — 주차비 저장 전이면 정산 확정 불가 · 저장하면 풀림 · 고치면 다시 저장 전', block0 && ok1 && back]);
 const bad6 = r6.filter(x => !x[1]);
 if (bad6.length) fail = 1;
 console.log('⑥ 수납 기록 ' + (bad6.length ? '✗ ' + bad6.map(x => x[0]).join(' / ') : 'OK — ' + r6.length + '개 검산'));

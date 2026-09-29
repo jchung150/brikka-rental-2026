@@ -704,6 +704,12 @@ const BILL={
    direct:{'본관8층':71000,'본관4층':100000,'본관302호':50000}},   /* 공급가액. 부가세는 자동 */
 };
 const SETTLE={ym:'2026-08',status:'작성중'};
+/* 항목별 저장 — 저장해야 탭에 ✓가 붙는다. 저장 후 고치면 다시 저장 전이 된다. 주차비는 아직 저장하지 않았다 → PAY-10 */
+const SAVED={elec:'08-09 17:40',water:'08-07 15:10',fund:'08-09 17:41',tv:'08-09 17:41',parking:null};
+/* 조사 — 받침이 있으면 「을」, 없으면 「를」 */
+const josaEul=w=>{const c=w.charCodeAt(w.length-1)-0xAC00;return c>=0&&c%28?'을':'를';};
+function saveItem(code){SAVED[code]='08-10 11:30';render(true);}
+let f10ym='2026-08';
 /* 건물별 월 업무 진행 — PAY-12 */
 const PROG={
  b1:{settle:'작성중',inv:0,invN:13,amt:0,paid:0,paidN:0,closed:false,closedAt:null,due:'08-31'},
@@ -744,6 +750,7 @@ const SHARE={ elec:{'본관301호':'본관302호'} };
 const shareOf=(code,no)=>(SHARE[code]||{})[no]||null;
 const ctOf=(code,no)=>((CTMUL[code]||{})[no])||1;
 function setCT(code,no,v){
+  SAVED[code]=null;
   const n=Math.max(0,parseFloat(v)||0)||1;
   (CTMUL[code]=CTMUL[code]||{});
   if(n===1) delete CTMUL[code][no]; else CTMUL[code][no]=n;
@@ -919,6 +926,7 @@ const onceLines=k=>!ONCE.on?[]:ONCE.rows.filter(r=>r.k===k&&r.amt>0).map(r=>{
   const tax=r.doc==='세금계산서', sup=tax?Math.floor(r.amt*10/11):r.amt;
   return {n:r.n||'일회성 청구',bill:r.doc,src:`일회성 청구${r.memo?' · '+r.memo:''}`,supply:sup,vat:r.amt-sup,amt:r.amt};});
 function setMul(code,no,v){
+  SAVED[code]=null;
   const b=BILL[code], m=parseFloat(v);
   /* 배율 0은 「부담 없음」이라는 유효한 값이다. 기본값 1.0일 때만 기록을 지운다. */
   if(!Number.isFinite(m)||m<0||m===1){delete b.adj[no];}
@@ -926,13 +934,15 @@ function setMul(code,no,v){
   render(true);
 }
 function setWhy(code,no,v){
+  SAVED[code]=null;
   const b=BILL[code];
   if(!b.adj[no]) b.adj[no]={mul:1, why:'', by:'슈퍼관리자', at:'2026-08-10 10:14'};
-  b.adj[no].why=v; b.adj[no].at='2026-09-25 10:14';
+  b.adj[no].why=v; b.adj[no].at='2026-08-10 10:14';
   if(b.adj[no].mul===1 && !v) delete b.adj[no];
   render(true);
 }
 function setBill(code,key,v){
+  SAVED[code]=null;
   const b=BILL[code];
   if(key==='date'){b.date=v;render();return;}
   const n=Math.max(0,Math.round(parseFloat(String(v).replace(/[,\s]/g,''))||0));
@@ -1533,7 +1543,28 @@ function itemFlag(m){
   }
   return {t:'완료',c:'ok'};
 }
+/* 지난 회차 — 확정된 정산 결과를 볼 수만 있다. 마감한 달은 잠기고, 월 마감에서 마감을 취소해야 풀린다 → PAY-11 */
+function pay10Past(ym){
+  const c=(MC.b1||{})[ym], ymL=ym.replace('-','년 ').replace(/년 0/,'년 ')+'월';
+  const names=['전기요금','전력기금','TV수신료','수도요금','주차비'];
+  const rows=names.map(n=>{const it=BILLS.filter(i=>i.ym===ym&&i.k.startsWith('b1')&&i.n.split(' ')[0]===n);
+    return {n,cnt:new Set(it.map(i=>i.k)).size,sum:it.reduce((a,i)=>a+i.amt,0)};}).filter(r=>r.cnt);
+  return `
+  ${c?`<div class="fnd"><span class="h">${ic('lock',14)} 마감된 회차입니다</span>
+    ${ymL}은 ${c.at.replace('-','.')}에 마감했습니다(${c.by}). 이 회차의 정산은 볼 수만 있습니다.
+    고치려면 월 마감에서 <b>마감 취소</b>를 먼저 하세요. <b class="lk" onclick="s11={b:'b1',ym:'${ym}'};go('pay-11')">월 마감으로 이동 →</b></div>`
+  :`<div class="fnd wa3"><span class="h">마감이 풀린 회차입니다</span>
+    ${ymL}은 정산 확정·청구서 발행이 끝났지만 지금 마감이 풀려 있어 고칠 수 있습니다. 고친 뒤 다시 마감하세요.
+    <b class="lk" onclick="s11={b:'b1',ym:'${ym}'};go('pay-11')">월 마감으로 이동 →</b></div>`}
+  <div class="tbl"><div class="tw"><table>
+    <thead><tr><th>청구 항목</th><th class="c">상태</th><th class="n">청구한 계약</th><th class="n">청구 합계 (부가세 포함)</th></tr></thead>
+    <tbody>${rows.map(r=>`<tr><td><b>${r.n}</b></td><td class="c"><span class="bd ok">정산 확정</span></td>
+      <td class="n">${r.cnt}건</td><td class="n">${won(r.sum)}</td></tr>`).join('')}
+    <tr class="sumr"><td>합계</td><td></td><td></td><td class="n">${won(rows.reduce((a,r)=>a+r.sum,0))}</td></tr></tbody></table></div></div>
+  <div class="hint">지난 회차는 확정된 결과만 보입니다. 목업에는 지난 회차의 고지서·검침 입력값이 없어 항목별 합계만 보여 줍니다.</div>`;
+}
 function PAY10(){
+  if(f10ym!=='2026-08') return pay10Head(null)+pay10Past(f10ym);
   const sel=selItems();
   if(ONCE.on&&(pCode==='once'||!sel.length)) return pay10Head(sel)+oncePage();
   if(!sel.length) return `
@@ -1544,21 +1575,28 @@ function PAY10(){
   const m=sel.find(x=>x.code===pCode)||sel[0];
   const body=itemSecs(m).map(([t,h],i)=>`
       <div class="isec"><div class="ish"><span class="isn">${i+1}</span>${t}</div>${h}</div>`).join('');
+  const f=itemFlag(m), sv=SAVED[m.code];
   return `
   ${pay10Head(sel)}
-  ${body}`;
+  ${body}
+  <div style="display:flex;align-items:center;gap:10px;justify-content:flex-end;padding:14px 0;border-top:1px solid var(--line);margin-top:6px">
+    <span class="c2" style="margin-right:auto">${sv?`${m.name} 저장됨 · ${sv.replace('-','.')}`:f.c==='ok'?`${m.name}${josaEul(m.name)} 아직 저장하지 않았습니다. 저장하면 탭에 ✓가 붙습니다`:`${m.name} 입력이 끝나지 않았습니다 — ${f.t}`}</span>
+    <button class="btn pri" ${f.c==='ok'&&!sv?'':'disabled'} onclick="saveItem('${m.code}')">${sv?'저장됨':`${m.name} 저장`}</button></div>`;
 }
 function pay10Head(sel){
   return `
   <div class="ph"><h1>건물 관리비 정산</h1><span class="sid">PAY-10</span>
-    <div class="act"><button class="btn pri" onclick="alert('정산 확정 → 계약별 청구서 생성')">정산 확정</button></div>
+    <div class="act">${f10ym!=='2026-08'?'':(()=>{const un=(sel||[]).filter(x=>!SAVED[x.code]);
+      return `${un.length?`<span class="c2" style="margin-right:4px">저장 전: ${un.map(x=>x.name).join(' · ')}</span>`:''}
+      <button class="btn pri" ${un.length?'disabled':''} onclick="alert('정산 확정 → 계약별 청구서 생성')">정산 확정</button>`;})()}</div>
   </div>
   <div class="fbar">
     <select><option>카리나빌딩</option><option>카즈하타워</option><option>뉴진스하우스</option></select>
-    <select><option>2026년 8월</option><option>2026년 7월</option><option>2026년 6월</option></select>
+    <select onchange="f10ym=this.value;render()">${[['2026-08','2026년 8월'],['2026-07','2026년 7월'],['2026-06','2026년 6월'],['2026-05','2026년 5월']]
+      .map(([v,t])=>`<option value="${v}" ${f10ym===v?'selected':''}>${t}</option>`).join('')}</select>
   </div>
-  ${!sel?'':`<div class="itab">
-    ${(sel||[]).map(x=>{const f=itemFlag(x), on=pCode!=='once'&&x.code===(pCode||sel[0].code);return `
+  ${!sel||f10ym!=='2026-08'?'':`<div class="itab">
+    ${(sel||[]).map(x=>{const f0=itemFlag(x), f=f0.c==='ok'&&!SAVED[x.code]?{t:'저장 전',c:'mu'}:f0, on=pCode!=='once'&&x.code===(pCode||sel[0].code);return `
     <button class="${on?'on':''}" onclick="setPItem('${x.code}')">${
       f.c==='ok'?'<span class="okd">✓</span>':''}${x.name}${
       f.c==='ok'?'':`<span class="bd ${f.c}" style="margin-left:5px">${f.t}</span>`}</button>`}).join('')}
@@ -1623,6 +1661,7 @@ function stBillOne(m){
 
 /* ── 2단계 · 검침 ── */
 function setRead(code,no,v){
+  SAVED[code]=null;
   /* 계기정수가 다른 계량기는 지침이 소수로 나온다. 반올림하지 않는다 */
   const b=BILL[code], n=Math.max(0,Math.round((parseFloat(String(v).replace(/[,\s]/g,''))||0)*100)/100);
   if(b.read&&b.read[no]) b.read[no][1]=n;
@@ -1631,8 +1670,8 @@ function setRead(code,no,v){
 const TODAY_ISO=TODAY.toISOString().slice(0,10);
 /* 검침일은 유닛별로 다를 수 있다. 기본값은 당일이며 일괄 적용으로 한 번에 맞춘다. */
 const readDateOf=(code,no)=>{const b=BILL[code];return (b.readDates&&b.readDates[no])||b.readDate||TODAY_ISO;};
-function setReadDate(code,v){const b=BILL[code];b.readDate=v;b.readDates={};render(true);}
-function setReadDateUnit(code,no,v){const b=BILL[code];(b.readDates=b.readDates||{})[no]=v;render(true);}
+function setReadDate(code,v){SAVED[code]=null;const b=BILL[code];b.readDate=v;b.readDates={};render(true);}
+function setReadDateUnit(code,no,v){SAVED[code]=null;const b=BILL[code];(b.readDates=b.readDates||{})[no]=v;render(true);}
 /* 전 유닛을 나열한다. 계량기가 없는 유닛은 행은 보이되 입력이 잠긴다.
    어느 유닛에 계량기가 있는지가 화면에서 그대로 읽히도록 한다. */
 function stRead(m,R){
@@ -1692,6 +1731,7 @@ function stRead(m,R){
 /* 배율은 공용 사용량 배분 몫에만 작용한다 → 4.1.2
    「증감」의 기준선은 전 유닛 배율 1.0인 상태이며, 그래서 증감 합계는 언제나 0이다. */
 function setDirect(code,no,v){
+  SAVED[code]=null;
   const b=BILL[code]; (b.direct=b.direct||{});
   const n=Math.max(0,Math.round(parseFloat(String(v).replace(/[,\s]/g,''))||0));
   if(n) b.direct[no]=n; else delete b.direct[no];
