@@ -7,7 +7,7 @@ const html = fs.readFileSync(file, 'utf8');
 const m = html.match(/<script>([\s\S]*)<\/script>/);
 if (!m) { console.log('✗ script 블록을 찾지 못했다'); process.exit(1); }
 const src = m[1];
-const bare = src.replace(/paintOp\(\);paintFold\(\);render\(\);/, '');
+const bare = src.replace(/seedJuly\(\);paintOp\(\);paintFold\(\);render\(\);/, '');
 
 const stub = `
 const document={querySelector:()=>({innerHTML:'',style:{},classList:{toggle(){}},textContent:''}),
@@ -48,6 +48,9 @@ run('미구현 화면', "TODO('pay-2')");
 run('PAY-6', 'PAY6()');
 run('PAY-6 전체 펼침', 'g6All=true;PAY6()');
 run('PAY-13', 'PAY13()');
+run('PAY-12 7월', "f12='2026-07';PAY12()");
+run('PAY-6 8월 (발행 전)', "RC.f.ym='2026-08';PAY6()");
+run('PAY-13 7월 처리 완료', "seedJuly();PAY13()");
 run('수납 처리 패널', "openPay('b1별관3층');payHTML()");
 run('수납 처리 패널 보증금상계', "openPay('b1별관3층');setPm('how','보증금상계');payHTML()");
 run('수납 처리 패널 초과', "openPay('b1별관3층');setPm('amt','99999999');payHTML()");
@@ -131,7 +134,7 @@ for (const m of Z.MASTER) {
 }
 if (orphan.length) fail = 1;
 console.log('⑤ 유닛 번호 정합성 ' + (orphan.length ? '✗ ' + orphan.join(', ') : 'OK'));
-/* ⑥ 수납 기록 — 8월 실제 거래내역으로 매칭·배분·미납을 검산한다 → 4.3 · 4.6 */
+/* ⑥ 수납 기록 — 7월 거래내역(8월 실제 거래내역을 옮긴 예시)으로 매칭·배분·미납을 검산한다 → 4.3 · 4.6 */
 const W = new Function(stub + bare + '; return {RC,ledgerOf,lateCalc,rcPreview,ctrPay,ctrDeps,rcRun,rcQueue,rcGuess,rcBiz,rcConfirm,rcIgnore,rcNext,rcOpenN,dueOf,normName,PAID,BILLS,openPay,setPm,payPlan,payConfirm,feeUntil,FEE_CUT,get pm(){return pm;}};')();
 const P6 = W.RC.P;
 const r6 = [];
@@ -141,10 +144,10 @@ const first = W.rcRun();
 const auto = P6.dep.filter(d => first[d.no].st === '자동').length;
 r6.push(['첫 달 자동 매칭 0건 — 등록된 입금자명만 자동', auto === 0]);
 r6.push(['상호가 같으면 미매칭이되 임차인을 미리 채움', first[9].st === '후보' && first[9].cand === '고우컴퍼니']);
-/* 배분 미리보기는 채우지 못하는 청구까지 보여야 한다 — 비씨에이전시 배분 후 미납 112,299 */
+/* 배분 미리보기는 채우지 못하는 청구까지 보여야 한다 */
 const pvB = W.rcPreview(P6.dep.find(d => d.no === 12), '비씨에이전시', W.rcBiz());
-r6.push(['미리보기 — 비씨에이전시 6·7·8월 18개 항목, 6월분부터 채우고 배분 후 미납 10,318,254',
-  pvB.all.length === 18 && pvB.lines[0].ym === '2026-06' && pvB.all.reduce((a, l) => a + l.due - l.pay, 0) === 10318254]);
+r6.push(['미리보기 — 비씨에이전시 5·6·7월 18개 항목, 5월분부터 채우고 배분 후 미납 10,292,820',
+  pvB.all.length === 18 && pvB.lines[0].ym === '2026-05' && pvB.all.reduce((a, l) => a + l.due - l.pay, 0) === 10292820]);
 /* 입금 매칭 — 대기열 순서(입금일시 오름차순)대로 한 건씩 임차인을 고르고 확정한다 */
 const PICK = {1:'루비뮤직', 2:'케이큐엔터테이먼트', 3:'케이더블유인터내셔널', 5:'아이씨비', 7:'에스씨케이컴퍼니',
   8:'아마데우스', 9:'고우컴퍼니', 10:'유니버셜대부', 12:'비씨에이전시', 24:'좋은생각사람들'};
@@ -163,79 +166,86 @@ r6.push(['입금 1건 → 계약 2개 (ICB)', new Set(got[5].lines.map(l => l.no
 r6.push(['입금 1건 → 계약 2개 (좋은생각사람들)', new Set(got[24].lines.map(l => l.no)).size === 2 && got[24].rest === 0]);
 r6.push(['임차인 입금 12건 전부 전액 배분', [1,2,3,4,5,6,7,8,9,10,12,24].every(n => got[n] && got[n].rest === 0)]);
 r6.push(['대기 0건 — 모두 처리', W.rcNext() === null && W.rcOpenN() === 0]);
-/* 계약별 납부상태 — 비씨에이전시 6월 부분납 · 7·8월 미납(마감 경과, 수납 0), 루비뮤직 7월 미납분 해소 → PAY-6 · 3.2 */
-const st6 = (n, ym) => W.ctrPay('b1' + n, ym || '2026-08').st;
-r6.push(['수납 내역 — 비씨에이전시 6월 부분납 · 7월 미납 · 8월 미납',
-  st6('별관3층', '2026-06') === '부분납' && st6('별관3층', '2026-07') === '미납' && st6('별관3층') === '미납']);
-r6.push(['수납 내역 — 나머지 12계약 8월 완납, 루비뮤직 7월도 완납',
+/* 계약별 납부상태 — 비씨에이전시 5월 부분납 · 6·7월 미납(마감 경과, 수납 0), 루비뮤직 6월 미납분 해소 → PAY-6 · 3.2 */
+const st6 = (n, ym) => W.ctrPay('b1' + n, ym || '2026-07').st;
+r6.push(['수납 내역 — 비씨에이전시 5월 부분납 · 6월 미납 · 7월 미납',
+  st6('별관3층', '2026-05') === '부분납' && st6('별관3층', '2026-06') === '미납' && st6('별관3층') === '미납']);
+r6.push(['수납 내역 — 나머지 12계약 7월 완납, 루비뮤직 6월도 완납',
   ['본관8층','본관7층','본관6층','본관5층','본관4층','본관301호','본관302호','본관2층','본관1층','본관B2','별관4층','별관2층'].every(n => st6(n) === '완납')
-  && st6('본관B2', '2026-07') === '완납']);
+  && st6('본관B2', '2026-06') === '완납']);
 r6.push(['케이더블유인터 두 입금이 각 계약에 자기 몫만', W.ctrDeps('b1본관5층').length >= 1 && W.ctrDeps('b1별관2층').length >= 1]);
-/* 연체료 구간 계산 — 비씨에이전시(연 12%) 6월분: 7/1~8/31 5,086,514원 → 8/31 입금 후 86,514원 → 4.4 */
-const L6 = W.lateCalc('b1별관3층', '2026-06'), LR = W.lateCalc('b1본관B2', '2026-07');
-r6.push(['연체료 구간 — 비씨에이전시 6월분 103,681 + 654 = 104,335',
-  L6.periods.length === 2 && L6.periods[0].fee === 103681 && L6.periods[1].fee === 654 && L6.fee === 104335]);
-r6.push(['늦게 다 낸 달에도 연체료 — 루비뮤직 7월분 385,000 × 8% × 31일 = 2,615', LR.fee === 2615 && LR.periods[0].days === 31]);
-/* 계약 원장 — 비씨에이전시: 매출채권 잔액 = 미납 10,318,254, 수납 줄은 8/31 입금에서 */
+/* 연체료 구간 계산 — 비씨에이전시(연 12%) 5월분: 5/31~7/31 5,086,514원 → 7/31 입금 후 86,514원, 오늘 8/10까지 → 4.4 */
+const L5 = W.lateCalc('b1별관3층', '2026-05'), LR = W.lateCalc('b1본관B2', '2026-06');
+r6.push(['연체료 구간 — 비씨에이전시 5월분 102,008 + 284 = 102,292',
+  L5.periods.length === 2 && L5.periods[0].fee === 102008 && L5.periods[1].fee === 284 && L5.fee === 102292]);
+r6.push(['연체료 합계 — 비씨에이전시 5월 102,292 + 6월 69,007 + 7월 16,723 = 188,022',
+  W.lateCalc('b1별관3층', '2026-06').fee === 69007 && W.lateCalc('b1별관3층', '2026-07').fee === 16723 && W.feeUntil('b1별관3층', '2026-08-10') === 188022]);
+r6.push(['늦게 다 낸 달에도 연체료 — 루비뮤직 6월분 385,000 × 8% × 31일 = 2,615', LR.fee === 2615 && LR.periods[0].days === 31]);
+/* 계약 원장 — 비씨에이전시: 매출채권 잔액 = 미납 10,292,820, 수납 줄은 7/31 입금에서 */
 const LB = W.ledgerOf('b1별관3층');
-r6.push(['원장 — 비씨에이전시 매출채권 잔액 10,318,254 · 청구 18줄 · 수납은 8/31 입금',
-  LB.bal.매출채권 === 10318254 && LB.rows.filter(r => r.type === '청구').length === 18 &&
-  LB.rows.filter(r => r.type === '수납').every(r => r.date === '2026-08-31')]);
-/* 원장 잔액 — 8월 회차 화면에서는 8월 미납이 「지난 미납」이 아니므로 dueOf 대신 직접 본다 */
+r6.push(['원장 — 비씨에이전시 매출채권 잔액 10,292,820 · 청구 18줄 · 수납은 7/31 입금',
+  LB.bal.매출채권 === 10292820 && LB.rows.filter(r => r.type === '청구').length === 18 &&
+  LB.rows.filter(r => r.type === '수납').every(r => r.date === '2026-07-31')]);
+/* 원장 잔액 — 청구 전부 − 수납 전부 */
 const left = k => W.BILLS.filter(i => i.k === k).reduce((a, i) => a + i.amt - (W.PAID[i.id] || 0), 0);
 const all12 = ['본관8층','본관7층','본관6층','본관5층','본관4층','본관301호','본관302호','본관2층','본관1층','본관B2','별관4층','별관2층'];
-r6.push(['미납 관리 — 비씨에이전시 10,318,254원만 남음 (루비뮤직 7월분 해소)', all12.every(n => left('b1' + n) === 0) && left('b1별관3층') === 10318254]);
+r6.push(['미납 기록 — 비씨에이전시 10,292,820원만 남음 (루비뮤직 6월분 해소)', all12.every(n => left('b1' + n) === 0) && left('b1별관3층') === 10292820]);
+r6.push(['PAY-1 8월 발행 화면의 미납 잔액 — 7월까지의 미납', W.dueOf('b1별관3층').amt === 10292820 && W.dueOf('b1별관3층').from === '2026-05']);
 /* 현장 수납 — 입금 매칭을 다 끝낸 뒤 비씨에이전시가 현금 600만 원을 들고 왔다 → PAY-2 수납 처리 */
 W.openPay('b1별관3층'); W.setPm('amt', 6000000);
 const pc = W.payPlan();
 W.payConfirm();
 const LC = W.ledgerOf('b1별관3층');
-r6.push(['현장 수납 현금 600만 — 오래된 달부터 · 미납 4,318,254 · 원장 매출채권 잔액 일치 · 「현금 수납」 기록',
-  pc.lines[0].ym <= pc.lines[pc.lines.length - 1].ym && pc.rest === 0 && left('b1별관3층') === 4318254
-  && LC.bal.매출채권 === 4318254 && LC.rows.some(r => r.type === '수납' && r.hand && / 현금$/.test(r.src))]);
+r6.push(['현장 수납 현금 600만 — 오래된 달부터 · 미납 4,292,820 · 원장 매출채권 잔액 일치 · 「현금 수납」 기록',
+  pc.lines[0].ym <= pc.lines[pc.lines.length - 1].ym && pc.rest === 0 && left('b1별관3층') === 4292820
+  && LC.bal.매출채권 === 4292820 && LC.rows.some(r => r.type === '수납' && r.hand && / 현금$/.test(r.src))]);
 const dep0 = LC.bal.임대보증금;
 W.openPay('b1별관3층'); W.setPm('how', '보증금상계'); W.setPm('amt', 1000000); W.payConfirm();
 const LD = W.ledgerOf('b1별관3층');
-r6.push(['보증금상계 100만 — 미납 3,318,254 · 보증금 잔액 100만 감소 · 보증금 차감 행',
-  left('b1별관3층') === 3318254 && LD.bal.매출채권 === 3318254 && LD.bal.임대보증금 === dep0 - 1000000
+r6.push(['보증금상계 100만 — 미납 3,292,820 · 보증금 잔액 100만 감소 · 보증금 차감 행',
+  left('b1별관3층') === 3292820 && LD.bal.매출채권 === 3292820 && LD.bal.임대보증금 === dep0 - 1000000
   && LD.rows.some(r => r.type === '보증금 차감' && r.dec === 1000000)]);
 W.openPay('b1별관3층'); W.setPm('amt', 99999999); W.payConfirm();
-r6.push(['미납보다 많이 받으면 확정되지 않음', left('b1별관3층') === 3318254]);
+r6.push(['미납보다 많이 받으면 확정되지 않음', left('b1별관3층') === 3292820]);
 /* 연체료 — 받지 않으면 계속 쌓이고, 받으면 낮춘 금액만 청구·수납되고 그날까지는 다시 세지 않는다 → 4.4.3 */
-const fee0 = W.feeUntil('b1별관3층', '2026-09-23');
+const fee0 = W.feeUntil('b1별관3층', '2026-08-10');
 W.openPay('b1별관3층'); W.setPm('feeOn', '1'); W.setPm('fee', '100000');
 const amtF = W.pm.amt;
 W.payConfirm();
 const LF = W.ledgerOf('b1별관3층');
 const feeRow = LF.rows.find(r => r.type === '청구' && /^연체료/.test(r.item));
 r6.push(['연체료 낮춰 받기 — 받을 금액 = 미납 + 10만 · 연체료 청구 10만(감면 표기) · 완납 · 남은 연체료 0',
-  fee0 > 100000 && amtF === 3318254 + 100000 && left('b1별관3층') === 0 && LF.bal.매출채권 === 0
-  && feeRow && feeRow.inc === 100000 && /감면/.test(feeRow.item) && W.feeUntil('b1별관3층', '2026-09-23') === 0]);
-const ruby0 = W.feeUntil('b1본관B2', '2026-09-23');
+  fee0 > 100000 && amtF === 3292820 + 100000 && left('b1별관3층') === 0 && LF.bal.매출채권 === 0
+  && feeRow && feeRow.inc === 100000 && /감면/.test(feeRow.item) && W.feeUntil('b1별관3층', '2026-08-10') === 0]);
+const ruby0 = W.feeUntil('b1본관B2', '2026-08-10');
 W.openPay('b1본관B2'); W.setPm('feeOn', '1'); W.setPm('fee', '0'); W.payConfirm();
 r6.push(['연체료 전액 감면 — 루비뮤직 2,615 → 0 · 청구 없음',
-  ruby0 === 2615 && W.feeUntil('b1본관B2', '2026-09-23') === 0 && !W.BILLS.some(i => i.k === 'b1본관B2' && i.fee)]);
-/* 미납액 먼저 — 7월 미납이 있으면 8월 청구서와 같은 금액이 와도 7월부터 채운다 → 4.3.3 */
+  ruby0 === 2615 && W.feeUntil('b1본관B2', '2026-08-10') === 0 && !W.BILLS.some(i => i.k === 'b1본관B2' && i.fee)]);
+/* 미납액 먼저 — 6월 미납이 있으면 7월 청구서와 같은 금액이 와도 6월부터 채운다 → 4.3.3 */
 const V = new Function(stub + bare + '; return {rcPlan,BILLS};')();
-{ const keep = V.BILLS.filter(i => !(i.k === 'b1본관302호' && i.ym !== '2026-08')); V.BILLS.length = 0; V.BILLS.push(...keep); }
-V.BILLS.push({id:'2026-07|본관302호|고정관리비',ym:'2026-07',k:'b1본관302호',no:'본관302호',n:'고정관리비',pr:2,amt:1815000});
-V.BILLS.push({id:'2026-07|본관302호|전기요금',ym:'2026-07',k:'b1본관302호',no:'본관302호',n:'전기요금',pr:4,amt:1865000});
-const pv = V.rcPlan(13625312, ['b1본관302호'], {});
-const jul = pv.lines.filter(l => l.ym === '2026-07').reduce((a, l) => a + l.pay, 0);
-const aug = pv.lines.filter(l => l.ym === '2026-08');
-r6.push(['미납액 먼저 — 7월 3,680,000 완납 · 8월 임대료 9,945,312 부분납',
-  jul === 3680000 && aug.length === 1 && aug[0].n === '임대료' && aug[0].pay === 9945312 && aug[0].after === '부분납']);
+{ const keep = V.BILLS.filter(i => !(i.k === 'b1본관302호' && i.ym !== '2026-07')); V.BILLS.length = 0; V.BILLS.push(...keep); }
+V.BILLS.push({id:'2026-06|본관302호|고정관리비',ym:'2026-06',k:'b1본관302호',no:'본관302호',n:'고정관리비',pr:2,amt:1815000});
+V.BILLS.push({id:'2026-06|본관302호|전기요금',ym:'2026-06',k:'b1본관302호',no:'본관302호',n:'전기요금',pr:4,amt:1865000});
+const pv = V.rcPlan(13619678, ['b1본관302호'], {});
+const jun = pv.lines.filter(l => l.ym === '2026-06').reduce((a, l) => a + l.pay, 0);
+const jl = pv.lines.filter(l => l.ym === '2026-07');
+r6.push(['미납액 먼저 — 6월 3,680,000 완납 · 7월 임대료 9,939,678 부분납',
+  jun === 3680000 && jl.length === 1 && jl[0].n === '임대료' && jl[0].pay === 9939678 && jl[0].after === '부분납']);
 /* 나눠 보낸 입금 — 백만 원 적게 보낸 뒤 나머지를 다음 날 같은 이름으로 보낸 경우 */
 const S = new Function(stub + bare + '; return {RC,rcGuess,rcBiz,rcConfirm,ctrPay};')();
-const s1 = {no:901,dt:'2026-08-31 12:34:01',kind:'PC뱅킹',name:'AMADEUS KO',amt:12685910,out:0};
-const s2 = {no:902,dt:'2026-09-01 10:02:44',kind:'PC뱅킹',name:'AMADEUS KO',amt:1000000,out:0};
+const s1 = {no:901,dt:'2026-07-31 12:34:01',kind:'PC뱅킹',name:'AMADEUS KO',amt:12659175,out:0};
+const s2 = {no:902,dt:'2026-08-01 10:02:44',kind:'PC뱅킹',name:'AMADEUS KO',amt:1000000,out:0};
 S.RC.P.dep = [s1, s2]; S.RC.pre[901] = '아마데우스'; S.rcConfirm(901);
-const mid = S.ctrPay('b1본관6층', '2026-08');
+const mid = S.ctrPay('b1본관6층', '2026-07');
 const auto2 = S.rcGuess(s2, S.rcBiz()).st === '자동';
 S.rcConfirm(902);
-const end = S.ctrPay('b1본관6층', '2026-08');
+const end = S.ctrPay('b1본관6층', '2026-07');
 r6.push(['나눠 보낸 입금 — 1차 부분납 100만 미납 → 2차 자동 매칭 → 완납',
   mid.st === '부분납' && mid.due === 1000000 && auto2 && end.st === '완납' && end.due === 0]);
+/* 화면을 열 때의 상태 — 7월 입금은 월 마감(8/5) 전에 모두 처리됐다 */
+const O = new Function(stub + bare + '; seedJuly(); return {rcOpenN,dueOf,ctrPay,BILLS};')();
+r6.push(['첫 화면 — 7월 입금 대기 0건 · 비씨에이전시 미납 10,292,820 · 8월 청구 없음',
+  O.rcOpenN() === 0 && O.dueOf('b1별관3층').amt === 10292820 && !O.BILLS.some(i => i.ym === '2026-08')]);
 const bad6 = r6.filter(x => !x[1]);
 if (bad6.length) fail = 1;
 console.log('⑥ 수납 기록 ' + (bad6.length ? '✗ ' + bad6.map(x => x[0]).join(' / ') : 'OK — ' + r6.length + '개 검산'));
