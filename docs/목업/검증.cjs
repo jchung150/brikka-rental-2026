@@ -34,6 +34,7 @@ for (const c of ['elec', 'water', 'gas', 'parking'])
 run('PAY-10 항목 없음', "Object.keys(BILL).forEach(k=>BILL[k].on=false);PAY10()");
 run('PAY-10 패널', "DRAWER='additem';dPick=['fund'];drawerHTML()");
 run('PRO-1', 'PRO1()');
+run('PRO-1 검색·필터', "f1p={q:'마포',kind:'오피스빌딩',vac:'0'};PRO1()");
 for (const t of ['요약', '유닛', '자료보관', '관리비 설정'])
   run('PRO-3 ' + t, "tab3='" + t + "';PRO3('b1')");
 for (const b of ['b2', 'b3', 'b4', 'b5']) run('PRO-3 ' + b, "tab3='요약';PRO3('" + b + "')");

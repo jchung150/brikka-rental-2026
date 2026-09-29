@@ -95,6 +95,7 @@ svg{flex:none}
 .fbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:16px}
 .fbar select{border:1px solid var(--line);background:var(--bg);padding:8px 11px;border-radius:var(--r-sm);
   font-size:12.5px;min-width:150px}
+.fbar input.fq{border:1px solid var(--line);background:var(--bg);padding:8px 11px;border-radius:var(--r-sm);font-size:12.5px;width:220px}
 .stepv{display:flex;gap:0;margin-bottom:18px;border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
 .stepv .sp2{flex:1;padding:11px 14px;border-right:1px solid var(--line);cursor:pointer;background:var(--bg)}
 .stepv .sp2:last-child{border-right:0}
@@ -1293,8 +1294,13 @@ function toggleFold(){FOLD=!FOLD;LS.set('brikka.fold',FOLD);paintFold();closeNot
 function paintFold(){$('#app').classList.toggle('fold',FOLD);}
 
 /* ═══ PRO-1 ═══ */
+let f1p={q:'',kind:'',vac:''};
+const setF1p=(k,v)=>{f1p[k]=v;render();};
 function PRO1(){
-  const rows=BUILDINGS.map(b=>{
+  const q=f1p.q.trim();
+  const list=BUILDINGS.filter(b=>(!q||[b.name,b.addr,b.addr2,b.owner,b.mgr].some(x=>(x||'').includes(q)))
+    &&(!f1p.kind||b.kind===f1p.kind)&&(!f1p.vac||(f1p.vac==='1'?b.vacCnt>0:b.vacCnt===0)));
+  const rows=list.map(b=>{
     const d=dday(b.mgmtEnd);
     return `<tr onclick="go('pro-3/${b.id}')">
       <td class="c" onclick="event.stopPropagation()"><span class="cb"></span></td>
@@ -1310,12 +1316,14 @@ function PRO1(){
   return `
   <div class="ph"><h1>건물 목록</h1><span class="sid">PRO-1</span>
     <div class="act">
-      <button class="btn">엑셀 다운로드</button>
       <button class="btn pri">+ 신규 건물 등록</button></div>
   </div>
-  <div class="sbar">
-    <div class="sin">${ic('srch',17)}<input placeholder="건물명, 주소, 건물주, 관리자로 검색"></div>
-    <button class="btn">${ic('filt',15)} 필터</button>
+  <div class="fbar">
+    <input class="fq" value="${f1p.q}" placeholder="건물명·주소·건물주·관리자" onchange="setF1p('q',this.value)">
+    <select onchange="setF1p('kind',this.value)"><option value="">전체 건물유형</option>
+      ${[...new Set(BUILDINGS.map(b=>b.kind))].map(k=>`<option ${f1p.kind===k?'selected':''}>${k}</option>`).join('')}</select>
+    <select onchange="setF1p('vac',this.value)">
+      ${[['','공실 전체'],['1','공실 있음'],['0','공실 없음']].map(([v,t])=>`<option value="${v}" ${f1p.vac===v?'selected':''}>${t}</option>`).join('')}</select>
   </div>
   <div class="tbl"><div class="tw"><table>
     <thead><tr>
@@ -1324,13 +1332,13 @@ function PRO1(){
       <th>건물주 <span class="so">⇅</span></th><th>건물관리자 <span class="so">⇅</span></th>
       <th class="n">임대가능면적 <span class="so">⇅</span></th><th class="n">공실률 <span class="so">⇅</span></th>
       <th class="c" style="width:70px"></th>
-    </tr></thead><tbody>${rows}</tbody>
+    </tr></thead><tbody>${rows||'<tr><td colspan="8"><div class="empty">조건에 맞는 건물이 없습니다</div></td></tr>'}</tbody>
   </table></div>
   <div class="pgw">
     <div class="mid">
       <button class="pgb">‹ Previous</button><button class="pgb on">1</button><button class="pgb">Next ›</button>
     </div>
-    <span class="pgi">1–5 / 총 5개</span>
+    <span class="pgi">${list.length?`1–${list.length}`:'0'} / 총 ${list.length}개</span>
   </div></div>`;
 }
 
@@ -1546,8 +1554,7 @@ function PAY10(){
 function pay10Head(sel){
   return `
   <div class="ph"><h1>건물 관리비 정산</h1><span class="sid">PAY-10</span>
-    <div class="act"><button class="btn">엑셀 다운로드</button>
-      <button class="btn pri" onclick="alert('정산 확정 → 계약별 청구서 생성')">정산 확정</button></div>
+    <div class="act"><button class="btn pri" onclick="alert('정산 확정 → 계약별 청구서 생성')">정산 확정</button></div>
   </div>
   <div class="fbar">
     <select><option>동교동 이준빌딩</option><option>합정동 무악빌딩</option><option>이촌동 테온하우스</option></select>
@@ -1862,9 +1869,7 @@ function PAY12(){
     {inv:0,invN:0,amt:0,paid:0,paidN:0,done:0,closed:0});
   const rate=T.amt?Math.round(T.paid/T.amt*100):0;
   return `
-  <div class="ph"><h1>청구 · 수납 현황</h1><span class="sid">PAY-12</span>
-    <div class="act"><button class="btn">엑셀 다운로드</button></div>
-  </div>
+  <div class="ph"><h1>청구 · 수납 현황</h1><span class="sid">PAY-12</span></div>
   <div class="fbar">
     <select onchange="f12=this.value;render()">${[['2026-08','2026년 8월'],['2026-07','2026년 7월']].map(([v,t])=>`<option value="${v}" ${f12===v?'selected':''}>${t}</option>`).join('')}</select>
     <span style="color:var(--muted);font-size:12px">건물 ${BUILDINGS.length}개 · 정산 확정 ${T.done} · 월 마감 ${T.closed}</span>
@@ -3022,16 +3027,17 @@ function CTR1(){
       ${[['','만료 남은 일수 전체'],['0','만료됨'],['30','30일 이하'],['90','90일 이하'],['180','180일 이하']].map(([v,t])=>`<option value="${v}" ${f1c.dd===v?'selected':''}>${t}</option>`).join('')}</select>
   </div>
   <div class="tbl"><div class="tw"><table class="nowr">
-    <thead><tr><th>만료까지 <span class="so">⇅</span></th><th>계약고유명</th><th>계약상태</th><th>계약 조건 <span class="c2" style="margin:0">(부가세 별도)</span></th><th>계약유형</th></tr></thead>
+    <thead><tr><th>만료까지 <span class="so">⇅</span></th><th>계약고유명</th><th>계약상태</th><th>계약 조건 <span class="c2" style="margin:0">(부가세 포함)</span></th><th>계약유형</th></tr></thead>
     <tbody>${rows.map(({c,end,dd})=>`<tr onclick="tab3c='요약';go('ctr-3/${c.b+c.no}')">
       <td>${c.st==='진행중'?ddBadge(end):'<span style="color:var(--faint)">—</span>'}</td>
       <td>${cnameHTML(BA(c.b),c.no,c.ten)}</td>
       <td><span class="bd ${c.st==='진행중'?'ok':'mu'}">${c.st}</span></td>
-      <td>${d8(c.base)} - ${d8(end)} <span class="c2" style="margin:0 0 0 6px">보증금 ${man(ctrDeposit(c))} · 임대료 ${man(ctrAmt(c,'임대료'))} · 관리비 ${man(ctrAmt(c,'고정관리비'))}</span></td>
+      <td>${d8(c.base)} - ${d8(end)} <span class="c2" style="margin:0 0 0 6px">보증금 ${man(ctrDeposit(c))} · 임대료 ${man(Math.round(ctrAmt(c,'임대료')*1.1))} · 관리비 ${man(Math.round(ctrAmt(c,'고정관리비')*1.1))}</span></td>
       <td class="c2" style="margin:0">확정기간계약</td></tr>`).join('')}
       ${rows.length?'':'<tr><td colspan="5"><div class="empty">조건에 맞는 계약이 없습니다</div></td></tr>'}
     </tbody></table></div></div>
   <div class="hint">행을 누르면 계약 상세로 들어갑니다. 원장은 계약 상세의 원장정보 탭에 있습니다.<br>
+    임대료·관리비는 부가세를 포함한 월 금액입니다. 보증금에는 부가세가 없습니다.<br>
     목업의 계약 종료일·유형·보증금은 예시값입니다.</div>`;
 }
 
@@ -3118,7 +3124,6 @@ function CTR3(k){
   const from=f3.per?new Date((dnum(TODAY_S)-({'1':30,'3':91}[f3.per]))*864e5)
     .toISOString().slice(0,10):null;
   const rows=L.rows.filter(r=>(!f3.acc||r.acc===f3.acc)&&(!from||dnum(r.date)>=dnum(from))).slice().reverse();
-  const fee=[...new Set(BILLS.filter(i=>i.k===k).map(i=>i.ym))].reduce((a,ym)=>a+lateCalc(k,ym).fee,0);
   const TP={'청구':'ac','수납':'ok','보증금 예치':'mu','보증금 차감':'wa'};
   const dash='<span style="color:var(--faint)">—</span>';
   return CTR3head(c,k)+`
@@ -3129,8 +3134,6 @@ function CTR3(k){
     <select onchange="setF3('acc',this.value)">
       ${[['','전체 계정'],['매출채권','매출채권 (청구·수납)'],['임대보증금','임대보증금']].map(([v,t])=>`<option value="${v}" ${f3.acc===v?'selected':''}>${t}</option>`).join('')}
     </select>
-    <span class="c2" style="margin-left:auto">미납 잔액 <b style="color:${L.bal.매출채권?'var(--warn)':'var(--ink)'}">${won(L.bal.매출채권)}</b>
-      · 보증금 잔액 <b style="color:var(--ink)">${won(L.bal.임대보증금)}</b>${fee?` · 연체료(예상) ${won(fee)}`:''}</span>
   </div>
   ${(()=>{
     /* 묶음 — 청구는 청구서 하나, 수납은 입금 하나, 보증금은 거래 하나. rows는 이미 최근 순이다 */
