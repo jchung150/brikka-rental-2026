@@ -203,6 +203,8 @@ tr.exr td{background:var(--line-2);color:var(--muted)}
 .fr select,.fr input[type=text],.fr input[type=date]{flex:1;border:1px solid var(--line);
   background:var(--bg);padding:6px 9px;border-radius:var(--r-sm);font-size:12.5px;font-family:inherit}
 .fr .fv{flex:1}
+.ck{display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-size:12.5px}
+.fr .fk b{font-weight:600}
 .ulist{border:1px solid var(--line);border-radius:var(--r-sm);max-height:196px;overflow-y:auto}
 .ulist .ur{display:flex;align-items:center;gap:9px;padding:7px 11px;cursor:pointer;
   border-bottom:1px solid var(--line-2);font-size:12.5px}
@@ -480,15 +482,15 @@ table.nowr th,table.nowr td{white-space:nowrap}
         <div class="nh"><b>알림</b><span class="cl" onclick="event.stopPropagation();closeNoti()">모두 지우기</span></div>
         <div class="ni" onclick="go('pay-10')"><span class="bd wa">주의</span>
           <div class="nb"><div class="nt">8월 정산 미확정</div>
-            <div class="nd">동교동 이준빌딩 · 청구일(19일)까지 9일 남았습니다.</div></div>
+            <div class="nd">카리나빌딩 · 청구일(19일)까지 9일 남았습니다.</div></div>
           <span class="ng">3시간 전</span></div>
         <div class="ni" onclick="go('pay-12')"><span class="bd ac">정보</span>
           <div class="nb"><div class="nt">7월 월 마감 완료</div>
-            <div class="nd">동교동 이준빌딩 · 8/5 마감. 미납 1건은 다음 달로 이월됐습니다.</div></div>
+            <div class="nd">카리나빌딩 · 8/5 마감. 미납 1건은 다음 달로 이월됐습니다.</div></div>
           <span class="ng">5일 전</span></div>
         <div class="ni" onclick="go('pro-3/b2')"><span class="bd ac">정보</span>
           <div class="nb"><div class="nt">관리위임계약 만료 임박</div>
-            <div class="nd">이촌동 테온하우스 · 38일 남음</div></div>
+            <div class="nd">뉴진스하우스 · 38일 남음</div></div>
           <span class="ng">어제</span></div>
       </div>
     </div>
@@ -570,12 +572,12 @@ const OPS=[
 let opIdx=0;
 
 const BUILDINGS=[
- {id:'b1',name:'동교동 이준빌딩',alias:'이준',kind:'오피스빌딩',
+ {id:'b1',name:'카리나빌딩',alias:'카리나',kind:'오피스빌딩',
   addr:'서울특별시 마포구 양화로 156',addr2:'서울 마포구 동교동 156-12',
-  owner:'(주)이준개발',ownerBiz:'105-81-42117',mgr:'김영준',mgrTel:'010-3341-2205',
+  owner:'카리나',ownerBiz:'105-81-42117',mgr:'에스파',mgrTel:'010-3341-2205',
   area:4820.5,gross:6240.8,up:8,down:2,park:24,hvac:'EHP(시스템에어컨)',
   unitCnt:14,vacCnt:0,opCnt:0,vac:0,
-  acct:'국민은행 812-01-0455-118',acctName:'(주)이준개발',
+  acct:'국민은행 812-01-0455-118',acctName:'카리나',
   mgmtStart:'2025-03-01',mgmtEnd:'2027-02-28',fee:'임대료의 5%',mode:'임대인 직수취',
   bondBank:'국민은행 서교동지점',bondTel:'02-334-8820',bondMax:1800000000,bondNow:1240000000,
   fac:['회의실','옥상정원','샤워실','무인택배함'],
@@ -596,10 +598,10 @@ const BUILDINGS=[
    {n:'B1-03',t:'일반',memo:'',as:'(주)비씨에이',asu:'202호'},{n:'B1-04',t:'소형',memo:'경차 전용',as:'',asu:''},
    {n:'B1-05',t:'장애인',memo:'',as:'',asu:''},{n:'B2-01',t:'일반',memo:'',as:'법무법인 정도',asu:'501호'}],
   docs:[
-   {t:'관리위임계약서_이준빌딩_2025.pdf',sz:'1.2 MB',c:'관리위임계약서',by:'김영준',at:'2025-02-24 14:20'},
-   {t:'등기부등본_20260801.pdf',sz:'340 KB',c:'등기부등본',by:'김영준',at:'2026-08-01 09:12'},
-   {t:'건축물대장.pdf',sz:'2.1 MB',c:'건축물대장',by:'김영준',at:'2025-03-02 11:40'},
-   {t:'2026년 화재보험증권.pdf',sz:'880 KB',c:'기타',by:'박수민',at:'2026-01-08 16:05'}],
+   {t:'관리위임계약서_카리나빌딩_2025.pdf',sz:'1.2 MB',c:'관리위임계약서',by:'에스파',at:'2025-02-24 14:20'},
+   {t:'등기부등본_20260801.pdf',sz:'340 KB',c:'등기부등본',by:'에스파',at:'2026-08-01 09:12'},
+   {t:'건축물대장.pdf',sz:'2.1 MB',c:'건축물대장',by:'에스파',at:'2025-03-02 11:40'},
+   {t:'2026년 화재보험증권.pdf',sz:'880 KB',c:'기타',by:'에스파',at:'2026-01-08 16:05'}],
   charge:[
    {it:'임대료',use:1,bill:'세금계산서',cycle:'매월',meter:'',mtr:'',basis:'',doc:'임대차계약서',fixed:true},
    {it:'고정관리비',use:1,bill:'세금계산서',cycle:'매월',meter:'',mtr:'',basis:'',doc:'임대차계약서',fixed:true},
@@ -613,26 +615,18 @@ const BUILDINGS=[
    {it:'정화조청소비',use:1,bill:'계산서',meter:'없음',mtr:'—',rest:'전체 유닛',basis:'임대면적',doc:'청소업체 내역서'}],
   billDay:'매월 19일',dueDay:'매월 말일'},
 
- {id:'b2',name:'이촌동 테온하우스',alias:'테온',kind:'오피스빌딩',addr:'서울특별시 용산구 이촌로 248',addr2:'서울 용산구 이촌동 301-8',
-  owner:'정미경',ownerBiz:'220-13-88402',mgr:'박수민',mgrTel:'010-7720-3318',
+ {id:'b2',name:'뉴진스하우스',alias:'뉴진스',kind:'오피스빌딩',addr:'서울특별시 용산구 이촌로 248',addr2:'서울 용산구 이촌동 301-8',
+  owner:'뉴진스',ownerBiz:'220-13-88402',mgr:'민희진',mgrTel:'010-7720-3318',
   area:7240.0,gross:9820.4,up:12,down:3,park:48,hvac:'중앙공조',unitCnt:22,vacCnt:1,opCnt:0,vac:4.5,
-  acct:'신한은행 140-012-772301',acctName:'정미경',
+  acct:'신한은행 140-012-772301',acctName:'뉴진스',
   mgmtStart:'2024-09-18',mgmtEnd:'2026-09-17',fee:'월 2,400,000원',mode:'임대인 직수취',
   bondBank:'신한은행 이촌동지점',bondTel:'02-797-1120',bondMax:4200000000,bondNow:3100000000,
   fac:['회의실','카페테리아','피트니스'],units:[],parks:[],docs:[],charge:[],billDay:'매월 25일',dueDay:'익월 10일'},
 
- {id:'b3',name:'성수 더블유센터',alias:'성수W',kind:'지식산업센터',addr:'서울특별시 성동구 아차산로 78',addr2:'서울 성동구 성수동2가 302-11',
-  owner:'(주)성수개발',ownerBiz:'101-86-55230',mgr:'김영준',mgrTel:'010-3341-2205',
-  area:11450.2,gross:15200.0,up:15,down:4,park:120,hvac:'개별냉난방',unitCnt:40,vacCnt:5,opCnt:0,vac:12.5,
-  acct:'하나은행 220-910033-40105',acctName:'(주)성수개발',
-  mgmtStart:'2025-07-01',mgmtEnd:'2027-06-30',fee:'임대료의 4.5%',mode:'임대인 직수취',
-  bondBank:'하나은행 성수지점',bondTel:'02-464-7701',bondMax:8000000000,bondNow:5600000000,
-  fac:['회의실','옥상정원'],units:[],parks:[],docs:[],charge:[],billDay:'매월 19일',dueDay:'매월 말일'},
-
- {id:'b4',name:'합정동 무악빌딩',alias:'무악',kind:'복합상가',addr:'서울특별시 마포구 월드컵로 12',addr2:'서울 마포구 합정동 381-4',
-  owner:'(주)무악산업',ownerBiz:'113-86-20447',mgr:'이하늘',mgrTel:'010-2280-5517',
+ {id:'b4',name:'카즈하타워',alias:'카즈하',kind:'복합상가',addr:'서울특별시 마포구 월드컵로 12',addr2:'서울 마포구 합정동 381-4',
+  owner:'카즈하',ownerBiz:'113-86-20447',mgr:'르세라핌',mgrTel:'010-2280-5517',
   area:3180.6,gross:4120.2,up:6,down:1,park:14,hvac:'개별 EHP',unitCnt:14,vacCnt:2,opCnt:0,vac:12.4,
-  acct:'우리은행 1005-903-442118',acctName:'(주)무악산업',
+  acct:'우리은행 1005-903-442118',acctName:'카즈하',
   mgmtStart:'2025-07-01',mgmtEnd:'2027-06-30',fee:'임대료의 4%',mode:'임대인 직수취',
   bondBank:'우리은행 문래지점',bondTel:'02-2632-4410',bondMax:900000000,bondNow:640000000,
   fac:['옥상정원','무인택배함'],units:[],parks:[],docs:[],
@@ -645,17 +639,10 @@ const BUILDINGS=[
     basis:'임대면적',doc:'청소업체 내역서'}],
   billDay:'매월 20일',dueDay:'말일'},
 
- {id:'b5',name:'상암 미디어플렉스',alias:'상암',kind:'오피스빌딩',addr:'서울특별시 마포구 월드컵북로 400',addr2:'서울 마포구 상암동 1602',
-  owner:'한도영',ownerBiz:'318-22-91045',mgr:'김영준',mgrTel:'010-3341-2205',
-  area:5980.0,gross:7740.5,up:10,down:2,park:35,hvac:'중앙공조',unitCnt:13,vacCnt:1,opCnt:1,vac:7.7,
-  acct:'우리은행 1005-403-882014',acctName:'한도영',
-  mgmtStart:'2025-05-01',mgmtEnd:'2026-11-30',fee:'월 1,800,000원',mode:'임대인 직수취',
-  bondBank:'우리은행 상암지점',bondTel:'02-304-5510',bondMax:3000000000,bondNow:2450000000,
-  fac:['회의실','샤워실'],units:[],parks:[],docs:[],charge:[],billDay:'매월 19일',dueDay:'매월 말일'},
 ];
 
 /* ═══ PAY-10 정산 데이터 ═══ */
-/* 동교동 이준빌딩 — 본관 11 · 별관 3 유닛. 임차인명은 실제 입주사다.
+/* 카리나빌딩 — 본관 11 · 별관 3 유닛. 임차인명은 실제 입주사다.
    임대면적은 실측값이 아니다. */
 const UNITS_B1=[
  {no:'본관8층',  st:'사용중', ten:'(주)아이씨비',          ar:330.0},
@@ -707,7 +694,7 @@ const BILL={
  tv:{on:true,date:'2026-08-09',use:null,supply:5000,vat:0,read:null,adj:{}},
  gas:{on:false,date:'2026-08-09',use:1840,supply:2208000,vat:220800,
    read:{'본관1층':[4820,null],'본관B2':[1150,null],'별관2층':[2340,null]},
-   readDate:'2026-08-06', adj:{}},   /* 이준빌딩은 가스를 청구하지 않는다 — 실제 청구서에 열이 없다 */
+   readDate:'2026-08-06', adj:{}},   /* 카리나빌딩은 가스를 청구하지 않는다 — 실제 청구서에 열이 없다 */
  rent:{on:false,fixed:true}, mgmt:{on:false,fixed:true},   /* 고정액 — 정산하지 않는다 */
  traffic:{on:false,date:'',use:null,supply:0,vat:0,read:null,adj:{}},
  septic:{on:false,date:'',use:null,supply:0,vat:0,read:null,adj:{}},
@@ -719,16 +706,12 @@ const SETTLE={ym:'2026-08',status:'작성중'};
 const PROG={
  b1:{settle:'작성중',inv:0,invN:13,amt:0,paid:0,paidN:0,closed:false,closedAt:null,due:'08-31'},
  b2:{settle:'확정', inv:0,invN:22,amt:0,paid:0,paidN:0,closed:false,closedAt:null,due:'09-10'},
- b3:{settle:'확정', inv:0,invN:40,amt:0,paid:0,paidN:0,closed:false,closedAt:null,due:'08-31'},
  b4:{settle:'미착수',inv:0,invN:14,amt:0,paid:0,paidN:0,closed:false,closedAt:null,due:'08-31'},
- b5:{settle:'작성중',inv:0,invN:13,amt:0,paid:0,paidN:0,closed:false,closedAt:null,due:'08-31'},
 };
-/* 지난 회차(7월) — 모두 발행·마감했다. 이준빌딩은 원장에서 계산한다 → PAY12 */
+/* 지난 회차(7월) — 모두 발행·마감했다. 카리나빌딩은 원장에서 계산한다 → PAY12 */
 const PROG7={
  b2:{settle:'확정',inv:22,invN:22,amt:186420000,paid:171300000,paidN:20,closed:false,closedAt:null,due:'08-10'},
- b3:{settle:'확정',inv:40,invN:40,amt:312800000,paid:309650000,paidN:39,closed:true,closedAt:'08-04',due:'07-31'},
  b4:{settle:'확정',inv:12,invN:12,amt:61200000,paid:61200000,paidN:12,closed:true,closedAt:'08-06',due:'07-31'},
- b5:{settle:'확정',inv:13,invN:13,amt:98640000,paid:98640000,paidN:13,closed:true,closedAt:'08-03',due:'07-31'},
 };
 const selItems=()=>MASTER.filter(m=>!m.fixed&&BILL[m.code].on);
 /* 배분 우선순위 — 건물 설정이 있으면 그것, 없으면 기준표 기본값 → PRO-3 · 4.3 */
@@ -927,12 +910,12 @@ function setMul(code,no,v){
   const b=BILL[code], m=parseFloat(v);
   /* 배율 0은 「부담 없음」이라는 유효한 값이다. 기본값 1.0일 때만 기록을 지운다. */
   if(!Number.isFinite(m)||m<0||m===1){delete b.adj[no];}
-  else b.adj[no]={mul:m, by:'김영준', at:'2026-08-10 10:14'};
+  else b.adj[no]={mul:m, by:'에스파', at:'2026-08-10 10:14'};
   render(true);
 }
 function setWhy(code,no,v){
   const b=BILL[code];
-  if(!b.adj[no]) b.adj[no]={mul:1, why:'', by:'김영준', at:'2026-08-10 10:14'};
+  if(!b.adj[no]) b.adj[no]={mul:1, why:'', by:'에스파', at:'2026-08-10 10:14'};
   b.adj[no].why=v; b.adj[no].at='2026-09-25 10:14';
   if(b.adj[no].mul===1 && !v) delete b.adj[no];
   render(true);
@@ -1097,7 +1080,7 @@ function csHTML(){
       <b>${cs.cycle}</b> 발생합니다.</div>`;
   return `<div class="dro"><div class="ov" onclick="closeDrawer()"></div><div class="pn">
     <div class="dh"><div><div class="t">청구 항목 설정</div>
-      <div class="s">동교동 이준빌딩${cs.editing?' · 수정':''}</div></div>
+      <div class="s">카리나빌딩${cs.editing?' · 수정':''}</div></div>
       <button class="x" onclick="closeDrawer()">✕</button></div>
     <div class="db">
       <div class="fg"><div class="fl">항목</div>
@@ -1199,7 +1182,7 @@ function drawerHTML(){
   };
   return `<div class="dro"><div class="ov" onclick="closeDrawer()"></div><div class="pn">
     <div class="dh"><div><div class="t">청구 항목 추가</div>
-      <div class="s">2026년 8월 · 동교동 이준빌딩</div></div>
+      <div class="s">2026년 8월 · 카리나빌딩</div></div>
       <button class="x" onclick="closeDrawer()">✕</button></div>
     <div class="db">
       ${rest.length? rest.map(card).join('')
@@ -1264,7 +1247,7 @@ function ddBadge(end){
 /* ═══ 네비 ═══ */
 const navLink=(i,sub)=>`<a onclick="go('${i.id}')" data-id="${i.id}" data-n="${i.n}">${sub?'':ic(i.i)}<span>${i.n}</span><span class="sid">${i.sid}</span></a>`;
 /* 상세 화면은 목록 메뉴를 켠다 */
-const NAV_PARENT={'ctr-3':'ctr-1','pro-3':'pro-1'};
+const NAV_PARENT={'ctr-2':'ctr-1','ctr-3':'ctr-1','pro-3':'pro-1'};
 function paintNav(cur){
   const a0=(cur||'').split('/')[0], active=NAV_PARENT[a0]||a0;
   $('#nav').innerHTML=MENU.map(m=>{
@@ -1432,7 +1415,7 @@ function t요약(b){
     <div class="cc"><div class="two" style="gap:0 40px">
       <dl class="dl"><dt>관리 수수료</dt><dd>${b.fee}</dd>
         <dt>운영방식</dt><dd>${b.mode}<span class="lock">위탁사 수취 후 정산은 2차</span></dd></dl>
-      <dl class="dl"><dt>위임계약서</dt><dd>${b.docs.length?'<span style="color:var(--pri);cursor:pointer">관리위임계약서_이준빌딩_2025.pdf</span>':'<span style="color:var(--muted)">미등록</span>'}</dd>
+      <dl class="dl"><dt>위임계약서</dt><dd>${b.docs.length?'<span style="color:var(--pri);cursor:pointer">관리위임계약서_카리나빌딩_2025.pdf</span>':'<span style="color:var(--muted)">미등록</span>'}</dd>
         <dt>임대인</dt><dd>${b.owner}</dd></dl>
     </div>${d<=90?`<div class="hint" style="color:var(--warn)">만료 90일 이내입니다. 갱신하지 않으면 이 건물의 관리 권한이 소멸합니다.</div>`:''}</div>
   </div>`;
@@ -1557,7 +1540,7 @@ function pay10Head(sel){
     <div class="act"><button class="btn pri" onclick="alert('정산 확정 → 계약별 청구서 생성')">정산 확정</button></div>
   </div>
   <div class="fbar">
-    <select><option>동교동 이준빌딩</option><option>합정동 무악빌딩</option><option>이촌동 테온하우스</option></select>
+    <select><option>카리나빌딩</option><option>카즈하타워</option><option>뉴진스하우스</option></select>
     <select><option>2026년 8월</option><option>2026년 7월</option><option>2026년 6월</option></select>
   </div>
   ${!sel?'':`<div class="itab">
@@ -1832,7 +1815,7 @@ function row4(r,m,cls){
 
 /* ═══ PAY-12 청구·수납 개요 ═══ */
 let f12='2026-08';
-/* 이준빌딩 7월 — 원장에서 센다. 청구 계약 수 · 청구액 · 수납액 · 완납 계약 수. 8/5 월 마감 */
+/* 카리나빌딩 7월 — 원장에서 센다. 청구 계약 수 · 청구액 · 수납액 · 완납 계약 수. 8/5 월 마감 */
 function prog7b1(){
   const ks=[...new Set(BILLS.filter(i=>i.ym==='2026-07'&&i.k.startsWith('b1')).map(i=>i.k))];
   const P=ks.map(k=>ctrPay(k,'2026-07'));
@@ -1901,29 +1884,27 @@ function PAY12(){
 
 /* ═══ PAY-11 월 마감 — 건물 × 월로 장부를 잠근다. 건물 하나를 골라 달마다 본다 ═══ */
 const MC_YMS=['2026-05','2026-06','2026-07','2026-08'];
-/* 마감 기록 — 이준빌딩 외에는 예시값. 테온하우스는 납부마감이 익월 10일(오늘)이라 7월이 아직 열려 있다 */
+/* 마감 기록 — 카리나빌딩 외에는 예시값. 테온하우스는 납부마감이 익월 10일(오늘)이라 7월이 아직 열려 있다 */
 const MC={
- b1:{'2026-05':{at:'06-04 17:20',by:'김영준'},'2026-06':{at:'07-03 16:40',by:'김영준'},'2026-07':{at:'08-05 18:10',by:'김영준'}},
- b2:{'2026-05':{at:'06-12 11:05',by:'박수민'},'2026-06':{at:'07-13 10:30',by:'박수민'}},
- b3:{'2026-05':{at:'06-03 15:00',by:'김영준'},'2026-06':{at:'07-02 14:10',by:'김영준'},'2026-07':{at:'08-04 16:45',by:'김영준'}},
- b4:{'2026-05':{at:'06-05 09:50',by:'이하늘'},'2026-06':{at:'07-06 10:15',by:'이하늘'},'2026-07':{at:'08-06 11:20',by:'이하늘'}},
- b5:{'2026-05':{at:'06-02 18:00',by:'김영준'},'2026-06':{at:'07-02 17:40',by:'김영준'},'2026-07':{at:'08-03 17:55',by:'김영준'}},
+ b1:{'2026-05':{at:'06-04 17:20',by:'에스파'},'2026-06':{at:'07-03 16:40',by:'에스파'},'2026-07':{at:'08-05 18:10',by:'에스파'}},
+ b2:{'2026-05':{at:'06-12 11:05',by:'민희진'},'2026-06':{at:'07-13 10:30',by:'민희진'}},
+ b4:{'2026-05':{at:'06-05 09:50',by:'르세라핌'},'2026-06':{at:'07-06 10:15',by:'르세라핌'},'2026-07':{at:'08-06 11:20',by:'르세라핌'}},
 };
 /* 마감·마감 취소 이력 — 건물·월별 */
-const MC_LOG={'b1|2026-06':[{at:'07-02 15:10',by:'김영준',act:'마감'},{at:'07-03 09:20',by:'김영준',act:'마감 취소',why:'루비뮤직 6월 수납 배분을 잘못 기록해 재조정'},
-  {at:'07-03 16:40',by:'김영준',act:'마감'}]};
+const MC_LOG={'b1|2026-06':[{at:'07-02 15:10',by:'에스파',act:'마감'},{at:'07-03 09:20',by:'에스파',act:'마감 취소',why:'루비뮤직 6월 수납 배분을 잘못 기록해 재조정'},
+  {at:'07-03 16:40',by:'에스파',act:'마감'}]};
 /* 임대인 보고서 발송일 → REP-1 */
-const REPS={b1:{'2026-05':'06-03','2026-06':'07-02','2026-07':'08-04'},b3:{'2026-05':'06-02','2026-06':'07-01','2026-07':'08-03'},
-  b4:{'2026-05':'06-04','2026-06':'07-05','2026-07':'08-05'},b5:{'2026-05':'06-01','2026-06':'07-01','2026-07':'08-02'},
+const REPS={b1:{'2026-05':'06-03','2026-06':'07-02','2026-07':'08-04'},
+  b4:{'2026-05':'06-04','2026-06':'07-05','2026-07':'08-05'},
   b2:{'2026-05':'06-11','2026-06':'07-12'}};
-/* 이준빌딩 외 건물의 7월 미처리 입금 — 예시값 */
+/* 카리나빌딩 외 건물의 7월 미처리 입금 — 예시값 */
 const MC_WAIT={b2:{'2026-07':3}};
 let s11={b:'b1',ym:'2026-07'}, mcx=null;
 const mcKey=(b,ym)=>b+'|'+ym;
 const mcDue=(b,ym)=>{const bd=BUILDINGS.find(x=>x.id===b);   /* 납부마감일 — 익월 10일인 건물이 있다 */
   if(/익월 10일/.test(bd.dueDay||'')){const [y,m]=ym.split('-').map(Number);return new Date(Date.UTC(y,m,10)).toISOString().slice(0,10);}
   return dueStr(ym);};
-/* 금액 — 이준빌딩은 원장에서 센다. 나머지는 예시값(5·6월은 완납) */
+/* 금액 — 카리나빌딩은 원장에서 센다. 나머지는 예시값(5·6월은 완납) */
 function mcNum(b,ym){
   if(b==='b1'){const ks=[...new Set(BILLS.filter(i=>i.ym===ym&&i.k.startsWith('b1')&&!i.fee).map(i=>i.k))];
     const P=ks.map(k=>ctrPay(k,ym));
@@ -2068,6 +2049,8 @@ const CITEM={
    계약은 유닛마다 따로 둔다. (주)아이씨비 본관7·8층은 계약서가 한 장이지만 한 층만 해지할 수 있어야 하므로
    계약 2건이다. 실제 청구서는 한 장이다 → 임차인 「청구서 합쳐 보내기」 PAY-1 · USER-7
    본관B1은 건물주가 직접 쓰는 공간이라 비운영중이다. 산출 금액은 건축주가 부담한다 → 3.2 */
+/* 계약 식별 — 기존 계약은 건물+유닛. 같은 유닛에 다음 계약을 미리 등록하면 시작일을 붙여 구분한다 */
+const ckey=c=>c.key||c.b+c.no;
 const CTRS=[
  {b:'b1',no:'본관8층',ten:'(주)아이씨비',st:'진행중',base:'2024-03-01',
   it:[['임대료',8900000],['고정관리비',2650000],['전기요금'],['전력기금'],['TV수신료'],['수도요금'],['정화조청소비'],['주차비']]},
@@ -2102,7 +2085,7 @@ const CTRS=[
   it:[['임대료',6200000],['고정관리비',1180000],['전기요금'],['수도요금']]},
 ];
 /* 계약별 미납 잔액 — 원장에서 계산되는 값이다. 청구 합계에 포함하지 않는다 → PAY-2
-   이준빌딩은 수납 기록(PAY-6)의 결과에서 계산한다 → dueOf. 나머지 건물은 예시값이다 */
+   카리나빌딩은 수납 기록(PAY-6)의 결과에서 계산한다 → dueOf. 나머지 건물은 예시값이다 */
 const UNPAID={
  'b21203호':{n:1,amt:890_000,from:'2026-07'},
 };
@@ -2165,7 +2148,7 @@ function ISSUE(){
     const sup=lines.reduce((a,l)=>a+(l.supply||0),0);
     const vat=lines.reduce((a,l)=>a+(l.vat||0),0);
     const miss=lines.filter(l=>l.amt==null).length;
-    const k=c.b+c.no;
+    const k=ckey(c);
     return {...c,k,lines,sum,sup,vat,miss,via,
             due:dueOf(k),st:done?'발행 완료':'발행 대기'};
   });
@@ -2285,12 +2268,12 @@ function PAY1(){
 }
 
 /* ═══ PAY-6 수납 내역 ═══ */
-/* 2026-07 동교동 이준빌딩 운영계좌 거래내역 — 은행에서 내려받은 형식 그대로다. 7/20 ~ 7/31분.
+/* 2026-07 카리나빌딩 운영계좌 거래내역 — 은행에서 내려받은 형식 그대로다. 7/20 ~ 7/31분.
    8월 실제 거래내역의 날짜를 7월로 옮기고, 임차인 입금액은 7월 청구액에 맞춰 만든 예시값이다.
    (주)비씨에이전시는 5·6·7월분 중 5,000,000원만 냈다 · 주식회사루비뮤직은 6월 부족분 385,000원을 얹어 냈다
    거래후 잔액 열은 원본 값이며 계산에 쓰지 않는다.
    앞 2행은 머리말, 출금 행과 임대 외 입금이 섞여 있다. 시스템이 걸러내야 한다 → 4.6.1 */
-const BANK_RAW=`이준빌딩
+const BANK_RAW=`카리나빌딩
 조회기간 : 2026.07.01~2026.07.31 조회일시 : 2026.08.03 07:30:28
 No.    거래일시    적요    기재내용    지급(원)    입금(원)    거래후 잔액(원)    취급점    메모    수표·어음·증권금액(원)
 1    2026.07.31 19:01:55    인터넷    주식회사루비뮤직    0    2,920,086    128,641,416    기업은행(003045)        0
@@ -2427,7 +2410,7 @@ const RC={b:'b1',P:parseBank(BANK_RAW),dec:{},op:{},alias:{},pre:{},reg:{},cur:n
           f:{b:'b1',ym:'2026-07',st:''}};   /* 필터 — 건물 · 청구년월 · 납부상태 */
 const setRC=(k,v)=>{RC.f[k]=v;render();};
 /* 계약 × 청구년월 수납 — 청구액·수납액·미납액·납부상태 → PAY-6 · 3.2 */
-/* 납부마감일 — 이준빌딩은 매월 말일 → 3.5 */
+/* 납부마감일 — 카리나빌딩은 매월 말일 → 3.5 */
 const dueDate=ym=>new Date(dueStr(ym)+'T00:00:00Z');
 const lateDays=ym=>Math.max(0,dnum(TODAY_S)-dnum(dueStr(ym)));
 /* 납부상태 5종 — 수납 0인 청구만 납부마감일로 납부전/미납을 나눈다 → 3.2 */
@@ -2441,7 +2424,7 @@ function ctrPay(k,ym){
 /* 연체료(예상) — 구간별로 계산한다 → 4.4
    납부마감일 다음날부터 오늘까지를 수납이 들어올 때마다 끊고, 구간마다 그 동안의 미납액 × 연체이자율 × 일수 ÷ 365.
    구간마다 원 미만 절사 후 합한다. 내역서의 줄과 합계가 맞아야 하기 때문이다 */
-const rateOf=k=>{const c=CTRS.find(x=>x.b+x.no===k);return (c&&c.rate)||8;};
+const rateOf=k=>{const c=CTRS.find(x=>ckey(x)===k);return (c&&c.rate)||8;};
 /* 연체료 정리일 — 수납 처리에서 연체료를 받았거나 깎아 준 날. 그날까지의 연체료는 다시 세지 않는다 → 4.4.3 */
 const FEE_CUT={};
 function lateCalc(k,ym,until){
@@ -2486,7 +2469,7 @@ function rcPrefix(nm,B){
    입금액이 청구액과 같은지 따지지 않는다. 전액이면 결과가 같고, 모자라면 남는 것이 미납이다.
    이번 달 청구서와 같은 금액이 들어와도 미납액부터 채운다 */
 function rcPlan(amt,keys,paid,extra){
-  const ci=k=>CTRS.findIndex(c=>c.b+c.no===k);
+  const ci=k=>CTRS.findIndex(c=>ckey(c)===k);
   const open=[...BILLS,...(extra||[])].filter(i=>keys.includes(i.k))
     .map(i=>({...i,pr:prioOf(i.n.split(' ')[0]),due:i.amt-(paid[i.id]||0)})).filter(i=>i.due>0)
     .sort((a,b)=>a.ym<b.ym?-1:a.ym>b.ym?1:a.pr!==b.pr?a.pr-b.pr:ci(a.k)-ci(b.k));
@@ -2522,7 +2505,7 @@ function rcGuess(d,B){
 /* 배분 미리보기 — 이미 확정된 입금만 반영한 원장 기준이다. 보이는 그대로 기록된다 → PAY-13 */
 function rcPreview(d,biz,B){
   if(!biz||!B[biz]) return null;
-  return rcPlan(d.amt,B[biz].ctrs.map(c=>c.b+c.no),PAID);
+  return rcPlan(d.amt,B[biz].ctrs.map(c=>ckey(c)),PAID);
 }
 /* 상태는 넷뿐이다 — 처리 전: 자동 매칭 · 미매칭 / 처리 후: 확정 · 무시.
    내부의 후보(비슷한 상호)·지정(담당자가 고름)은 화면에서 모두 미매칭이다 → PAY-13 */
@@ -2641,7 +2624,7 @@ function PAY13(){
     ${r.rest>0?`<div class="fnd wa3"><span class="h">미배분 ${won(r.rest)}</span>
       입금액이 미납보다 많아 남았습니다. 자동으로 처리하지 않습니다.
       <div style="margin-top:8px;display:flex;gap:8px"><button class="btn sm">환불</button><button class="btn sm">다음 회차 배분</button></div></div>`:''}
-    ${(()=>{const left=BILLS.filter(i=>B[r.biz]&&B[r.biz].ctrs.some(c=>c.b+c.no===i.k))
+    ${(()=>{const left=BILLS.filter(i=>B[r.biz]&&B[r.biz].ctrs.some(c=>ckey(c)===i.k))
         .reduce((a,i)=>a+Math.max(0,i.amt-(PAID[i.id]||0)),0);
       return left?`<div class="fnd wa3"><span class="h">${B[r.biz].n} 남은 미납 ${won(left)}</span>
         이 입금으로 채우지 못한 청구가 있습니다. 수납 내역·미납 관리에서 확인하세요.</div>`:'';})()}
@@ -2656,7 +2639,7 @@ function PAY13(){
     const g=rcGuess(d,B), pl=rcPreview(d,g.biz,B);
     const registered=g.st==='자동';
     const sumBefore=pl?pl.lines.reduce((a,l)=>a,0):0;
-    const openAll=g.biz?BILLS.filter(i=>B[g.biz].ctrs.some(c=>c.b+c.no===i.k))
+    const openAll=g.biz?BILLS.filter(i=>B[g.biz].ctrs.some(c=>ckey(c)===i.k))
       .reduce((a,i)=>a+Math.max(0,i.amt-(PAID[i.id]||0)),0):0;
     const tbl=!pl?'':!pl.lines.length?`<div class="empty" style="padding:24px">이 임차인에게 미납 청구가 없습니다. 입금 전액이 미배분으로 남습니다.</div>`
       :`<div class="tw"><table class="nowr">
@@ -2724,7 +2707,7 @@ function PAY6(){
   const has=RC.f.b===RC.b&&['2026-05','2026-06','2026-07'].includes(RC.f.ym);
   const waitN=RC.f.b===RC.b?RC.P.dep.filter(rcIsOpen).length:0;
   const all=has?CTRS.filter(c=>c.b===RC.b&&c.st==='진행중')
-    .map(c=>({c,k:c.b+c.no,...ctrPay(c.b+c.no,RC.f.ym)})).filter(x=>x.st):[];
+    .map(c=>({c,k:ckey(c),...ctrPay(ckey(c),RC.f.ym)})).filter(x=>x.st):[];
   const rows=all.filter(x=>!RC.f.st||x.st===RC.f.st);
   const anyOp=rows.some(x=>g6Open(x.k));
   const T=rows.reduce((a,x)=>({bill:a.bill+x.bill,paid:a.paid+x.paid,due:a.due+x.due}),{bill:0,paid:0,due:0});
@@ -2785,7 +2768,7 @@ const PAY_HOW=['현금','카드','계좌이체','보증금상계'];
 /* 이 계약의 연체료 — 받은 날까지. 이미 청구한 연체료는 빼고 센다 */
 const feeUntil=(k,d)=>[...new Set(BILLS.filter(i=>i.k===k).map(i=>i.ym))].reduce((a,ym)=>a+lateCalc(k,ym,d).fee,0);
 function openPay(k){
-  const a=arrears(CTRS.find(c=>c.b+c.no===k));
+  const a=arrears(CTRS.find(c=>ckey(c)===k));
   const full=feeUntil(k,TODAY_S);
   /* 연체료만 남은 계약은 연체료를 정리하러 연 것이다 → 기본 전액. 청구 미납이 있으면 기본은 이번엔 정리 안 함 */
   const mode=!a.due&&full?'full':'later';
@@ -2814,16 +2797,16 @@ function setFeeMode(m){
 /* 받기로 한 연체료 — 받은 날 청구 건으로 만든다. 확정 전에는 미리보기에만 쓴다 */
 function feeBill(){
   if(!pm.feeOn||!pm.fee) return null;
-  const c=CTRS.find(x=>x.b+x.no===pm.k), off=pm.feeFull-pm.fee;
+  const c=CTRS.find(x=>ckey(x)===pm.k), off=pm.feeFull-pm.fee;
   return {id:`fee|${pm.k}|${pm.date}|${pmSeq+1}`,ym:pm.date.slice(0,7),k:pm.k,no:c.no,n:'연체료',amt:pm.fee,
     fee:true,date:pm.date,memo:`연체료 (${pm.date.slice(5).replace('-','.')}까지${off?` · ${won(pm.feeFull)} 중 ${won(off)} 감면`:''})`};
 }
 /* 배분 — 입금 매칭과 같은 규칙. 현금·카드는 같은 임차인의 이 건물 계약 전체에,
    보증금상계는 그 보증금이 걸린 이 계약에만 → 4.3.1 */
 function payPlan(){
-  const c=CTRS.find(x=>x.b+x.no===pm.k);
+  const c=CTRS.find(x=>ckey(x)===pm.k);
   const keys=pm.how==='보증금상계'?[pm.k]
-    :CTRS.filter(x=>x.b===c.b&&(x.st==='진행중'||x.b+x.no===pm.k)&&normName(x.ten)===normName(c.ten)).map(x=>x.b+x.no);
+    :CTRS.filter(x=>x.b===c.b&&(x.st==='진행중'||ckey(x)===pm.k)&&normName(x.ten)===normName(c.ten)).map(x=>ckey(x));
   const fb=feeBill();
   return rcPlan(pm.amt,keys,PAID,fb?[fb]:[]);
 }
@@ -2839,7 +2822,7 @@ function payConfirm(){
 }
 function payHTML(){
   if(DRAWER!=='pay'||!pm) return '';
-  const c=CTRS.find(x=>x.b+x.no===pm.k), bn=BUILDINGS.find(x=>x.id===c.b)||BUILDINGS[0];
+  const c=CTRS.find(x=>ckey(x)===pm.k), bn=BUILDINGS.find(x=>x.id===c.b)||BUILDINGS[0];
   const a=arrears(c), pl=payPlan(), depBal=ledgerOf(pm.k).bal.임대보증금;
   const off=pm.feeFull-pm.fee;
   const over=pm.how==='보증금상계'&&pm.amt>depBal;
@@ -2905,7 +2888,7 @@ const g2Tog=k=>{g2[k]=!g2Open(k);render(true);};
 const pick2=(k,e)=>{e.stopPropagation();sel2[k]=!sel2[k];render(true);};
 /* 계약 하나의 미납 — 미납액이 남았거나 연체료가 있는 달. 최근 달이 위 */
 function arrears(c){
-  const k=c.b+c.no, yms=[...new Set(BILLS.filter(i=>i.k===k).map(i=>i.ym))].sort().reverse();
+  const k=ckey(c), yms=[...new Set(BILLS.filter(i=>i.k===k).map(i=>i.ym))].sort().reverse();
   const months=yms.map(ym=>{const p=ctrPay(k,ym), L=lateCalc(k,ym);
     /* 늦게라도 다 낸 달 — 마지막 수납일까지 며칠 늦었는지. 연체료가 왜 남았는지 보여준다 */
     const byD={};
@@ -2980,7 +2963,7 @@ function PAY2(){
     아직 기록되지 않은 입금이 있어 이미 낸 계약도 미납으로 보입니다.
     <b class="lk" onclick="go('pay-13')">입금 매칭으로 이동 →</b></div>`:''}
   ${!rows.length?`<div class="tbl"><div class="empty"><div class="t">${has?'미납이 없습니다':'자료가 없습니다'}</div>
-     ${has?'모든 계약이 완납 상태이고 연체료도 없습니다.':'목업 자료는 동교동 이준빌딩뿐입니다.'}</div></div>`
+     ${has?'모든 계약이 완납 상태이고 연체료도 없습니다.':'목업 자료는 카리나빌딩뿐입니다.'}</div></div>`
   :`<div class="tbl schl">
     <div class="schr arr hd"><div>계약고유명 · 청구년월</div><div class="n">미납액</div>
       <div class="n">연체일수</div><div class="n">연체이자율</div><div class="n">연체료(예상)</div><div></div></div>
@@ -2997,13 +2980,13 @@ function PAY2(){
 }
 
 /* 계약 조건 — 종료일은 기본값(시작일로부터 2년 후 전날), 유형은 확정기간계약, 보증금은 예시값(월 임대료 × 10) → 3.5 */
-const ctrEnd=c=>{const d=new Date(c.base+'T00:00:00Z');d.setUTCFullYear(d.getUTCFullYear()+2);d.setUTCDate(d.getUTCDate()-1);
+const ctrEnd=c=>{if(c.end) return c.end;const d=new Date(c.base+'T00:00:00Z');d.setUTCFullYear(d.getUTCFullYear()+2);d.setUTCDate(d.getUTCDate()-1);
   let e=d.toISOString().slice(0,10);
   /* 이미 끝났어야 할 진행중 계약은 한 번 갱신된 것으로 본다 */
   while(c.st==='진행중'&&dnum(e)<dnum(TODAY_S)){const x=new Date(e+'T00:00:00Z');x.setUTCFullYear(x.getUTCFullYear()+2);e=x.toISOString().slice(0,10);}
   return e;};
 const ctrAmt=(c,n)=>((c.it||[]).find(x=>x[0]===n)||[])[1]||0;
-const ctrDeposit=c=>ctrAmt(c,'임대료')*10;
+const ctrDeposit=c=>c.dep!=null?c.dep:ctrAmt(c,'임대료')*10;
 const man=n=>n>=1e8?(n/1e8).toFixed(n%1e8?1:0)+'억':n>=1e4?num(Math.round(n/1e4))+'만':num(n);
 
 /* ═══ CTR-1 계약 목록 ═══ */
@@ -3016,7 +2999,7 @@ function CTR1(){
   const d8=d=>d.replace(/-/g,'.');
   return `
   <div class="ph"><h1>계약 목록</h1><span class="sid">CTR-1</span>
-    <div class="act"><button class="btn pri" onclick="alert('CTR-2 새로운 계약 등록 — 아직 미구현')">+ 새로운 계약 등록</button></div>
+    <div class="act"><button class="btn pri" onclick="nc=null;go('ctr-2')">+ 새로운 계약 등록</button></div>
   </div>
   <div class="fbar">
     <select onchange="setF1c('b',this.value)"><option value="">전체 건물</option>
@@ -3028,7 +3011,7 @@ function CTR1(){
   </div>
   <div class="tbl"><div class="tw"><table class="nowr">
     <thead><tr><th>만료까지 <span class="so">⇅</span></th><th>계약고유명</th><th>계약상태</th><th>계약 조건 <span class="c2" style="margin:0">(부가세 포함)</span></th><th>계약유형</th></tr></thead>
-    <tbody>${rows.map(({c,end,dd})=>`<tr onclick="tab3c='요약';go('ctr-3/${c.b+c.no}')">
+    <tbody>${rows.map(({c,end,dd})=>`<tr onclick="tab3c='요약';go('ctr-3/${ckey(c)}')">
       <td>${c.st==='진행중'?ddBadge(end):'<span style="color:var(--faint)">—</span>'}</td>
       <td>${cnameHTML(BA(c.b),c.no,c.ten)}</td>
       <td><span class="bd ${c.st==='진행중'?'ok':'mu'}">${c.st}</span></td>
@@ -3039,6 +3022,166 @@ function CTR1(){
   <div class="hint">행을 누르면 계약 상세로 들어갑니다. 원장은 계약 상세의 원장정보 탭에 있습니다.<br>
     임대료·관리비는 부가세를 포함한 월 금액입니다. 보증금에는 부가세가 없습니다.<br>
     목업의 계약 종료일·유형·보증금은 예시값입니다.</div>`;
+}
+
+/* ═══ CTR-2 계약 등록 — 한 화면에 위에서 아래로. 저장하면 준비중 계약이 생기고 계약 상세로 간다 ═══ */
+/* 기존 사업자 — 사업자등록번호로 찾는다. 목업 예시값 → USER-6 */
+const BIZ={'211-86-40519':{kind:'법인',ten:'(주)비씨에이전시',ceo:'박서준',addr:'서울 마포구 양화로 156 별관 3층',item:'서비스 · 광고대행',alias:['비씨에이전시']},
+           '105-87-22013':{kind:'법인',ten:'(주)아이씨비',ceo:'정하늘',addr:'서울 마포구 양화로 156 본관 7·8층',item:'도소매 · 화장품',alias:['ICB']}};
+let nc=null;
+const ncEnd=d=>{if(!d) return '';const x=new Date(d+'T00:00:00Z');x.setUTCFullYear(x.getUTCFullYear()+2);x.setUTCDate(x.getUTCDate()-1);return x.toISOString().slice(0,10);};
+function ncInit(){
+  nc={b:'b1',no:'',st:'준비중',type:'확정기간계약',start:'',end:'',sub:false,agent:false,tax:true,rate:'8',
+      kind:'법인',biz:'',found:null,ten:'',ceo:'',addr:'',item:'',alias:'',
+      pn:'',pt:'',ptel:'',pmail:'',diff:false,cn:'',cbiz:'',cceo:'',ctel:'',cmail:'',caddr:'',rbank:'',racct:'',rname:'',
+      proxy:false,xn:'',xtel:'',xmail:'',xaddr:'',an:'',aceo:'',ano:'',atel:'',aaddr:'',
+      dep:'',depDue:'',depRet:'',park:'0',parkFee:'',rent:'',mgmt:'',notice:'3',late:false,lateD:'',
+      vars:null,payTo:'',extra:[],adj:[],memo:'',tried:false};
+}
+function ncSet(f,v){
+  nc[f]=v;
+  if(f==='b'){nc.no='';nc.vars=null;nc.payTo='';}
+  if(f==='start'){nc.end=ncEnd(v);if(!nc.depRet) nc.depRet=nc.end;}
+  if(f==='end'&&(!nc.depRet||nc.depRet===ncEnd(nc.start))) nc.depRet=v;
+  render(true);
+}
+/* 사업자등록번호 조회 — 있으면 불러오고, 없으면 새 사업자로 등록된다 */
+function ncLookup(){
+  const f=BIZ[nc.biz.trim()];
+  nc.found=f?'기존':'신규';
+  if(f) Object.assign(nc,{kind:f.kind,ten:f.ten,ceo:f.ceo,addr:f.addr,item:f.item,alias:f.alias.join(', ')});
+  render(true);
+}
+const ncUnits=b=>b==='b1'?UNITS_B1:[];
+/* 같은 유닛의 진행중 계약과 기간이 겹치면 막는다. 준비중 계약과 겹치면 알리기만 한다 */
+function ncClash(){
+  if(!nc.no) return null;
+  const cs=CTRS.filter(c=>c.b===nc.b&&c.no===nc.no&&(c.st==='진행중'||c.st==='준비중'));
+  for(const c of cs){const e=ctrEnd(c);
+    if(nc.start&&dnum(nc.start)>dnum(e)) continue;
+    return {c,end:e,block:c.st==='진행중'};}
+  return null;
+}
+function ncMissing(){
+  const m=[];
+  if(!nc.no) m.push('유닛'); if(!nc.start) m.push('계약시작일');
+  if(!nc.biz.trim()) m.push('사업자등록번호'); if(!nc.ten.trim()) m.push('상호');
+  if(!nc.pmail.trim()) m.push('담당자 이메일');
+  if(!numOf(nc.rent)) m.push('임대료'); if(!numOf(nc.mgmt)) m.push('고정관리비');
+  return m;
+}
+function ncSave(welcome){
+  nc.tried=true;
+  const cl=ncClash();
+  if(ncMissing().length||(cl&&cl.block)){render(true);return;}
+  const bd=BUILDINGS.find(x=>x.id===nc.b);
+  const vars=nc.vars||ncVarList(bd).filter(x=>x.on).map(x=>x.it);
+  const c={b:nc.b,no:nc.no,ten:nc.ten.trim(),st:nc.st,base:nc.start,end:nc.end||ncEnd(nc.start),rate:+nc.rate||8,
+    dep:numOf(nc.dep)||null,payTo:nc.payTo||undefined,fresh:true,
+    it:[['임대료',numOf(nc.rent)],['고정관리비',numOf(nc.mgmt)],...vars.map(n=>[n])]};
+  if(CTRS.some(x=>x.b===c.b&&x.no===c.no)) c.key=`${c.b}${c.no}@${c.base}`;
+  CTRS.push(c);
+  const k=ckey(c); nc=null; tab3c='요약'; go('ctr-3/'+k);
+}
+/* 이 계약에 적용할 변동 항목 — 건물 관리비 설정에서 쓰는 항목만. 기본은 전부 적용 */
+const ncVarList=bd=>(bd.charge||[]).filter(x=>x.use&&!x.fixed).map(x=>({it:x.it,on:!nc.vars||nc.vars.includes(x.it)}));
+function ncVarTog(it){
+  const bd=BUILDINGS.find(x=>x.id===nc.b), cur=ncVarList(bd).filter(x=>x.on).map(x=>x.it);
+  nc.vars=cur.includes(it)?cur.filter(x=>x!==it):[...cur,it]; render(true);
+}
+function ncRow(list,i,f,v){nc[list][i][f]=v;render(true);}
+function CTR2(){
+  if(!nc) ncInit();
+  const bd=BUILDINGS.find(x=>x.id===nc.b), U=ncUnits(nc.b), cl=ncClash(), miss=nc.tried?ncMissing():[];
+  const T=(f,ph,w)=>`<input type="text" value="${nc[f]}" placeholder="${ph||''}" onchange="ncSet('${f}',this.value)"${w?` style="max-width:${w}px"`:''}>`;
+  const D=f=>`<input type="date" value="${nc[f]}" onchange="ncSet('${f}',this.value)">`;
+  const N=(f,ph)=>`<input type="text" inputmode="numeric" value="${nc[f]?numOf(nc[f]).toLocaleString('ko-KR'):''}" placeholder="${ph||''}" onchange="ncSet('${f}',this.value)" style="text-align:right">`;
+  const S=(f,opts)=>`<select onchange="ncSet('${f}',this.value)">${opts.map(o=>{const [v,t]=Array.isArray(o)?o:[o,o];
+    return `<option value="${v}" ${String(nc[f])===String(v)?'selected':''}>${t}</option>`;}).join('')}</select>`;
+  const C=(f,t)=>`<label class="ck"><input type="checkbox" ${nc[f]?'checked':''} onchange="ncSet('${f}',this.checked)">${t}</label>`;
+  const R=(k,body,req)=>`<div class="fr"><span class="fk">${k}${req?' <b style="color:var(--warn)">*</b>':''}</span>${body}</div>`;
+  const vat=v=>{const n=numOf(v);return n?`<span class="c2" style="white-space:nowrap">부가세 ${won(Math.round(n*0.1))} · 합계 ${won(n+Math.round(n*0.1))}</span>`:'';};
+  const d8=d=>d?d.replace(/-/g,'.'):'';
+  const others=CTRS.filter(c=>c.b===nc.b&&(c.st==='진행중'||c.st==='준비중')&&c.no!==nc.no);
+  const card=(t,body,sub)=>`<div class="card" style="margin:0 0 16px"><div class="ct">${t}${sub?`<span class="sub">${sub}</span>`:''}</div><div class="cc">${body}</div></div>`;
+  const left=
+    card('기본 정보',
+      R('건물',S('b',BUILDINGS.map(x=>[x.id,x.name])),1)
+      +R('유닛',U.length?S('no',[['','유닛 선택'],...U.map(u=>{const on=CTRS.find(c=>c.b===nc.b&&c.no===u.no&&c.st==='진행중');
+          return [u.no,`${u.no} · ${u.st==='비운영중'?'비운영중':on?`${on.ten} (${d8(ctrEnd(on))} 종료)`:'공실'}`];})])
+          :'<span class="c2" style="margin:0">목업의 유닛 자료는 카리나빌딩뿐입니다</span>',1)
+      +(cl?`<div class="prev ${cl.block?'warn2':''}" style="margin:0 0 10px"><div class="pt">${cl.block?'기간이 겹치는 진행중 계약이 있습니다':'기간이 겹치는 준비중 계약이 있습니다'}</div>
+          ${cl.c.ten} · ${d8(cl.c.base)} - ${d8(cl.end)}.
+          ${cl.block?`계약시작일을 <b>${d8(new Date((dnum(cl.end)+1)*864e5).toISOString().slice(0,10))}</b> 이후로 정해야 등록할 수 있습니다.`:'저장은 할 수 있습니다.'}</div>`:'')
+      +R('계약상태',S('st',['준비중','진행중']))
+      +R('계약유형',S('type',['확정기간계약','확정기간후자동갱신']))
+      +R('계약시작일',D('start'),1)
+      +R('계약종료일',D('end')+(nc.start?`<span class="c2" style="white-space:nowrap">기본 2년</span>`:''))
+      +R('연체이자율',`${T('rate','',70)}<span class="c2">연 %</span>`)
+      +R('',`<div style="display:flex;gap:14px;flex-wrap:wrap">${C('sub','전대차')}${C('agent','중개사 연계')}${C('tax','세금계산서 발행')}</div>`))
+    +card('임차인 정보','<div class="c2" style="margin:-4px 0 10px">사업자 단위입니다. 이미 있는 사업자면 불러오고, 수정은 임차인 화면에서 합니다</div>'
+      +R('사업자등록번호',`${T('biz','000-00-00000')}<button class="btn sm" onclick="ncLookup()">조회</button>`,1)
+      +(nc.found?`<div class="prev" style="margin:0 0 10px"><div class="pt">${nc.found==='기존'?'기존 사업자를 불러왔습니다':'새 사업자로 등록됩니다'}</div>
+          ${nc.found==='기존'?'이 사업자의 다른 계약과 입금자명이 함께 쓰입니다.':'저장하면 임차인 목록에 추가됩니다.'}</div>`:'')
+      +R('사업자구분',S('kind',['법인','개인사업자']))+R('상호',T('ten','예: (주)한빛'),1)+R('대표자명',T('ceo'))
+      +R('사업장주소',T('addr'))+R('업태 · 종목',T('item','예: 서비스 · 광고대행'))
+      +R('입금자명',T('alias','통장에 찍히는 이름. 쉼표로 여러 개'))
+      +'<div class="c2" style="margin:0">입금자명을 등록해 두면 입금 매칭에서 자동으로 이 임차인에게 연결됩니다</div>')
+    +card('담당자 정보',R('담당자명',T('pn'))+R('직위',T('pt'))+R('연락처',T('ptel'))+R('이메일',T('pmail','청구서를 받는 주소'),1),'청구서 수신 · 요청 응대 창구')
+    +card('계약자 · 대리인 · 중개사',
+      C('diff','임차인과 계약자가 다름')
+      +(nc.diff?`<div style="margin-top:10px">${R('계약자 상호',T('cn'))+R('사업자등록번호',T('cbiz'))+R('대표자명',T('cceo'))+R('연락처',T('ctel'))
+        +R('이메일',T('cmail'))+R('주소',T('caddr'))+R('환불계좌',`${T('rbank','은행',90)}${T('racct','계좌번호')}${T('rname','예금주',90)}`)}</div>`:'')
+      +`<div style="margin-top:10px">${C('proxy','대리인이 있음')}</div>`
+      +(nc.proxy?`<div style="margin-top:10px">${R('대리인 이름',T('xn'))+R('연락처',T('xtel'))+R('이메일',T('xmail'))+R('주소',T('xaddr'))}</div>`:'')
+      +(nc.agent?`<div style="margin-top:12px">${R('중개사무소',T('an'))+R('대표자명',T('aceo'))+R('등록번호',T('ano'))+R('연락처',T('atel'))+R('소재지',T('aaddr'))}</div>`
+        :'<div class="c2" style="margin:10px 0 0">중개사 정보는 기본 정보에서 「중개사 연계」를 체크하면 나옵니다</div>'));
+  const vl=ncVarList(bd);
+  const right=
+    card('임대료 · 관리비','<div class="c2" style="margin:-4px 0 10px">공급가액(부가세 별도)으로 입력합니다</div>'
+      +R('임대료',N('rent','월 금액')+vat(nc.rent),1)
+      +R('고정관리비',N('mgmt','월 금액')+vat(nc.mgmt),1)
+      +R('청구일 · 마감일',`<span class="fv">${bd.billDay} · ${bd.dueDay} <span class="c2">건물 기본값</span></span>`)
+      +R('청구 알림',`<span class="c2" style="margin:0">납부마감일</span>${T('notice','',60)}<span class="c2" style="margin:0">일 전</span>`)
+      +R('',C('late','임대료 시작일을 계약시작일과 다르게'))
+      +(nc.late?R('임대료 시작일',D('lateD')+'<span class="c2" style="white-space:nowrap">렌트프리 · 소급</span>'):''))
+    +card('보증금 · 주차',R('보증금',N('dep','약정액'))+R('납부마감일',D('depDue'))+R('반환예정일',D('depRet'))
+      +R('무상 주차',`${T('park','',70)}<span class="c2" style="margin:0">대</span>`)+R('초과 1대 월',N('parkFee','단가')))
+    +card('정산 항목',
+      (vl.length?`<div class="c2" style="margin:-4px 0 10px">${bd.name} 관리비 설정의 항목입니다. 이 계약에 청구할 항목만 남깁니다. 금액은 매달 관리비 정산에서 나옵니다</div>
+        <div style="display:flex;flex-wrap:wrap;gap:8px 16px">${vl.map(x=>`<label class="ck"><input type="checkbox" ${x.on?'checked':''} onchange="ncVarTog('${x.it}')">${x.it}</label>`).join('')}</div>`
+        :'<div class="c2" style="margin:0">이 건물에 설정된 정산 항목이 없습니다</div>')
+      +`<div style="margin-top:12px">${R('정산액 부담 계약',S('payTo',[['','없음 (이 계약이 낸다)'],...others.map(c=>[c.no,`${c.no} · ${c.ten}`])]))}</div>`)
+    +card('비정기 청구',
+      (nc.extra.map((x,i)=>`<div class="fr"><select onchange="ncRow('extra',${i},'it',this.value)" style="max-width:150px">${['교통유발부담금','정화조청소비','기타'].map(o=>`<option ${x.it===o?'selected':''}>${o}</option>`).join('')}</select>
+        <input type="text" value="${x.amt}" placeholder="금액" onchange="ncRow('extra',${i},'amt',this.value)" style="text-align:right">
+        <input type="text" value="${x.ym}" placeholder="청구년월 2026-09" onchange="ncRow('extra',${i},'ym',this.value)" style="max-width:130px">
+        <button class="btn sm" onclick="nc.extra.splice(${i},1);render(true)">삭제</button></div>`).join('')||'<div class="c2" style="margin:0 0 8px">한 번만 청구하는 항목이 있으면 추가합니다</div>')
+      +`<button class="btn sm" onclick="nc.extra.push({it:'기타',amt:'',ym:''});render(true)">+ 항목 추가</button>`)
+    +card('임대조건 조정 일정',
+      (nc.adj.map((x,i)=>`<div class="fr"><input type="date" value="${x.d}" onchange="ncRow('adj',${i},'d',this.value)" style="max-width:140px">
+        <select onchange="ncRow('adj',${i},'t',this.value)" style="max-width:120px">${['임대료','고정관리비','둘 다'].map(o=>`<option ${x.t===o?'selected':''}>${o}</option>`).join('')}</select>
+        <input type="text" value="${x.amt}" placeholder="조정 후 금액" onchange="ncRow('adj',${i},'amt',this.value)" style="text-align:right">
+        <button class="btn sm" onclick="nc.adj.splice(${i},1);render(true)">삭제</button></div>`).join('')||'<div class="c2" style="margin:0 0 8px">계약서에 「0000년 00월부터 임대료 000원」이 있을 때만 넣습니다</div>')
+      +`<button class="btn sm" onclick="nc.adj.push({d:'',t:'임대료',amt:''});render(true)">+ 일정 추가</button>`,'적용일에 알림 · 자동 변경하지 않음')
+    +card('자료 · 메모',`<div style="border:1.5px dashed var(--line);border-radius:var(--r-sm);padding:18px;text-align:center;color:var(--muted);font-size:12.5px;margin-bottom:10px">
+        계약서 · 사업자등록증 파일을 끌어다 놓으세요</div>
+      <textarea rows="3" placeholder="메모" style="width:100%;border:1px solid var(--line);border-radius:var(--r-sm);padding:8px;font:inherit;font-size:12.5px"
+        onchange="nc.memo=this.value">${nc.memo}</textarea>`);
+  return `
+  <div class="ph"><h1>새로운 계약 등록</h1><span class="sid">CTR-2</span>
+    <div class="act"><button class="btn" onclick="nc=null;go('ctr-1')">취소</button></div></div>
+  <div class="two" style="align-items:start">${'<div>'+left+'</div><div>'+right+'</div>'}</div>
+  ${miss.length||(nc.tried&&cl&&cl.block)?`<div class="fnd wa3" style="margin-bottom:12px"><span class="h">저장할 수 없습니다</span>
+    ${miss.length?`빠진 항목: <b>${miss.join(' · ')}</b>`:''}${cl&&cl.block?`${miss.length?'<br>':''}같은 유닛의 진행중 계약과 기간이 겹칩니다.`:''}</div>`:''}
+  <div style="display:flex;gap:8px;justify-content:flex-end;align-items:center;padding:14px 0;border-top:1px solid var(--line)">
+    <span class="c2" style="margin-right:auto"><b style="color:var(--warn)">*</b> 필수 · 저장하면 계약 상세로 이동합니다</span>
+    <button class="btn" onclick="ncSave(false)">저장 (웰컴 메일 안 보냄)</button>
+    <button class="btn pri" onclick="ncSave(true)">저장 및 웰컴 메일 보내기</button></div>
+  <div class="hint">
+    유닛을 고르면 지금 쓰는 임차인과 계약 종료일이 함께 보입니다. 진행중 계약과 기간이 겹치면 등록할 수 없고, 끝나는 다음 날부터는 새 계약을 미리 등록할 수 있습니다.<br>
+    사업자등록번호로 조회합니다. 목업에서는 <b>211-86-40519</b>(비씨에이전시)가 기존 사업자이고, 다른 번호는 새 사업자입니다.<br>
+    웰컴 메일을 보내도 기존 임차인의 비밀번호는 바뀌지 않습니다. 새 임차인에게는 로그인 링크만 보냅니다.</div>`;
 }
 
 /* CTR-3 머리 — 제목 · 버튼 · 탭 */
@@ -3087,10 +3230,11 @@ let f3={per:'',acc:''};
 const setF3=(k,v)=>{f3[k]=v;render();};
 const isTaxItem=n=>{const m=MASTER.find(x=>x.name===n.split(' ')[0]);return m?isTax(m.bill):true;};
 function ledgerOf(k){
-  const c=CTRS.find(x=>x.b+x.no===k), rows=[];
+  const c=CTRS.find(x=>ckey(x)===k), rows=[];
   const rent=((c.it||[]).find(x=>x[0]==='임대료')||[])[1]||0;
   /* 보증금 — 목업 예시값(월 임대료 × 10) */
-  rows.push({date:c.base,type:'보증금 예치',acc:'임대보증금',memo:'계약 보증금 (예시값)',item:'계약 보증금 (예시값)',g:'dep',inc:rent*10,sup:null,vat:null,ord:0});
+  /* 새로 등록한 계약은 보증금을 아직 받지 않았다 — 받으면 보증금 예치로 기록한다 */
+  if(!c.fresh) rows.push({date:c.base,type:'보증금 예치',acc:'임대보증금',memo:'계약 보증금 (예시값)',item:'계약 보증금 (예시값)',g:'dep',inc:rent*10,sup:null,vat:null,ord:0});
   BILLS.filter(i=>i.k===k).forEach(i=>{
     const tax=isTaxItem(i.n), sup=tax?Math.round(i.amt/1.1):i.amt;
     const ymL=i.ym.slice(2).replace('-','.')+'월분';
@@ -3115,7 +3259,7 @@ let tab3c='요약', g3={}, g3All=false;
 const g3Open=k=>(k in g3)?g3[k]:g3All;
 const g3Tog=k=>{g3[k]=!g3Open(k);render(true);};
 function CTR3(k){
-  const c=CTRS.find(x=>x.b+x.no===k);
+  const c=CTRS.find(x=>ckey(x)===k);
   if(!c) return TODO('ctr-1');
   if(tab3c!=='원장정보') return CTR3head(c,k)+(tab3c==='요약'?CTR3sum(c,k)
     :`<div class="tbl"><div class="empty"><div class="t">아직 만들지 않은 탭입니다</div>목업에는 요약과 원장정보 탭만 있습니다.</div></div>`);
@@ -3195,7 +3339,8 @@ function render(keep){
   else if(id==='pay-1'){html=PAY1();crumb='청구 · 수납 <span>›</span> <b>청구서 발행</b>';}
   else if(id==='pay-6'){html=PAY6();crumb='청구 · 수납 <span>›</span> <b>수납 내역</b>';}
   else if(id==='ctr-1'){html=CTR1();crumb='<b>계약 관리</b>';}
-  else if(id==='ctr-3'){html=CTR3(decodeURIComponent(arg||''));const c=CTRS.find(x=>x.b+x.no===decodeURIComponent(arg||''));
+  else if(id==='ctr-2'){html=CTR2();crumb='<span class="c" onclick="go(\'ctr-1\')">계약 관리</span> <span>›</span> <b>새로운 계약 등록</b>';}
+  else if(id==='ctr-3'){html=CTR3(decodeURIComponent(arg||''));const c=CTRS.find(x=>ckey(x)===decodeURIComponent(arg||''));
     crumb=`<span class="c" onclick="go('ctr-1')">계약 관리</span> <span>›</span> <b>${c?cname(BUILDINGS[0].alias,c.no,c.ten):'—'}</b>`;}
   else if(id==='pay-2'){html=PAY2();crumb='청구 · 수납 <span>›</span> <b>미납 관리</b>';}
   else if(id==='pay-13'){html=PAY13();crumb='청구 · 수납 <span>›</span> <b>입금 매칭</b>';}

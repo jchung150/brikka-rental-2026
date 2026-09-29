@@ -34,14 +34,17 @@ for (const c of ['elec', 'water', 'gas', 'parking'])
 run('PAY-10 항목 없음', "Object.keys(BILL).forEach(k=>BILL[k].on=false);PAY10()");
 run('PAY-10 패널', "DRAWER='additem';dPick=['fund'];drawerHTML()");
 run('PRO-1', 'PRO1()');
+run('CTR-2 빈 화면', "nc=null;CTR2()");
+run('CTR-2 입력 · 조회 · 토글', "nc=null;CTR2();ncSet('no','본관302호');ncSet('start','2026-09-01');nc.biz='211-86-40519';ncLookup();ncSet('diff',true);ncSet('proxy',true);ncSet('agent',true);ncSet('late',true);nc.extra.push({it:'기타',amt:'',ym:''});nc.adj.push({d:'',t:'임대료',amt:''});ncVarTog('주차비');CTR2()");
+run('CTR-2 다른 건물', "nc=null;CTR2();ncSet('b','b2');CTR2()");
 run('PRO-1 검색·필터', "f1p={q:'마포',kind:'오피스빌딩',vac:'0'};PRO1()");
 for (const t of ['요약', '유닛', '자료보관', '관리비 설정'])
   run('PRO-3 ' + t, "tab3='" + t + "';PRO3('b1')");
-for (const b of ['b2', 'b3', 'b4', 'b5']) run('PRO-3 ' + b, "tab3='요약';PRO3('" + b + "')");
-run('PRO-3 합정동 무악빌딩 관리비 설정', "tab3='관리비 설정';PRO3('b4')");
+for (const b of ['b2', 'b4']) run('PRO-3 ' + b, "tab3='요약';PRO3('" + b + "')");
+run('PRO-3 카즈하타워 관리비 설정', "tab3='관리비 설정';PRO3('b4')");
 run('PAY-12', 'PAY12()');
 run('PAY-1', 'PAY1()');
-for (const f of ["f1.b='b2'", "f1.b='b4'", "f1.st='발행 대기'", "f1.st='발행 완료'", "f1.b='b3'"])
+for (const f of ["f1.b='b2'", "f1.b='b4'", "f1.st='발행 대기'", "f1.st='발행 완료'"])
   run('PAY-1 필터 ' + f, "f1={b:'b1',st:''};" + f + ';PAY1()');
 run('PAY-1 전체 펼침', "f1={b:'b1',st:''};g1All=true;PAY1()");
 run('PAY-1 선택 발행', "f1={b:'b1',st:''};sel1['b1101호']=true;PAY1()");
@@ -54,7 +57,7 @@ run('PAY-2 펼침', "seedJuly();g2All=true;PAY2()");
 run('PAY-11 테온하우스 (7월 마감 대기)', "seedJuly();mcBld('b2');PAY11()");
 run('수납 처리 패널 연체료 50% 감면', "seedJuly();openPay('b1별관3층');setPm('feeMode','half');payHTML()");
 run('PAY-11', "seedJuly();PAY11()");
-for (const [b, ym] of [['b2','2026-07'],['b1','2026-08'],['b4','2026-05'],['b3','2026-08']])
+for (const [b, ym] of [['b2','2026-07'],['b1','2026-08'],['b4','2026-05'],['b4','2026-08']])
   run('PAY-11 ' + b + ' ' + ym, "seedJuly();s11={b:'" + b + "',ym:'" + ym + "'};PAY11()");
 run('PAY-11 보고서 3개월 선택', "seedJuly();['2026-05','2026-06','2026-07'].forEach(v=>sel11[v]=true);PAY11()");
 run('PAY-11 테온하우스 7월 마감 → 목록', "seedJuly();mcBld('b2');mcDo('2026-07','close');mcApply();PAY11()");
@@ -257,13 +260,13 @@ r6.push(['나눠 보낸 입금 — 1차 부분납 100만 미납 → 2차 자동 
 const O = new Function(stub + bare + '; seedJuly(); return {rcOpenN,dueOf,ctrPay,BILLS};')();
 r6.push(['첫 화면 — 7월 입금 대기 0건 · 비씨에이전시 미납 10,292,820 · 8월 청구 없음',
   O.rcOpenN() === 0 && O.dueOf('b1별관3층').amt === 10292820 && !O.BILLS.some(i => i.ym === '2026-08')]);
-/* 월 마감 — 7월 이준빌딩: 확인 항목 모두 통과 · 취소는 사유가 있어야 · 다시 마감 */
+/* 월 마감 — 7월 카리나빌딩: 확인 항목 모두 통과 · 취소는 사유가 있어야 · 다시 마감 */
 const M = new Function(stub + bare + '; seedJuly(); return {MC,MC_LOG,mcChecks,mcOpen,mcApply,get mcx(){return mcx;},s11};')();
 const okAll = M.mcChecks('b1', '2026-07').every(x => x.ok);
 M.mcOpen('undo'); M.mcApply(); const kept = !!M.MC.b1['2026-07'];
 M.mcx.why = '수납 배분 재조정'; M.mcApply(); const undone = !M.MC.b1['2026-07'];
 M.mcOpen('close'); M.mcApply();
-r6.push(['월 마감 — 이준빌딩 7월 확인 6항목 통과 · 사유 없으면 취소 안 됨 · 취소 후 다시 마감 · 이력 2줄',
+r6.push(['월 마감 — 카리나빌딩 7월 확인 6항목 통과 · 사유 없으면 취소 안 됨 · 취소 후 다시 마감 · 이력 2줄',
   okAll && kept && undone && !!M.MC.b1['2026-07'] && M.MC_LOG['b1|2026-07'].length === 2]);
 /* 연체료 50% 감면 · 연체료만 남은 계약도 미납 관리에 — 화면을 연 상태(7월 처리 완료)에서 */
 const H = new Function(stub + bare + '; seedJuly(); return {openPay,setPm,payConfirm,ledgerOf,arrears,CTRS,get pm(){return pm;},f2,PAY2};')();
@@ -275,6 +278,19 @@ const LH = H.ledgerOf('b1별관3층'), hRow = LH.rows.find(r => r.type === '청�
 r6.push(['연체료 50% 감면 — 188,022 → 94,011 받음 · 94,011 감면 표기 · 미납 0 · 루비뮤직은 연체료 전액이 기본',
   rubyMode && half && LH.bal.매출채권 === 0 && hRow && hRow.inc === 94011 && /94,011원 감면/.test(hRow.item)]);
 r6.push(['연체료만 남은 루비뮤직도 미납 관리 기본 보기에', /본관B2/.test(H.PAY2())]);
+/* 계약 등록 — 진행중 계약과 기간이 겹치면 막고, 끝난 다음 날부터는 등록된다 → CTR-2 */
+const K = new Function(stub + bare + '; seedJuly(); return {CTR2,ncSet,ncSave,ncLookup,ncClash,CTRS,get nc(){return nc;},ctrEnd,ledgerOf};')();
+K.CTR2(); K.ncSet('no', '본관302호'); K.ncSet('start', '2026-09-01');
+const blk = K.ncClash() && K.ncClash().block;
+K.nc.biz = '211-86-40519'; K.ncLookup(); K.ncSet('pmail', 'a@b.kr'); K.ncSet('rent', '3000000'); K.ncSet('mgmt', '500000');
+const n0 = K.CTRS.length; K.ncSave(false); const kept2 = K.CTRS.length === n0;
+K.ncSet('start', '2026-11-01'); const endAuto = K.nc.end === '2028-10-31';
+K.ncSave(false); const nw = K.CTRS[K.CTRS.length - 1];
+r6.push(['계약 등록 — 302호 9/1 시작은 기간 겹침으로 막힘 · 11/1 시작은 준비중으로 저장 · 종료일 2년 · 보증금 예치 없음',
+  blk && kept2 && endAuto && K.CTRS.length === n0 + 1 && nw.st === '준비중' && nw.ten === '(주)비씨에이전시'
+  && K.ctrEnd(nw) === '2028-10-31' && nw.key === 'b1본관302호@2026-11-01' && !K.ledgerOf(nw.key).rows.some(r => r.type === '보증금 예치')
+  && K.ledgerOf('b1본관302호').rows.some(r => r.type === '보증금 예치')]);
+run('CTR-3 새로 등록한 계약', "seedJuly();CTRS.push({b:'b1',no:'본관302호',key:'b1본관302호@2026-11-01',ten:'(주)새임차',st:'준비중',base:'2026-11-01',end:'2028-10-31',rate:8,fresh:true,it:[['임대료',3000000],['고정관리비',500000]]});tab3c='원장정보';CTR3('b1본관302호@2026-11-01')+CTR1()");
 const bad6 = r6.filter(x => !x[1]);
 if (bad6.length) fail = 1;
 console.log('⑥ 수납 기록 ' + (bad6.length ? '✗ ' + bad6.map(x => x[0]).join(' / ') : 'OK — ' + r6.length + '개 검산'));
