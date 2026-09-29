@@ -36,6 +36,7 @@ run('PAY-10 패널', "DRAWER='additem';dPick=['fund'];drawerHTML()");
 run('PRO-1', 'PRO1()');
 run('CTR-2 빈 화면', "nc=null;CTR2()");
 run('CTR-2 입력 · 조회 · 토글', "nc=null;CTR2();ncSet('no','본관302호');ncSet('start','2026-09-01');nc.biz='211-86-40519';ncLookup();ncSet('diff',true);ncSet('proxy',true);ncSet('agent',true);ncSet('late',true);nc.extra.push({it:'기타',amt:'',ym:''});nc.adj.push({d:'',t:'임대료',amt:''});ncVarTog('주차비');CTR2()");
+run('CTR-2 렌트프리', "nc=null;CTR2();ncSet('start','2026-11-01');ncSet('late',true);ncSet('lateD','2027-01-01');ncSet('rf','예');ncSet('rfMgmt',true);CTR2();ncSet('rf','아니오');CTR2();ncSet('lateD','2026-10-01');CTR2()");
 run('CTR-2 다른 건물', "nc=null;CTR2();ncSet('b','b2');CTR2()");
 run('PRO-1 검색·필터', "f1p={q:'마포',kind:'오피스빌딩',vac:'0'};PRO1()");
 for (const t of ['요약', '유닛', '자료보관', '관리비 설정'])

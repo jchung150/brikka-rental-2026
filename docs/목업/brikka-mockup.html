@@ -474,8 +474,8 @@ table.nowr th,table.nowr td{white-space:nowrap}
         <button class="ib" onclick="toggleNoti(event)" title="알림"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg><span class="dot"></span></button>
       </div>
       <div class="me" onclick="alert('USER-1 프로필 · 로그아웃 — 아직 미구현')">
-        <div class="av">김</div>
-        <div class="mt"><div class="a">김영준</div><div class="b">슈퍼관리자</div></div>
+        <div class="av">슈</div>
+        <div class="mt"><div class="a">슈퍼관리자</div><div class="b">건물 3개 담당</div></div>
         <span class="ch">⇅</span>
       </div>
       <div class="nw" id="noti" style="display:none">
@@ -574,7 +574,7 @@ let opIdx=0;
 const BUILDINGS=[
  {id:'b1',name:'카리나빌딩',alias:'카리나',kind:'오피스빌딩',
   addr:'서울특별시 마포구 양화로 156',addr2:'서울 마포구 동교동 156-12',
-  owner:'카리나',ownerBiz:'105-81-42117',mgr:'에스파',mgrTel:'010-3341-2205',
+  owner:'카리나',ownerBiz:'105-81-42117',mgr:'슈퍼관리자',mgrTel:'010-3341-2205',
   area:4820.5,gross:6240.8,up:8,down:2,park:24,hvac:'EHP(시스템에어컨)',
   unitCnt:14,vacCnt:0,opCnt:0,vac:0,
   acct:'국민은행 812-01-0455-118',acctName:'카리나',
@@ -598,10 +598,10 @@ const BUILDINGS=[
    {n:'B1-03',t:'일반',memo:'',as:'(주)비씨에이',asu:'202호'},{n:'B1-04',t:'소형',memo:'경차 전용',as:'',asu:''},
    {n:'B1-05',t:'장애인',memo:'',as:'',asu:''},{n:'B2-01',t:'일반',memo:'',as:'법무법인 정도',asu:'501호'}],
   docs:[
-   {t:'관리위임계약서_카리나빌딩_2025.pdf',sz:'1.2 MB',c:'관리위임계약서',by:'에스파',at:'2025-02-24 14:20'},
-   {t:'등기부등본_20260801.pdf',sz:'340 KB',c:'등기부등본',by:'에스파',at:'2026-08-01 09:12'},
-   {t:'건축물대장.pdf',sz:'2.1 MB',c:'건축물대장',by:'에스파',at:'2025-03-02 11:40'},
-   {t:'2026년 화재보험증권.pdf',sz:'880 KB',c:'기타',by:'에스파',at:'2026-01-08 16:05'}],
+   {t:'관리위임계약서_카리나빌딩_2025.pdf',sz:'1.2 MB',c:'관리위임계약서',by:'슈퍼관리자',at:'2025-02-24 14:20'},
+   {t:'등기부등본_20260801.pdf',sz:'340 KB',c:'등기부등본',by:'슈퍼관리자',at:'2026-08-01 09:12'},
+   {t:'건축물대장.pdf',sz:'2.1 MB',c:'건축물대장',by:'슈퍼관리자',at:'2025-03-02 11:40'},
+   {t:'2026년 화재보험증권.pdf',sz:'880 KB',c:'기타',by:'슈퍼관리자',at:'2026-01-08 16:05'}],
   charge:[
    {it:'임대료',use:1,bill:'세금계산서',cycle:'매월',meter:'',mtr:'',basis:'',doc:'임대차계약서',fixed:true},
    {it:'고정관리비',use:1,bill:'세금계산서',cycle:'매월',meter:'',mtr:'',basis:'',doc:'임대차계약서',fixed:true},
@@ -616,7 +616,7 @@ const BUILDINGS=[
   billDay:'매월 19일',dueDay:'매월 말일'},
 
  {id:'b2',name:'뉴진스하우스',alias:'뉴진스',kind:'오피스빌딩',addr:'서울특별시 용산구 이촌로 248',addr2:'서울 용산구 이촌동 301-8',
-  owner:'뉴진스',ownerBiz:'220-13-88402',mgr:'민희진',mgrTel:'010-7720-3318',
+  owner:'뉴진스',ownerBiz:'220-13-88402',mgr:'슈퍼관리자',mgrTel:'010-3341-2205',
   area:7240.0,gross:9820.4,up:12,down:3,park:48,hvac:'중앙공조',unitCnt:22,vacCnt:1,opCnt:0,vac:4.5,
   acct:'신한은행 140-012-772301',acctName:'뉴진스',
   mgmtStart:'2024-09-18',mgmtEnd:'2026-09-17',fee:'월 2,400,000원',mode:'임대인 직수취',
@@ -624,7 +624,7 @@ const BUILDINGS=[
   fac:['회의실','카페테리아','피트니스'],units:[],parks:[],docs:[],charge:[],billDay:'매월 25일',dueDay:'익월 10일'},
 
  {id:'b4',name:'카즈하타워',alias:'카즈하',kind:'복합상가',addr:'서울특별시 마포구 월드컵로 12',addr2:'서울 마포구 합정동 381-4',
-  owner:'카즈하',ownerBiz:'113-86-20447',mgr:'르세라핌',mgrTel:'010-2280-5517',
+  owner:'카즈하',ownerBiz:'113-86-20447',mgr:'슈퍼관리자',mgrTel:'010-3341-2205',
   area:3180.6,gross:4120.2,up:6,down:1,park:14,hvac:'개별 EHP',unitCnt:14,vacCnt:2,opCnt:0,vac:12.4,
   acct:'우리은행 1005-903-442118',acctName:'카즈하',
   mgmtStart:'2025-07-01',mgmtEnd:'2027-06-30',fee:'임대료의 4%',mode:'임대인 직수취',
@@ -910,12 +910,12 @@ function setMul(code,no,v){
   const b=BILL[code], m=parseFloat(v);
   /* 배율 0은 「부담 없음」이라는 유효한 값이다. 기본값 1.0일 때만 기록을 지운다. */
   if(!Number.isFinite(m)||m<0||m===1){delete b.adj[no];}
-  else b.adj[no]={mul:m, by:'에스파', at:'2026-08-10 10:14'};
+  else b.adj[no]={mul:m, by:'슈퍼관리자', at:'2026-08-10 10:14'};
   render(true);
 }
 function setWhy(code,no,v){
   const b=BILL[code];
-  if(!b.adj[no]) b.adj[no]={mul:1, why:'', by:'에스파', at:'2026-08-10 10:14'};
+  if(!b.adj[no]) b.adj[no]={mul:1, why:'', by:'슈퍼관리자', at:'2026-08-10 10:14'};
   b.adj[no].why=v; b.adj[no].at='2026-09-25 10:14';
   if(b.adj[no].mul===1 && !v) delete b.adj[no];
   render(true);
@@ -1886,13 +1886,13 @@ function PAY12(){
 const MC_YMS=['2026-05','2026-06','2026-07','2026-08'];
 /* 마감 기록 — 카리나빌딩 외에는 예시값. 테온하우스는 납부마감이 익월 10일(오늘)이라 7월이 아직 열려 있다 */
 const MC={
- b1:{'2026-05':{at:'06-04 17:20',by:'에스파'},'2026-06':{at:'07-03 16:40',by:'에스파'},'2026-07':{at:'08-05 18:10',by:'에스파'}},
- b2:{'2026-05':{at:'06-12 11:05',by:'민희진'},'2026-06':{at:'07-13 10:30',by:'민희진'}},
- b4:{'2026-05':{at:'06-05 09:50',by:'르세라핌'},'2026-06':{at:'07-06 10:15',by:'르세라핌'},'2026-07':{at:'08-06 11:20',by:'르세라핌'}},
+ b1:{'2026-05':{at:'06-04 17:20',by:'슈퍼관리자'},'2026-06':{at:'07-03 16:40',by:'슈퍼관리자'},'2026-07':{at:'08-05 18:10',by:'슈퍼관리자'}},
+ b2:{'2026-05':{at:'06-12 11:05',by:'슈퍼관리자'},'2026-06':{at:'07-13 10:30',by:'슈퍼관리자'}},
+ b4:{'2026-05':{at:'06-05 09:50',by:'슈퍼관리자'},'2026-06':{at:'07-06 10:15',by:'슈퍼관리자'},'2026-07':{at:'08-06 11:20',by:'슈퍼관리자'}},
 };
 /* 마감·마감 취소 이력 — 건물·월별 */
-const MC_LOG={'b1|2026-06':[{at:'07-02 15:10',by:'에스파',act:'마감'},{at:'07-03 09:20',by:'에스파',act:'마감 취소',why:'루비뮤직 6월 수납 배분을 잘못 기록해 재조정'},
-  {at:'07-03 16:40',by:'에스파',act:'마감'}]};
+const MC_LOG={'b1|2026-06':[{at:'07-02 15:10',by:'슈퍼관리자',act:'마감'},{at:'07-03 09:20',by:'슈퍼관리자',act:'마감 취소',why:'루비뮤직 6월 수납 배분을 잘못 기록해 재조정'},
+  {at:'07-03 16:40',by:'슈퍼관리자',act:'마감'}]};
 /* 임대인 보고서 발송일 → REP-1 */
 const REPS={b1:{'2026-05':'06-03','2026-06':'07-02','2026-07':'08-04'},
   b4:{'2026-05':'06-04','2026-06':'07-05','2026-07':'08-05'},
@@ -1935,8 +1935,8 @@ function mcOpen(mode){mcx={mode,why:''};DRAWER='mclose';render(true);}
 function mcApply(){
   const {b,ym}=s11, k=mcKey(b,ym), now=TODAY_S.slice(5)+' 11:30';
   if(mcx.mode==='undo'){if(!mcx.why.trim()) return; delete MC[b][ym];
-    (MC_LOG[k]=MC_LOG[k]||[]).push({at:now,by:'김영준',act:'마감 취소',why:mcx.why.trim()});}
-  else{(MC[b]=MC[b]||{})[ym]={at:now,by:'김영준'};(MC_LOG[k]=MC_LOG[k]||[]).push({at:now,by:'김영준',act:'마감'});}
+    (MC_LOG[k]=MC_LOG[k]||[]).push({at:now,by:'슈퍼관리자',act:'마감 취소',why:mcx.why.trim()});}
+  else{(MC[b]=MC[b]||{})[ym]={at:now,by:'슈퍼관리자'};(MC_LOG[k]=MC_LOG[k]||[]).push({at:now,by:'슈퍼관리자',act:'마감'});}
   DRAWER=null;mcx=null;render(true);
 }
 function mcHTML(){
@@ -2608,7 +2608,7 @@ function PAY13(){
     const r=x.done;
     panel=`<div class="card"><div class="cc" style="padding:18px 20px">
       <div style="display:flex;align-items:center;gap:8px"><span class="bd ok">확정</span>
-        <span class="c2" style="margin:0">${d.dt} · 계좌이체 · 은행거래내역매칭 · 김영준 · 매칭 근거 <b>${r.basis}</b></span>
+        <span class="c2" style="margin:0">${d.dt} · 계좌이체 · 은행거래내역매칭 · 슈퍼관리자 · 매칭 근거 <b>${r.basis}</b></span>
         <button class="btn sm" style="margin-left:auto" onclick="alert('PAY-9 수납 내역 수정 및 취소 — 배분 재조정 또는 무효 처리. 입금액은 수정할 수 없다')">수정·취소</button></div>
       <div style="display:flex;align-items:baseline;gap:14px;margin-top:8px">
         <span style="font-size:17px;font-weight:700">${d.name}</span><span class="big">${won(d.amt)}</span>
@@ -3031,11 +3031,11 @@ const BIZ={'211-86-40519':{kind:'법인',ten:'(주)비씨에이전시',ceo:'박�
 let nc=null;
 const ncEnd=d=>{if(!d) return '';const x=new Date(d+'T00:00:00Z');x.setUTCFullYear(x.getUTCFullYear()+2);x.setUTCDate(x.getUTCDate()-1);return x.toISOString().slice(0,10);};
 function ncInit(){
-  nc={b:'b1',no:'',st:'준비중',type:'확정기간계약',start:'',end:'',sub:false,agent:false,tax:true,rate:'8',
+  nc={b:'b1',no:'',st:'준비중',type:'확정기간계약',start:'',end:'',agent:false,rate:'8',
       kind:'법인',biz:'',found:null,ten:'',ceo:'',addr:'',item:'',alias:'',
       pn:'',pt:'',ptel:'',pmail:'',diff:false,cn:'',cbiz:'',cceo:'',ctel:'',cmail:'',caddr:'',rbank:'',racct:'',rname:'',
       proxy:false,xn:'',xtel:'',xmail:'',xaddr:'',an:'',aceo:'',ano:'',atel:'',aaddr:'',
-      dep:'',depDue:'',depRet:'',park:'0',parkFee:'',rent:'',mgmt:'',notice:'3',late:false,lateD:'',
+      dep:'',depDue:'',depRet:'',park:'0',parkFee:'',rent:'',mgmt:'',notice:'3',late:false,lateD:'',rf:'',rfRent:true,rfMgmt:false,rfVar:false,
       vars:null,payTo:'',extra:[],adj:[],memo:'',tried:false};
 }
 function ncSet(f,v){
@@ -3045,10 +3045,11 @@ function ncSet(f,v){
   if(f==='end'&&(!nc.depRet||nc.depRet===ncEnd(nc.start))) nc.depRet=v;
   render(true);
 }
-/* 사업자등록번호 조회 — 있으면 불러오고, 없으면 새 사업자로 등록된다 */
+/* 사업자등록번호 중복 확인 — 이 시스템에 이미 있는 임차인인지 본다(국세청 조회가 아니다).
+   같은 임차인이 계약을 여러 건 가질 수 있으므로, 있으면 그 임차인에 계약을 붙인다 → USER-6 */
 function ncLookup(){
   const f=BIZ[nc.biz.trim()];
-  nc.found=f?'기존':'신규';
+  nc.found=nc.biz.trim()?(f?'기존':'신규'):null;
   if(f) Object.assign(nc,{kind:f.kind,ten:f.ten,ceo:f.ceo,addr:f.addr,item:f.item,alias:f.alias.join(', ')});
   render(true);
 }
@@ -3078,6 +3079,8 @@ function ncSave(welcome){
   const vars=nc.vars||ncVarList(bd).filter(x=>x.on).map(x=>x.it);
   const c={b:nc.b,no:nc.no,ten:nc.ten.trim(),st:nc.st,base:nc.start,end:nc.end||ncEnd(nc.start),rate:+nc.rate||8,
     dep:numOf(nc.dep)||null,payTo:nc.payTo||undefined,fresh:true,
+    /* 기산일 — 렌트프리면 체크한 항목만 기산일부터, 나머지는 계약시작일부터 청구한다 */
+    from:nc.late&&nc.lateD?nc.lateD:null,rf:nc.rf==='예'?{rent:nc.rfRent,mgmt:nc.rfMgmt,vars:nc.rfVar}:null,
     it:[['임대료',numOf(nc.rent)],['고정관리비',numOf(nc.mgmt)],...vars.map(n=>[n])]};
   if(CTRS.some(x=>x.b===c.b&&x.no===c.no)) c.key=`${c.b}${c.no}@${c.base}`;
   CTRS.push(c);
@@ -3117,12 +3120,11 @@ function CTR2(){
       +R('계약유형',S('type',['확정기간계약','확정기간후자동갱신']))
       +R('계약시작일',D('start'),1)
       +R('계약종료일',D('end')+(nc.start?`<span class="c2" style="white-space:nowrap">기본 2년</span>`:''))
-      +R('연체이자율',`${T('rate','',70)}<span class="c2">연 %</span>`)
-      +R('',`<div style="display:flex;gap:14px;flex-wrap:wrap">${C('sub','전대차')}${C('agent','중개사 연계')}${C('tax','세금계산서 발행')}</div>`))
-    +card('임차인 정보','<div class="c2" style="margin:-4px 0 10px">사업자 단위입니다. 이미 있는 사업자면 불러오고, 수정은 임차인 화면에서 합니다</div>'
-      +R('사업자등록번호',`${T('biz','000-00-00000')}<button class="btn sm" onclick="ncLookup()">조회</button>`,1)
-      +(nc.found?`<div class="prev" style="margin:0 0 10px"><div class="pt">${nc.found==='기존'?'기존 사업자를 불러왔습니다':'새 사업자로 등록됩니다'}</div>
-          ${nc.found==='기존'?'이 사업자의 다른 계약과 입금자명이 함께 쓰입니다.':'저장하면 임차인 목록에 추가됩니다.'}</div>`:'')
+      +R('연체이자율',`${T('rate','',70)}<span class="c2">연 %</span>`))
+    +card('임차인 정보','<div class="c2" style="margin:-4px 0 10px">사업자등록번호를 넣으면 이미 등록된 임차인인지 바로 확인합니다</div>'
+      +R('사업자등록번호',`<input type="text" value="${nc.biz}" placeholder="000-00-00000" onchange="nc.biz=this.value;ncLookup()">`,1)
+      +(nc.found?`<div class="prev" style="margin:0 0 10px"><div class="pt">${nc.found==='기존'?'이미 등록된 임차인입니다':'처음 등록하는 임차인입니다'}</div>
+          ${nc.found==='기존'?'이 임차인의 정보와 입금자명을 불러왔습니다. 같은 임차인을 두 번 만들지 않습니다.':'저장하면 임차인 목록에 새로 추가됩니다.'}</div>`:'')
       +R('사업자구분',S('kind',['법인','개인사업자']))+R('상호',T('ten','예: (주)한빛'),1)+R('대표자명',T('ceo'))
       +R('사업장주소',T('addr'))+R('업태 · 종목',T('item','예: 서비스 · 광고대행'))
       +R('입금자명',T('alias','통장에 찍히는 이름. 쉼표로 여러 개'))
@@ -3134,8 +3136,8 @@ function CTR2(){
         +R('이메일',T('cmail'))+R('주소',T('caddr'))+R('환불계좌',`${T('rbank','은행',90)}${T('racct','계좌번호')}${T('rname','예금주',90)}`)}</div>`:'')
       +`<div style="margin-top:10px">${C('proxy','대리인이 있음')}</div>`
       +(nc.proxy?`<div style="margin-top:10px">${R('대리인 이름',T('xn'))+R('연락처',T('xtel'))+R('이메일',T('xmail'))+R('주소',T('xaddr'))}</div>`:'')
-      +(nc.agent?`<div style="margin-top:12px">${R('중개사무소',T('an'))+R('대표자명',T('aceo'))+R('등록번호',T('ano'))+R('연락처',T('atel'))+R('소재지',T('aaddr'))}</div>`
-        :'<div class="c2" style="margin:10px 0 0">중개사 정보는 기본 정보에서 「중개사 연계」를 체크하면 나옵니다</div>'));
+      +`<div style="margin-top:10px">${C('agent','중개사가 있음')}</div>`
+      +(nc.agent?`<div style="margin-top:10px">${R('중개사무소',T('an'))+R('대표자명',T('aceo'))+R('등록번호',T('ano'))+R('연락처',T('atel'))+R('소재지',T('aaddr'))}</div>`:''));
   const vl=ncVarList(bd);
   const right=
     card('임대료 · 관리비','<div class="c2" style="margin:-4px 0 10px">공급가액(부가세 별도)으로 입력합니다</div>'
@@ -3143,8 +3145,16 @@ function CTR2(){
       +R('고정관리비',N('mgmt','월 금액')+vat(nc.mgmt),1)
       +R('청구일 · 마감일',`<span class="fv">${bd.billDay} · ${bd.dueDay} <span class="c2">건물 기본값</span></span>`)
       +R('청구 알림',`<span class="c2" style="margin:0">납부마감일</span>${T('notice','',60)}<span class="c2" style="margin:0">일 전</span>`)
-      +R('',C('late','임대료 시작일을 계약시작일과 다르게'))
-      +(nc.late?R('임대료 시작일',D('lateD')+'<span class="c2" style="white-space:nowrap">렌트프리 · 소급</span>'):''))
+      +R('',C('late','기산일을 계약시작일과 다르게'))
+      +(nc.late?R('기산일',D('lateD')+`<span class="c2" style="white-space:nowrap">${!nc.lateD||!nc.start?'청구를 시작하는 날':dnum(nc.lateD)<dnum(nc.start)?'소급 — 계약시작일보다 앞':dnum(nc.lateD)>dnum(nc.start)?'계약시작일보다 뒤':'계약시작일과 같음'}</span>`):'')
+      +(nc.late&&nc.lateD&&nc.start&&dnum(nc.lateD)>dnum(nc.start)?(()=>{
+        const to=new Date((dnum(nc.lateD)-1)*864e5).toISOString().slice(0,10);
+        return R('렌트프리',`<label class="ck"><input type="radio" name="rf" ${nc.rf==='예'?'checked':''} onchange="ncSet('rf','예')">적용</label>
+            <label class="ck" style="margin-left:12px"><input type="radio" name="rf" ${nc.rf==='아니오'?'checked':''} onchange="ncSet('rf','아니오')">적용 안 함</label>`)
+          +(nc.rf==='예'?`<div class="prev" style="margin:0 0 10px"><div class="pt">렌트프리 ${d8(nc.start)} ~ ${d8(to)}</div>
+              <div style="display:flex;gap:14px;flex-wrap:wrap;margin:6px 0 6px">${C('rfRent','임대료')}${C('rfMgmt','고정관리비')}${C('rfVar','정산 항목 (전기·수도 등)')}</div>
+              체크한 항목만 이 기간에 청구하지 않습니다. 체크하지 않은 항목은 계약시작일부터 청구합니다.</div>`
+          :nc.rf==='아니오'?`<div class="c2" style="margin:0 0 10px">렌트프리가 아닙니다. 모든 항목을 기산일부터 청구합니다.</div>`:'');})():''))
     +card('보증금 · 주차',R('보증금',N('dep','약정액'))+R('납부마감일',D('depDue'))+R('반환예정일',D('depRet'))
       +R('무상 주차',`${T('park','',70)}<span class="c2" style="margin:0">대</span>`)+R('초과 1대 월',N('parkFee','단가')))
     +card('정산 항목',
