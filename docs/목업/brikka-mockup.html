@@ -437,7 +437,7 @@ table.nowr th,table.nowr td{white-space:nowrap}
 .rcr > :nth-child(4){padding-left:28px}
 .ctr{grid-template-columns:minmax(260px,1fr) 150px 150px 150px 100px}
 .schr.dep .nm{color:var(--muted)}
-.led{grid-template-columns:96px 92px 40px minmax(200px,1fr) 104px 90px 112px 112px 124px}
+.led{grid-template-columns:96px 92px 76px minmax(200px,1fr) 104px 90px 112px 112px 124px}
 .schr.led.sub .nm{padding-left:14px}
 .arr{grid-template-columns:minmax(300px,1.6fr) 210px 90px 100px 130px 76px}
 .rcp{grid-template-columns:minmax(120px,1fr) 92px 92px 58px;gap:0 8px;padding:9px 12px;font-size:12.5px}
@@ -476,7 +476,7 @@ table.nowr th,table.nowr td{white-space:nowrap}
         <div class="nh"><b>알림</b><span class="cl" onclick="event.stopPropagation();closeNoti()">모두 지우기</span></div>
         <div class="ni" onclick="go('pay-10')"><span class="bd wa">주의</span>
           <div class="nb"><div class="nt">8월 정산 미확정</div>
-            <div class="nd">동교동 영준빌딩 · 청구일(19일)까지 4일 남았습니다.</div></div>
+            <div class="nd">동교동 이준빌딩 · 청구일(19일)까지 4일 남았습니다.</div></div>
           <span class="ng">3시간 전</span></div>
         <div class="ni" onclick="go('pay-13')"><span class="bd wa">주의</span>
           <div class="nb"><div class="nt">미매칭 입금 4건</div>
@@ -484,7 +484,7 @@ table.nowr th,table.nowr td{white-space:nowrap}
           <span class="ng">5시간 전</span></div>
         <div class="ni" onclick="go('pro-3/b2')"><span class="bd ac">정보</span>
           <div class="nb"><div class="nt">관리위임계약 만료 임박</div>
-            <div class="nd">역삼 제이타워 · 38일 남음</div></div>
+            <div class="nd">이촌동 테온하우스 · 38일 남음</div></div>
           <span class="ng">어제</span></div>
       </div>
     </div>
@@ -565,12 +565,12 @@ const OPS=[
 let opIdx=0;
 
 const BUILDINGS=[
- {id:'b1',name:'동교동 영준빌딩',alias:'영준',kind:'오피스빌딩',
+ {id:'b1',name:'동교동 이준빌딩',alias:'이준',kind:'오피스빌딩',
   addr:'서울특별시 마포구 양화로 156',addr2:'서울 마포구 동교동 156-12',
-  owner:'(주)영준개발',ownerBiz:'105-81-42117',mgr:'김영준',mgrTel:'010-3341-2205',
+  owner:'(주)이준개발',ownerBiz:'105-81-42117',mgr:'김영준',mgrTel:'010-3341-2205',
   area:4820.5,gross:6240.8,up:8,down:2,park:24,hvac:'EHP(시스템에어컨)',
   unitCnt:14,vacCnt:0,opCnt:0,vac:0,
-  acct:'국민은행 812-01-0455-118',acctName:'(주)영준개발',
+  acct:'국민은행 812-01-0455-118',acctName:'(주)이준개발',
   mgmtStart:'2025-03-01',mgmtEnd:'2027-02-28',fee:'임대료의 5%',mode:'임대인 직수취',
   bondBank:'국민은행 서교동지점',bondTel:'02-334-8820',bondMax:1800000000,bondNow:1240000000,
   fac:['회의실','옥상정원','샤워실','무인택배함'],
@@ -591,7 +591,7 @@ const BUILDINGS=[
    {n:'B1-03',t:'일반',memo:'',as:'(주)비씨에이',asu:'202호'},{n:'B1-04',t:'소형',memo:'경차 전용',as:'',asu:''},
    {n:'B1-05',t:'장애인',memo:'',as:'',asu:''},{n:'B2-01',t:'일반',memo:'',as:'법무법인 정도',asu:'501호'}],
   docs:[
-   {t:'관리위임계약서_영준빌딩_2025.pdf',sz:'1.2 MB',c:'관리위임계약서',by:'김영준',at:'2025-02-24 14:20'},
+   {t:'관리위임계약서_이준빌딩_2025.pdf',sz:'1.2 MB',c:'관리위임계약서',by:'김영준',at:'2025-02-24 14:20'},
    {t:'등기부등본_20260901.pdf',sz:'340 KB',c:'등기부등본',by:'김영준',at:'2026-09-01 09:12'},
    {t:'건축물대장.pdf',sz:'2.1 MB',c:'건축물대장',by:'김영준',at:'2025-03-02 11:40'},
    {t:'2026년 화재보험증권.pdf',sz:'880 KB',c:'기타',by:'박수민',at:'2026-01-08 16:05'}],
@@ -608,12 +608,12 @@ const BUILDINGS=[
    {it:'정화조청소비',use:1,bill:'계산서',meter:'없음',mtr:'—',rest:'전체 유닛',basis:'임대면적',doc:'청소업체 내역서'}],
   billDay:'매월 19일',dueDay:'매월 말일'},
 
- {id:'b2',name:'역삼 제이타워',alias:'제이',kind:'오피스빌딩',addr:'서울특별시 강남구 테헤란로 208',addr2:'서울 강남구 역삼동 737-19',
+ {id:'b2',name:'이촌동 테온하우스',alias:'테온',kind:'오피스빌딩',addr:'서울특별시 용산구 이촌로 248',addr2:'서울 용산구 이촌동 301-8',
   owner:'정미경',ownerBiz:'220-13-88402',mgr:'박수민',mgrTel:'010-7720-3318',
   area:7240.0,gross:9820.4,up:12,down:3,park:48,hvac:'중앙공조',unitCnt:22,vacCnt:1,opCnt:0,vac:4.5,
   acct:'신한은행 140-012-772301',acctName:'정미경',
   mgmtStart:'2024-11-01',mgmtEnd:'2026-10-31',fee:'월 2,400,000원',mode:'임대인 직수취',
-  bondBank:'신한은행 역삼지점',bondTel:'02-555-1120',bondMax:4200000000,bondNow:3100000000,
+  bondBank:'신한은행 이촌동지점',bondTel:'02-797-1120',bondMax:4200000000,bondNow:3100000000,
   fac:['회의실','카페테리아','피트니스'],units:[],parks:[],docs:[],charge:[],billDay:'매월 25일',dueDay:'익월 10일'},
 
  {id:'b3',name:'성수 더블유센터',alias:'성수W',kind:'지식산업센터',addr:'서울특별시 성동구 아차산로 78',addr2:'서울 성동구 성수동2가 302-11',
@@ -624,10 +624,10 @@ const BUILDINGS=[
   bondBank:'하나은행 성수지점',bondTel:'02-464-7701',bondMax:8000000000,bondNow:5600000000,
   fac:['회의실','옥상정원'],units:[],parks:[],docs:[],charge:[],billDay:'매월 19일',dueDay:'매월 말일'},
 
- {id:'b4',name:'금악빌딩',alias:'금악',kind:'복합상가',addr:'서울특별시 영등포구 도림로 128',addr2:'서울 영등포구 문래동3가 55-7',
-  owner:'(주)금악산업',ownerBiz:'113-86-20447',mgr:'이하늘',mgrTel:'010-2280-5517',
+ {id:'b4',name:'합정동 무악빌딩',alias:'무악',kind:'복합상가',addr:'서울특별시 마포구 월드컵로 12',addr2:'서울 마포구 합정동 381-4',
+  owner:'(주)무악산업',ownerBiz:'113-86-20447',mgr:'이하늘',mgrTel:'010-2280-5517',
   area:3180.6,gross:4120.2,up:6,down:1,park:14,hvac:'개별 EHP',unitCnt:14,vacCnt:2,opCnt:0,vac:12.4,
-  acct:'우리은행 1005-903-442118',acctName:'(주)금악산업',
+  acct:'우리은행 1005-903-442118',acctName:'(주)무악산업',
   mgmtStart:'2025-07-01',mgmtEnd:'2027-06-30',fee:'임대료의 4%',mode:'임대인 직수취',
   bondBank:'우리은행 문래지점',bondTel:'02-2632-4410',bondMax:900000000,bondNow:640000000,
   fac:['옥상정원','무인택배함'],units:[],parks:[],docs:[],
@@ -650,7 +650,7 @@ const BUILDINGS=[
 ];
 
 /* ═══ PAY-10 정산 데이터 ═══ */
-/* 동교동 영준빌딩 — 본관 11 · 별관 3 유닛. 임차인명은 실제 입주사다.
+/* 동교동 이준빌딩 — 본관 11 · 별관 3 유닛. 임차인명은 실제 입주사다.
    임대면적은 실측값이 아니다. */
 const UNITS_B1=[
  {no:'본관8층',  st:'사용중', ten:'(주)아이씨비',          ar:330.0},
@@ -702,7 +702,7 @@ const BILL={
  tv:{on:true,date:'2026-08-09',use:null,supply:5000,vat:0,read:null,adj:{}},
  gas:{on:false,date:'2026-09-09',use:1840,supply:2208000,vat:220800,
    read:{'본관1층':[4820,null],'본관B2':[1150,null],'별관2층':[2340,null]},
-   readDate:'2026-09-06', adj:{}},   /* 영준빌딩은 가스를 청구하지 않는다 — 실제 청구서에 열이 없다 */
+   readDate:'2026-09-06', adj:{}},   /* 이준빌딩은 가스를 청구하지 않는다 — 실제 청구서에 열이 없다 */
  rent:{on:false,fixed:true}, mgmt:{on:false,fixed:true},   /* 고정액 — 정산하지 않는다 */
  traffic:{on:false,date:'',use:null,supply:0,vat:0,read:null,adj:{}},
  septic:{on:false,date:'',use:null,supply:0,vat:0,read:null,adj:{}},
@@ -1085,7 +1085,7 @@ function csHTML(){
       <b>${cs.cycle}</b> 발생합니다.</div>`;
   return `<div class="dro"><div class="ov" onclick="closeDrawer()"></div><div class="pn">
     <div class="dh"><div><div class="t">청구 항목 설정</div>
-      <div class="s">동교동 영준빌딩${cs.editing?' · 수정':''}</div></div>
+      <div class="s">동교동 이준빌딩${cs.editing?' · 수정':''}</div></div>
       <button class="x" onclick="closeDrawer()">✕</button></div>
     <div class="db">
       <div class="fg"><div class="fl">항목</div>
@@ -1186,7 +1186,7 @@ function drawerHTML(){
   };
   return `<div class="dro"><div class="ov" onclick="closeDrawer()"></div><div class="pn">
     <div class="dh"><div><div class="t">청구 항목 추가</div>
-      <div class="s">2026년 8월 · 동교동 영준빌딩</div></div>
+      <div class="s">2026년 8월 · 동교동 이준빌딩</div></div>
       <button class="x" onclick="closeDrawer()">✕</button></div>
     <div class="db">
       ${rest.length? rest.map(card).join('')
@@ -1412,7 +1412,7 @@ function t요약(b){
     <div class="cc"><div class="two" style="gap:0 40px">
       <dl class="dl"><dt>관리 수수료</dt><dd>${b.fee}</dd>
         <dt>운영방식</dt><dd>${b.mode}<span class="lock">위탁사 수취 후 정산은 2차</span></dd></dl>
-      <dl class="dl"><dt>위임계약서</dt><dd>${b.docs.length?'<span style="color:var(--pri);cursor:pointer">관리위임계약서_영준빌딩_2025.pdf</span>':'<span style="color:var(--muted)">미등록</span>'}</dd>
+      <dl class="dl"><dt>위임계약서</dt><dd>${b.docs.length?'<span style="color:var(--pri);cursor:pointer">관리위임계약서_이준빌딩_2025.pdf</span>':'<span style="color:var(--muted)">미등록</span>'}</dd>
         <dt>임대인</dt><dd>${b.owner}</dd></dl>
     </div>${d<=90?`<div class="hint" style="color:var(--warn)">만료 90일 이내입니다. 갱신하지 않으면 이 건물의 관리 권한이 소멸합니다.</div>`:''}</div>
   </div>`;
@@ -1538,7 +1538,7 @@ function pay10Head(sel){
       <button class="btn pri" onclick="alert('정산 확정 → 계약별 청구서 생성')">정산 확정</button></div>
   </div>
   <div class="fbar">
-    <select><option>동교동 영준빌딩</option><option>금악빌딩</option><option>역삼 제이타워</option></select>
+    <select><option>동교동 이준빌딩</option><option>합정동 무악빌딩</option><option>이촌동 테온하우스</option></select>
     <select><option>2026년 8월</option><option>2026년 7월</option><option>2026년 6월</option></select>
   </div>
   ${!sel?'':`<div class="itab">
@@ -1935,7 +1935,7 @@ const CTRS=[
   it:[['임대료',6200000],['고정관리비',1180000],['전기요금'],['수도요금']]},
 ];
 /* 계약별 미납 잔액 — 원장에서 계산되는 값이다. 청구 합계에 포함하지 않는다 → PAY-2
-   영준빌딩은 수납 기록(PAY-6)의 결과에서 계산한다 → dueOf. 나머지 건물은 예시값이다 */
+   이준빌딩은 수납 기록(PAY-6)의 결과에서 계산한다 → dueOf. 나머지 건물은 예시값이다 */
 const UNPAID={
  'b21203호':{n:1,amt:890_000,from:'2026-08'},
 };
@@ -2118,11 +2118,11 @@ function PAY1(){
 }
 
 /* ═══ PAY-6 수납 내역 ═══ */
-/* 2026-08 동교동 영준빌딩 운영계좌 거래내역 — 은행에서 내려받은 형식 그대로다.
+/* 2026-08 동교동 이준빌딩 운영계좌 거래내역 — 은행에서 내려받은 형식 그대로다.
    임차인 입금액만 시스템 계산 청구액에 맞춰 고쳤다. (주)비씨에이전시는 112,299원을 덜 냈다 → 미납
    거래후 잔액 열은 원본 값이며 계산에 쓰지 않는다.
    앞 2행은 머리말, 출금 행과 임대 외 입금이 섞여 있다. 시스템이 걸러내야 한다 → 4.6.1 */
-const BANK_RAW=`영준빌딩
+const BANK_RAW=`이준빌딩
 조회기간 : 2026.08.01~2026.08.31 조회일시 : 2026.09.11 07:30:28
 No.    거래일시    적요    기재내용    지급(원)    입금(원)    거래후 잔액(원)    취급점    메모    수표·어음·증권금액(원)
 1    2026.08.31 19:01:55    인터넷    주식회사루비뮤직    0    2,953,279    128,641,416    기업은행(003045)        0
@@ -2260,7 +2260,7 @@ const RC={b:'b1',P:parseBank(BANK_RAW),dec:{},op:{},alias:{},pre:{},reg:{},cur:n
           f:{b:'b1',ym:'2026-08',st:''}};   /* 필터 — 건물 · 청구년월 · 납부상태 */
 const setRC=(k,v)=>{RC.f[k]=v;render();};
 /* 계약 × 청구년월 수납 — 청구액·수납액·미납액·납부상태 → PAY-6 · 3.2 */
-/* 납부마감일 — 영준빌딩은 매월 말일 → 3.5 */
+/* 납부마감일 — 이준빌딩은 매월 말일 → 3.5 */
 const dueDate=ym=>new Date(dueStr(ym)+'T00:00:00Z');
 const lateDays=ym=>Math.max(0,dnum(TODAY_S)-dnum(dueStr(ym)));
 /* 납부상태 5종 — 수납 0인 청구만 납부마감일로 납부전/미납을 나눈다 → 3.2 */
@@ -2275,18 +2275,24 @@ function ctrPay(k,ym){
    납부마감일 다음날부터 오늘까지를 수납이 들어올 때마다 끊고, 구간마다 그 동안의 미납액 × 연체이자율 × 일수 ÷ 365.
    구간마다 원 미만 절사 후 합한다. 내역서의 줄과 합계가 맞아야 하기 때문이다 */
 const rateOf=k=>{const c=CTRS.find(x=>x.b+x.no===k);return (c&&c.rate)||8;};
-function lateCalc(k,ym){
-  const it=BILLS.filter(i=>i.k===k&&i.ym===ym), due=dueStr(ym), rate=rateOf(k);
+/* 연체료 정리일 — 수납 처리에서 연체료를 받았거나 깎아 준 날. 그날까지의 연체료는 다시 세지 않는다 → 4.4.3 */
+const FEE_CUT={};
+function lateCalc(k,ym,until){
+  const end=until||TODAY_S, cutD=FEE_CUT[k];
+  const it=BILLS.filter(i=>i.k===k&&i.ym===ym&&!i.fee), due=dueStr(ym), rate=rateOf(k);   /* 연체료에는 연체료를 붙이지 않는다 */
   const bill=it.reduce((a,i)=>a+i.amt,0);
   const ev=it.flatMap(i=>PAYEV[i.id]||[]);
   let bal=bill-ev.filter(e=>dnum(e.date)<=dnum(due)).reduce((a,e)=>a+e.amt,0);
-  const later=ev.filter(e=>dnum(e.date)>dnum(due)).sort((a,b)=>dnum(a.date)-dnum(b.date));
+  const later=ev.filter(e=>dnum(e.date)>dnum(due)&&dnum(e.date)<=dnum(end)).sort((a,b)=>dnum(a.date)-dnum(b.date));
   const periods=[]; let from=due;
   const cut=(to)=>{const days=dnum(to)-dnum(from);
     if(days>0&&bal>0) periods.push({from,to,days,bal,fee:Math.floor(bal*rate/100*days/365)});from=to;};
   later.forEach(e=>{cut(e.date);bal-=e.amt;});
-  if(dnum(TODAY_S)>dnum(from)) cut(TODAY_S);
-  return {rate,periods,fee:periods.reduce((a,p)=>a+p.fee,0)};
+  if(dnum(end)>dnum(from)) cut(end);
+  /* 정리일 이전 구간은 빼고, 걸친 구간은 정리일부터 다시 센다 */
+  const P=!cutD?periods:periods.filter(p=>dnum(p.to)>dnum(cutD)).map(p=>{if(dnum(p.from)>=dnum(cutD))return p;
+    const days=dnum(p.to)-dnum(cutD);return {...p,from:cutD,days,fee:Math.floor(p.bal*rate/100*days/365)};});
+  return {rate,periods:P,fee:P.reduce((a,p)=>a+p.fee,0)};
 }
 /* 이 계약에 배분된 입금 — 입금 하나가 여러 계약에 나뉘면 자기 몫만 */
 const ctrDeps=(k,ym)=>RC.P.dep.filter(d=>(RC.dec[d.no]||{}).done)
@@ -2312,9 +2318,9 @@ function rcPrefix(nm,B){
 /* 배분 — 오래된 회차 → 같은 회차 안에서는 우선순위 → 같은 우선순위면 계약 순서 → 4.3.1
    입금액이 청구액과 같은지 따지지 않는다. 전액이면 결과가 같고, 모자라면 남는 것이 미납이다.
    이번 달 청구서와 같은 금액이 들어와도 미납액부터 채운다 */
-function rcPlan(amt,keys,paid){
+function rcPlan(amt,keys,paid,extra){
   const ci=k=>CTRS.findIndex(c=>c.b+c.no===k);
-  const open=BILLS.filter(i=>keys.includes(i.k))
+  const open=[...BILLS,...(extra||[])].filter(i=>keys.includes(i.k))
     .map(i=>({...i,pr:prioOf(i.n.split(' ')[0]),due:i.amt-(paid[i.id]||0)})).filter(i=>i.due>0)
     .sort((a,b)=>a.ym<b.ym?-1:a.ym>b.ym?1:a.pr!==b.pr?a.pr-b.pr:ci(a.k)-ci(b.k));
   let r=amt;const lines=[];
@@ -2601,24 +2607,48 @@ function PAY6(){
 
 /* ═══ 수납 처리 — 현금·카드로 받았거나 보증금에서 뺀 돈. 은행 입금은 입금 매칭(PAY-13)에서 → PAY-2 · CTR-3 ═══ */
 let pm=null, pmSeq=0;
-const MANUAL_DEP=[];   /* 보증금상계 — 원장의 부채계정에서 뺀다 */
+const MANUAL_DEP=[];   /* 보증금상계 — 원장의 임대보증금에서 뺀다 */
 const PAY_HOW=['현금','카드','계좌이체','보증금상계'];
+/* 이 계약의 연체료 — 받은 날까지. 이미 청구한 연체료는 빼고 센다 */
+const feeUntil=(k,d)=>[...new Set(BILLS.filter(i=>i.k===k).map(i=>i.ym))].reduce((a,ym)=>a+lateCalc(k,ym,d).fee,0);
 function openPay(k){
   const a=arrears(CTRS.find(c=>c.b+c.no===k));
-  pm={k,date:TODAY_S,amt:a.due,how:'현금',memo:''};DRAWER='pay';render(true);
+  const full=feeUntil(k,TODAY_S);
+  pm={k,date:TODAY_S,amt:a.due,how:'현금',memo:'',feeOn:false,feeFull:full,fee:full};DRAWER='pay';render(true);
 }
-function setPm(f,v){pm[f]=f==='amt'?Math.max(0,parseInt(String(v).replace(/[^0-9]/g,''))||0):v;render(true);}
+const numOf=v=>Math.max(0,parseInt(String(v).replace(/[^0-9]/g,''))||0);
+/* 받는 금액은 연체료를 넣고 빼는 만큼 따라 움직인다 */
+function setPm(f,v){
+  const was=pm.feeOn?pm.fee:0;
+  if(f==='amt') pm.amt=numOf(v);
+  else if(f==='fee') pm.fee=Math.min(numOf(v),pm.feeFull);
+  else if(f==='feeOn') pm.feeOn=v===true||v==='1';
+  else if(f==='date'){pm.date=v;pm.feeFull=feeUntil(pm.k,v);pm.fee=pm.feeFull;}
+  else pm[f]=v;
+  if(f!=='amt') pm.amt=Math.max(0,pm.amt-was+(pm.feeOn?pm.fee:0));
+  render(true);
+}
+/* 받기로 한 연체료 — 받은 날 청구 건으로 만든다. 확정 전에는 미리보기에만 쓴다 */
+function feeBill(){
+  if(!pm.feeOn||!pm.fee) return null;
+  const c=CTRS.find(x=>x.b+x.no===pm.k), off=pm.feeFull-pm.fee;
+  return {id:`fee|${pm.k}|${pm.date}|${pmSeq+1}`,ym:pm.date.slice(0,7),k:pm.k,no:c.no,n:'연체료',amt:pm.fee,
+    fee:true,date:pm.date,memo:`연체료 (${pm.date.slice(5).replace('-','.')}까지${off?` · ${won(pm.feeFull)} 중 ${won(off)} 감면`:''})`};
+}
 /* 배분 — 입금 매칭과 같은 규칙. 현금·카드는 같은 임차인의 이 건물 계약 전체에,
    보증금상계는 그 보증금이 걸린 이 계약에만 → 4.3.1 */
 function payPlan(){
   const c=CTRS.find(x=>x.b+x.no===pm.k);
   const keys=pm.how==='보증금상계'?[pm.k]
     :CTRS.filter(x=>x.b===c.b&&(x.st==='진행중'||x.b+x.no===pm.k)&&normName(x.ten)===normName(c.ten)).map(x=>x.b+x.no);
-  return rcPlan(pm.amt,keys,PAID);
+  const fb=feeBill();
+  return rcPlan(pm.amt,keys,PAID,fb?[fb]:[]);
 }
 function payConfirm(){
-  const pl=payPlan(); if(!pm.amt||!pl.lines.length||pl.rest>0) return;
-  if(pm.how==='보증금상계'&&pm.amt>ledgerOf(pm.k).bal.부채) return;
+  const pl=payPlan(); if(pl.rest>0||(!pl.lines.length&&!pm.feeOn)) return;
+  if(pm.how==='보증금상계'&&pm.amt>ledgerOf(pm.k).bal.임대보증금) return;
+  const fb=feeBill(); if(fb) BILLS.push(fb);
+  if(pm.feeOn) FEE_CUT[pm.k]=pm.date;   /* 받았든 깎았든 이날까지의 연체료는 정리됐다 */
   const dep='m'+(++pmSeq), src=`${pm.date.slice(5).replace('-','.')} ${pm.how}`;
   pl.lines.forEach(l=>addPay(l.id,l.pay,pm.date,src,dep));
   if(pm.how==='보증금상계') MANUAL_DEP.push({k:pm.k,date:pm.date,amt:pm.amt-pl.rest,dep,sq:++paySeq});
@@ -2627,11 +2657,12 @@ function payConfirm(){
 function payHTML(){
   if(DRAWER!=='pay'||!pm) return '';
   const c=CTRS.find(x=>x.b+x.no===pm.k), bn=BUILDINGS.find(x=>x.id===c.b)||BUILDINGS[0];
-  const a=arrears(c), pl=payPlan(), depBal=ledgerOf(pm.k).bal.부채;
+  const a=arrears(c), pl=payPlan(), depBal=ledgerOf(pm.k).bal.임대보증금;
+  const off=pm.feeFull-pm.fee;
   const over=pm.how==='보증금상계'&&pm.amt>depBal;
   const tot=pl.all.reduce((s,l)=>s+l.due,0), payT=pl.lines.reduce((s,l)=>s+l.pay,0);
   const many=new Set(pl.all.map(l=>l.k)).size>1;
-  const ok=pm.amt>0&&pl.lines.length&&!over;
+  const ok=((pm.amt>0&&pl.lines.length)||pm.feeOn)&&!over;
   return `<div class="dro"><div class="ov" onclick="closeDrawer()"></div><div class="pn">
     <div class="dh"><div><div class="t">수납 처리</div>
       <div class="s">${bn.name} · ${c.no} · ${c.ten}</div></div>
@@ -2644,11 +2675,24 @@ function payHTML(){
           <select onchange="setPm('how',this.value)">${PAY_HOW.map(h=>`<option ${h===pm.how?'selected':''}>${h}</option>`).join('')}</select></div>
         <div class="fr"><span class="fk">금액</span>
           <input type="text" inputmode="numeric" value="${pm.amt.toLocaleString('ko-KR')}" onchange="setPm('amt',this.value)" style="text-align:right">
-          <span class="c2">현재 미납 ${won(a.due)}</span></div>
+          <span class="c2">${pm.feeOn&&pm.fee?'미납 + 연체료':`미납 ${won(a.due)}`}</span></div>
         <div class="fr"><span class="fk">메모</span>
           <input type="text" value="${pm.memo}" placeholder="예: 카드 승인번호, 영수증 번호" oninput="pm.memo=this.value"></div>
-        ${pm.how==='보증금상계'?`<div class="c2" style="margin:2px 0 0">보증금 잔액 ${won(depBal)}. 이 계약의 미납에만 씁니다.</div>`:''}
+        ${pm.how==='보증금상계'?`<div class="c2" style="margin:2px 0 0;white-space:normal">보증금 잔액 ${won(depBal)}. 이 계약의 미납에만 씁니다.</div>`:''}
       </div>
+      ${pm.feeFull?`<div class="fg"><div class="fl">연체료</div>
+        <div class="fr"><span class="fk">지금까지</span><b>${won(pm.feeFull)}</b><span class="c2">${pm.date.slice(5).replace('-','.')}까지 · 연 ${rateOf(pm.k)}%</span></div>
+        <div class="fr"><span class="fk">이번에</span>
+          <label style="display:flex;align-items:center;gap:5px;cursor:pointer"><input type="radio" name="feeOn" ${pm.feeOn?'':'checked'} onchange="setPm('feeOn','0')">받지 않음</label>
+          <label style="display:flex;align-items:center;gap:5px;cursor:pointer"><input type="radio" name="feeOn" ${pm.feeOn?'checked':''} onchange="setPm('feeOn','1')">받음</label></div>
+        ${pm.feeOn?`<div class="fr"><span class="fk">받을 연체료</span>
+          <input type="text" inputmode="numeric" value="${pm.fee.toLocaleString('ko-KR')}" onchange="setPm('fee',this.value)" style="text-align:right">
+          <span class="c2">${off?`<b style="color:var(--warn)">${won(off)} 감면</b>`:'전액'}</span></div>`:''}
+        <div class="c2" style="margin:2px 0 0;white-space:normal">${pm.feeOn
+          ?(pm.fee?'받을 연체료를 받은 날 청구로 올리고 함께 수납합니다. 줄여 준 금액은 다시 청구되지 않습니다.'
+                  :'연체료를 전액 감면합니다. 이날까지의 연체료는 다시 청구되지 않습니다.')
+          :'연체료는 원장에 올리지 않고 계속 쌓입니다.'}</div>
+      </div>`:''}
       <div class="fg"><div class="fl">배분 미리보기</div>
         <div class="tbl" style="margin:0"><div class="schr rcp hd"><div>청구항목</div><div class="n">미납</div><div class="n">이번 수납</div><div>결과</div></div>
         ${pl.all.map(l=>`<div class="schr rcp"><div class="nm">${many?`<span class="c2" style="margin:0 6px 0 0">${l.no}</span>`:''}<span class="c2" style="margin:0 6px 0 0">${l.ym.slice(2).replace('-','.')}월</span>${l.n}</div>
@@ -2660,7 +2704,7 @@ function payHTML(){
         ${pl.rest>0?`<div class="prev warn2" style="margin-top:10px"><div class="pt">남는 금액 ${won(pl.rest)}</div>미납보다 많이 받았습니다. 금액을 미납액에 맞추세요.</div>`:''}
         ${over?`<div class="prev warn2" style="margin-top:10px"><div class="pt">보증금보다 많습니다</div>보증금 잔액 ${won(depBal)}까지만 뺄 수 있습니다.</div>`:''}
       </div>
-      <div class="c2" style="margin:0">오래된 달부터, 같은 달 안에서는 배분 우선순위대로 채웁니다. 확정하면 원장에 수납으로 기록됩니다.</div>
+      <div class="c2" style="margin:0;white-space:normal">오래된 달부터, 같은 달 안에서는 배분 우선순위대로 채웁니다. 확정하면 원장에 수납으로 기록됩니다.</div>
     </div>
     <div class="df">
       <button class="btn" onclick="closeDrawer()">취소</button>
@@ -2704,13 +2748,12 @@ function PAY2(){
     return `<div class="schr arr grp" onclick="g2Tog('${a.k}')">
       <div class="nm">${can?`<span class="cb ${on?'on':''}" onclick="pick2('${a.k}',event)"></span>`:'<span class="cb dis"></span>'}<span class="tg ${op?'op':''}" style="${can?'':'visibility:hidden'}">${ic('chev',16)}</span>${cnameHTML(bn.alias,a.c.no,a.c.ten)}${
         a.c.st!=='진행중'?` <span class="bd mu">${a.c.st}</span>`:''}${
-        a.owe.length>=3?` <span class="bd da" style="margin-left:6px">${a.owe.length}개월 미납</span>`:''}${
         !a.due?`<span class="c2">${a.fee?'미납 없음 · 연체료만 있음':'미납 없음'}</span>`:''}</div>
       <div class="n">${a.due?`<b style="color:var(--warn)">${won(a.due)}</b>`:dash}</div>
       <div class="n">${a.days?`${a.days}일`:dash}</div>
       <div class="n">연 ${a.rate}%</div>
       <div class="n">${a.fee?won(a.fee):dash}</div>
-      <div class="c">${a.due?`<button class="btn sm" onclick="event.stopPropagation();openPay('${a.k}')">수납</button>`:''}</div>
+      <div class="c">${a.due||a.fee?`<button class="btn sm" onclick="event.stopPropagation();openPay('${a.k}')">수납</button>`:''}</div>
     </div>`+(!op||!can?'':a.months.map(m=>`
     <div class="schr arr sub mo" onclick="RC.f.b='${RC.b}';RC.f.ym='${m.ym}';RC.f.st='';go('pay-6')">
       <div class="nm">${m.ym.replace('-','년 ')}월분 <span class="c2">청구 ${won(m.bill)} · 수납 ${m.paid?won(m.paid):'0원'} · 마감 ${md(dueStr(m.ym))}</span></div>
@@ -2742,7 +2785,7 @@ function PAY2(){
     아직 기록되지 않은 입금이 있어 이미 낸 계약도 미납으로 보입니다.
     <b class="lk" onclick="go('pay-13')">입금 매칭으로 이동 →</b></div>`:''}
   ${!rows.length?`<div class="tbl"><div class="empty"><div class="t">${has?'미납이 없습니다':'자료가 없습니다'}</div>
-     ${has?'모든 계약이 완납 상태이고 연체료도 없습니다.':'목업 자료는 동교동 영준빌딩뿐입니다.'}</div></div>`
+     ${has?'모든 계약이 완납 상태이고 연체료도 없습니다.':'목업 자료는 동교동 이준빌딩뿐입니다.'}</div></div>`
   :`<div class="tbl schl">
     <div class="schr arr hd"><div>계약고유명 · 청구년월</div><div class="n">미납액</div>
       <div class="n">연체일수</div><div class="n">연체이자율</div><div class="n">연체료(예상)</div><div></div></div>
@@ -2754,7 +2797,7 @@ function PAY2(){
   <div class="hint">
     지금까지 쌓인 미납과 연체료(예상)를 계약별로 모았습니다. 펼치면 최근 달부터 보입니다.<br>
     현금·카드로 받았거나 보증금에서 빼면 계약 줄의 수납을 누르세요. 은행 입금은 입금 매칭에서 처리합니다.<br>
-    연체료는 표시만 합니다. 3개월 이상 밀린 계약은 표시가 붙습니다.</div>`;
+    연체료는 수납할 때 받을지 정합니다. 금액을 낮춰 받을 수 있습니다.</div>`;
 }
 
 /* 계약 조건 — 종료일은 기본값(시작일로부터 2년 후 전날), 유형은 확정기간계약, 보증금은 예시값(월 임대료 × 10) → 3.5 */
@@ -2830,9 +2873,9 @@ function CTR3sum(c,k){
       <dt>계약기간</dt><dd>${d8(c.base)} - ${d8(end)} ${c.st==='진행중'?ddBadge(end):''}</dd>
     </dl></div></div>
     <div class="card"><div class="ct">임대정보</div><div class="cc"><dl class="dl">
-      <dt>미납 잔액</dt><dd><b style="${L.bal.수익?'color:var(--warn)':''}">${won(L.bal.수익)}</b>
+      <dt>미납 잔액</dt><dd><b style="${L.bal.매출채권?'color:var(--warn)':''}">${won(L.bal.매출채권)}</b>
         <span class="lk" style="margin-left:8px;font-size:12px" onclick="tab3c='원장정보';render()">원장 보기</span></dd>
-      <dt>보증금 잔액</dt><dd>${won(L.bal.부채)}</dd>
+      <dt>보증금 잔액</dt><dd>${won(L.bal.임대보증금)}</dd>
       <dt>임대료</dt><dd>${won(ctrAmt(c,'임대료'))}<span class="lock">월 · 부가세 별도</span></dd>
       <dt>고정관리비</dt><dd>${ctrAmt(c,'고정관리비')?won(ctrAmt(c,'고정관리비')):'—'}<span class="lock">월 · 부가세 별도</span></dd>
       <dt>청구일 · 납부마감일</dt><dd>${bn.billDay} · ${bn.dueDay}</dd>
@@ -2850,22 +2893,25 @@ function ledgerOf(k){
   const c=CTRS.find(x=>x.b+x.no===k), rows=[];
   const rent=((c.it||[]).find(x=>x[0]==='임대료')||[])[1]||0;
   /* 보증금 — 목업 예시값(월 임대료 × 10) */
-  rows.push({date:c.base,type:'보증금 예치',acc:'부채',memo:'계약 보증금 (예시값)',item:'계약 보증금 (예시값)',g:'dep',inc:rent*10,sup:null,vat:null,ord:0});
+  rows.push({date:c.base,type:'보증금 예치',acc:'임대보증금',memo:'계약 보증금 (예시값)',item:'계약 보증금 (예시값)',g:'dep',inc:rent*10,sup:null,vat:null,ord:0});
   BILLS.filter(i=>i.k===k).forEach(i=>{
     const tax=isTaxItem(i.n), sup=tax?Math.round(i.amt/1.1):i.amt;
     const ymL=i.ym.slice(2).replace('-','.')+'월분';
-    rows.push({date:i.ym+'-19',type:'청구',acc:'수익',memo:`${ymL} ${i.n}`,item:`${ymL} ${i.n}`,g:'bill'+i.ym,ym:i.ym,
+    rows.push({date:i.date||i.ym+'-19',type:'청구',acc:'매출채권',memo:i.memo||`${ymL} ${i.n}`,item:i.memo||`${ymL} ${i.n}`,
+      g:i.fee?'fee'+i.id:'bill'+i.ym,ym:i.ym,ttl:i.memo,
       inc:i.amt,sup,vat:i.amt-sup,ord:1,pr:prioOf(i.n.split(' ')[0])});
-    (PAYEV[i.id]||[]).forEach(e=>rows.push({date:e.date,type:'수납',acc:'수익',
-      memo:`${ymL} ${i.n} ← ${e.src}`,item:`${ymL} ${i.n}`,src:e.src,g:'pay'+e.dep,dec:e.amt,sup:null,vat:null,ord:2,pr:prioOf(i.n.split(' ')[0]),
+    (PAYEV[i.id]||[]).forEach(e=>rows.push({date:e.date,type:'수납',acc:'매출채권',
+      memo:`${i.fee?'연체료':ymL+' '+i.n} ← ${e.src}`,item:i.fee?'연체료':`${ymL} ${i.n}`,src:e.src,g:'pay'+e.dep,dec:e.amt,sup:null,vat:null,ord:2,pr:prioOf(i.n.split(' ')[0]),
       hand:e.dep.startsWith('m'),sq:e.sq}));
   });
-  /* 보증금상계 — 같은 돈이 보증금에서 빠지고(부채) 미납을 채운다(수익) */
-  MANUAL_DEP.filter(m=>m.k===k).forEach(m=>rows.push({date:m.date,type:'보증금 차감',acc:'부채',
+  /* 보증금상계 — 같은 돈이 임대보증금에서 빠지고(차변) 매출채권을 채운다(대변) */
+  MANUAL_DEP.filter(m=>m.k===k).forEach(m=>rows.push({date:m.date,type:'보증금 차감',acc:'임대보증금',
     memo:'미납 청구에 상계',item:'미납 청구에 상계',g:'dd'+m.dep,dec:m.amt,sup:null,vat:null,ord:2,sq:m.sq}));
   rows.sort((a,b)=>dnum(a.date)-dnum(b.date)||a.ord-b.ord||(a.sq||0)-(b.sq||0)||(a.pr||0)-(b.pr||0));
-  const bal={수익:0,부채:0};
-  rows.forEach(r=>{bal[r.acc]+=(r.inc||0)-(r.dec||0);r.bal=bal[r.acc];});
+  const bal={매출채권:0,임대보증금:0};
+  rows.forEach(r=>{bal[r.acc]+=(r.inc||0)-(r.dec||0);r.bal=bal[r.acc];
+    /* 차변·대변 — 매출채권(자산)은 늘면 차변, 임대보증금(부채)은 늘면 대변 */
+    const as=r.acc==='매출채권';r.dr=as?r.inc:r.dec;r.cr=as?r.dec:r.inc;});
   return {c,rows,bal};
 }
 let tab3c='요약', g3={}, g3All=false;
@@ -2890,19 +2936,19 @@ function CTR3(k){
       ${[['','모든 거래'],['1','최근 1개월'],['3','최근 3개월']].map(([v,t])=>`<option value="${v}" ${f3.per===v?'selected':''}>${t}</option>`).join('')}
     </select>
     <select onchange="setF3('acc',this.value)">
-      ${[['','전체 계정'],['수익','수익계정 (청구·수납)'],['부채','부채계정 (보증금)']].map(([v,t])=>`<option value="${v}" ${f3.acc===v?'selected':''}>${t}</option>`).join('')}
+      ${[['','전체 계정'],['매출채권','매출채권 (청구·수납)'],['임대보증금','임대보증금']].map(([v,t])=>`<option value="${v}" ${f3.acc===v?'selected':''}>${t}</option>`).join('')}
     </select>
-    <span class="c2" style="margin-left:auto">미납 잔액 <b style="color:${L.bal.수익?'var(--warn)':'var(--ink)'}">${won(L.bal.수익)}</b>
-      · 보증금 잔액 <b style="color:var(--ink)">${won(L.bal.부채)}</b>${fee?` · 연체료(예상) ${won(fee)}`:''}</span>
+    <span class="c2" style="margin-left:auto">미납 잔액 <b style="color:${L.bal.매출채권?'var(--warn)':'var(--ink)'}">${won(L.bal.매출채권)}</b>
+      · 보증금 잔액 <b style="color:var(--ink)">${won(L.bal.임대보증금)}</b>${fee?` · 연체료(예상) ${won(fee)}`:''}</span>
   </div>
   ${(()=>{
     /* 묶음 — 청구는 청구서 하나, 수납은 입금 하나, 보증금은 거래 하나. rows는 이미 최근 순이다 */
     const G=[];rows.forEach(r=>{const last=G[G.length-1];
       if(last&&last.g===r.g&&last.date===r.date) last.items.push(r); else G.push({g:r.g,date:r.date,type:r.type,acc:r.acc,items:[r]});});
     G.forEach(x=>{const it=x.items;x.bal=it[0].bal;   /* 최근 순이므로 첫 행이 묶음 끝의 잔액 */
-      x.inc=it.reduce((a,r)=>a+(r.inc||0),0);x.dec=it.reduce((a,r)=>a+(r.dec||0),0);
+      x.dr=it.reduce((a,r)=>a+(r.dr||0),0);x.cr=it.reduce((a,r)=>a+(r.cr||0),0);
       x.sup=it.some(r=>r.sup!=null)?it.reduce((a,r)=>a+(r.sup||0),0):null;x.vat=it.reduce((a,r)=>a+(r.vat||0),0);
-      x.title=x.type==='청구'?`${it[0].ym.slice(2).replace('-','.')}월분 청구서`:x.type==='수납'?(it[0].src==='이전 입금'?'이전 입금':`${it[0].src} ${it[0].hand?'수납':'입금'}`):it[0].item;
+      x.title=it[0].ttl?it[0].ttl:x.type==='청구'?`${it[0].ym.slice(2).replace('-','.')}월분 청구서`:x.type==='수납'?(it[0].src==='이전 입금'?'이전 입금':`${it[0].src} ${it[0].hand?'수납':'입금'}`):it[0].item;
       x.key=x.g+'|'+x.date;});
     const anyOp=G.some(x=>g3Open(x.key));
     const body=G.map(x=>{const op=g3Open(x.key), many=x.items.length>1;
@@ -2913,27 +2959,27 @@ function CTR3(k){
         <div>${x.title}${many?`<span class="c2" style="margin-left:6px">${x.type==='수납'?`${x.items.length}건에 배분`:`${x.items.length}건`}</span>`:''}</div>
         <div class="n c2" style="margin:0">${x.sup!=null?won(x.sup):''}</div>
         <div class="n c2" style="margin:0">${x.vat?won(x.vat):''}</div>
-        <div class="n">${x.inc?won(x.inc):''}</div>
-        <div class="n">${x.dec?won(x.dec):''}</div>
+        <div class="n">${x.dr?won(x.dr):''}</div>
+        <div class="n">${x.cr?won(x.cr):''}</div>
         <div class="n"><b>${won(x.bal)}</b></div></div>`
       +(!op||!many?'':x.items.map(r=>`<div class="schr led sub">
         <div></div><div></div><div></div>
         <div class="nm">${r.item}</div>
         <div class="n c2" style="margin:0">${r.sup!=null?won(r.sup):''}</div>
         <div class="n c2" style="margin:0">${r.vat?won(r.vat):''}</div>
-        <div class="n c2" style="margin:0">${r.inc?won(r.inc):''}</div>
-        <div class="n c2" style="margin:0">${r.dec?won(r.dec):''}</div>
+        <div class="n c2" style="margin:0">${r.dr?won(r.dr):''}</div>
+        <div class="n c2" style="margin:0">${r.cr?won(r.cr):''}</div>
         <div class="n c2" style="margin:0">${won(r.bal)}</div></div>`).join(''));}).join('');
     return `<div style="display:flex;justify-content:flex-end;margin:-6px 0 8px">${G.length?`<button class="btn sm" onclick="g3All=${anyOp?'false':'true'};g3={};render(true)">${anyOp?'전체 접기':'전체 펼치기'}</button>`:''}</div>
     <div class="tbl schl">
       <div class="schr led hd"><div>날짜</div><div>거래유형</div><div>계정</div><div>내용</div>
-        <div class="n">공급가액</div><div class="n">부가세</div><div class="n">증가</div><div class="n">감소</div><div class="n">잔액</div></div>
+        <div class="n">공급가액</div><div class="n">부가세</div><div class="n">차변</div><div class="n">대변</div><div class="n">잔액</div></div>
       ${body||'<div class="empty">이 기간에 거래가 없습니다</div>'}
     </div>`;})()}
   <div class="hint">
     이 계약의 모든 돈 거래입니다. 청구서 한 장, 입금 한 건을 한 줄로 묶었습니다. 펼치면 항목별로 보입니다.<br>
-    최근 거래가 위에 있고, 잔액은 그 거래 직후의 금액입니다. 수익계정과 부채계정의 잔액은 따로 셉니다.<br>
-    원장은 고치지 않습니다. 잘못된 거래는 취소 거래를 추가해 바로잡습니다. 연체료는 표시만 하고 원장에 올리지 않습니다.</div>`;
+    최근 거래가 위에 있고, 잔액은 그 거래 직후의 금액입니다. 매출채권(받을 돈)과 임대보증금(돌려줄 돈)의 잔액은 따로 셉니다.<br>
+    원장은 고치지 않습니다. 잘못된 거래는 취소 거래를 추가해 바로잡습니다. 연체료는 수납 처리에서 받기로 한 금액만 청구로 올라옵니다.</div>`;
 }
 
 /* ═══ 라우터 ═══ */
