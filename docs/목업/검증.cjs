@@ -365,7 +365,7 @@ const rent = ln('별관3층', '임대료'), closed = G.ci === null && /3,630,000
 G.ciOpen('b1본관B2', 'payto'); G.ciSet('payTo', '본관2층'); G.ciSave(); const payTo = G.CTRS.find(c => c.no === '본관B2').payTo === '본관2층';
 G.ciOpen('b1별관3층', 'edit', '고정관리비'); G.ciSet('amt', '1400000'); G.ciSave(); const noWhy = G.ci !== null;
 G.ciSet('why', '재협의'); G.ciSave(); const fixed2 = G.ci === null && ln('별관3층', '고정관리비') && ln('별관3층', '고정관리비').amt === 1400000;
-r6.push(['임대료·관리비 탭 — 분기 · 기산일 8월 청구 · 9월 기산은 8월 제외 · 정산 항목은 건물 설정 그대로 · 301호 고정관리비 0원은 청구 안 함, 금액을 넣으면 청구 · 8/1 인상 예약 → 3,630,000 · 금액을 바꾸면 사유 필수 → 1,400,000 반영 · 정산액 부담',
+r6.push(['임대료·관리비 탭 — 분기 · 기산일 8월 청구 · 9월 기산은 8월 제외 · 정산 항목은 건물 설정 그대로 · 301호 고정관리비 0원은 청구 안 함, 금액을 넣으면 청구 · 8/1 인상 예약 → 3,630,000 · 금액을 바꾸면 사유 필수 → 1,400,000 반영 · 정산액 대납',
   q8 && q9 && elecAll && act301 && rent && rent.amt === 3630000 && closed && noWhy && fixed2 && payTo]);
 /* 매월 항목 자동 · 계약에는 고정액 2개만 → PAY-10 · CTR-2 */
 { const A = new Function(stub + bare + '; return {monthlyItems,BILL,MASTER,CTR2,ncSet,ncLookup,ncSave,CTRS,ISSUE,get nc(){return nc;}};')();

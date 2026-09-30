@@ -2269,7 +2269,7 @@ function ISSUE(){
         const sup=adjSup(c,x[0],x[1],ym), v=isTax(bd)?Math.round(sup*0.1):0;
         return {n:x[0],bill:bd,src:'임대차계약서',supply:sup,vat:v,amt:sup+v,st:'약정',stc:'mu'};
       }
-      /* 정산액 부담 계약이 있으면 이 계약의 정산 항목은 그 계약 청구서에 대납으로 실린다 — 여기서는 싣지 않는다 */
+      /* 정산액 대납 계약이 있으면 이 계약의 정산 항목은 그 계약 청구서에 대납으로 실린다 — 여기서는 싣지 않는다 */
       if(c.payTo) return null;
       /* 정산 — 1단계에서 선택되지 않았으면 이번 회차 대상이 아니다 */
       const code=codeOf(x[0]), m=M(code), b=BILL[code];
@@ -2418,7 +2418,7 @@ function PAY1(){
     관리비 정산에서 이미 빠졌으므로 여기에 나오지 않는다.<br>
     <b>대납</b>은 그 유닛의 안분 결과를 다른 계약이 부담한다는 뜻이다.
     고지서에는 그 유닛 사용량이 포함되어 있으므로 안분 제외와 다르다.
-    계약에 <b>정산액 부담 계약</b>을 지정하면 산출은 유닛 기준으로 하고 청구만 옮긴다.<br>
+    계약에 <b>정산액 대납 계약</b>을 지정하면 산출은 유닛 기준으로 하고 청구만 옮긴다.<br>
     <b>미납 잔액</b>은 원장에서 계산되는 값이며 이번 회차 청구와 별개다.
     청구서에는 <b>합계에 넣지 않고 별도 안내로</b> 표기한다. 세금계산서에는 넣지 않는다.<br>
     항목 상태는 셋이다. <b>약정</b>(계약서 금액이라 변하지 않는다) ·
@@ -3487,7 +3487,7 @@ function ciHTML(){
       +MEMO;
     ok=!chg||ci.why.trim();
   } else if(ci.mode==='payto'){
-    t='정산액 부담 계약';
+    t='정산액 대납 계약';
     body=`<div class="c2" style="margin:-2px 0 12px;white-space:normal">이 계약의 정산 항목(전기·수도 등)을 다른 계약이 대신 낼 때만 고릅니다.
         금액은 이 유닛 몫으로 계산하고, 청구서만 고른 계약에 「대납」으로 실립니다. 임대료·고정관리비는 옮기지 않습니다.</div>`
       +R('대신 낼 계약',`<select onchange="ciSet('payTo',this.value)"><option value="">없음 (이 계약이 낸다)</option>
@@ -3540,7 +3540,7 @@ function CTR3rent(c,k){
         <td class="c" style="white-space:nowrap">${done(a)?'':`<button class="btn sm" onclick="ciOpen('${k}','adj',${i})">수정</button>
           <button class="btn sm" onclick="ciDelAdj('${k}',${i})">삭제</button>`}</td></tr>`).join('')}</tbody></table></div>`
     :'<div class="cc"><div class="c2" style="margin:0">예약된 인상이 없습니다. 계약서에 「0000년 00월 00일부터 임대료·관리비 얼마」가 있으면 추가하세요.</div></div>'}</div>
-  <div class="card"><div class="ct">정산액 부담 계약<span class="sub">이 계약의 정산 항목(전기·수도 등)을 다른 계약이 대신 낼 때만</span>
+  <div class="card"><div class="ct">정산액 대납 계약<span class="sub">이 계약의 정산 항목(전기·수도 등)을 다른 계약이 대신 낼 때만</span>
     <span class="ca"><button class="btn sm" onclick="ciOpen('${k}','payto')">변경</button></span></div>
     <div class="cc"><div style="font-size:12.5px">${pay?`<b>${pay.no} · ${pay.ten}</b> <span class="c2">이 유닛 몫을 그 계약 청구서에 「대납」으로 싣습니다</span>`:'<span class="c2" style="margin:0">없음 — 이 계약이 냅니다</span>'}</div></div></div>
   <div class="hint">
