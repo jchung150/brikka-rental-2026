@@ -94,7 +94,7 @@ for (const f of ["f1c.st=''", "f1c.b='b2'", "f1c.dd='90'", "f1c.dd='0'"]) run('C
 run('CTR-3 요약', "tab3c='요약';CTR3('b1별관3층')");
 run('CTR-3 빈 탭', "tab3c='자료보관';CTR3('b1별관3층')");
 run('CTR-3 청구항목', "tab3c='청구항목';CTR3('b1별관3층')");
-run('CTR-3 청구항목 패널', "ciOpen('b1별관3층','add');ciSet('pick','__new');ciHTML();ciOpen('b1별관3층','edit','임대료');ciSet('fix',true);ciHTML();ciOpen('b1별관3층','edit','전기요금');ciHTML();ciOpen('b1별관3층','adj');ciHTML()");
+run('CTR-3 청구항목 패널', "ciOpen('b1별관3층','add');ciSet('pick','__new');ciHTML();ciOpen('b1별관3층','edit','임대료');ciSet('fix',true);ciHTML();ciOpen('b1별관3층','edit','전기요금');ciHTML();ciOpen('b1별관3층','adj');ciHTML();ciOpen('b1별관3층','payto');ciHTML()");
 run('CTR-3 원장 비씨에이전시', "tab3c='원장';CTR3('b1별관3층')");
 run('CTR-3 원장 전체 펼침', "tab3c='원장';g3All=true;CTR3('b1본관1층')");
 run('CTR-3 원장 필터', "tab3c='원장';f3={per:'3',acc:'매출채권'};CTR3('b1본관302호')");
@@ -350,9 +350,11 @@ const notYet = !ln('별관2층', '창고 사용료');
 G.ciStop('b1본관8층', '주차비'); const stopped = !ln('본관8층', '주차비');
 G.ciOpen('b1별관3층', 'adj'); G.ciSet('d', '2026-08-01'); G.ciSet('rent', '3630000'); G.ciSave();
 const rent = ln('별관3층', '임대료');
+const backToEdit = G.ci && G.ci.mode === 'edit' && G.ci.n === '임대료';
+G.ciOpen('b1본관B2', 'payto'); G.ciSet('payTo', '본관2층'); G.ciSave(); const payTo = G.CTRS.find(c => c.no === '본관B2').payTo === '본관2층';
 G.ciOpen('b1별관3층', 'edit', '고정관리비'); G.ciSet('fix', true); G.ciSet('amt', '1400000'); G.ciSave(); const noWhy = G.ci !== null;
-r6.push(['청구 약정 — 분기 고정액 33만 8월 청구 · 9월부터 항목은 8월 제외 · 주차비 중지 · 8/1 조정 일정 → 임대료 3,630,000 · 바로잡기는 사유 필수',
-  adAug && adAug.amt === 330000 && adAug.supply === 300000 && notYet && stopped && rent && rent.amt === 3630000 && noWhy]);
+r6.push(['청구 약정 — 분기 고정액 33만 8월 청구 · 9월부터 항목은 8월 제외 · 주차비 중지 · 8/1 조정 일정 → 임대료 3,630,000(저장 후 임대료 수정 패널로) · 바로잡기는 사유 필수 · 정산액 부담 지정',
+  adAug && adAug.amt === 330000 && adAug.supply === 300000 && notYet && stopped && rent && rent.amt === 3630000 && noWhy && backToEdit && payTo]);
 /* 매월 항목 자동 · 계약 등록 시 건물 정산 항목 자동 → PAY-10 · CTR-2 */
 { const A = new Function(stub + bare + '; return {monthlyItems,BILL,MASTER,CTR2,ncSet,ncLookup,ncSave,CTRS,get nc(){return nc;}};')();
   const on = A.MASTER.filter(m => !m.fixed && A.BILL[m.code].on).map(m => m.code).sort().join();

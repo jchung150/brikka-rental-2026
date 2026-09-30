@@ -3402,9 +3402,11 @@ function ciOpen(k,mode,n){
   const c=CTRS.find(x=>ckey(x)===k);
   if(mode==='edit'){const x=c.it.find(y=>y[0]===n), mt=(c.meta||{})[n]||{};
     ci={k,mode,n,cycle:itemCycle(c,n),from:itemFrom(c,n),memo:mt.memo||'',fix:false,amt:x[1]?Math.round(x[1]*(isTax(itemDoc(c,n))?1.1:1)):0,why:''};}
-  else if(mode==='adj') ci={k,mode,d:'',rent:'',mgmt:'',memo:'',i:n};
+  else if(mode==='adj') ci={k,mode,d:'',rent:'',mgmt:'',memo:'',i:n,back:ci&&ci.mode==='edit'?ci.n:(ci&&ci.back)||null};
+  else if(mode==='payto') ci={k,mode,payTo:c.payTo||''};
   else ci={k,mode,pick:'',n:'',amt:'',doc:'세금계산서',cycle:'매월',from:'2026-09-01',memo:''};
   if(mode==='adj'&&n!=null){const a=c.adj[n];Object.assign(ci,{d:a.d,rent:a.rent||'',mgmt:a.mgmt||'',memo:a.memo||''});}
+  if(mode==='adj'&&!ci.back) ci.back='임대료';
   DRAWER='citem';render(true);
 }
 function ciSet(f,v){ci[f]=v;render(true);}
@@ -3421,15 +3423,31 @@ function ciSave(){
     if(ci.fix){const a=numOf(ci.amt); if(!a||!ci.why.trim()) return; x[1]=isTax(itemDoc(c,ci.n))?Math.floor(a*10/11):a; mt.fixWhy=ci.why.trim();}
     if(itemCalc(ci.n)==='고정액'){mt.cycle=ci.cycle; mt.from=ci.from;}
     mt.memo=ci.memo;
+  } else if(ci.mode==='payto'){
+    if(ci.payTo) c.payTo=ci.payTo; else delete c.payTo;
   } else {
     if(!ci.d||!(numOf(ci.rent)||numOf(ci.mgmt))) return;
     const a={d:ci.d,rent:numOf(ci.rent)||null,mgmt:numOf(ci.mgmt)||null,memo:ci.memo};
     c.adj=c.adj||[]; if(ci.i!=null) c.adj[ci.i]=a; else c.adj.push(a);
+    /* 일정은 임대료·고정관리비 수정 패널에서 연다 — 저장하면 그 패널로 돌아간다 */
+    const back=ci.back; ci=null; ciOpen(ckey(c),'edit',back); return;
   }
   DRAWER=null;ci=null;render(true);
 }
-function ciPayTo(k,v){const c=CTRS.find(x=>ckey(x)===k);if(v) c.payTo=v; else delete c.payTo;render(true);}
 function ciDelAdj(k,i){const c=CTRS.find(x=>ckey(x)===k);c.adj.splice(i,1);render(true);}
+/* 조정 일정 목록 — 임대료·고정관리비 수정 패널 안에 보인다 */
+function adjListHTML(c,k){
+  const d8=d=>d.replace(/-/g,'.'), dash='<span style="color:var(--faint)">—</span>', cur=n=>Math.round(ctrAmt(c,n)*1.1);
+  const L=(c.adj||[]).map((a,i)=>({a,i})).sort((p,q)=>p.a.d<q.a.d?-1:1), done=a=>dnum(a.d)<=dnum(TODAY_S);
+  return `<div class="fg" style="margin-top:14px"><div class="fl">임대조건 조정 일정 · 적용일부터 자동으로 새 금액</div>
+    ${L.length?L.map(({a,i})=>`<div style="border:1px solid var(--line);border-radius:var(--r-sm);padding:9px 11px;margin-bottom:8px;font-size:12.5px">
+      <div style="display:flex;align-items:center;gap:8px"><b>${d8(a.d)}</b><span class="bd ${done(a)?'ok':'ac'}">${done(a)?'적용완료':'예정'}</span>
+        ${done(a)?'':`<span style="margin-left:auto;display:flex;gap:6px"><button class="btn sm" onclick="ciOpen('${k}','adj',${i})">수정</button>
+          <button class="btn sm" onclick="ciDelAdj('${k}',${i})">삭제</button></span>`}</div>
+      <div class="c2" style="margin:5px 0 0;white-space:normal">임대료 ${a.rent?`${won(cur('임대료'))} → <b style="color:var(--ink)">${won(a.rent)}</b>`:'그대로'} · 고정관리비 ${a.mgmt?`${won(cur('고정관리비'))} → <b style="color:var(--ink)">${won(a.mgmt)}</b>`:'그대로'}${a.memo?` · ${a.memo}`:''}</div></div>`).join('')
+      :'<div class="c2" style="margin:0 0 8px">등록된 일정이 없습니다</div>'}
+    <button class="btn sm" onclick="ciOpen('${k}','adj')">+ 조정 일정 추가</button></div>`;
+}
 function ciHTML(){
   if(DRAWER!=='citem'||!ci) return '';
   const c=ciC(), bd=BUILDINGS.find(x=>x.id===c.b)||BUILDINGS[0];
@@ -3454,15 +3472,20 @@ function ciHTML(){
     const fixed=itemCalc(ci.n)==='고정액', rentLike=ci.n==='임대료'||ci.n==='고정관리비';
     t=`${ci.n} 수정`;
     body=(fixed?R('금액',ci.fix?NUM('amt','부가세 포함'):`<span class="fv"><b>${won(ci.amt)}</b> <span class="c2">부가세 포함</span></span>`)
-        +(rentLike&&!ci.fix?`<div class="prev" style="margin:0 0 10px"><div class="pt">금액은 임대조건 조정 일정으로 바꿉니다</div>
-            언제부터 얼마로 바뀌는지 적용일과 함께 넣으면 그날부터 자동으로 새 금액을 청구합니다.
-            <div style="margin-top:8px"><button class="btn sm" onclick="ciOpen('${ci.k}','adj')">+ 조정 일정 추가</button></div></div>`:'')
+        +(rentLike&&!ci.fix?`<div class="c2" style="margin:-4px 0 9px 114px;white-space:normal">금액은 아래 임대조건 조정 일정으로 바꿉니다</div>`:'')
         +R('',`<label class="ck"><input type="checkbox" ${ci.fix?'checked':''} onchange="ciSet('fix',this.checked)">계약서 금액을 잘못 넣었을 때만 — 금액 바로잡기</label>`)
         +(ci.fix?R('사유',`<input type="text" value="${ci.why}" placeholder="필수. 예: 계약서 금액 오기" onchange="ciSet('why',this.value)">`):'')
         +R('반복 주기',SEL('cycle',ITEM_CYCLES))+R('기산일',DT('from'))
       :`<div class="c2" style="margin:0 0 10px;white-space:normal">정산 항목입니다. 금액은 매달 관리비 정산에서 나오고, 반복 주기는 ${bd.name} 관리비 탭 설정을 따릅니다.</div>`)
-      +MEMO;
+      +MEMO+(rentLike?adjListHTML(c,ci.k):'');
     ok=!ci.fix||(numOf(ci.amt)&&ci.why.trim());
+  } else if(ci.mode==='payto'){
+    t='정산액 부담 계약';
+    body=`<div class="c2" style="margin:-2px 0 12px;white-space:normal">이 계약의 정산 항목(전기·수도 등)을 다른 계약이 대신 낼 때만 고릅니다.
+        금액은 이 유닛 몫으로 계산하고, 청구서만 고른 계약에 「대납」으로 실립니다. 임대료·고정관리비는 옮기지 않습니다.</div>`
+      +R('대신 낼 계약',`<select onchange="ciSet('payTo',this.value)"><option value="">없음 (이 계약이 낸다)</option>
+        ${CTRS.filter(x=>x.b===c.b&&x!==c&&(x.st==='진행중'||x.st==='준비중')).map(x=>`<option value="${x.no}" ${ci.payTo===x.no?'selected':''}>${x.no} · ${x.ten}</option>`).join('')}</select>`);
+    ok=true;
   } else {
     t=ci.i!=null?'임대조건 조정 일정 수정':'임대조건 조정 일정 추가';
     body=`<div class="c2" style="margin:-2px 0 10px;white-space:normal">적용일부터 새 금액으로 자동 청구합니다. 30일 전에 알려 드립니다.</div>`
@@ -3499,32 +3522,16 @@ function CTR3items(c,k){
   const cur=n=>Math.round(ctrAmt(c,n)*1.1);
   return `
   <div class="card"><div class="ct">청구항목<span class="sub">${c.it.length}개 · 금액은 부가세 포함</span>
-    <span class="ca"><button class="btn pri sm" onclick="ciOpen('${k}','add')">+ 청구항목 추가</button></span></div>
+    <span class="ca"><button class="btn sm" onclick="ciOpen('${k}','payto')">정산액 부담 계약${c.payTo?` · ${c.payTo}`:''}</button>
+      <button class="btn pri sm" onclick="ciOpen('${k}','add')">+ 청구항목 추가</button></span></div>
     <div class="tw"><table>
       <thead><tr><th>청구항목</th><th>산정방식</th><th class="n">금액</th><th>발행 문서</th><th>반복 주기</th><th>기산일</th>
         <th class="c">배분 우선순위</th><th class="c">상태</th><th></th></tr></thead>
       <tbody>${rows}</tbody></table></div></div>
-  <div class="card"><div class="ct">정산액 부담 계약<span class="sub">이 계약의 정산 항목을 다른 계약이 대신 낼 때만</span></div>
-    <div class="cc"><div class="fr" style="margin:0"><span class="fk">대신 낼 계약</span>
-      <select onchange="ciPayTo('${k}',this.value)" style="max-width:360px"><option value="">없음 (이 계약이 낸다)</option>
-        ${CTRS.filter(x=>x.b===c.b&&x!==c&&(x.st==='진행중'||x.st==='준비중')).map(x=>`<option value="${x.no}" ${c.payTo===x.no?'selected':''}>${x.no} · ${x.ten}</option>`).join('')}</select></div>
-      <div class="c2" style="margin:8px 0 0">정산 항목은 이 유닛 몫으로 계산하고, 청구서만 고른 계약에 「대납」으로 실립니다. 임대료·고정관리비는 옮기지 않습니다.</div></div></div>
-  <div class="card"><div class="ct">임대조건 조정 일정<span class="sub">적용일부터 자동으로 새 금액 청구 · 30일 전 알림</span>
-    <span class="ca"><button class="btn sm" onclick="ciOpen('${k}','adj')">+ 일정 추가</button></span></div>
-    ${adj.length?`<div class="tw"><table>
-      <thead><tr><th>적용일</th><th class="n">임대료</th><th class="n">고정관리비</th><th>메모</th><th class="c">상태</th><th></th></tr></thead>
-      <tbody>${adj.map(({a,i})=>`<tr><td><b>${d8(a.d)}</b></td>
-        <td class="n">${a.rent?`<span class="c2" style="margin:0">${won(cur('임대료'))} →</span> ${won(a.rent)}`:dash}</td>
-        <td class="n">${a.mgmt?`<span class="c2" style="margin:0">${won(cur('고정관리비'))} →</span> ${won(a.mgmt)}`:dash}</td>
-        <td class="c2">${a.memo||''}</td>
-        <td class="c"><span class="bd ${done(a)?'ok':'ac'}">${done(a)?'적용완료':'예정'}</span></td>
-        <td class="c" style="white-space:nowrap">${done(a)?'':`<button class="btn sm" onclick="ciOpen('${k}','adj',${i})">수정</button>
-          <button class="btn sm" onclick="ciDelAdj('${k}',${i})">삭제</button>`}</td></tr>`).join('')}</tbody></table></div>`
-    :'<div class="cc"><div class="c2" style="margin:0">등록된 일정이 없습니다. 계약서에 「0000년 00월 00일부터 임대료·관리비 얼마」가 있으면 추가하세요.</div></div>'}</div>
   <div class="hint">
     이 계약에 매달(또는 정해진 주기마다) 청구하는 항목입니다. 청구서 발행은 이 목록을 보고 이번 달에 청구할 항목을 고릅니다.<br>
     계약을 등록하면 건물 관리비 탭의 정산 항목이 모두 들어옵니다. 이 계약이 내지 않는 항목만 「중지」하세요.<br>
-    임대료·관리비 금액은 임대조건 조정 일정으로 바꿉니다. 「중지」한 항목은 청구서에 올라가지 않습니다.
+    임대료·관리비 금액은 그 항목의 「수정」에서 임대조건 조정 일정으로 바꿉니다. 「중지」한 항목은 청구서에 올라가지 않습니다.
     배분 우선순위는 건물 관리비 탭에서 정합니다.<br>
     이미 발행한 청구서는 바뀌지 않습니다. 앞으로 발행하는 청구서부터 적용됩니다.</div>`;
 }
