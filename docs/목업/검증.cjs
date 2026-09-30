@@ -356,7 +356,7 @@ G.ciToggle('b1본관8층', '주차비'); const off = !ln('본관8층', '주차�
 G.ciToggle('b1본관8층', '주차비'); const onAgain = !!ln('본관8층', '주차비');
 const list301 = G.CTR3items(G.CTRS.find(c => c.no === '본관301호'), 'b1본관301호');
 /* 301호 고정관리비 켜기 — 금액을 넣는 패널이 열리고, 저장하면 청구서에 실린다 */
-G.ciToggle('b1본관301호', '고정관리비'); const z = ln('본관301호', '고정관리비'), onNoPanel = G.ci === null && z && z.zero && z.amt === null;
+G.ciToggle('b1본관301호', '고정관리비'); const shownOn = /활성 2 \/ 9/.test(G.CTR3items(G.CTRS.find(c => c.no === '본관301호'), 'b1본관301호')); const z = ln('본관301호', '고정관리비'), onNoPanel = shownOn && G.ci === null && z && z.zero && z.amt === null;
 G.ciOpen('b1본관301호', 'edit', '고정관리비'); G.ciSet('amt', '110000'); G.ciSave(); const m301 = ln('본관301호', '고정관리비');
 G.ciOpen('b1본관301호', 'edit', '전기요금'); G.ciSet('memo', '302호 계량기 공유'); G.ciSave();
 const offEdit = G.CTRS.find(c => c.no === '본관301호').meta['전기요금'].memo === '302호 계량기 공유' && !G.CTRS.find(c => c.no === '본관301호').it.some(x => x[0] === '전기요금');

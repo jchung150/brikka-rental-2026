@@ -3536,7 +3536,8 @@ function CTR3items(c,k){
   const names=['임대료','고정관리비',...c.it.filter(x=>itemCalc(x[0])==='고정액'&&!['임대료','고정관리비'].includes(x[0])).map(x=>x[0]),
     ...(bd.charge||[]).filter(x=>x.use&&!x.fixed).map(x=>x.it)];
   c.it.forEach(x=>{if(!names.includes(x[0])) names.push(x[0]);});
-  const on=n=>c.it.some(y=>y[0]===n&&(itemCalc(n)!=='고정액'||y[1]))&&!((c.meta||{})[n]||{}).stop;
+  /* 활성 여부는 토글 하나로만 정한다 — 금액과 무관 */
+  const on=n=>c.it.some(y=>y[0]===n)&&!((c.meta||{})[n]||{}).stop;
   const nOn=names.filter(on).length;
   const rows=names.map(n=>{const x=c.it.find(y=>y[0]===n), mt=(c.meta||{})[n]||{}, fixed=itemCalc(n)==='고정액', doc=itemDoc(c,n), a=on(n);
     const fr=itemFrom(c,n);
