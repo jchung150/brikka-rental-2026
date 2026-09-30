@@ -369,10 +369,12 @@ r6.push(['청구 약정 — 분기 · 기산일 8월 청구 · 9월 기산은 8�
   A.ncSet('ten', '(주)새임차'); A.ncSet('pmail', 'a@b.kr'); A.ncSet('rent', '1100000'); A.ncSet('mgmt', '220000'); A.ncSet('rf', '없음'); A.ncSet('mgmtCy', '분기'); A.ncSave(false);
   const nw1 = A.CTRS[A.CTRS.length - 1];
   A.CTR2(); A.ncSet('b', 'b1'); A.ncSet('no', '별관4층'); A.ncSet('start', '2027-10-01'); A.nc.biz = '888-88-88888'; A.ncLookup();
-  A.ncSet('ten', '(주)작은회사'); A.ncSet('pmail', 'b@c.kr'); A.ncSet('rent', '550000'); A.ncSet('rf', '없음'); A.ncSave(false);
-  const nw2 = A.CTRS[A.CTRS.length - 1], noMgmt = nw2.ten === '(주)작은회사' && nw2.it.find(x => x[0] === '고정관리비')[1] === 0 && nw2.meta['고정관리비'].stop === true;
+  A.ncSet('ten', '(주)작은회사'); A.ncSet('pmail', 'b@c.kr'); A.ncSet('rent', '550000'); A.ncSet('rf', '없음');
+  const n0 = A.CTRS.length; A.ncSave(false); const blank = A.CTRS.length === n0;
+  A.ncSet('mgmt', '0'); A.ncSave(false);
+  const nw2 = A.CTRS[A.CTRS.length - 1], noMgmt = blank && nw2.ten === '(주)작은회사' && nw2.it.find(x => x[0] === '고정관리비')[1] === 0 && nw2.meta['고정관리비'].stop === true;
   const nw = nw1, names = nw.it.map(x => x[0]);
-  r6.push(['8월 항목 = 건물의 매월 항목 · 새 계약에 건물 정산 항목 7개 자동 · 고정관리비 반복주기 분기로 등록 · 고정관리비 없이 등록하면 비활성',
+  r6.push(['8월 항목 = 건물의 매월 항목 · 새 계약에 건물 정산 항목 7개 자동 · 고정관리비 반복주기 분기로 등록 · 고정관리비 빈칸은 막힘 · 0으로 등록하면 비활성',
     on === A.monthlyItems('b1').sort().join() && nw.ten === '(주)새임차' && names.length === 9 && names.includes('정화조청소비') && !nw.payTo && nw.meta['고정관리비'].cycle === '분기' && !(nw.meta['임대료'] || {}).cycle && noMgmt]); }
 const bad6 = r6.filter(x => !x[1]);
 if (bad6.length) fail = 1;

@@ -3218,7 +3218,7 @@ function ncMissing(){
   if(!nc.no) m.push('유닛'); if(!nc.start) m.push('계약시작일');
   if(!nc.biz.trim()) m.push('사업자등록번호'); if(!nc.ten.trim()) m.push('상호');
   if(!nc.pmail.trim()) m.push('담당자 이메일');
-  if(!numOf(nc.rent)) m.push('임대료');
+  if(!numOf(nc.rent)) m.push('임대료'); if(String(nc.mgmt).trim()==='') m.push('고정관리비');
   if(!nc.rf) m.push('렌트프리 여부'); else if(nc.rf==='있음'&&!ncFrom()) m.push('렌트프리 끝나는 날');
   return m;
 }
@@ -3239,7 +3239,7 @@ function ncSave(welcome){
   /* 반복 주기 — 매월이 아니면 약정에 적는다 */
   if(nc.rentCy!=='매월') itemMeta(c,'임대료').cycle=nc.rentCy;
   if(nc.mgmtCy!=='매월') itemMeta(c,'고정관리비').cycle=nc.mgmtCy;
-  /* 고정관리비를 비우면 청구하지 않는다 — 항목은 두고 비활성으로(청구항목 탭에서 켤 수 있다) */
+  /* 고정관리비 0 — 받지 않는다. 항목은 두고 비활성으로(청구항목 탭에서 켤 수 있다) */
   if(!numOf(nc.mgmt)) itemMeta(c,'고정관리비').stop=true;
   CTRS.push(c);
   const k=ckey(c); nc=null; tab3c='요약'; go('ctr-3/'+k);
@@ -3281,7 +3281,7 @@ function CTR2(){
   const D=f=>`<input type="date" value="${nc[f]}" onchange="ncSet('${f}',this.value)">`;
   const N=(f,ph)=>`<input type="text" inputmode="numeric" value="${nc[f]?numOf(nc[f]).toLocaleString('ko-KR'):''}" placeholder="${ph||''}"
     oninput="kwLive(this)" onchange="ncSet('${f}',this.value)" style="text-align:right">
-    <span class="kw">${korWon(numOf(nc[f]))}</span>`;
+    <span class="kw">${String(nc[f]).trim()==='0'?'받지 않음':korWon(numOf(nc[f]))}</span>`;
   const S=(f,opts)=>`<select onchange="ncSet('${f}',this.value)">${opts.map(o=>{const [v,t]=Array.isArray(o)?o:[o,o];
     return `<option value="${v}" ${String(nc[f])===String(v)?'selected':''}>${t}</option>`;}).join('')}</select>`;
   const C=(f,t)=>`<label class="ck"><input type="checkbox" ${nc[f]?'checked':''} onchange="ncSet('${f}',this.checked)">${t}</label>`;
@@ -3323,7 +3323,7 @@ function CTR2(){
   const right=
     card('임대료 · 관리비','<div class="c2" style="margin:-4px 0 10px">부가세를 포함한 금액을 넣고, 오른쪽에서 반복 주기를 고릅니다(보통 매월)</div>'
       +R('임대료',N('rent','금액 (부가세 포함)')+`<select title="반복 주기" onchange="ncSet('rentCy',this.value)" style="flex:none;width:84px">${ITEM_CYCLES.map(o=>`<option ${nc.rentCy===o?'selected':''}>${o}</option>`).join('')}</select>`,1)
-      +R('고정관리비',N('mgmt','비우면 청구 안 함')+`<select title="반복 주기" onchange="ncSet('mgmtCy',this.value)" style="flex:none;width:84px">${ITEM_CYCLES.map(o=>`<option ${nc.mgmtCy===o?'selected':''}>${o}</option>`).join('')}</select>`)
+      +R('고정관리비',N('mgmt','받지 않으면 0')+`<select title="반복 주기" onchange="ncSet('mgmtCy',this.value)" style="flex:none;width:84px">${ITEM_CYCLES.map(o=>`<option ${nc.mgmtCy===o?'selected':''}>${o}</option>`).join('')}</select>`,1)
       +R('청구일 · 마감일',`<span class="fv">${bd.billDay} · ${bd.dueDay} <span class="c2">건물 기본값</span></span>`))
     +card('렌트프리 · 기산일',(()=>{
       const from=ncFrom(), rfTo=nc.rf==='있음'?nc.rfEnd:'', rfDays=rfTo&&nc.start?dnum(rfTo)-dnum(nc.start)+1:0;
