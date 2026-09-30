@@ -1361,7 +1361,6 @@ function PRO1(){
       <button class="btn pri">+ 신규 건물 등록</button></div>
   </div>
   <div class="fbar">
-    <input class="fq" value="${f1p.q}" placeholder="건물명·주소·건물주·관리자" onchange="setF1p('q',this.value)">
     <select onchange="setF1p('kind',this.value)"><option value="">전체 건물유형</option>
       ${[...new Set(BUILDINGS.map(b=>b.kind))].map(k=>`<option ${f1p.kind===k?'selected':''}>${k}</option>`).join('')}</select>
     <select onchange="setF1p('vac',this.value)">
@@ -1390,8 +1389,8 @@ function switchB(id){BSW=false;go('pro-3/'+id);}
 const setTab=t=>{tab3=t;render();};
 function PRO3(id){
   const b=BUILDINGS.find(x=>x.id===id)||BUILDINGS[0];
-  const T=['요약','유닛','관리비','자료 보관'];
-  const body={'요약':t요약,'유닛':t유닛,'관리비':t청구,'자료 보관':t자료}[tab3](b);
+  const T=['요약','유닛','관리비','자료보관'];
+  const body={'요약':t요약,'유닛':t유닛,'관리비':t청구,'자료보관':t자료}[tab3](b);
   return `
   <div class="ph">
     <div class="bsw">
@@ -1500,7 +1499,7 @@ function t유닛(b){
 
 function t자료(b){
   if(!b.docs.length) return `<div class="tbl"><div class="empty"><div class="t">등록된 자료가 없습니다</div>계약서·등기부등본 등을 업로드할 수 있습니다.</div></div>`;
-  return `<div class="card"><div class="ct">자료 보관 <span class="sub">${b.docs.length}건</span>
+  return `<div class="card"><div class="ct">자료보관 <span class="sub">${b.docs.length}건</span>
     <span class="ca"><button class="btn pri sm">+ 파일 업로드</button></span></div>
     <div class="tw"><table>
       <thead><tr><th>제목 <span class="so">⇅</span></th><th>카테고리</th><th>업로드한 사람</th><th>등록일시 <span class="so">⇅</span></th><th class="c" style="width:70px"></th></tr></thead>
@@ -3344,8 +3343,8 @@ function CTR2(){
           ${R('임대료',K('rent','바뀐 금액 (부가세 포함)'))}${R('고정관리비',K('mgmt','바뀐 금액 (부가세 포함)'))}
           <div class="c2" style="margin:-4px 0 8px 114px">비워 두면 그 항목은 그대로입니다</div></div>`;}).join('')
       +`<button class="btn sm" onclick="nc.adj.push({d:'',rent:'',mgmt:''});render(true)">+ 일정 추가</button>`)
-    +card('자료 보관',
-      '<div class="c2" style="margin:-4px 0 10px">파일마다 제목과 카테고리를 정합니다. 계약 상세의 자료 보관 탭과 문서 보관함에서 찾을 수 있습니다</div>'
+    +card('자료보관',
+      '<div class="c2" style="margin:-4px 0 10px">파일마다 제목과 카테고리를 정합니다. 계약 상세의 자료보관 탭과 문서 보관함에서 찾을 수 있습니다</div>'
       +nc.files.map((f,i)=>`<div style="border:1px solid var(--line);border-radius:var(--r-sm);padding:10px 12px 2px;margin-bottom:10px">
           <div style="display:flex;align-items:center;gap:8px;margin-bottom:9px;font-size:12.5px"><b>${f.file}</b>
             <button class="btn sm" style="margin-left:auto" onclick="nc.files.splice(${i},1);render(true)">삭제</button></div>
@@ -3383,7 +3382,7 @@ function CTR3head(c,k){
       ${tab3c==='원장'?`<button class="btn pri" onclick="alert('원장 출력 — 선택한 기간·계정의 원장을 거래내역서 PDF로 내려받거나 임차인 담당자에게 보낸다')">원장 출력</button>`:''}</div>
   </div>
   <div class="tabs">
-    ${['요약','임차인','원장','청구 항목','자료 보관'].map(t=>`<button class="${t===tab3c?'on':''}" onclick="tab3c='${t}';render()">${t}</button>`).join('')}
+    ${['요약','임차인','원장','청구 항목','자료보관'].map(t=>`<button class="${t===tab3c?'on':''}" onclick="tab3c='${t}';render()">${t}</button>`).join('')}
   </div>`;
 }
 /* CTR-3 요약 탭 — 계약·임대 정보. 잔액은 원장에서 */
