@@ -353,15 +353,18 @@ G.ciToggle('b1본관8층', '주차비'); const off = !ln('본관8층', '주차�
 G.ciToggle('b1본관8층', '주차비'); const onAgain = !!ln('본관8층', '주차비');
 const list301 = G.CTR3items(G.CTRS.find(c => c.no === '본관301호'), 'b1본관301호');
 /* 301호 고정관리비 켜기 — 금액을 넣는 패널이 열리고, 저장하면 청구서에 실린다 */
-G.ciToggle('b1본관301호', '고정관리비'); const actPanel = G.ci && G.ci.act && G.ci.n === '고정관리비';
-G.ciSet('amt', '110000'); G.ciSave(); const m301 = ln('본관301호', '고정관리비'); const act301 = actPanel && m301 && m301.amt === 110000;
+G.ciToggle('b1본관301호', '고정관리비'); const onNoPanel = G.ci === null && !ln('본관301호', '고정관리비');
+G.ciOpen('b1본관301호', 'edit', '고정관리비'); G.ciSet('amt', '110000'); G.ciSave(); const m301 = ln('본관301호', '고정관리비');
+G.ciOpen('b1본관301호', 'edit', '전기요금'); G.ciSet('memo', '302호 계량기 공유'); G.ciSave();
+const offEdit = G.CTRS.find(c => c.no === '본관301호').meta['전기요금'].memo === '302호 계량기 공유' && !G.CTRS.find(c => c.no === '본관301호').it.some(x => x[0] === '전기요금');
+const act301 = onNoPanel && m301 && m301.amt === 110000 && offEdit;
 G.ciOpen('b1별관3층', 'adj'); G.ciSet('d', '2026-08-01'); G.ciSet('rent', '3630000'); G.ciSave();
 const rent = ln('별관3층', '임대료');
 const backToEdit = G.ci && G.ci.mode === 'edit' && G.ci.n === '임대료';
 G.ciOpen('b1본관B2', 'payto'); G.ciSet('payTo', '본관2층'); G.ciSave(); const payTo = G.CTRS.find(c => c.no === '본관B2').payTo === '본관2층';
 G.ciOpen('b1별관3층', 'edit', '고정관리비'); G.ciSet('amt', '1400000'); G.ciSave(); const noWhy = G.ci !== null;
 G.ciSet('why', '재협의'); G.ciSave(); const fixed2 = G.ci === null && ln('별관3층', '고정관리비') && ln('별관3층', '고정관리비').amt === 1400000;
-r6.push(['청구 약정 — 분기 · 기산일 8월 청구 · 9월 기산은 8월 제외 · 비활성화/활성화 · 301호에 고정관리비·건물 항목이 비활성으로 보이고 켜면 금액 입력 후 청구 · 8/1 조정 일정 → 3,630,000(수정 패널 복귀) · 금액을 바꾸면 사유 필수 → 1,400,000 반영 · 정산액 부담',
+r6.push(['청구 약정 — 분기 · 기산일 8월 청구 · 9월 기산은 8월 제외 · 비활성화/활성화 · 301호 고정관리비 토글은 바로 켜지고(0원이라 청구 없음) 수정에서 금액을 넣으면 청구 · 비활성 항목도 수정 가능 · 8/1 조정 일정 → 3,630,000(수정 패널 복귀) · 금액을 바꾸면 사유 필수 → 1,400,000 반영 · 정산액 부담',
   q8 && q9 && off && onAgain && /활성 1 \/ 9/.test(list301) && /고정관리비/.test(list301) && /class="tgl "/.test(list301) && /0원/.test(list301) && rent && rent.amt === 3630000 && backToEdit && noWhy && fixed2 && payTo && act301]);
 /* 매월 항목 자동 · 계약 등록 시 건물 정산 항목 자동 → PAY-10 · CTR-2 */
 { const A = new Function(stub + bare + '; return {monthlyItems,BILL,MASTER,CTR2,ncSet,ncLookup,ncSave,CTRS,get nc(){return nc;}};')();
