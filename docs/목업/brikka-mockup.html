@@ -2234,6 +2234,7 @@ function ISSUE(){
       const d=CITEM[x[0]]||{calc:'고정액'};
       /* 고정액 — 기산일과 반복 주기로 이번 회차 대상인지 판정. 임대료 인상 예약이 있으면 적용일부터 새 금액 */
       if(d.calc==='고정액'){
+        if(!x[1]) return null;
         const ym=PAST_CTX||SETTLE.ym;
         if(!cycleDue(itemCycle(c,x[0]),itemFrom(c,x[0]),ym)) return null;
         const bd=itemDoc(c,x[0]);
@@ -3162,7 +3163,7 @@ function CTR1(){
       <td>${c.st==='진행중'?ddBadge(end):'<span style="color:var(--faint)">—</span>'}</td>
       <td>${cnameHTML(BA(c.b),c.no,c.ten)}</td>
       <td><span class="bd ${c.st==='진행중'?'ok':'mu'}">${c.st}</span></td>
-      <td>${d8(c.base)} - ${d8(end)} <span class="c2" style="margin:0 0 0 6px">보증금 ${man(ctrDeposit(c))} · 임대료 ${man(Math.round(ctrAmt(c,'임대료')*1.1))} · 관리비 ${man(Math.round(ctrAmt(c,'고정관리비')*1.1))}</span></td>
+      <td>${d8(c.base)} - ${d8(end)} <span class="c2" style="margin:0 0 0 6px">보증금 ${man(ctrDeposit(c))} · 임대료 ${man(Math.round(ctrAmt(c,'임대료')*1.1))} · 관리비 ${ctrAmt(c,'고정관리비')?man(Math.round(ctrAmt(c,'고정관리비')*1.1)):'없음'}</span></td>
       <td class="c2" style="margin:0">확정기간계약</td></tr>`).join('')}
       ${rows.length?'':'<tr><td colspan="5"><div class="empty">조건에 맞는 계약이 없습니다</div></td></tr>'}
     </tbody></table></div></div>
@@ -3217,7 +3218,7 @@ function ncMissing(){
   if(!nc.no) m.push('유닛'); if(!nc.start) m.push('계약시작일');
   if(!nc.biz.trim()) m.push('사업자등록번호'); if(!nc.ten.trim()) m.push('상호');
   if(!nc.pmail.trim()) m.push('담당자 이메일');
-  if(!numOf(nc.rent)) m.push('임대료'); if(!numOf(nc.mgmt)) m.push('고정관리비');
+  if(!numOf(nc.rent)) m.push('임대료');
   if(!nc.rf) m.push('렌트프리 여부'); else if(nc.rf==='있음'&&!ncFrom()) m.push('렌트프리 끝나는 날');
   return m;
 }
@@ -3238,6 +3239,8 @@ function ncSave(welcome){
   /* 반복 주기 — 매월이 아니면 약정에 적는다 */
   if(nc.rentCy!=='매월') itemMeta(c,'임대료').cycle=nc.rentCy;
   if(nc.mgmtCy!=='매월') itemMeta(c,'고정관리비').cycle=nc.mgmtCy;
+  /* 고정관리비를 비우면 청구하지 않는다 — 항목은 두고 비활성으로(청구항목 탭에서 켤 수 있다) */
+  if(!numOf(nc.mgmt)) itemMeta(c,'고정관리비').stop=true;
   CTRS.push(c);
   const k=ckey(c); nc=null; tab3c='요약'; go('ctr-3/'+k);
 }
@@ -3320,7 +3323,7 @@ function CTR2(){
   const right=
     card('임대료 · 관리비','<div class="c2" style="margin:-4px 0 10px">부가세를 포함한 금액을 넣고, 오른쪽에서 반복 주기를 고릅니다(보통 매월)</div>'
       +R('임대료',N('rent','금액 (부가세 포함)')+`<select title="반복 주기" onchange="ncSet('rentCy',this.value)" style="flex:none;width:84px">${ITEM_CYCLES.map(o=>`<option ${nc.rentCy===o?'selected':''}>${o}</option>`).join('')}</select>`,1)
-      +R('고정관리비',N('mgmt','금액 (부가세 포함)')+`<select title="반복 주기" onchange="ncSet('mgmtCy',this.value)" style="flex:none;width:84px">${ITEM_CYCLES.map(o=>`<option ${nc.mgmtCy===o?'selected':''}>${o}</option>`).join('')}</select>`,1)
+      +R('고정관리비',N('mgmt','비우면 청구 안 함')+`<select title="반복 주기" onchange="ncSet('mgmtCy',this.value)" style="flex:none;width:84px">${ITEM_CYCLES.map(o=>`<option ${nc.mgmtCy===o?'selected':''}>${o}</option>`).join('')}</select>`)
       +R('청구일 · 마감일',`<span class="fv">${bd.billDay} · ${bd.dueDay} <span class="c2">건물 기본값</span></span>`))
     +card('렌트프리 · 기산일',(()=>{
       const from=ncFrom(), rfTo=nc.rf==='있음'?nc.rfEnd:'', rfDays=rfTo&&nc.start?dnum(rfTo)-dnum(nc.start)+1:0;
@@ -3416,16 +3419,19 @@ function ciOpen(k,mode,n){
 }
 function ciSet(f,v){ci[f]=v;render(true);}
 /* 활성화 · 비활성화 — 계약에 없던 건물 항목은 붙이고, 있던 항목은 멈추거나 되살린다 */
-function ciToggle(k,n){const c=CTRS.find(x=>ckey(x)===k), mt=itemMeta(c,n);
-  if(!c.it.some(y=>y[0]===n)){c.it.push([n]);mt.stop=false;} else mt.stop=!mt.stop;
+function ciToggle(k,n){const c=CTRS.find(x=>ckey(x)===k), mt=itemMeta(c,n), x=c.it.find(y=>y[0]===n);
+  /* 금액이 없는 고정액(고정관리비를 비워 둔 계약)은 켤 때 금액을 받는다 */
+  if(itemCalc(n)==='고정액'&&!(x&&x[1])){ci={k,mode:'edit',n,act:true,cycle:itemCycle(c,n),from:itemFrom(c,n),memo:mt.memo||'',amt:0,amt0:0,why:''};DRAWER='citem';render(true);return;}
+  if(!x){c.it.push([n]);mt.stop=false;} else mt.stop=!mt.stop;
   render(true);}
 function ciSave(){
   const c=ciC();
   if(ci.mode==='edit'){
-    const mt=itemMeta(c,ci.n), x=c.it.find(y=>y[0]===ci.n);
+    const mt=itemMeta(c,ci.n); let x=c.it.find(y=>y[0]===ci.n);
+    if(ci.act){if(!x){x=[ci.n,0];c.it.push(x);} mt.stop=false;}
     /* 금액을 바꾸면 사유를 남긴다 — 이력 → 3.6 */
     const a=numOf(ci.amt); if(!a) return;
-    if(a!==ci.amt0){if(!ci.why.trim()) return; x[1]=isTax(itemDoc(c,ci.n))?Math.floor(a*10/11):a; mt.fixWhy=ci.why.trim();}
+    if(a!==ci.amt0){if(!ci.act&&!ci.why.trim()) return; x[1]=isTax(itemDoc(c,ci.n))?Math.floor(a*10/11):a; if(!ci.act) mt.fixWhy=ci.why.trim();}
     if(itemCalc(ci.n)==='고정액'){mt.cycle=ci.cycle; mt.from=ci.from;}
     mt.memo=ci.memo;
   } else if(ci.mode==='payto'){
@@ -3464,8 +3470,8 @@ function ciHTML(){
   let t, body, ok;
   if(ci.mode==='edit'){
     const fixed=itemCalc(ci.n)==='고정액', rentLike=ci.n==='임대료'||ci.n==='고정관리비';
-    t=`${ci.n} 수정`;
-    const chg=numOf(ci.amt)!==ci.amt0;
+    t=ci.act?`${ci.n} 활성화`:`${ci.n} 수정`;
+    const chg=numOf(ci.amt)!==ci.amt0&&!ci.act;
     body=(fixed?`<div class="c2" style="margin:-2px 0 10px;white-space:normal">슈퍼관리자만 고칠 수 있습니다. 바로 고친 금액은 다음 청구서부터 적용됩니다.
           날짜를 정해 바뀌는 인상은 아래 「임대료 인상 예약」에 넣으세요.</div>`
         +R('금액',NUM('amt','부가세 포함'))
@@ -3501,22 +3507,22 @@ function ciHTML(){
 function CTR3items(c,k){
   const bd=BUILDINGS.find(x=>x.id===c.b)||BUILDINGS[0], d8=d=>d.replace(/-/g,'.');
   /* 목록 — 임대료·고정관리비 + 건물 관리비 탭의 정산 항목 전부. 계약에서는 켜고 끄기만 한다 */
-  const names=[...c.it.filter(x=>itemCalc(x[0])==='고정액').map(x=>x[0]),
+  const names=['임대료','고정관리비',...c.it.filter(x=>itemCalc(x[0])==='고정액'&&!['임대료','고정관리비'].includes(x[0])).map(x=>x[0]),
     ...(bd.charge||[]).filter(x=>x.use&&!x.fixed).map(x=>x.it)];
   c.it.forEach(x=>{if(!names.includes(x[0])) names.push(x[0]);});
-  const on=n=>c.it.some(y=>y[0]===n)&&!((c.meta||{})[n]||{}).stop;
+  const on=n=>c.it.some(y=>y[0]===n&&(itemCalc(n)!=='고정액'||y[1]))&&!((c.meta||{})[n]||{}).stop;
   const nOn=names.filter(on).length;
   const rows=names.map(n=>{const x=c.it.find(y=>y[0]===n), mt=(c.meta||{})[n]||{}, fixed=itemCalc(n)==='고정액', doc=itemDoc(c,n), a=on(n);
     const fr=itemFrom(c,n);
     return `<tr${a?'':' style="opacity:.5"'}>
       <td><b>${n}</b>${fr!==c.base&&a?`<div class="c2">기산일 ${d8(fr)}</div>`:''}${mt.memo?`<div class="c2">${mt.memo}</div>`:''}</td>
       <td>${fixed?'고정액':'정산'}</td>
-      <td class="n">${fixed&&x?won(Math.round(x[1]*(isTax(doc)?1.1:1))):'<span class="c2" style="margin:0">매달 관리비 정산</span>'}</td>
+      <td class="n">${fixed?(x&&x[1]?won(Math.round(x[1]*(isTax(doc)?1.1:1))):'<span style="color:var(--faint)">—</span>'):'<span class="c2" style="margin:0">매달 관리비 정산</span>'}</td>
       <td class="c2">${doc}</td>
       <td>${fixed?itemCycle(c,n):'<span class="c2" style="margin:0">정산할 때</span>'}</td>
       <td class="c">${prioOf(n)}</td>
       <td class="c"><span class="bd ${a?'ok':'mu'}">${a?'활성':'비활성'}</span></td>
-      <td class="c" style="white-space:nowrap">${fixed&&x?`<button class="btn sm" onclick="ciOpen('${k}','edit','${n}')">수정</button> `:''}
+      <td class="c" style="white-space:nowrap">${fixed&&x&&x[1]?`<button class="btn sm" onclick="ciOpen('${k}','edit','${n}')">수정</button> `:''}
         <button class="btn sm" onclick="ciToggle('${k}','${n}')">${a?'비활성화':'활성화'}</button></td></tr>`;}).join('');
   const adj=(c.adj||[]).map((a,i)=>({a,i})).sort((p,q)=>p.a.d<q.a.d?-1:1);
   const done=a=>dnum(a.d)<=dnum(TODAY_S);
