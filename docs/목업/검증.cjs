@@ -94,6 +94,7 @@ for (const f of ["f1c.st=''", "f1c.b='b2'", "f1c.dd='90'", "f1c.dd='0'"]) run('C
 run('CTR-3 요약', "tab3c='요약';CTR3('b1별관3층')");
 run('CTR-3 빈 탭', "tab3c='자료보관';CTR3('b1별관3층')");
 run('CTR-3 청구항목', "tab3c='청구항목';CTR3('b1별관3층')");
+run('CTR-3 계약 전환 메뉴', "CSW=true;tab3c='원장';CTR3('b1별관3층')");
 run('CTR-3 청구항목 패널', "ciOpen('b1별관3층','edit','임대료');ciSet('fix',true);ciHTML();ciOpen('b1별관3층','edit','전기요금');ciHTML();ciOpen('b1별관3층','adj');ciHTML();ciOpen('b1별관3층','payto');ciHTML()");
 run('CTR-3 원장 비씨에이전시', "tab3c='원장';CTR3('b1별관3층')");
 run('CTR-3 원장 전체 펼침', "tab3c='원장';g3All=true;CTR3('b1본관1층')");
@@ -361,7 +362,7 @@ G.ciOpen('b1본관B2', 'payto'); G.ciSet('payTo', '본관2층'); G.ciSave(); con
 G.ciOpen('b1별관3층', 'edit', '고정관리비'); G.ciSet('amt', '1400000'); G.ciSave(); const noWhy = G.ci !== null;
 G.ciSet('why', '재협의'); G.ciSave(); const fixed2 = G.ci === null && ln('별관3층', '고정관리비') && ln('별관3층', '고정관리비').amt === 1400000;
 r6.push(['청구 약정 — 분기 · 기산일 8월 청구 · 9월 기산은 8월 제외 · 비활성화/활성화 · 301호에 고정관리비·건물 항목이 비활성으로 보이고 켜면 금액 입력 후 청구 · 8/1 조정 일정 → 3,630,000(수정 패널 복귀) · 금액을 바꾸면 사유 필수 → 1,400,000 반영 · 정산액 부담',
-  q8 && q9 && off && onAgain && /활성 1 \/ 9/.test(list301) && /고정관리비/.test(list301) && /비활성화/.test(list301) && rent && rent.amt === 3630000 && backToEdit && noWhy && fixed2 && payTo && act301]);
+  q8 && q9 && off && onAgain && /활성 1 \/ 9/.test(list301) && /고정관리비/.test(list301) && /class="tgl "/.test(list301) && /0원/.test(list301) && rent && rent.amt === 3630000 && backToEdit && noWhy && fixed2 && payTo && act301]);
 /* 매월 항목 자동 · 계약 등록 시 건물 정산 항목 자동 → PAY-10 · CTR-2 */
 { const A = new Function(stub + bare + '; return {monthlyItems,BILL,MASTER,CTR2,ncSet,ncLookup,ncSave,CTRS,get nc(){return nc;}};')();
   const on = A.MASTER.filter(m => !m.fixed && A.BILL[m.code].on).map(m => m.code).sort().join();
