@@ -1020,11 +1020,23 @@ const reading=(code,no)=>hasMeter(code,no)?(BILL[code].read||{})[no]:null;
 
    공용분은 안분 제외를 뺀 전 유닛이 부담한다. 계량기가 있어도 복도·화장실을 쓴다.
    특정 유닛을 빼려면 배율을 0으로 둔다 → 4.1.7 */
+/* 안분 제외 유닛 — 그 유닛의 진행중 계약이 이 항목을 비활성으로 두면 안분에서 뺀다 → 4.1.7-2
+   정산액 부담 계약이 있는 계약은 빼지 않는다(그 몫이 부담 계약에 대납으로 실린다). 계약 없는 공실은 빼지 않는다.
+   직접 입력 항목(주차비)은 나누지 않으므로 해당 없음 */
+function exclOf(code,st){
+  if((st||resolve(code)).basis==='직접 입력') return {};
+  const n=M(code).name, ex={};
+  CTRS.filter(c=>c.b==='b1'&&c.st==='진행중'&&!c.payTo).forEach(c=>{
+    const mt=(c.meta||{})[n]||{};
+    if(!c.it.some(y=>y[0]===n)||mt.stop) ex[c.no]={why:mt.why||'계약에서 비활성'};
+  });
+  return ex;
+}
 function ratios(m,raw){
   const st=resolve(m.code);
   const ref=(st.ref&&st.ref!==m.code)?st.ref:null;
   if(ref) return ratios(M(ref),raw);
-  const b=BILL[m.code], ex=st.excl||{};
+  const b=BILL[m.code], ex=exclOf(m.code,st);
   /* 계량기가 있으면 개별분을 청구한다. 배분 기준이 계량기 필요 여부를 정하므로
      「계량기는 있는데 청구하지 않는다」는 조합이 존재하지 않는다 → 4.1.3-1 */
   const charge=(METER[m.code]||[]).length>0;
@@ -1918,7 +1930,7 @@ function row4(r,m,cls){
     <td>${cnameST(r,m)}</td>
     ${showM?'<td class="n">—</td>':''}
     ${m.unit?'<td class="n">—</td><td class="n">—</td>':''}<td class="n">—</td>
-    <td class="n"><span class="bd mu">안분 제외</span>
+    <td class="n"><span class="bd mu">안분 제외 · 계약 비활성</span>
       <div class="c2" style="text-align:right">${r.excl.why}</div></td></tr>`;
   return `<tr class="${cls||''}">
     <td>${cnameST(r,m)}</td>
@@ -2171,32 +2183,32 @@ const CITEM={
 const ckey=c=>c.key||c.b+c.no;
 const CTRS=[
  {b:'b1',no:'본관8층',ten:'(주)아이씨비',st:'진행중',base:'2024-03-01',
-  it:[['임대료',8900000],['고정관리비',2650000],['전기요금'],['전력기금'],['TV수신료'],['수도요금'],['정화조청소비'],['주차비']]},
+  it:[['임대료',8900000],['고정관리비',2650000],['전기요금'],['전력기금'],['TV수신료'],['수도요금'],['정화조청소비'],['교통유발부담금'],['주차비']]},
  {b:'b1',no:'본관7층',ten:'(주)아이씨비',st:'진행중',base:'2024-03-01',
-  it:[['임대료',8900000],['고정관리비',2650000],['전기요금'],['전력기금'],['TV수신료'],['수도요금'],['정화조청소비']]},
+  it:[['임대료',8900000],['고정관리비',2650000],['전기요금'],['전력기금'],['TV수신료'],['수도요금'],['정화조청소비'],['교통유발부담금']]},
  {b:'b1',no:'본관6층',ten:'유한회사아마데우스',st:'진행중',base:'2025-01-15',
-  it:[['임대료',9300000],['고정관리비',2800000],['전기요금'],['전력기금'],['TV수신료'],['수도요금'],['정화조청소비']]},
+  it:[['임대료',9300000],['고정관리비',2800000],['전기요금'],['전력기금'],['TV수신료'],['수도요금'],['정화조청소비'],['교통유발부담금']]},
  {b:'b1',no:'본관5층',ten:'㈜케이더블유인터내셔널',st:'진행중',base:'2024-07-01',
-  it:[['임대료',9681000],['고정관리비',2700000],['전기요금'],['전력기금'],['TV수신료'],['수도요금'],['정화조청소비']]},
+  it:[['임대료',9681000],['고정관리비',2700000],['전기요금'],['전력기금'],['TV수신료'],['수도요금'],['정화조청소비'],['교통유발부담금']]},
  {b:'b1',no:'본관4층',ten:'(주)케이큐엔터테이먼트',st:'진행중',base:'2023-09-01',
-  it:[['임대료',10700000],['고정관리비',3130000],['전기요금'],['전력기금'],['TV수신료'],['수도요금'],['정화조청소비'],['주차비']]},
+  it:[['임대료',10700000],['고정관리비',3130000],['전기요금'],['전력기금'],['TV수신료'],['수도요금'],['정화조청소비'],['교통유발부담금'],['주차비']]},
  /* 301호는 302호와 실질 주인이 같다. 임대료만 청구하고 관리비·정산액은 302호가 부담한다 */
  {b:'b1',no:'본관301호',ten:'(유)고우컴퍼니',st:'진행중',base:'2025-05-01',payTo:'본관302호',
   it:[['임대료',360000],['고정관리비',0]],meta:{'고정관리비':{stop:true}}},
  {b:'b1',no:'본관302호',ten:'(유)유니버셜대부',st:'진행중',base:'2024-11-01',
-  it:[['임대료',9240000],['고정관리비',2250000],['전기요금'],['전력기금'],['TV수신료'],['수도요금'],['정화조청소비'],['주차비']]},
+  it:[['임대료',9240000],['고정관리비',2250000],['전기요금'],['전력기금'],['TV수신료'],['수도요금'],['정화조청소비'],['교통유발부담금'],['주차비']]},
  {b:'b1',no:'본관2층',ten:'(주)좋은생각사람들',st:'진행중',base:'2024-03-01',
-  it:[['임대료',9000000],['고정관리비',3075000],['전기요금'],['전력기금'],['TV수신료'],['수도요금'],['정화조청소비']]},
+  it:[['임대료',9000000],['고정관리비',3075000],['전기요금'],['전력기금'],['TV수신료'],['수도요금'],['정화조청소비'],['교통유발부담금']]},
  {b:'b1',no:'본관1층',ten:'(주)에스씨케이컴퍼니',st:'진행중',base:'2025-08-01',
-  it:[['임대료',12000000],['고정관리비',2000000],['전기요금'],['전력기금'],['TV수신료'],['수도요금'],['정화조청소비']]},
+  it:[['임대료',12000000],['고정관리비',2000000],['전기요금'],['전력기금'],['TV수신료'],['수도요금'],['정화조청소비'],['교통유발부담금']]},
  {b:'b1',no:'본관B2',ten:'주식회사루비뮤직',st:'진행중',base:'2026-01-01',
-  it:[['임대료',1500000],['고정관리비',430000],['전기요금'],['전력기금'],['TV수신료'],['수도요금'],['정화조청소비']]},
+  it:[['임대료',1500000],['고정관리비',430000],['전기요금'],['전력기금'],['TV수신료'],['수도요금'],['정화조청소비'],['교통유발부담금']]},
  {b:'b1',no:'별관4층',ten:'(주)좋은생각사람들',st:'진행중',base:'2025-10-01',
-  it:[['임대료',2800000],['고정관리비',600000],['전기요금'],['전력기금'],['TV수신료'],['수도요금'],['정화조청소비']]},
+  it:[['임대료',2800000],['고정관리비',600000],['전기요금'],['전력기금'],['TV수신료'],['수도요금'],['정화조청소비'],['교통유발부담금']]},
  {b:'b1',no:'별관3층',ten:'(주)비씨에이전시',st:'진행중',base:'2024-12-01',rate:12,
-  it:[['임대료',3150000],['고정관리비',1220000],['전기요금'],['전력기금'],['TV수신료'],['수도요금'],['정화조청소비']]},
+  it:[['임대료',3150000],['고정관리비',1220000],['전기요금'],['전력기금'],['TV수신료'],['수도요금'],['정화조청소비'],['교통유발부담금']]},
  {b:'b1',no:'별관2층',ten:'㈜케이더블유인터내셔널',st:'진행중',base:'2025-04-01',
-  it:[['임대료',3700000],['고정관리비',500000],['전기요금'],['전력기금'],['TV수신료'],['수도요금'],['정화조청소비']]},
+  it:[['임대료',3700000],['고정관리비',500000],['전기요금'],['전력기금'],['TV수신료'],['수도요금'],['정화조청소비'],['교통유발부담금']]},
  {b:'b2',no:'1203호',ten:'(주)세움파트너스',st:'진행중',base:'2025-02-01',
   it:[['임대료',7800000],['고정관리비',1450000],['전기요금'],['수도요금']]},
  {b:'b2',no:'1501호',ten:'리틀브릿지',st:'종료됨',base:'2023-02-01',
@@ -2239,10 +2251,11 @@ function ISSUE(){
       const d=CITEM[x[0]]||{calc:'고정액'};
       /* 고정액 — 기산일과 반복 주기로 이번 회차 대상인지 판정. 임대료 인상 예약이 있으면 적용일부터 새 금액 */
       if(d.calc==='고정액'){
-        if(!x[1]) return null;
         const ym=PAST_CTX||SETTLE.ym;
         if(!cycleDue(itemCycle(c,x[0]),itemFrom(c,x[0]),ym)) return null;
         const bd=itemDoc(c,x[0]);
+        /* 활성인데 금액이 0원 — 빼지 않고 알린다. 입력이 빠졌을 수 있다 */
+        if(!x[1]) return {n:x[0],bill:bd,src:'임대차계약서',supply:null,vat:null,amt:null,zero:true,st:'약정',stc:'mu'};
         const sup=adjSup(c,x[0],x[1],ym), v=isTax(bd)?Math.round(sup*0.1):0;
         return {n:x[0],bill:bd,src:'임대차계약서',supply:sup,vat:v,amt:sup+v,st:'약정',stc:'mu'};
       }
@@ -2273,9 +2286,9 @@ function ISSUE(){
     const sum=lines.reduce((a,l)=>a+(l.amt||0),0);
     const sup=lines.reduce((a,l)=>a+(l.supply||0),0);
     const vat=lines.reduce((a,l)=>a+(l.vat||0),0);
-    const miss=lines.filter(l=>l.amt==null).length;
+    const miss=lines.filter(l=>l.amt==null&&!l.zero).length, zero=lines.filter(l=>l.zero).length;
     const k=ckey(c);
-    return {...c,k,lines,sum,sup,vat,miss,via,
+    return {...c,k,lines,sum,sup,vat,miss,zero,via,
             due:dueOf(k,PAST_CTX||SETTLE.ym),st:done?'발행 완료':'발행 대기'};
   });
 }
@@ -2302,7 +2315,7 @@ function PAY1(){
               :'<span class="cb dis"></span>'}
         <span class="tg ${op?'op':''}">${ic('chev',16)}</span>${cnameHTML(BA(c.b),c.no,c.ten)}
         <span class="c2">청구 ${c.lines.length}건${
-          c.miss?` · <b style="color:var(--warn)">미산출 ${c.miss}</b>`:''}${
+          c.miss?` · <b style="color:var(--warn)">미산출 ${c.miss}</b>`:''}${c.zero?` · <b style="color:var(--warn)">금액 0원 ${c.zero}</b>`:''}${
           MERGE_PDF[c.ten]?(()=>{const o=rows.filter(x=>x.ten===c.ten&&x.b===c.b&&x.no!==c.no).map(x=>x.no);
             /* 조사 — 마지막 글자에 받침이 있으면 「과」 */
             const w=o.join('·'), lc=w.charCodeAt(w.length-1)-0xAC00, j=(lc>=0&&lc%28)?'과':'와';
@@ -2325,7 +2338,7 @@ function PAY1(){
       <div class="n c2">${l.supply!=null?won(l.supply):'—'}</div>
       <div class="n c2">${l.vat!=null?(l.vat?won(l.vat):'—'):'—'}</div>
       <div class="n">${l.amt!=null?`<b>${won(l.amt)}</b>`
-        :'<span class="bd wa2">미산출</span>'}</div>
+        :l.zero?'<span class="bd wa2">금액 0원</span>':'<span class="bd wa2">미산출</span>'}</div>
       <div class="c"><span class="bd ${l.stc}">${l.st}</span></div>
     </div>`).join(''));
   }).join('');
@@ -3244,6 +3257,10 @@ function ncSave(welcome){
   /* 반복 주기 — 매월이 아니면 약정에 적는다 */
   if(nc.rentCy!=='매월') itemMeta(c,'임대료').cycle=nc.rentCy;
   if(nc.mgmtCy!=='매월') itemMeta(c,'고정관리비').cycle=nc.mgmtCy;
+  /* 같은 유닛의 직전 계약에서 비활성이던 정산 항목(한전 직접 계약 등)은 유닛에 딸린 사정이라 이어받는다 */
+  const prev=CTRS.filter(x=>x.b===c.b&&x.no===c.no).sort((p,q)=>p.base<q.base?1:-1)[0];
+  if(prev&&!prev.payTo) vars.forEach(n=>{const pm=(prev.meta||{})[n]||{};
+    if(!prev.it.some(y=>y[0]===n)||pm.stop) Object.assign(itemMeta(c,n),{stop:true,why:pm.why||'직전 계약에서 비활성'});});
   /* 고정관리비 0 — 받지 않는다. 항목은 두고 비활성으로(청구항목 탭에서 켤 수 있다) */
   if(!numOf(nc.mgmt)) itemMeta(c,'고정관리비').stop=true;
   CTRS.push(c);
@@ -3415,7 +3432,7 @@ function ciOpen(k,mode,n){
   const c=CTRS.find(x=>ckey(x)===k);
   if(mode==='edit'){const x=c.it.find(y=>y[0]===n), mt=(c.meta||{})[n]||{};
     const a0=x&&x[1]?Math.round(x[1]*(isTax(itemDoc(c,n))?1.1:1)):0;
-    ci={k,mode,n,cycle:itemCycle(c,n),from:itemFrom(c,n),memo:mt.memo||'',amt:a0,amt0:a0,why:''};}
+    ci={k,mode,n,cycle:itemCycle(c,n),from:itemFrom(c,n),memo:mt.memo||'',amt:a0,amt0:a0,why:'',offWhy:mt.why||''};}
   else if(mode==='adj') ci={k,mode,d:'',rent:'',mgmt:'',memo:'',i:n,back:ci&&ci.mode==='edit'?ci.n:(ci&&ci.back)||null};
   else if(mode==='payto') ci={k,mode,payTo:c.payTo||''};
   if(mode==='adj'&&n!=null){const a=c.adj[n];Object.assign(ci,{d:a.d,rent:a.rent||'',mgmt:a.mgmt||'',memo:a.memo||''});}
@@ -3439,7 +3456,7 @@ function ciSave(){
     if(fixed){const a=numOf(ci.amt);
       if(a!==ci.amt0){if(ci.amt0&&!ci.why.trim()) return; x[1]=isTax(itemDoc(c,ci.n))?Math.floor(a*10/11):a; if(ci.amt0) mt.fixWhy=ci.why.trim();}}
     if(fixed){mt.cycle=ci.cycle; mt.from=ci.from;}
-    mt.memo=ci.memo;
+    mt.memo=ci.memo; if(!fixed) mt.why=ci.offWhy.trim()||undefined;
   } else if(ci.mode==='payto'){
     if(ci.payTo) c.payTo=ci.payTo; else delete c.payTo;
   } else {
@@ -3483,7 +3500,9 @@ function ciHTML(){
         +R('금액',NUM('amt','부가세 포함'))
         +(chg?R('사유',`<input type="text" value="${ci.why}" placeholder="필수. 예: 계약서 금액 오기, 재협의" onchange="ciSet('why',this.value)">`):'')
         +R('반복 주기',SEL('cycle',ITEM_CYCLES))+R('기산일',DT('from'))
-      :`<div class="c2" style="margin:0 0 10px;white-space:normal">정산 항목입니다. 금액은 매달 관리비 정산에서 나오고, 반복 주기는 ${bd.name} 관리비 탭 설정을 따릅니다.</div>`)
+      :`<div class="c2" style="margin:0 0 10px;white-space:normal">정산 항목입니다. 금액은 매달 관리비 정산에서 나오고, 반복 주기는 ${bd.name} 관리비 탭 설정을 따릅니다.
+          <b>비활성이면 이 유닛은 관리비 정산의 안분에서 빠집니다</b>(정산액 부담 계약이 있으면 대납으로 실립니다).</div>`
+        +R('비활성 사유',`<input type="text" value="${ci.offWhy}" placeholder="예: 한전 직접 계약" onchange="ciSet('offWhy',this.value)">`))
       +MEMO+(rentLike?adjListHTML(c,ci.k):'');
     ok=!fixed||!chg||ci.why.trim();
   } else if(ci.mode==='payto'){
@@ -3521,7 +3540,7 @@ function CTR3items(c,k){
   const rows=names.map(n=>{const x=c.it.find(y=>y[0]===n), mt=(c.meta||{})[n]||{}, fixed=itemCalc(n)==='고정액', doc=itemDoc(c,n), a=on(n);
     const fr=itemFrom(c,n);
     return `<tr class="${a?'':'off'}">
-      <td><b>${n}</b>${fr!==c.base&&a?`<div class="c2">기산일 ${d8(fr)}</div>`:''}${mt.memo?`<div class="c2">${mt.memo}</div>`:''}</td>
+      <td><b>${n}</b>${fr!==c.base&&a?`<div class="c2">기산일 ${d8(fr)}</div>`:''}${!a&&mt.why?`<div class="c2">비활성 · ${mt.why}</div>`:''}${mt.memo?`<div class="c2">${mt.memo}</div>`:''}</td>
       <td>${fixed?'고정액':'정산'}</td>
       <td class="n">${fixed?(x&&x[1]?won(Math.round(x[1]*(isTax(doc)?1.1:1))):x?'0원':'<span style="color:var(--faint)">—</span>'):'<span class="c2" style="margin:0">매달 관리비 정산</span>'}</td>
       <td class="c2">${doc}</td>
