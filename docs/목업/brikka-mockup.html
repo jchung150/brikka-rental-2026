@@ -3318,11 +3318,9 @@ function CTR2(){
       +`<div style="margin-top:10px">${C('agent','중개사가 있음')}</div>`
       +(nc.agent?`<div style="margin-top:10px">${R('중개사무소',T('an'))+R('대표자명',T('aceo'))+R('등록번호',T('ano'))+R('연락처',T('atel'))+R('소재지',T('aaddr'))}</div>`:''));
   const right=
-    card('임대료 · 관리비','<div class="c2" style="margin:-4px 0 10px">부가세를 포함한 금액으로 입력합니다. 반복 주기는 거의 매월입니다</div>'
-      +R('임대료',N('rent','금액 (부가세 포함)'),1)
-      +R('',`<span class="c2" style="margin:0">반복 주기</span>${S('rentCy',ITEM_CYCLES)}`)
-      +R('고정관리비',N('mgmt','금액 (부가세 포함)'),1)
-      +R('',`<span class="c2" style="margin:0">반복 주기</span>${S('mgmtCy',ITEM_CYCLES)}`)
+    card('임대료 · 관리비','<div class="c2" style="margin:-4px 0 10px">부가세를 포함한 금액을 넣고, 오른쪽에서 반복 주기를 고릅니다(보통 매월)</div>'
+      +R('임대료',N('rent','금액 (부가세 포함)')+`<select title="반복 주기" onchange="ncSet('rentCy',this.value)" style="flex:none;width:84px">${ITEM_CYCLES.map(o=>`<option ${nc.rentCy===o?'selected':''}>${o}</option>`).join('')}</select>`,1)
+      +R('고정관리비',N('mgmt','금액 (부가세 포함)')+`<select title="반복 주기" onchange="ncSet('mgmtCy',this.value)" style="flex:none;width:84px">${ITEM_CYCLES.map(o=>`<option ${nc.mgmtCy===o?'selected':''}>${o}</option>`).join('')}</select>`,1)
       +R('청구일 · 마감일',`<span class="fv">${bd.billDay} · ${bd.dueDay} <span class="c2">건물 기본값</span></span>`))
     +card('렌트프리 · 기산일',(()=>{
       const from=ncFrom(), rfTo=nc.rf==='있음'?nc.rfEnd:'', rfDays=rfTo&&nc.start?dnum(rfTo)-dnum(nc.start)+1:0;
