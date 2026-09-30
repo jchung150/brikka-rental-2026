@@ -584,22 +584,11 @@ const BUILDINGS=[
   mgmtStart:'2025-03-01',mgmtEnd:'2027-02-28',fee:'임대료의 5%',mode:'임대인 직수취',
   bondBank:'국민은행 서교동지점',bondTel:'02-334-8820',bondMax:1800000000,bondNow:1240000000,
   fac:['회의실','옥상정원','샤워실','무인택배함'],
-  units:[
-   {no:'101호',st:'사용중',use:'근린생활',ten:'커피 로스터리 담',fl:1,area:142.8,net:96.4},
-   {no:'201호',st:'사용중',use:'사무실',ten:'(주)한빛',fl:2,area:198.4,net:121.6},
-   {no:'202호',st:'사용중',use:'사무실',ten:'(주)비씨에이',fl:2,area:165.2,net:101.3},
-   {no:'301호',st:'사용중',use:'사무실',ten:'디자인스튜디오 온',fl:3,area:264.0,net:161.8},
-   {no:'401호',st:'공실',use:'사무실',ten:'',fl:4,area:198.4,net:121.6},
-   {no:'402호',st:'공실',use:'사무실',ten:'(주)메디플랜',fl:4,area:165.2,net:101.3},
-   {no:'501호',st:'사용중',use:'사무실',ten:'법무법인 정도',fl:5,area:363.6,net:222.9},
-   {no:'601호',st:'사용중',use:'사무실',ten:'(주)엔코어테크',fl:6,area:363.6,net:222.9},
-   {no:'701호',st:'사용중',use:'사무실',ten:'(주)한빛',fl:7,area:363.6,net:222.9},
-   {no:'801호',st:'사용중',use:'사무실',ten:'코어스페이스',fl:8,area:363.6,net:222.9},
-   {no:'B101',st:'비운영중',use:'기타',ten:'',fl:-1,area:88.2,net:88.2}],
+  units:[],   /* 카리나빌딩 유닛은 정산 자료(UNITS_B1)에서 만든다 — 계약·검침과 같은 번호 */
   parks:[
-   {n:'B1-01',t:'일반',memo:'',as:'(주)한빛',asu:'201호'},{n:'B1-02',t:'일반',memo:'',as:'(주)한빛',asu:'201호'},
-   {n:'B1-03',t:'일반',memo:'',as:'(주)비씨에이',asu:'202호'},{n:'B1-04',t:'소형',memo:'경차 전용',as:'',asu:''},
-   {n:'B1-05',t:'장애인',memo:'',as:'',asu:''},{n:'B2-01',t:'일반',memo:'',as:'법무법인 정도',asu:'501호'}],
+   {n:'B1-01',t:'일반',memo:'',as:'(주)아이씨비',asu:'본관8층'},{n:'B1-02',t:'일반',memo:'',as:'(주)아이씨비',asu:'본관8층'},
+   {n:'B1-03',t:'일반',memo:'',as:'(주)케이큐엔터테이먼트',asu:'본관4층'},{n:'B1-04',t:'소형',memo:'경차 전용',as:'',asu:''},
+   {n:'B1-05',t:'장애인',memo:'',as:'',asu:''},{n:'B2-01',t:'일반',memo:'',as:'(유)유니버셜대부',asu:'본관302호'}],
   docs:[
    {t:'관리위임계약서_카리나빌딩_2025.pdf',sz:'1.2 MB',c:'관리위임계약서',by:'슈퍼관리자',at:'2025-02-24 14:20'},
    {t:'등기부등본_20260801.pdf',sz:'340 KB',c:'등기부등본',by:'슈퍼관리자',at:'2026-08-01 09:12'},
@@ -663,6 +652,13 @@ const UNITS_B1=[
  {no:'별관3층',  st:'사용중', ten:'(주)비씨에이전시',        ar:95.0},
  {no:'별관2층',  st:'사용중', ten:'㈜케이더블유인터내셔널',   ar:95.0},
 ];
+/* 건물 상세 유닛 탭 — 층은 유닛 번호에서, 용도는 예시값. 전용면적은 임대면적의 62%(예시) */
+BUILDINGS[0].units=UNITS_B1.map(u=>{
+  const b=u.no.match(/B(\d+)$/), m=u.no.match(/(\d+)(층|호)$/);
+  const fl=b?-(+b[1]):m?(m[2]==='호'?Math.floor(+m[1]/100):+m[1]):0;
+  return {no:u.no,st:u.st,ten:u.ten,fl,area:u.ar,net:Math.round(u.ar*0.62*10)/10,
+    use:u.st==='비운영중'?'기타':u.no==='본관1층'?'근린생활':'사무실'};
+});
 /* 청구 항목 — 기준표 3.3. fixed는 고정액(계약 약정액), 나머지는 정산 항목이다.
    pr은 기본 배분 우선순위다. 건물 관리 › 관리비 탭(PRO-3)에서 건물별로 덮어쓴다 → prioOf */
 const MASTER=[
@@ -1478,23 +1474,33 @@ function t요약(b){
   </div>`;
 }
 
+/* 유닛 탭 — 계약 1건은 유닛 1개다. 유닛 목록에 지금 계약과 다음 계약을 붙인다 → PRO-3 */
 function t유닛(b){
   if(!b.units.length) return `<div class="tbl"><div class="empty"><div class="t">등록된 유닛이 없습니다</div>유닛을 등록하면 여기에 표시됩니다.</div></div>`;
   const c={사용중:0,공실:0,비운영중:0};b.units.forEach(u=>c[u.st]++);
+  const d8=d=>d.replace(/-/g,'.'), dash='<span style="color:var(--faint)">—</span>';
+  const vat=v=>v?won(Math.round(v*1.1)):dash;
+  const rows=b.units.map(u=>{
+    const cur=CTRS.find(x=>x.b===b.id&&x.no===u.no&&x.st==='진행중'), nx=CTRS.find(x=>x.b===b.id&&x.no===u.no&&x.st==='준비중');
+    const go1=cur?`tab3c='요약';go('ctr-3/${ckey(cur)}')`:`alert('PRO-4 유닛 상세 — 같은 탭 안에서 전환됩니다. 아직 미구현.')`;
+    return `<tr style="cursor:pointer" onclick="${go1}">
+      <td><b>${u.no}</b><div class="c2">${u.use} · ${u.fl>0?u.fl+'층':'지하 '+Math.abs(u.fl)+'층'} · ${m2(u.area)}</div></td>
+      <td class="c">${stb(u.st)}</td>
+      <td>${cur?`<div class="c1" style="font-weight:500">${cur.ten}</div>`:dash}${nx?`<div class="c2" style="color:var(--pri)">다음 계약 ${nx.ten} · ${d8(nx.base)}부터</div>`:''}</td>
+      <td>${cur?`${d8(cur.base)} - ${d8(ctrEnd(cur))}`:''}</td>
+      <td class="c">${cur?ddBadge(ctrEnd(cur)):''}</td>
+      <td class="n">${cur?vat(ctrAmt(cur,'임대료')):''}</td>
+      <td class="n">${cur?vat(ctrAmt(cur,'고정관리비')):''}</td></tr>`;}).join('');
   return `
   <div class="card"><div class="ct">유닛
     <span class="sub">전체 ${b.units.length} · 사용중 ${c.사용중} · 공실 ${c.공실} · 비운영중 ${c.비운영중}</span>
     <span class="ca"><button class="btn pri sm">+ 유닛 등록</button></span></div>
-    <div class="cc" style="padding-top:12px"><div class="units">
-    ${b.units.map(u=>`<div class="unit" onclick="alert('PRO-4 유닛 상세 — 같은 탭 안에서 전환됩니다. 아직 미구현.')">
-      <div class="uh"><span class="un">${u.no}</span>${stb(u.st)}</div>
-      <div class="r"><span>${u.use}</span><b>${u.fl>0?u.fl+'층':'지하 '+Math.abs(u.fl)+'층'}</b></div>
-      <div class="r"><span>임대면적</span><b>${m2(u.area)}</b></div>
-      <div class="r"><span>전용면적</span><b>${m2(u.net)} · ${(u.net/u.area*100).toFixed(0)}%</b></div>
-      <div class="r" style="margin-top:6px;padding-top:7px;border-top:1px solid var(--line-2)">
-        <span>임차인</span><b>${u.ten||'<span style="color:var(--faint)">없음</span>'}</b></div>
-    </div>`).join('')}</div></div>
-  </div>`;
+    <div class="tw"><table>
+      <thead><tr><th>유닛</th><th class="c">상태</th><th>임차인</th><th>계약기간</th><th class="c">만료까지</th>
+        <th class="n">임대료 <span class="c2" style="margin:0">(부가세 포함)</span></th><th class="n">관리비 <span class="c2" style="margin:0">(부가세 포함)</span></th></tr></thead>
+      <tbody>${rows}</tbody></table></div></div>
+  <div class="hint">계약이 있는 유닛을 누르면 계약 상세로, 계약이 없는 유닛(공실 · 비운영중)을 누르면 유닛 상세로 갑니다.<br>
+    다음 임차인과 미리 맺은 계약(준비중)은 임차인 아래에 「다음 계약」으로 보입니다. 목업의 계약 종료일·용도·전용면적은 예시값입니다.</div>`;
 }
 
 function t자료(b){

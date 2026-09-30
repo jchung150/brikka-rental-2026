@@ -53,6 +53,10 @@ run('CTR-2 다른 건물', "nc=null;CTR2();ncSet('b','b2');CTR2()");
 run('PRO-1 필터', "f1p={q:'',kind:'오피스빌딩',vac:'0'};PRO1()");
 for (const t of ['요약', '유닛', '자료보관', '관리비'])
   run('PRO-3 ' + t, "tab3='" + t + "';PRO3('b1')");
+run('PRO-3 유닛 · 다음 계약', "CTRS.push({b:'b1',no:'본관302호',key:'b1본관302호@2026-11-01',ten:'(주)새임차',st:'준비중',base:'2026-11-01',it:[['임대료',3000000]]});tab3='유닛';PRO3('b1')");
+{ const U = new Function(stub + bare + '; return BUILDINGS[0].units;')();
+  const fl = n => (U.find(u => u.no === n) || {}).fl;
+  if (!(U.length === 14 && fl('본관B1') === -1 && fl('본관B2') === -2 && fl('본관301호') === 3 && fl('별관4층') === 4)) { console.log('② 유닛 층 계산 ✗'); fail = 1; } }
 for (const b of ['b2', 'b4']) run('PRO-3 ' + b, "tab3='요약';PRO3('" + b + "')");
 run('PRO-3 카즈하타워 관리비', "tab3='관리비';PRO3('b4')");
 run('PAY-12', 'PAY12()');
