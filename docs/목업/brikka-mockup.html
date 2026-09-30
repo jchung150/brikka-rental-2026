@@ -659,7 +659,7 @@ BUILDINGS[0].units=UNITS_B1.map(u=>{
   return {no:u.no,st:u.st,ten:u.ten,fl,area:u.ar,net:Math.round(u.ar*0.62*10)/10,
     use:u.st==='비운영중'?'기타':u.no==='본관1층'?'근린생활':'사무실'};
 });
-/* 청구 항목 — 기준표 3.3. fixed는 고정액(계약 약정액), 나머지는 정산 항목이다.
+/* 청구항목 — 기준표 3.3. fixed는 고정액(계약 약정액), 나머지는 정산 항목이다.
    pr은 기본 배분 우선순위다. 건물 관리 › 관리비 탭(PRO-3)에서 건물별로 덮어쓴다 → prioOf */
 const MASTER=[
  {code:'rent', name:'임대료',        bill:'세금계산서', unit:null, cycle:'매월',   tax:true,  src:'', doc:'임대차계약서', fixed:true, pr:1},
@@ -813,7 +813,7 @@ function resolve(code){
   return {...st};
 }
 let DRAWER=null, dPick=[];
-/* PRO-3 청구 항목 설정 */
+/* PRO-3 청구항목 설정 */
 let cs=null;
 /* 발행 문서 3종 — 과세 구분이 여기에 포함된다. 같은 문서끼리 묶여 1장으로 발행된다 */
 const BILLDOC=[
@@ -835,8 +835,8 @@ function loadCS(code){
       fixed:!!m.fixed, pr:(b&&b.pr)||m.pr||99};
 }
 function openCS(code){
-  /* 건물당 청구 항목은 최대 99개 — 우선순위 1~99와 짝 */
-  if(!code&&BUILDINGS[0].charge.length>=99){alert('이 건물의 청구 항목이 99개입니다. 더 추가할 수 없습니다.');return;}
+  /* 건물당 청구항목은 최대 99개 — 우선순위 1~99와 짝 */
+  if(!code&&BUILDINGS[0].charge.length>=99){alert('이 건물의 청구항목이 99개입니다. 더 추가할 수 없습니다.');return;}
   if(code) loadCS(code);
   else{
     const m=MASTER.find(x=>!BUILDINGS[0].charge.some(c=>c.it===x.name));
@@ -1134,22 +1134,22 @@ function csHTML(){
            <b>${byUse?'사용량':'임대면적'}${cs.ref&&cs.ref!==cs.item?` · ${M(cs.ref).name} 검침값`:''} 비율</b>로 나눕니다.<br>`}
       <b>${cs.cycle}</b> 발생합니다.</div>`;
   return `<div class="dro"><div class="ov" onclick="closeDrawer()"></div><div class="pn">
-    <div class="dh"><div><div class="t">청구 항목 설정</div>
+    <div class="dh"><div><div class="t">청구항목 설정</div>
       <div class="s">카리나빌딩${cs.editing?' · 수정':''}</div></div>
       <button class="x" onclick="closeDrawer()">✕</button></div>
     <div class="db">
       <div class="fg"><div class="fl">항목</div>
-        <div class="fr"><span class="fk">청구 항목</span>
+        <div class="fr"><span class="fk">청구항목</span>
           <select onchange="csSet('item',this.value)">
             ${MASTER.map(x=>`<option value="${x.code}" ${!cs.neu&&x.code===cs.item?'selected':''}
               ${used.includes(x.name)&&x.code!==cs.item?'disabled':''}>${x.name}${
               used.includes(x.name)&&x.code!==cs.item?' (사용 중)':''}</option>`).join('')}
-            <option value="__new" ${cs.neu?'selected':''}>+ 새 청구 항목 만들기</option>
+            <option value="__new" ${cs.neu?'selected':''}>+ 새 청구항목 만들기</option>
           </select></div>
         ${cs.neu?`<div class="fr"><span class="fk">항목명</span>
           <input type="text" value="${cs.name}" placeholder="예: 공용 회의실 사용료"
             oninput="cs.name=this.value" onchange="csSet('name',this.value)"></div>
-          <div class="hint" style="margin:-3px 0 9px 114px">이 건물에만 추가됩니다. 건물마다 청구 항목을 따로 관리합니다.</div>`:''}
+          <div class="hint" style="margin:-3px 0 9px 114px">이 건물에만 추가됩니다. 건물마다 청구항목을 따로 관리합니다.</div>`:''}
         <div class="fr"><span class="fk">발행 문서</span>
           <select onchange="csSet('bill',this.value)">
             ${BILLDOC.map(b=>`<option value="${b.k}" ${cs.bill===b.k?'selected':''}>${b.k}(${b.t})</option>`).join('')}
@@ -1238,7 +1238,7 @@ function drawerHTML(){
       <div class="ck">${on?'✓':''}</div><div class="pn2">${m.name}</div></div>`;
   };
   return `<div class="dro"><div class="ov" onclick="closeDrawer()"></div><div class="pn">
-    <div class="dh"><div><div class="t">청구 항목 추가</div>
+    <div class="dh"><div><div class="t">청구항목 추가</div>
       <div class="s">2026년 8월 · 카리나빌딩</div></div>
       <button class="x" onclick="closeDrawer()">✕</button></div>
     <div class="db">
@@ -1540,7 +1540,7 @@ function t청구(b){
 
 /* ═══ PAY-10 관리비 정산 ═══ */
 const fx=(n,d=1)=>n.toLocaleString('ko-KR',{minimumFractionDigits:d,maximumFractionDigits:d});
-/* 청구 항목마다 거치는 단계가 다르다.
+/* 청구항목마다 거치는 단계가 다르다.
      전기요금      고지서 → 검침 → 조정 → 산출
      정화조청소비   고지서 → 조정 → 산출          검침이 없다
      주차비        금액 입력 → 산출              고지서·검침·조정이 없다
@@ -1587,7 +1587,7 @@ function PAY10(){
   ${pay10Head(null)}
   <div class="tbl"><div class="empty"><div class="t">이번 회차에 정산할 항목이 없습니다</div>
     고정관리비만 받는 건물은 정산 없이 청구할 수 있습니다.<br><br>
-    <button class="btn pri" onclick="openDrawer('additem')">+ 청구 항목 추가</button></div></div>`;
+    <button class="btn pri" onclick="openDrawer('additem')">+ 청구항목 추가</button></div></div>`;
   const m=sel.find(x=>x.code===pCode)||sel[0];
   const body=itemSecs(m).map(([t,h],i)=>`
       <div class="isec"><div class="ish"><span class="isn">${i+1}</span>${t}</div>${h}</div>`).join('');
@@ -1625,7 +1625,7 @@ function pay10Head(sel){
       f.c==='ok'||f.c==='plain'?'':`<span class="bd ${f.c}" style="margin-left:5px">${f.t}</span>`}</button>`}).join('')}
     ${ONCE.on&&!PAST_CTX?`<button class="${pCode==='once'?'on':''}" onclick="setPItem('once')">일회성 청구${
       ONCE.rows.filter(r=>r.k&&r.amt).length?` <span class="bd mu" style="margin-left:5px">${ONCE.rows.filter(r=>r.k&&r.amt).length}건</span>`:''}</button>`:''}
-    ${PAST_CTX?'':`<button class="add" onclick="openDrawer('additem')">+ 청구 항목 추가</button>`}
+    ${PAST_CTX?'':`<button class="add" onclick="openDrawer('additem')">+ 청구항목 추가</button>`}
   </div>`}`;
 }
 function oncePage(){
@@ -3324,7 +3324,7 @@ function CTR2(){
         +(nc.rf==='있음'?R('기간',`${T('rfM','',60)}<span class="c2" style="margin:0">개월</span>
               <span class="c2" style="margin:0 2px">또는 끝나는 날</span>${D('rfEnd')}`,1)
           +`<div class="c2" style="margin:-4px 0 9px 114px">${!nc.start?'계약시작일을 먼저 넣으세요':rfTo?(rfDays>0?`${d8(nc.start)} ~ ${d8(rfTo)} · <b style="color:var(--ink)">${rfDays}일</b>`:'<b style="color:var(--warn)">끝나는 날이 계약시작일보다 앞입니다</b>'):'개월(1.5 가능)을 넣거나 끝나는 날을 직접 고르세요'}</div>`
-          +R('대상',`<div style="display:flex;gap:14px;flex-wrap:wrap">${C('rfRent','임대료')}${C('rfMgmt','고정관리비')}${C('rfVar','전기·수도 등 청구 항목')}</div>`)
+          +R('대상',`<div style="display:flex;gap:14px;flex-wrap:wrap">${C('rfRent','임대료')}${C('rfMgmt','고정관리비')}${C('rfVar','전기·수도 등 청구항목')}</div>`)
           +'<div class="c2" style="margin:0 0 10px;white-space:normal">체크한 항목은 렌트프리 기간에 청구하지 않고 기산일부터 청구합니다. 체크하지 않은 항목은 계약시작일부터 청구합니다.</div>':'')
         +R('기산일',nc.rf==='있음'
             ?`<span class="fv"><b>${from?d8(from):'—'}</b> <span class="c2">렌트프리가 끝난 다음 날</span></span>`
@@ -3333,7 +3333,7 @@ function CTR2(){
         +(nc.rf!=='있음'?R('',C('late','기산일을 따로 정하기 (소급 등)')):'');})())
     +card('보증금',R('보증금',N('dep','약정액'))+R('납부마감일',D('depDue'))+R('반환예정일',D('depRet')))
     +card('주차',R('무상 주차',`${T('park','',70)}<span class="c2" style="margin:0">대</span>`)+R('초과 1대 월',N('parkFee','단가 (부가세 포함)')))
-    +card('청구 항목',
+    +card('청구항목',
       (vl.length?`<div class="c2" style="margin:-4px 0 10px">${bd.name} 관리비 탭의 항목입니다. 임대료·고정관리비 말고 이 계약에 청구할 항목만 남깁니다. 금액은 매달 관리비 정산에서 나옵니다</div>
         <div style="display:flex;flex-wrap:wrap;gap:8px 16px">${vl.map(x=>`<label class="ck"><input type="checkbox" ${x.on?'checked':''} onchange="ncVarTog('${x.it}')">${x.it}</label>`).join('')}</div>`
         :'<div class="c2" style="margin:0">이 건물에 설정된 정산 항목이 없습니다</div>')
@@ -3375,7 +3375,7 @@ function CTR2(){
     웰컴 메일을 보내도 기존 임차인의 비밀번호는 바뀌지 않습니다. 새 임차인에게는 로그인 링크만 보냅니다.</div>`;
 }
 
-/* ═══ 청구 약정(PAY-3) — 계약 상세의 청구 항목 탭과 오른쪽 패널 ═══ */
+/* ═══ 청구 약정(PAY-3) — 계약 상세의 청구항목 탭과 오른쪽 패널 ═══ */
 /* 반복 주기 — 우리 건물은 매월뿐이지만 다른 운영사는 분기·연 1회 받는 항목이 있다 */
 const ITEM_CYCLES=['매월','격월','분기','반기','연1회'];   /* 반복주기 → 3.3. 「이번만」은 관리비 정산의 일회성 청구가 맡는다 */
 /* 이번 회차 대상인지 — 기산일이 속한 달부터 반복 주기마다 */
@@ -3445,7 +3445,7 @@ function ciHTML(){
   let t, body, ok;
   if(ci.mode==='add'){
     const avail=(bd.charge||[]).filter(x=>x.use&&!x.fixed&&!c.it.some(y=>y[0]===x.it)).map(x=>x.it);
-    t='청구 항목 추가';
+    t='청구항목 추가';
     body=R('항목',`<select onchange="ciSet('pick',this.value)"><option value="">고르세요</option>
         ${avail.map(n=>`<option value="${n}" ${ci.pick===n?'selected':''}>${n} (정산 항목)</option>`).join('')}
         <option value="__new" ${ci.pick==='__new'?'selected':''}>+ 새 고정액 항목</option></select>`)
@@ -3483,7 +3483,7 @@ function ciHTML(){
       <button class="btn pri" ${ok?'':'disabled'} onclick="ciSave()">저장</button></div>
   </div></div>`;
 }
-/* 계약 상세 › 청구 항목 탭 */
+/* 계약 상세 › 청구항목 탭 */
 function CTR3items(c,k){
   const bd=BUILDINGS.find(x=>x.id===c.b)||BUILDINGS[0], d8=d=>d.replace(/-/g,'.'), dash='<span style="color:var(--faint)">—</span>';
   const rows=c.it.map(x=>{const n=x[0], mt=(c.meta||{})[n]||{}, fixed=itemCalc(n)==='고정액', doc=itemDoc(c,n);
@@ -3502,10 +3502,10 @@ function CTR3items(c,k){
   const done=a=>dnum(a.d)<=dnum(TODAY_S);
   const cur=n=>Math.round(ctrAmt(c,n)*1.1);
   return `
-  <div class="card"><div class="ct">청구 항목<span class="sub">${c.it.length}개 · 금액은 부가세 포함</span>
-    <span class="ca"><button class="btn pri sm" onclick="ciOpen('${k}','add')">+ 청구 항목 추가</button></span></div>
+  <div class="card"><div class="ct">청구항목<span class="sub">${c.it.length}개 · 금액은 부가세 포함</span>
+    <span class="ca"><button class="btn pri sm" onclick="ciOpen('${k}','add')">+ 청구항목 추가</button></span></div>
     <div class="tw"><table>
-      <thead><tr><th>청구 항목</th><th>산정방식</th><th class="n">금액</th><th>발행 문서</th><th>반복 주기</th><th>기산일</th>
+      <thead><tr><th>청구항목</th><th>산정방식</th><th class="n">금액</th><th>발행 문서</th><th>반복 주기</th><th>기산일</th>
         <th class="c">배분 우선순위</th><th class="c">상태</th><th></th></tr></thead>
       <tbody>${rows}</tbody></table></div></div>
   <div class="card"><div class="ct">임대조건 조정 일정<span class="sub">적용일부터 자동으로 새 금액 청구 · 30일 전 알림</span>
@@ -3538,7 +3538,7 @@ function CTR3head(c,k){
       ${tab3c==='원장'?`<button class="btn pri" onclick="alert('원장 출력 — 선택한 기간·계정의 원장을 거래내역서 PDF로 내려받거나 임차인 담당자에게 보낸다')">원장 출력</button>`:''}</div>
   </div>
   <div class="tabs">
-    ${['요약','임차인','원장','청구 항목','자료보관'].map(t=>`<button class="${t===tab3c?'on':''}" onclick="tab3c='${t}';render()">${t}</button>`).join('')}
+    ${['요약','임차인','원장','청구항목','자료보관'].map(t=>`<button class="${t===tab3c?'on':''}" onclick="tab3c='${t}';render()">${t}</button>`).join('')}
   </div>`;
 }
 /* CTR-3 요약 탭 — 계약·임대 정보. 잔액은 원장에서 */
@@ -3604,8 +3604,8 @@ const g3Tog=k=>{g3[k]=!g3Open(k);render(true);};
 function CTR3(k){
   const c=CTRS.find(x=>ckey(x)===k);
   if(!c) return TODO('ctr-1');
-  if(tab3c!=='원장') return CTR3head(c,k)+(tab3c==='요약'?CTR3sum(c,k):tab3c==='청구 항목'?CTR3items(c,k)
-    :`<div class="tbl"><div class="empty"><div class="t">아직 만들지 않은 탭입니다</div>목업에는 요약 · 원장 · 청구 항목 탭만 있습니다.</div></div>`);
+  if(tab3c!=='원장') return CTR3head(c,k)+(tab3c==='요약'?CTR3sum(c,k):tab3c==='청구항목'?CTR3items(c,k)
+    :`<div class="tbl"><div class="empty"><div class="t">아직 만들지 않은 탭입니다</div>목업에는 요약 · 원장 · 청구항목 탭만 있습니다.</div></div>`);
   const bn=BUILDINGS.find(x=>x.id===c.b)||BUILDINGS[0];
   const L=ledgerOf(k);
   const from=f3.per?new Date((dnum(TODAY_S)-({'1':30,'3':91}[f3.per]))*864e5)
