@@ -93,6 +93,8 @@ run('CTR-1', 'CTR1()');
 for (const f of ["f1c.st=''", "f1c.b='b2'", "f1c.dd='90'", "f1c.dd='0'"]) run('CTR-1 필터 ' + f, "f1c={b:'',st:'진행중',dd:''};" + f + ';CTR1()');
 run('CTR-3 요약', "tab3c='요약';CTR3('b1별관3층')");
 run('CTR-3 빈 탭', "tab3c='자료보관';CTR3('b1별관3층')");
+run('CTR-3 청구 항목', "tab3c='청구 항목';CTR3('b1별관3층')");
+run('CTR-3 청구 항목 패널', "ciOpen('b1별관3층','add');ciSet('pick','__new');ciHTML();ciOpen('b1별관3층','edit','임대료');ciSet('fix',true);ciHTML();ciOpen('b1별관3층','edit','전기요금');ciHTML();ciOpen('b1별관3층','adj');ciHTML()");
 run('CTR-3 원장 비씨에이전시', "tab3c='원장';CTR3('b1별관3층')");
 run('CTR-3 원장 전체 펼침', "tab3c='원장';g3All=true;CTR3('b1본관1층')");
 run('CTR-3 원장 필터', "tab3c='원장';f3={per:'3',acc:'매출채권'};CTR3('b1본관302호')");
@@ -338,6 +340,19 @@ r6.push(['6·7월 청구서 화면 합계 = 원장 청구 · 6월 거래 18건(�
   same && P6j.rows.length === 18 && P6j.dep.length === 11 && P6j.dep.every(d => d.no > 100)
   && j6('별관3층').st === '미납' && j6('본관B2').due === 385000 && others6
   && D.BILL_M['2026-07'].elec.read['본관8층'][1] === D.BILL_M['2026-08'].elec.read['본관8층'][0]]);
+/* 청구 약정 — 분기 고정액 추가 · 중지 · 조정 일정이 청구서 발행에 반영된다 → PAY-3 · PAY-1 */
+const G = new Function(stub + bare + '; return {ciOpen,ciSet,ciSave,ciStop,ISSUE,CTRS,get ci(){return ci;}};')();
+const iss = no => G.ISSUE().find(c => c.no === no), ln = (no, n) => (iss(no).lines.find(l => l.n === n) || null);
+G.ciOpen('b1별관3층', 'add'); G.ciSet('pick', '__new'); G.ciSet('n', '광고판 사용료'); G.ciSet('amt', '330000'); G.ciSet('cycle', '분기'); G.ciSet('from', '2026-08-01'); G.ciSave();
+const adAug = ln('별관3층', '광고판 사용료');
+G.ciOpen('b1별관2층', 'add'); G.ciSet('pick', '__new'); G.ciSet('n', '창고 사용료'); G.ciSet('amt', '110000'); G.ciSet('from', '2026-09-01'); G.ciSave();
+const notYet = !ln('별관2층', '창고 사용료');
+G.ciStop('b1본관8층', '주차비'); const stopped = !ln('본관8층', '주차비');
+G.ciOpen('b1별관3층', 'adj'); G.ciSet('d', '2026-08-01'); G.ciSet('rent', '3630000'); G.ciSave();
+const rent = ln('별관3층', '임대료');
+G.ciOpen('b1별관3층', 'edit', '고정관리비'); G.ciSet('fix', true); G.ciSet('amt', '1400000'); G.ciSave(); const noWhy = G.ci !== null;
+r6.push(['청구 약정 — 분기 고정액 33만 8월 청구 · 9월부터 항목은 8월 제외 · 주차비 중지 · 8/1 조정 일정 → 임대료 3,630,000 · 바로잡기는 사유 필수',
+  adAug && adAug.amt === 330000 && adAug.supply === 300000 && notYet && stopped && rent && rent.amt === 3630000 && noWhy]);
 const bad6 = r6.filter(x => !x[1]);
 if (bad6.length) fail = 1;
 console.log('⑥ 수납 기록 ' + (bad6.length ? '✗ ' + bad6.map(x => x[0]).join(' / ') : 'OK — ' + r6.length + '개 검산'));
