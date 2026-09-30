@@ -2232,7 +2232,7 @@ function ISSUE(){
       /* 중지한 약정은 청구서에 올리지 않는다 → PAY-3 */
       if(((c.meta||{})[x[0]]||{}).stop) return null;
       const d=CITEM[x[0]]||{calc:'고정액'};
-      /* 고정액 — 기산일과 반복 주기로 이번 회차 대상인지 판정. 임대조건 조정 일정이 있으면 적용일부터 새 금액 */
+      /* 고정액 — 기산일과 반복 주기로 이번 회차 대상인지 판정. 임대료 인상 예약이 있으면 적용일부터 새 금액 */
       if(d.calc==='고정액'){
         const ym=PAST_CTX||SETTLE.ym;
         if(!cycleDue(itemCycle(c,x[0]),itemFrom(c,x[0]),ym)) return null;
@@ -3182,7 +3182,7 @@ function ncInit(){
       kind:'법인',biz:'',found:null,ten:'',ceo:'',addr:'',item:'',alias:'',
       pn:'',pt:'',ptel:'',pmail:'',diff:false,cn:'',cbiz:'',cceo:'',ctel:'',cmail:'',caddr:'',rbank:'',racct:'',rname:'',
       proxy:false,xn:'',xtel:'',xmail:'',xaddr:'',an:'',aceo:'',ano:'',atel:'',aaddr:'',
-      dep:'',depDue:'',depRet:'',park:'0',parkFee:'',rent:'',mgmt:'',late:false,lateD:'',rf:'',rfM:'',rfEnd:'',rfRent:true,rfMgmt:false,rfVar:false,
+      dep:'',depDue:'',depRet:'',park:'0',parkFee:'',rent:'',mgmt:'',rentCy:'매월',mgmtCy:'매월',late:false,lateD:'',rf:'',rfM:'',rfEnd:'',rfRent:true,rfMgmt:false,rfVar:false,
       adj:[],files:[],memo:'',tried:false};
 }
 function ncSet(f,v){
@@ -3235,6 +3235,9 @@ function ncSave(welcome){
     adj:nc.adj.filter(x=>x.d&&(numOf(x.rent)||numOf(x.mgmt))).map(x=>({d:x.d,rent:numOf(x.rent)||null,mgmt:numOf(x.mgmt)||null})),rf:nc.rf==='있음'?{end:nc.rfEnd,rent:nc.rfRent,mgmt:nc.rfMgmt,vars:nc.rfVar}:null,
     it:[['임대료',ncSup(numOf(nc.rent))],['고정관리비',ncSup(numOf(nc.mgmt))],...vars.map(n=>[n])]};
   if(CTRS.some(x=>x.b===c.b&&x.no===c.no)) c.key=`${c.b}${c.no}@${c.base}`;
+  /* 반복 주기 — 매월이 아니면 약정에 적는다 */
+  if(nc.rentCy!=='매월') itemMeta(c,'임대료').cycle=nc.rentCy;
+  if(nc.mgmtCy!=='매월') itemMeta(c,'고정관리비').cycle=nc.mgmtCy;
   CTRS.push(c);
   const k=ckey(c); nc=null; tab3c='요약'; go('ctr-3/'+k);
 }
@@ -3315,9 +3318,11 @@ function CTR2(){
       +`<div style="margin-top:10px">${C('agent','중개사가 있음')}</div>`
       +(nc.agent?`<div style="margin-top:10px">${R('중개사무소',T('an'))+R('대표자명',T('aceo'))+R('등록번호',T('ano'))+R('연락처',T('atel'))+R('소재지',T('aaddr'))}</div>`:''));
   const right=
-    card('임대료 · 관리비','<div class="c2" style="margin:-4px 0 10px">부가세를 포함한 월 금액으로 입력합니다</div>'
-      +R('임대료',N('rent','월 금액 (부가세 포함)'),1)
-      +R('고정관리비',N('mgmt','월 금액 (부가세 포함)'),1)
+    card('임대료 · 관리비','<div class="c2" style="margin:-4px 0 10px">부가세를 포함한 금액으로 입력합니다. 반복 주기는 거의 매월입니다</div>'
+      +R('임대료',N('rent','금액 (부가세 포함)'),1)
+      +R('',`<span class="c2" style="margin:0">반복 주기</span>${S('rentCy',ITEM_CYCLES)}`)
+      +R('고정관리비',N('mgmt','금액 (부가세 포함)'),1)
+      +R('',`<span class="c2" style="margin:0">반복 주기</span>${S('mgmtCy',ITEM_CYCLES)}`)
       +R('청구일 · 마감일',`<span class="fv">${bd.billDay} · ${bd.dueDay} <span class="c2">건물 기본값</span></span>`))
     +card('렌트프리 · 기산일',(()=>{
       const from=ncFrom(), rfTo=nc.rf==='있음'?nc.rfEnd:'', rfDays=rfTo&&nc.start?dnum(rfTo)-dnum(nc.start)+1:0;
@@ -3335,7 +3340,7 @@ function CTR2(){
         +(nc.rf!=='있음'?R('',C('late','기산일을 따로 정하기 (소급 등)')):'');})())
     +card('보증금',R('보증금',N('dep','약정액'))+R('납부마감일',D('depDue'))+R('반환예정일',D('depRet')))
     +card('주차',R('무상 주차',`${T('park','',70)}<span class="c2" style="margin:0">대</span>`)+R('초과 1대 월',N('parkFee','단가 (부가세 포함)')))
-    +card('임대조건 조정 일정',
+    +card('임대료 인상 예약',
       '<div class="c2" style="margin:-4px 0 10px;white-space:normal">계약서에 「0000년 00월 00일부터 임대료·관리비 얼마」가 있으면 넣습니다. <b>적용일부터 새 금액으로 자동 청구</b>합니다. 30일 전에 알려 드립니다.</div>'
       +nc.adj.map((x,i)=>{const K=(f,ph)=>`<input type="text" inputmode="numeric" value="${x[f]?numOf(x[f]).toLocaleString('ko-KR'):''}" placeholder="${ph}"
           oninput="kwLive(this)" onchange="ncRow('adj',${i},'${f}',this.value)" style="text-align:right"><span class="kw">${korWon(numOf(x[f]))}</span>`;
@@ -3387,7 +3392,7 @@ function itemFrom(c,n){
   if(c.rf&&c.from){const inRf=n==='임대료'?c.rf.rent:n==='고정관리비'?c.rf.mgmt:c.rf.vars; return inRf?c.from:c.base;}
   return c.from||c.base;
 }
-/* 임대조건 조정 — 적용일이 속한 달부터 새 금액(부가세 포함 → 공급가액). 달 중간 일할은 명세 4.2.7, 목업은 달 단위 */
+/* 임대료 인상 예약 — 적용일이 속한 달부터 새 금액(부가세 포함 → 공급가액). 달 중간 일할은 명세 4.2.7, 목업은 달 단위 */
 function adjSup(c,n,sup,ym){
   const f=n==='임대료'?'rent':n==='고정관리비'?'mgmt':null;
   if(!f||!c.adj) return sup;
@@ -3403,7 +3408,8 @@ const ciC=()=>CTRS.find(x=>ckey(x)===ci.k);
 function ciOpen(k,mode,n){
   const c=CTRS.find(x=>ckey(x)===k);
   if(mode==='edit'){const x=c.it.find(y=>y[0]===n), mt=(c.meta||{})[n]||{};
-    ci={k,mode,n,cycle:itemCycle(c,n),from:itemFrom(c,n),memo:mt.memo||'',fix:false,amt:x[1]?Math.round(x[1]*(isTax(itemDoc(c,n))?1.1:1)):0,why:''};}
+    const a0=x[1]?Math.round(x[1]*(isTax(itemDoc(c,n))?1.1:1)):0;
+    ci={k,mode,n,cycle:itemCycle(c,n),from:itemFrom(c,n),memo:mt.memo||'',amt:a0,amt0:a0,why:''};}
   else if(mode==='adj') ci={k,mode,d:'',rent:'',mgmt:'',memo:'',i:n,back:ci&&ci.mode==='edit'?ci.n:(ci&&ci.back)||null};
   else if(mode==='payto') ci={k,mode,payTo:c.payTo||''};
   if(mode==='adj'&&n!=null){const a=c.adj[n];Object.assign(ci,{d:a.d,rent:a.rent||'',mgmt:a.mgmt||'',memo:a.memo||''});}
@@ -3419,7 +3425,9 @@ function ciSave(){
   const c=ciC();
   if(ci.mode==='edit'){
     const mt=itemMeta(c,ci.n), x=c.it.find(y=>y[0]===ci.n);
-    if(ci.fix){const a=numOf(ci.amt); if(!a||!ci.why.trim()) return; x[1]=isTax(itemDoc(c,ci.n))?Math.floor(a*10/11):a; mt.fixWhy=ci.why.trim();}
+    /* 금액을 바꾸면 사유를 남긴다 — 이력 → 3.6 */
+    const a=numOf(ci.amt); if(!a) return;
+    if(a!==ci.amt0){if(!ci.why.trim()) return; x[1]=isTax(itemDoc(c,ci.n))?Math.floor(a*10/11):a; mt.fixWhy=ci.why.trim();}
     if(itemCalc(ci.n)==='고정액'){mt.cycle=ci.cycle; mt.from=ci.from;}
     mt.memo=ci.memo;
   } else if(ci.mode==='payto'){
@@ -3434,18 +3442,18 @@ function ciSave(){
   DRAWER=null;ci=null;render(true);
 }
 function ciDelAdj(k,i){const c=CTRS.find(x=>ckey(x)===k);c.adj.splice(i,1);render(true);}
-/* 조정 일정 목록 — 임대료·고정관리비 수정 패널 안에 보인다 */
+/* 임대료 인상 예약 목록 — 임대료·고정관리비 수정 패널 안에 보인다 */
 function adjListHTML(c,k){
   const d8=d=>d.replace(/-/g,'.'), dash='<span style="color:var(--faint)">—</span>', cur=n=>Math.round(ctrAmt(c,n)*1.1);
   const L=(c.adj||[]).map((a,i)=>({a,i})).sort((p,q)=>p.a.d<q.a.d?-1:1), done=a=>dnum(a.d)<=dnum(TODAY_S);
-  return `<div class="fg" style="margin-top:14px"><div class="fl">임대조건 조정 일정 · 적용일부터 자동으로 새 금액</div>
+  return `<div class="fg" style="margin-top:14px"><div class="fl">임대료 인상 예약</div>
     ${L.length?L.map(({a,i})=>`<div style="border:1px solid var(--line);border-radius:var(--r-sm);padding:9px 11px;margin-bottom:8px;font-size:12.5px">
       <div style="display:flex;align-items:center;gap:8px"><b>${d8(a.d)}</b><span class="bd ${done(a)?'ok':'ac'}">${done(a)?'적용완료':'예정'}</span>
         ${done(a)?'':`<span style="margin-left:auto;display:flex;gap:6px"><button class="btn sm" onclick="ciOpen('${k}','adj',${i})">수정</button>
           <button class="btn sm" onclick="ciDelAdj('${k}',${i})">삭제</button></span>`}</div>
       <div class="c2" style="margin:5px 0 0;white-space:normal">임대료 ${a.rent?`${won(cur('임대료'))} → <b style="color:var(--ink)">${won(a.rent)}</b>`:'그대로'} · 고정관리비 ${a.mgmt?`${won(cur('고정관리비'))} → <b style="color:var(--ink)">${won(a.mgmt)}</b>`:'그대로'}${a.memo?` · ${a.memo}`:''}</div></div>`).join('')
       :'<div class="c2" style="margin:0 0 8px">등록된 일정이 없습니다</div>'}
-    <button class="btn sm" onclick="ciOpen('${k}','adj')">+ 조정 일정 추가</button></div>`;
+    <button class="btn sm" onclick="ciOpen('${k}','adj')">+ 일정 추가</button></div>`;
 }
 function ciHTML(){
   if(DRAWER!=='citem'||!ci) return '';
@@ -3459,14 +3467,15 @@ function ciHTML(){
   if(ci.mode==='edit'){
     const fixed=itemCalc(ci.n)==='고정액', rentLike=ci.n==='임대료'||ci.n==='고정관리비';
     t=`${ci.n} 수정`;
-    body=(fixed?R('금액',ci.fix?NUM('amt','부가세 포함'):`<span class="fv"><b>${won(ci.amt)}</b> <span class="c2">부가세 포함</span></span>`)
-        +(rentLike&&!ci.fix?`<div class="c2" style="margin:-4px 0 9px 114px;white-space:normal">금액은 아래 임대조건 조정 일정으로 바꿉니다</div>`:'')
-        +R('',`<label class="ck"><input type="checkbox" ${ci.fix?'checked':''} onchange="ciSet('fix',this.checked)">계약서 금액을 잘못 넣었을 때만 — 금액 바로잡기</label>`)
-        +(ci.fix?R('사유',`<input type="text" value="${ci.why}" placeholder="필수. 예: 계약서 금액 오기" onchange="ciSet('why',this.value)">`):'')
+    const chg=numOf(ci.amt)!==ci.amt0;
+    body=(fixed?`<div class="c2" style="margin:-2px 0 10px;white-space:normal">슈퍼관리자만 고칠 수 있습니다. 바로 고친 금액은 다음 청구서부터 적용됩니다.
+          날짜를 정해 바뀌는 인상은 아래 「임대료 인상 예약」에 넣으세요.</div>`
+        +R('금액',NUM('amt','부가세 포함'))
+        +(chg?R('사유',`<input type="text" value="${ci.why}" placeholder="필수. 예: 계약서 금액 오기, 재협의" onchange="ciSet('why',this.value)">`):'')
         +R('반복 주기',SEL('cycle',ITEM_CYCLES))+R('기산일',DT('from'))
       :`<div class="c2" style="margin:0 0 10px;white-space:normal">정산 항목입니다. 금액은 매달 관리비 정산에서 나오고, 반복 주기는 ${bd.name} 관리비 탭 설정을 따릅니다.</div>`)
       +MEMO+(rentLike?adjListHTML(c,ci.k):'');
-    ok=!ci.fix||(numOf(ci.amt)&&ci.why.trim());
+    ok=!fixed||(numOf(ci.amt)&&(!chg||ci.why.trim()));
   } else if(ci.mode==='payto'){
     t='정산액 부담 계약';
     body=`<div class="c2" style="margin:-2px 0 12px;white-space:normal">이 계약의 정산 항목(전기·수도 등)을 다른 계약이 대신 낼 때만 고릅니다.
@@ -3475,7 +3484,7 @@ function ciHTML(){
         ${CTRS.filter(x=>x.b===c.b&&x!==c&&(x.st==='진행중'||x.st==='준비중')).map(x=>`<option value="${x.no}" ${ci.payTo===x.no?'selected':''}>${x.no} · ${x.ten}</option>`).join('')}</select>`);
     ok=true;
   } else {
-    t=ci.i!=null?'임대조건 조정 일정 수정':'임대조건 조정 일정 추가';
+    t=ci.i!=null?'임대료 인상 예약 수정':'임대료 인상 예약 추가';
     body=`<div class="c2" style="margin:-2px 0 10px;white-space:normal">적용일부터 새 금액으로 자동 청구합니다. 30일 전에 알려 드립니다.</div>`
       +R('적용일',DT('d'))+R('임대료',NUM('rent','바뀐 금액 (부가세 포함)'))+R('고정관리비',NUM('mgmt','바뀐 금액 (부가세 포함)'))
       +`<div class="c2" style="margin:-4px 0 9px 114px">비워 두면 그 항목은 그대로입니다</div>`+MEMO;
@@ -3524,7 +3533,7 @@ function CTR3items(c,k){
   <div class="hint">
     건물 관리비 탭에 있는 청구항목입니다. 계약에서는 <b>활성화 · 비활성화</b>만 합니다. 새 청구항목은 건물 관리 › 관리비 탭에서 만듭니다.<br>
     계약을 등록하면 모두 활성입니다. 이 계약이 내지 않는 항목만 비활성화하세요. 비활성 항목은 청구서에 올라가지 않습니다.<br>
-    임대료·관리비 금액은 그 항목의 「수정」에서 임대조건 조정 일정으로 바꿉니다. 기산일은 계약시작일과 다를 때만 항목 아래에 보입니다.
+    임대료·관리비는 그 항목의 「수정」에서 금액을 고치거나 인상을 예약합니다(슈퍼관리자만). 기산일은 계약시작일과 다를 때만 항목 아래에 보입니다.
     배분 우선순위는 건물 관리비 탭에서 정합니다.<br>
     이미 발행한 청구서는 바뀌지 않습니다. 앞으로 발행하는 청구서부터 적용됩니다.</div>`;
 }

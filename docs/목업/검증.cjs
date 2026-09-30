@@ -355,17 +355,18 @@ G.ciOpen('b1별관3층', 'adj'); G.ciSet('d', '2026-08-01'); G.ciSet('rent', '36
 const rent = ln('별관3층', '임대료');
 const backToEdit = G.ci && G.ci.mode === 'edit' && G.ci.n === '임대료';
 G.ciOpen('b1본관B2', 'payto'); G.ciSet('payTo', '본관2층'); G.ciSave(); const payTo = G.CTRS.find(c => c.no === '본관B2').payTo === '본관2층';
-G.ciOpen('b1별관3층', 'edit', '고정관리비'); G.ciSet('fix', true); G.ciSet('amt', '1400000'); G.ciSave(); const noWhy = G.ci !== null;
-r6.push(['청구 약정 — 분기 · 기산일 8월 청구 · 9월 기산은 8월 제외 · 비활성화/활성화 · 301호에 건물 항목이 비활성으로 보임 · 8/1 조정 일정 → 3,630,000(수정 패널 복귀) · 바로잡기 사유 필수 · 정산액 부담',
-  q8 && q9 && off && onAgain && /활성 1 \/ 8/.test(list301) && /비활성화/.test(list301) && rent && rent.amt === 3630000 && backToEdit && noWhy && payTo]);
+G.ciOpen('b1별관3층', 'edit', '고정관리비'); G.ciSet('amt', '1400000'); G.ciSave(); const noWhy = G.ci !== null;
+G.ciSet('why', '재협의'); G.ciSave(); const fixed2 = G.ci === null && ln('별관3층', '고정관리비') && ln('별관3층', '고정관리비').amt === 1400000;
+r6.push(['청구 약정 — 분기 · 기산일 8월 청구 · 9월 기산은 8월 제외 · 비활성화/활성화 · 301호에 건물 항목이 비활성으로 보임 · 8/1 조정 일정 → 3,630,000(수정 패널 복귀) · 금액을 바꾸면 사유 필수 → 1,400,000 반영 · 정산액 부담',
+  q8 && q9 && off && onAgain && /활성 1 \/ 8/.test(list301) && /비활성화/.test(list301) && rent && rent.amt === 3630000 && backToEdit && noWhy && fixed2 && payTo]);
 /* 매월 항목 자동 · 계약 등록 시 건물 정산 항목 자동 → PAY-10 · CTR-2 */
 { const A = new Function(stub + bare + '; return {monthlyItems,BILL,MASTER,CTR2,ncSet,ncLookup,ncSave,CTRS,get nc(){return nc;}};')();
   const on = A.MASTER.filter(m => !m.fixed && A.BILL[m.code].on).map(m => m.code).sort().join();
   A.CTR2(); A.ncSet('no', '본관B1'); A.ncSet('start', '2026-09-01'); A.nc.biz = '999-99-99999'; A.ncLookup();
-  A.ncSet('ten', '(주)새임차'); A.ncSet('pmail', 'a@b.kr'); A.ncSet('rent', '1100000'); A.ncSet('mgmt', '220000'); A.ncSet('rf', '없음'); A.ncSave(false);
+  A.ncSet('ten', '(주)새임차'); A.ncSet('pmail', 'a@b.kr'); A.ncSet('rent', '1100000'); A.ncSet('mgmt', '220000'); A.ncSet('rf', '없음'); A.ncSet('mgmtCy', '분기'); A.ncSave(false);
   const nw = A.CTRS[A.CTRS.length - 1], names = nw.it.map(x => x[0]);
-  r6.push(['8월 항목 = 건물의 매월 항목 · 새 계약에 건물 정산 항목 7개 자동',
-    on === A.monthlyItems('b1').sort().join() && nw.ten === '(주)새임차' && names.length === 9 && names.includes('정화조청소비') && !nw.payTo]); }
+  r6.push(['8월 항목 = 건물의 매월 항목 · 새 계약에 건물 정산 항목 7개 자동 · 고정관리비 반복주기 분기로 등록',
+    on === A.monthlyItems('b1').sort().join() && nw.ten === '(주)새임차' && names.length === 9 && names.includes('정화조청소비') && !nw.payTo && nw.meta['고정관리비'].cycle === '분기' && !(nw.meta['임대료'] || {}).cycle]); }
 const bad6 = r6.filter(x => !x[1]);
 if (bad6.length) fail = 1;
 console.log('⑥ 수납 기록 ' + (bad6.length ? '✗ ' + bad6.map(x => x[0]).join(' / ') : 'OK — ' + r6.length + '개 검산'));
