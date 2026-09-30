@@ -593,9 +593,9 @@ const BUILDINGS=[
    {n:'B1-03',t:'일반',memo:'',as:'(주)케이큐엔터테이먼트',asu:'본관4층'},{n:'B1-04',t:'소형',memo:'경차 전용',as:'',asu:''},
    {n:'B1-05',t:'장애인',memo:'',as:'',asu:''},{n:'B2-01',t:'일반',memo:'',as:'(유)유니버셜대부',asu:'본관302호'}],
   docs:[
-   {t:'관리위임계약서_카리나빌딩_2025.pdf',sz:'1.2 MB',c:'관리위임계약서',by:'슈퍼관리자',at:'2025-02-24 14:20'},
-   {t:'등기부등본_20260801.pdf',sz:'340 KB',c:'등기부등본',by:'슈퍼관리자',at:'2026-08-01 09:12'},
-   {t:'건축물대장.pdf',sz:'2.1 MB',c:'건축물대장',by:'슈퍼관리자',at:'2025-03-02 11:40'},
+   {t:'관리위임계약서_카리나빌딩_2025.pdf',sz:'1.2 MB',c:'건물서류',by:'슈퍼관리자',at:'2025-02-24 14:20'},
+   {t:'등기부등본_20260801.pdf',sz:'340 KB',c:'건물서류',by:'슈퍼관리자',at:'2026-08-01 09:12'},
+   {t:'건축물대장.pdf',sz:'2.1 MB',c:'건물서류',by:'슈퍼관리자',at:'2025-03-02 11:40'},
    {t:'2026년 화재보험증권.pdf',sz:'880 KB',c:'기타',by:'슈퍼관리자',at:'2026-01-08 16:05'}],
   charge:[
    {it:'임대료',use:1,bill:'세금계산서',cycle:'매월',meter:'',mtr:'',basis:'',doc:'임대차계약서',fixed:true},
@@ -1167,9 +1167,10 @@ function csHTML(){
           (BILLDOC.find(b=>b.k===cs.bill)||{}).d||''}<br>
           같은 문서끼리 묶여 계약당 1장으로 발행됩니다.</div>
         <div class="fr"><span class="fk">반복 주기</span>
-          <select onchange="csSet('cycle',this.value)">
-            ${CYCLES.map(c=>`<option value="${c}" ${cs.cycle===c?'selected':''}>${c}</option>`).join('')}
+          <select onchange="csSet('cycle',this.value)" ${cs.fixed?'disabled':''}>
+            ${(cs.fixed?['계약마다']:CYCLES).map(c=>`<option value="${c}" ${cs.cycle===c?'selected':''}>${c}</option>`).join('')}
           </select></div>
+        ${cs.fixed?'<div class="hint" style="margin:-3px 0 0 114px">계약마다 정합니다(계약 상세 › 임대료·관리비).</div>':''}
         <div class="fr"><span class="fk">배분 우선순위</span>
           <input class="inp w" type="number" min="1" max="99" step="1" value="${cs.pr}"
             onchange="csSet('pr',Math.max(1,Math.min(99,parseInt(this.value)||99)))"></div>
@@ -1238,7 +1239,8 @@ function drawerHTML(){
   if(DRAWER==='mclose') return mcHTML();
   if(DRAWER==='citem') return ciHTML();
   if(DRAWER!=='additem') return '';
-  const rest=MASTER.filter(m=>!m.fixed&&!BILL[m.code].on);
+  const used=BUILDINGS[0].charge.filter(c=>c.use).map(c=>c.it);
+  const rest=MASTER.filter(m=>!m.fixed&&!BILL[m.code].on&&used.includes(m.name));
   if(!ONCE.on) rest.push({code:'once',name:'일회성 청구 — 이번 회차에만 특정 계약에 (엘리베이터 사용료, 수리비 등)'});
   const card=m=>{
     const on=dPick.includes(m.code);
@@ -1539,7 +1541,7 @@ function t청구(b){
         <td>${c.use?'<span class="bd ok">사용</span>':'<span class="bd mu">미사용</span>'}</td>
         <td style="white-space:nowrap">${c.bill||m.bill||'—'} <span class="c2" style="margin:0 0 0 4px">${
           isTax(c.bill||m.bill)?'과세':(c.bill||m.bill)==='계산서'?'면세':'비과세'}</span></td>
-        <td>${c.cycle||m.cycle||'—'}</td>
+        <td>${c.fixed?'<span style="color:var(--muted)">계약마다</span>':(c.cycle||m.cycle||'—')}</td>
         <td>${c.fixed?'<span style="color:var(--muted)">계약 약정액</span>':(c.basis||'—')}${c.ref?`<div class="c2">${c.ref} 검침값 참조</div>`:''}</td>
         <td>${!c.meter?'—':c.meter==='없음'?'<span style="color:var(--faint)">없음</span>':`<b>${c.meter}</b>`}</td>
         <td>${c.doc||`${st.by||m.src||''} ${st.doc||m.doc||''}`.trim()||'—'}</td>
@@ -1622,7 +1624,7 @@ function pay10Head(sel){
   return `
   <div class="ph"><h1>건물 관리비 정산</h1><span class="sid">PAY-10</span>
     <div class="act">${f10ym!=='2026-08'?'':(()=>{const un=(sel||[]).filter(x=>!SAVED[x.code]);
-      return `<button class="btn pri" ${un.length?'disabled':''} onclick="alert('정산 확정 → 계약별 청구서 생성')">정산 확정</button>`;})()}</div>
+      return `<button class="btn pri" ${un.length?'disabled':''} onclick="alert('정산 확정 → 산출 결과를 고정합니다. 청구 건은 청구서 발행 때 만들어집니다')">정산 확정</button>`;})()}</div>
   </div>
   <div class="fbar">
     <select><option>카리나빌딩</option><option>카즈하타워</option><option>뉴진스하우스</option></select>
@@ -1944,10 +1946,10 @@ function PAY12(){
       <td class="st c" onclick="go('pay-10')">
         <span class="stp"><span class="dot2" style="background:var(--${p.settle==='확정'?'ok':p.settle==='작성중'?'warn':'faint'})"></span>
         ${p.settle}</span></td>
-      <td class="st n" onclick="go('pay-2')">${p.inv?`<b>${p.inv}건</b><div class="c2">발행 완료</div>`
+      <td class="st n" onclick="go('pay-1')">${p.inv?`<b>${p.inv}건</b><div class="c2">발행 완료</div>`
         :`<span style="color:var(--faint)">미발행</span><div class="c2">대상 ${p.invN}건</div>`}</td>
       <td class="n">${p.amt?won(p.amt):'—'}</td>
-      <td class="st n" onclick="go('pay-2')">${p.inv?`<b>${p.paidN} / ${p.invN}</b>
+      <td class="st n" onclick="go('pay-6')">${p.inv?`<b>${p.paidN} / ${p.invN}</b>
         <div class="bar ${rate<100?'part':''}"><i style="width:${rate}%"></i></div>`:'—'}</td>
       <td class="n">${unpaid>0?`<b style="color:var(--warn)">${won(unpaid)}</b>`
         :p.inv?'<span class="bd ok">완납</span>':'—'}</td>
