@@ -597,14 +597,14 @@ const BUILDINGS=[
   charge:[
    {it:'임대료',use:1,bill:'세금계산서',cycle:'매월',meter:'',mtr:'',basis:'',doc:'임대차계약서',fixed:true},
    {it:'고정관리비',use:1,bill:'세금계산서',cycle:'매월',meter:'',mtr:'',basis:'',doc:'임대차계약서',fixed:true},
-   {it:'전기요금',use:1,bill:'세금계산서',meter:'13개 유닛',mtr:'청구함',rest:'전체 유닛',basis:'사용량',doc:'한국전력 고지서'},
-   {it:'수도요금',use:1,bill:'계산서',meter:'101호',mtr:'청구함',rest:'전체 유닛',basis:'사용량+임대면적',doc:'상수도사업본부 고지서'},
-   {it:'전력기금',use:1,bill:'일반내역서',meter:'없음',mtr:'—',rest:'전체 유닛',basis:'사용량',ref:'전기요금',doc:'한국전력 고지서'},
-   {it:'TV수신료',use:1,bill:'일반내역서',meter:'없음',mtr:'—',rest:'전체 유닛',basis:'사용량',ref:'전기요금',doc:'한국전력 고지서'},
+   {it:'전기요금',use:1,cycle:'매월',bill:'세금계산서',meter:'13개 유닛',mtr:'청구함',rest:'전체 유닛',basis:'사용량',doc:'한국전력 고지서'},
+   {it:'수도요금',use:1,cycle:'매월',bill:'계산서',meter:'101호',mtr:'청구함',rest:'전체 유닛',basis:'사용량+임대면적',doc:'상수도사업본부 고지서'},
+   {it:'전력기금',use:1,cycle:'매월',bill:'일반내역서',meter:'없음',mtr:'—',rest:'전체 유닛',basis:'사용량',ref:'전기요금',doc:'한국전력 고지서'},
+   {it:'TV수신료',use:1,cycle:'매월',bill:'일반내역서',meter:'없음',mtr:'—',rest:'전체 유닛',basis:'사용량',ref:'전기요금',doc:'한국전력 고지서'},
    {it:'가스요금',use:0,bill:'',meter:'',mtr:'',rest:'',basis:''},
-   {it:'주차비',use:1,bill:'세금계산서',meter:'없음',mtr:'—',rest:'—',basis:'직접 입력',doc:'경비실 내역서'},
-   {it:'교통유발부담금',use:1,bill:'계산서',meter:'없음',mtr:'—',rest:'전체 유닛',basis:'임대면적',doc:'구청 고지서'},
-   {it:'정화조청소비',use:1,bill:'계산서',meter:'없음',mtr:'—',rest:'전체 유닛',basis:'임대면적',doc:'청소업체 내역서'}],
+   {it:'주차비',use:1,cycle:'매월',bill:'세금계산서',meter:'없음',mtr:'—',rest:'—',basis:'직접 입력',doc:'경비실 내역서'},
+   {it:'교통유발부담금',use:1,cycle:'연1회',bill:'계산서',meter:'없음',mtr:'—',rest:'전체 유닛',basis:'임대면적',doc:'구청 고지서'},
+   {it:'정화조청소비',use:1,cycle:'반기',bill:'계산서',meter:'없음',mtr:'—',rest:'전체 유닛',basis:'임대면적',doc:'청소업체 내역서'}],
   billDay:'매월 19일',dueDay:'매월 말일'},
 
  {id:'b2',name:'뉴진스하우스',alias:'뉴진스',kind:'오피스빌딩',addr:'서울특별시 용산구 이촌로 248',addr2:'서울 용산구 이촌동 301-8',
@@ -948,6 +948,11 @@ function closeDrawer(){DRAWER=null;cs=null;render();}
 function dToggle(c){dPick.includes(c)?dPick=dPick.filter(x=>x!==c):dPick.push(c);render();}
 function dApply(){dPick.forEach(c=>{if(c==='once'){ONCE.on=true;if(!ONCE.rows.length) ONCE.rows.push({k:'',n:'',amt:'',doc:'세금계산서',memo:''});pCode='once';}else BILL[c].on=true;});DRAWER=null;dPick=[];render();}
 function delItem(code){BILL[code].on=false;render();}
+/* 새 회차를 열면 올라와 있는 항목 — 건물 관리비 탭에서 반복주기가 매월인 정산 항목 → PAY-10 */
+function monthlyItems(bid){
+  const b=BUILDINGS.find(x=>x.id===bid)||BUILDINGS[0];
+  return (b.charge||[]).filter(x=>x.use&&!x.fixed&&x.cycle==='매월').map(x=>codeOf(x.it));
+}
 /* 일회성 청구 — 이번 회차에만 특정 계약에 붙는 돈. 엘리베이터 사용료, 파손 수리비 등. 안분하지 않는다 → PAY-10 */
 const ONCE={on:false,rows:[]};
 const ONCE_DOC=['세금계산서','계산서','일반내역서'];
@@ -1242,6 +1247,8 @@ function drawerHTML(){
       <div class="s">2026년 8월 · 카리나빌딩</div></div>
       <button class="x" onclick="closeDrawer()">✕</button></div>
     <div class="db">
+      <div class="c2" style="margin:-4px 0 12px;white-space:normal">반복주기가 <b>매월</b>인 항목은 새 회차를 열면 이미 올라와 있습니다.
+        여기서는 가끔 오는 고지서(정화조청소비, 교통유발부담금 등)가 도착했을 때 추가합니다.</div>
       ${rest.length? rest.map(card).join('')
         : '<div class="empty"><div class="t">추가할 항목이 없습니다</div>모든 항목이 이미 선택되어 있습니다.</div>'}
       ${rest.length?`<div class="hint" style="margin-top:16px">
@@ -3174,11 +3181,11 @@ function ncInit(){
       pn:'',pt:'',ptel:'',pmail:'',diff:false,cn:'',cbiz:'',cceo:'',ctel:'',cmail:'',caddr:'',rbank:'',racct:'',rname:'',
       proxy:false,xn:'',xtel:'',xmail:'',xaddr:'',an:'',aceo:'',ano:'',atel:'',aaddr:'',
       dep:'',depDue:'',depRet:'',park:'0',parkFee:'',rent:'',mgmt:'',late:false,lateD:'',rf:'',rfM:'',rfEnd:'',rfRent:true,rfMgmt:false,rfVar:false,
-      vars:null,payTo:'',adj:[],files:[],memo:'',tried:false};
+      adj:[],files:[],memo:'',tried:false};
 }
 function ncSet(f,v){
   nc[f]=v;
-  if(f==='b'){nc.no='';nc.vars=null;nc.payTo='';}
+  if(f==='b'){nc.no='';}
   if(f==='start'){nc.end=ncEnd(v);if(!nc.depRet) nc.depRet=nc.end;if(nc.rfM) nc.rfEnd=rfEndOf(v,nc.rfM);}
   if(f==='rfM') nc.rfEnd=rfEndOf(nc.start,v);
   if(f==='rfEnd') nc.rfM='';
@@ -3217,9 +3224,10 @@ function ncSave(welcome){
   const cl=ncClash();
   if(ncMissing().length||(cl&&cl.block)){render(true);return;}
   const bd=BUILDINGS.find(x=>x.id===nc.b);
-  const vars=nc.vars||ncVarList(bd).filter(x=>x.on).map(x=>x.it);
+  /* 청구항목 — 건물 관리비 탭의 정산 항목을 모두 붙인다. 예외는 계약 상세 청구항목 탭에서 중지한다 */
+  const vars=(bd.charge||[]).filter(x=>x.use&&!x.fixed).map(x=>x.it);
   const c={b:nc.b,no:nc.no,ten:nc.ten.trim(),st:nc.st,base:nc.start,end:nc.end||ncEnd(nc.start),rate:+nc.rate||8,
-    dep:numOf(nc.dep)||null,payTo:nc.payTo||undefined,fresh:true,
+    dep:numOf(nc.dep)||null,fresh:true,
     /* 기산일 — 렌트프리면 체크한 항목만 기산일부터, 나머지는 계약시작일부터 청구한다 */
     from:ncFrom()!==nc.start?ncFrom():null,
     adj:nc.adj.filter(x=>x.d&&(numOf(x.rent)||numOf(x.mgmt))).map(x=>({d:x.d,rent:numOf(x.rent)||null,mgmt:numOf(x.mgmt)||null})),rf:nc.rf==='있음'?{end:nc.rfEnd,rent:nc.rfRent,mgmt:nc.rfMgmt,vars:nc.rfVar}:null,
@@ -3257,12 +3265,6 @@ const DOC_CAT=['계약서','사업자등록증·신분증','보증금관련','�
 /* 목업 — 파일 선택 대신 예시 파일을 차례로 붙인다. 파일 이름으로 카테고리를 짐작해 채운다 */
 const NC_SAMPLE=[['임대차계약서_본관302호.pdf','임대차계약서','계약서'],['사업자등록증.pdf','사업자등록증','사업자등록증·신분증'],['보증금_입금확인.jpg','보증금 입금 확인','보증금관련']];
 function ncFile(){const x=NC_SAMPLE[nc.files.length%NC_SAMPLE.length];nc.files.push({file:x[0],t:x[1],c:x[2],m:''});render(true);}
-/* 이 계약에 적용할 변동 항목 — 건물 관리비 탭에서 쓰는 항목만. 기본은 전부 적용 */
-const ncVarList=bd=>(bd.charge||[]).filter(x=>x.use&&!x.fixed).map(x=>({it:x.it,on:!nc.vars||nc.vars.includes(x.it)}));
-function ncVarTog(it){
-  const bd=BUILDINGS.find(x=>x.id===nc.b), cur=ncVarList(bd).filter(x=>x.on).map(x=>x.it);
-  nc.vars=cur.includes(it)?cur.filter(x=>x!==it):[...cur,it]; render(true);
-}
 function ncRow(list,i,f,v){nc[list][i][f]=v;render(true);}
 function CTR2(){
   if(!nc) ncInit();
@@ -3277,7 +3279,6 @@ function CTR2(){
   const C=(f,t)=>`<label class="ck"><input type="checkbox" ${nc[f]?'checked':''} onchange="ncSet('${f}',this.checked)">${t}</label>`;
   const R=(k,body,req)=>`<div class="fr"><span class="fk">${k}${req?' <b style="color:var(--warn)">*</b>':''}</span>${body}</div>`;
   const d8=d=>d?d.replace(/-/g,'.'):'';
-  const others=CTRS.filter(c=>c.b===nc.b&&(c.st==='진행중'||c.st==='준비중')&&c.no!==nc.no);
   const card=(t,body,sub)=>`<div class="card" style="margin:0 0 16px"><div class="ct">${t}${sub?`<span class="sub">${sub}</span>`:''}</div><div class="cc">${body}</div></div>`;
   const left=
     card('기본 정보',
@@ -3311,7 +3312,6 @@ function CTR2(){
       +(nc.proxy?`<div style="margin-top:10px">${R('대리인 이름',T('xn'))+R('연락처',T('xtel'))+R('이메일',T('xmail'))+R('주소',T('xaddr'))}</div>`:'')
       +`<div style="margin-top:10px">${C('agent','중개사가 있음')}</div>`
       +(nc.agent?`<div style="margin-top:10px">${R('중개사무소',T('an'))+R('대표자명',T('aceo'))+R('등록번호',T('ano'))+R('연락처',T('atel'))+R('소재지',T('aaddr'))}</div>`:''));
-  const vl=ncVarList(bd);
   const right=
     card('임대료 · 관리비','<div class="c2" style="margin:-4px 0 10px">부가세를 포함한 월 금액으로 입력합니다</div>'
       +R('임대료',N('rent','월 금액 (부가세 포함)'),1)
@@ -3333,11 +3333,6 @@ function CTR2(){
         +(nc.rf!=='있음'?R('',C('late','기산일을 따로 정하기 (소급 등)')):'');})())
     +card('보증금',R('보증금',N('dep','약정액'))+R('납부마감일',D('depDue'))+R('반환예정일',D('depRet')))
     +card('주차',R('무상 주차',`${T('park','',70)}<span class="c2" style="margin:0">대</span>`)+R('초과 1대 월',N('parkFee','단가 (부가세 포함)')))
-    +card('청구항목',
-      (vl.length?`<div class="c2" style="margin:-4px 0 10px">${bd.name} 관리비 탭의 항목입니다. 임대료·고정관리비 말고 이 계약에 청구할 항목만 남깁니다. 금액은 매달 관리비 정산에서 나옵니다</div>
-        <div style="display:flex;flex-wrap:wrap;gap:8px 16px">${vl.map(x=>`<label class="ck"><input type="checkbox" ${x.on?'checked':''} onchange="ncVarTog('${x.it}')">${x.it}</label>`).join('')}</div>`
-        :'<div class="c2" style="margin:0">이 건물에 설정된 정산 항목이 없습니다</div>')
-      +`<div style="margin-top:12px">${R('정산액 부담 계약',S('payTo',[['','없음 (이 계약이 낸다)'],...others.map(c=>[c.no,`${c.no} · ${c.ten}`])]))}</div>`)
     +card('임대조건 조정 일정',
       '<div class="c2" style="margin:-4px 0 10px;white-space:normal">계약서에 「0000년 00월 00일부터 임대료·관리비 얼마」가 있으면 넣습니다. <b>적용일부터 새 금액으로 자동 청구</b>합니다. 30일 전에 알려 드립니다.</div>'
       +nc.adj.map((x,i)=>{const K=(f,ph)=>`<input type="text" inputmode="numeric" value="${x[f]?numOf(x[f]).toLocaleString('ko-KR'):''}" placeholder="${ph}"
@@ -3433,6 +3428,7 @@ function ciSave(){
   }
   DRAWER=null;ci=null;render(true);
 }
+function ciPayTo(k,v){const c=CTRS.find(x=>ckey(x)===k);if(v) c.payTo=v; else delete c.payTo;render(true);}
 function ciDelAdj(k,i){const c=CTRS.find(x=>ckey(x)===k);c.adj.splice(i,1);render(true);}
 function ciHTML(){
   if(DRAWER!=='citem'||!ci) return '';
@@ -3508,6 +3504,11 @@ function CTR3items(c,k){
       <thead><tr><th>청구항목</th><th>산정방식</th><th class="n">금액</th><th>발행 문서</th><th>반복 주기</th><th>기산일</th>
         <th class="c">배분 우선순위</th><th class="c">상태</th><th></th></tr></thead>
       <tbody>${rows}</tbody></table></div></div>
+  <div class="card"><div class="ct">정산액 부담 계약<span class="sub">이 계약의 정산 항목을 다른 계약이 대신 낼 때만</span></div>
+    <div class="cc"><div class="fr" style="margin:0"><span class="fk">대신 낼 계약</span>
+      <select onchange="ciPayTo('${k}',this.value)" style="max-width:360px"><option value="">없음 (이 계약이 낸다)</option>
+        ${CTRS.filter(x=>x.b===c.b&&x!==c&&(x.st==='진행중'||x.st==='준비중')).map(x=>`<option value="${x.no}" ${c.payTo===x.no?'selected':''}>${x.no} · ${x.ten}</option>`).join('')}</select></div>
+      <div class="c2" style="margin:8px 0 0">정산 항목은 이 유닛 몫으로 계산하고, 청구서만 고른 계약에 「대납」으로 실립니다. 임대료·고정관리비는 옮기지 않습니다.</div></div></div>
   <div class="card"><div class="ct">임대조건 조정 일정<span class="sub">적용일부터 자동으로 새 금액 청구 · 30일 전 알림</span>
     <span class="ca"><button class="btn sm" onclick="ciOpen('${k}','adj')">+ 일정 추가</button></span></div>
     ${adj.length?`<div class="tw"><table>
@@ -3522,6 +3523,7 @@ function CTR3items(c,k){
     :'<div class="cc"><div class="c2" style="margin:0">등록된 일정이 없습니다. 계약서에 「0000년 00월 00일부터 임대료·관리비 얼마」가 있으면 추가하세요.</div></div>'}</div>
   <div class="hint">
     이 계약에 매달(또는 정해진 주기마다) 청구하는 항목입니다. 청구서 발행은 이 목록을 보고 이번 달에 청구할 항목을 고릅니다.<br>
+    계약을 등록하면 건물 관리비 탭의 정산 항목이 모두 들어옵니다. 이 계약이 내지 않는 항목만 「중지」하세요.<br>
     임대료·관리비 금액은 임대조건 조정 일정으로 바꿉니다. 「중지」한 항목은 청구서에 올라가지 않습니다.
     배분 우선순위는 건물 관리비 탭에서 정합니다.<br>
     이미 발행한 청구서는 바뀌지 않습니다. 앞으로 발행하는 청구서부터 적용됩니다.</div>`;
