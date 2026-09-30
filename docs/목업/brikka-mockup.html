@@ -833,9 +833,10 @@ function loadCS(code){
   const mt=[...(METER[code]||[])];
   cs={neu:false, item:code, name:m.name, bill:m.bill, cycle:m.cycle,
       useMeter:mt.length>0, meters:mt,
-      basis:b.basis||'임대면적', ref:b.ref||null, editing:!!row,
+      basis:m.fixed?'계약 약정액':b.basis||'임대면적', ref:b.ref||null, editing:!!row,
       ct:{...(CTMUL[code]||{})},
-      doc:b.doc||m.doc||'고지서', by:b.by||m.src||'',
+      /* 고정액 — 근거는 임대차계약서, 금액은 계약마다의 약정액. 두 값은 바꾸지 않는다 */
+      doc:m.fixed?'계약서':b.doc||m.doc||'고지서', by:m.fixed?'임대차계약서':b.by||m.src||'',
       fixed:!!m.fixed, pr:(b&&b.pr)||m.pr||99};
 }
 function openCS(code){
@@ -1149,7 +1150,9 @@ function csHTML(){
       ${nM&&A.charge==='청구함'
         ? `계량기 보유 <b>${nM}개 유닛</b>은 자기 사용량만큼 청구받습니다.<br>`
         : nM?`계량기 보유 ${nM}개 유닛의 사용분은 임차인이 직접 납부합니다.<br>`:''}
-      ${cs.basis==='직접 입력'
+      ${cs.fixed
+        ? '나누지 않습니다. 계약마다 등록된 약정액을 그대로 청구합니다.<br>'
+        : cs.basis==='직접 입력'
         ? '안분하지 않습니다. 정산 때 계약별 금액을 직접 입력합니다.<br>'
         : `${nM&&A.charge==='청구함'?'남은 공용분':'고지서 전액'}을 <b>전체 ${nAll}개 유닛</b>에
            <b>${byUse?'사용량':'임대면적'}${cs.ref&&cs.ref!==cs.item?` · ${M(cs.ref).name} 검침값`:''} 비율</b>로 나눕니다.<br>`}
@@ -1189,24 +1192,22 @@ function csHTML(){
           (()=>{const d=prDup();return d?`<br><span style="color:var(--danger)">${d}이(가) 이미 ${cs.pr}번을 씁니다. 다른 번호를 넣으세요.</span>`:'';})()}</div>
       </div>
 
-      ${cs.fixed?'':`<div class="fg"><div class="fl">근거 문서</div>
+      <div class="fg"><div class="fl">근거 문서${cs.fixed?' · 계약서 약정이라 바꿀 수 없습니다':''}</div>
         <div class="fr"><span class="fk">문서 종류</span>
-          <select onchange="csSet('doc',this.value)">
+          <select onchange="csSet('doc',this.value)" ${cs.fixed?'disabled':''}>
             ${['고지서','내역서','계약서','집계표'].map(o=>`<option value="${o}" ${cs.doc===o?'selected':''}>${o}</option>`).join('')}
           </select></div>
         <div class="fr"><span class="fk">발행처</span>
           <input class="inp" style="flex:1" value="${cs.by||''}" placeholder="한국전력"
-            onchange="csSet('by',this.value)"></div>
-      </div>`}
+            onchange="csSet('by',this.value)" ${cs.fixed?'disabled':''}></div>
+      </div>
 
-      ${cs.fixed?`<div class="prev"><div class="pt">고정액 항목</div>
-        계약에 등록된 약정액을 그대로 청구합니다. 배분·계량기 설정이 없습니다.</div>`:`
-      <div class="fg"><div class="fl">배분 방식</div>
+      <div class="fg"><div class="fl">배분 방식${cs.fixed?' · 계약서 약정이라 바꿀 수 없습니다':''}</div>
         <div class="fr"><span class="fk">배분 기준</span>
-          <select onchange="csBasis(this.value)">
-            ${BASIS.map(o=>`<option value="${o.k}" ${cs.basis===o.k?'selected':''}>${o.k}</option>`).join('')}
+          <select onchange="csBasis(this.value)" ${cs.fixed?'disabled':''}>
+            ${(cs.fixed?[{k:'계약 약정액'}]:BASIS).map(o=>`<option value="${o.k}" ${cs.basis===o.k?'selected':''}>${o.k}</option>`).join('')}
           </select></div>
-        <div class="hint" style="margin-top:2px">${(BASIS.find(o=>o.k===cs.basis)||{}).d||''}</div>
+        <div class="hint" style="margin-top:2px">${cs.fixed?'나누지 않는다. 계약마다 등록된 약정액(계약 상세 › 청구항목)을 그대로 청구한다.':(BASIS.find(o=>o.k===cs.basis)||{}).d||''}</div>
         ${needM&&!cs.useMeter?`<div class="fr"><span class="fk">참조 항목</span>
           <select onchange="csSet('ref',this.value||null)">
             <option value="">선택</option>
@@ -1233,14 +1234,14 @@ function csHTML(){
         </div>
       </div>`:''}
 
-      ${cs.basis==='직접 입력'?'':`
+      ${cs.basis==='직접 입력'||cs.fixed?'':`
       <div class="hint" style="margin-top:-4px">
         <b>공용분은 언제나 전 유닛이 부담합니다.</b> 계량기가 있어도 복도·화장실을
         쓰기 때문입니다. 특정 유닛을 빼려면 정산 시 배율을 0으로 두세요.</div>`}
-      ${prev}`}
+      ${prev}
     </div>
     <div class="df">
-      ${cs.editing&&!cs.fixed?`<button class="btn ex" style="margin-right:auto" onclick="csDrop()">이 청구항목 미사용</button>`:''}
+      ${cs.editing?`<button class="btn ex" style="margin-right:auto" onclick="csDrop()" ${cs.fixed?'disabled title="계약서 약정 항목은 건물에서 빼지 않습니다"':''}>이 청구항목 미사용</button>`:''}
       <button class="btn" onclick="closeDrawer()">취소</button>
       <button class="btn pri" onclick="csApply()">저장</button></div>
   </div></div>`;
