@@ -34,8 +34,8 @@ for (const c of ['elec', 'water', 'gas', 'parking'])
 run('PAY-10 항목 없음', "Object.keys(BILL).forEach(k=>BILL[k].on=false);PAY10()");
 run('PAY-10 패널', "DRAWER='additem';dPick=['fund'];drawerHTML()");
 run('PAY-10 일회성 청구', "dPick=['once'];dApply();onceSet(0,'k','b1본관B2');onceSet(0,'amt','110000');onceAdd();PAY10()+drawerHTML()");
-run('PAY-10 안분 제외 표시', "loadCS('elec');csExcl('본관2층');csExclWhy('본관2층','한전 직접 계약');csApply();pCode='elec';PAY10()");
-run('건물 관리비 안분 제외 패널', "openCS('elec');csExcl('본관2층');drawerHTML();openCS('rent');drawerHTML()");
+run('PAY-10 배율 0', "BILL.elec.adj['본관2층']={mul:0};pCode='elec';PAY10()");
+run('건물 관리비 설정 패널', "openCS('elec');drawerHTML();openCS('rent');drawerHTML();openCS('parking');drawerHTML()");
 run('PAY-10 7월 마감 회차', "f10ym='2026-07';PAY10()");
 for (const c of ['elec','water','fund','tv','parking']) run('PAY-10 6월 ' + c, "f10ym='2026-06';pCode='" + c + "';PAY10()");
 run('PAY-13 6월', "RC.f.ym='2026-06';PAY13()");
@@ -381,18 +381,14 @@ r6.push(['임대료·관리비 탭 — 분기 · 기산일 8월 청구 · 9월 �
   const names = nw1.it.map(x => x[0]).join();
   r6.push(['8월 항목 = 건물의 매월 항목 · 새 계약에는 임대료·고정관리비만 · 고정관리비 반복주기 분기로 등록 · 고정관리비 빈칸은 막힘 · 0으로 등록 가능(청구 안 함)',
     on === A.monthlyItems('b1').sort().join() && nw1.ten === '(주)새임차' && names === '임대료,고정관리비' && !nw1.payTo && nw1.meta['고정관리비'].cycle === '분기' && !(nw1.meta['임대료'] || {}).cycle && noMgmt]); }
-/* 안분 제외 — 건물 관리비 탭에서 유닛을 고르고 사유를 적는다. 유닛에 붙어 새 계약에도 유지 → 4.1.7-2 */
-{ const X = new Function(stub + bare + '; return {loadCS,csExcl,csExclWhy,csApply,calc,M,ISSUE,exclOf,CTR2,ncSet,ncLookup,ncSave,CTRS,get cs(){return cs;}};')();
+/* 공용분에서 한 유닛 빼기 = 배율 0 — 공용분만 0, 개별 사용량은 그대로 청구. 나머지가 나눠 내고 합계는 고지서와 같다 → 4.1.2 · 4.1.7 */
+{ const X = new Function(stub + bare + '; return {calc,M,BILL};')();
   const before = X.calc(X.M('elec')).rows.find(r => r.no === '본관1층').amt;
-  X.loadCS('elec'); X.csExcl('본관2층'); X.csApply(); const needWhy = !X.exclOf('elec')['본관2층'];
-  X.csExclWhy('본관2층', '한전 직접 계약'); X.csApply();
+  X.BILL.elec.adj['본관2층'] = { mul: 0 };
   const R = X.calc(X.M('elec')), r2 = R.rows.find(r => r.no === '본관2층'), after = R.rows.find(r => r.no === '본관1층').amt;
   const ratioSum = R.rows.reduce((a, r) => a + r.ratio, 0);
-  const noLine = !X.ISSUE().find(c => c.no === '본관2층').lines.some(l => l.n === '전기요금');
-  const not301 = !X.exclOf('elec')['본관301호'];
-  X.loadCS('rent'); const fixedNo = X.cs.fixed;
-  r6.push(['안분 제외 = 건물 관리비 탭 — 사유 없으면 저장 안 됨 · 2층 전기 제외(사유) · 비율 합 1 · 1층 몫 증가 · 2층 청구서에 없음 · 301호는 제외 아님 · 임대료는 잠금',
-    needWhy && r2 && r2.excl && r2.excl.why === '한전 직접 계약' && Math.abs(ratioSum - 1) < 1e-9 && after > before && noLine && not301 && !!fixedNo]); }
+  r6.push(['공용분 빼기 = 배율 0 — 2층 공용분 0 · 개별분은 청구 · 비율 합 1 · 1층 몫 증가 · 합계 = 고지서',
+    r2.common === 0 && r2.amt > 0 && Math.abs(ratioSum - 1) < 1e-9 && after > before && R.diff === 0]); }
 const bad6 = r6.filter(x => !x[1]);
 if (bad6.length) fail = 1;
 console.log('⑥ 수납 기록 ' + (bad6.length ? '✗ ' + bad6.map(x => x[0]).join(' / ') : 'OK — ' + r6.length + '개 검산'));

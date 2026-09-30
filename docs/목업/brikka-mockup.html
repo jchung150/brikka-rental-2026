@@ -124,7 +124,6 @@ svg{flex:none}
 tr.dim td{color:var(--muted)}
 tr.sumr td{background:var(--head);font-weight:700;border-top:1px solid var(--line)}
 tr.vacr td{background:var(--warn-bg)}
-tr.exr td{background:var(--line-2);color:var(--muted)}
 .vfy{display:flex;align-items:center;gap:12px;padding:13px 16px;border-radius:var(--r);
   border:1px solid var(--line);margin-top:14px;font-size:12.5px;flex-wrap:wrap}
 .vfy.ok{background:var(--ok-bg);border-color:var(--ok)}
@@ -802,15 +801,15 @@ const METER={
 };
 /* 건물별 항목 설정 — 정본은 PRO-3 관리비 탭 */
 const BSET={
- elec:{basis:'사용량',ref:null,excl:{}},
- water:{basis:'사용량+임대면적',ref:null,excl:{}},
- fund:{basis:'사용량',ref:'elec',excl:{}},
- tv:{basis:'사용량',ref:'elec',excl:{}},
- gas:{basis:'사용량+임대면적',ref:null,excl:{},doc:'고지서',by:'도시가스'},
+ elec:{basis:'사용량',ref:null},
+ water:{basis:'사용량+임대면적',ref:null},
+ fund:{basis:'사용량',ref:'elec'},
+ tv:{basis:'사용량',ref:'elec'},
+ gas:{basis:'사용량+임대면적',ref:null,doc:'고지서',by:'도시가스'},
  traffic:null, septic:null,
- parking:{basis:'직접 입력',ref:null,excl:{}},
+ parking:{basis:'직접 입력',ref:null},
 };
-const DEFSET={basis:'임대면적',ref:null,excl:{}};
+const DEFSET={basis:'임대면적',ref:null};
 /* 자동 규칙 해석 — 4.1.3 */
 function resolve(code){
   const st=BSET[code]||DEFSET;
@@ -837,7 +836,7 @@ function loadCS(code){
       ct:{...(CTMUL[code]||{})},
       /* 고정액 — 근거는 임대차계약서, 금액은 계약마다의 약정액. 두 값은 바꾸지 않는다 */
       doc:m.fixed?'계약서':b.doc||m.doc||'고지서', by:m.fixed?'임대차계약서':b.by||m.src||'',
-      fixed:!!m.fixed, pr:(b&&b.pr)||m.pr||99, excl:JSON.parse(JSON.stringify(b.excl||{}))};
+      fixed:!!m.fixed, pr:(b&&b.pr)||m.pr||99};
 }
 function openCS(code){
   /* 건물당 청구항목은 최대 99개 — 우선순위 1~99와 짝 */
@@ -851,12 +850,9 @@ function openCS(code){
 }
 function csNew(){
   cs={neu:true, item:null, name:'', bill:'세금계산서', cycle:'매월', pr:18,
-      useMeter:false, meters:[], ct:{}, excl:{},
+      useMeter:false, meters:[], ct:{},
       basis:'임대면적', ref:null, editing:false};
 }
-/* 안분 제외 유닛 — 체크하면 사유를 받는다 */
-function csExcl(no){cs.excl=cs.excl||{}; if(cs.excl[no]) delete cs.excl[no]; else cs.excl[no]={why:''}; render(true);}
-function csExclWhy(no,v){cs.excl[no].why=v;render(true);}
 /* 자동 규칙 — 4.1.3 */
 function csAuto(){
   const nM=cs.useMeter?cs.meters.length:0;
@@ -905,7 +901,6 @@ function csAll(v){cs.meters=v?UNITS_B1.map(u=>u.no):[];render();}
 const prDup=()=>{const d=BUILDINGS[0].charge.filter(c=>c.it!==cs.name&&prioOf(c.it)===cs.pr).map(c=>c.it);return d.join('·');};
 function csApply(){
   let code=cs.item;
-  if(!cs.fixed&&Object.values(cs.excl||{}).some(e=>!(e.why||'').trim())){render(true);return;}
   if(prDup()){alert(`우선순위 ${cs.pr}번은 ${prDup()}이(가) 이미 씁니다. 다른 번호를 넣으세요.`);return;}
   if(cs.neu){
     const nm=(cs.name||'').trim();
@@ -930,7 +925,7 @@ function csApply(){
   CTMUL[code]=cs.useMeter?{...(cs.ct||{})}:{};   /* 계기배율도 함께 저장한다 */
   if(METER[code].length) BILL[code].read=BILL[code].read||{};
   BSET[code]={basis:cs.basis,doc:cs.doc,by:cs.by,pr:cs.pr,
-    ref:cs.ref,excl:{...(cs.excl||{})}};
+    ref:cs.ref};
   const m=M(code), bc=BUILDINGS[0].charge, row=bc.find(c=>c.it===m.name);
   const mm=METER[code];
   const mt=mm.length===0?'없음':mm.length===UNITS_B1.length?`전체 ${mm.length}개`
@@ -1023,19 +1018,13 @@ const reading=(code,no)=>hasMeter(code,no)?(BILL[code].read||{})[no]:null;
    ⑥ 부담 비율     = 유닛 총사용량 ÷ 고지서 총사용량
    ⑦ 청구금액     = 공급가액·부가세 각각 × 부담 비율
 
-   공용분은 안분 제외를 뺀 전 유닛이 부담한다. 계량기가 있어도 복도·화장실을 쓴다.
+   공용분은 전 유닛이 부담한다. 계량기가 있어도 복도·화장실을 쓴다.
    특정 유닛을 빼려면 배율을 0으로 둔다 → 4.1.7 */
-/* 안분 제외 유닛 — 건물 관리비 탭에서 항목마다 유닛과 사유를 지정한다(한전 직접 계약 등) → 4.1.7-2
-   유닛에 딸린 사정이라 임차인이 바뀌어도 그대로다. 직접 입력 항목(주차비)은 나누지 않으므로 해당 없음 */
-function exclOf(code,st){
-  const s0=st||resolve(code);
-  return s0.basis==='직접 입력'?{}:(s0.excl||{});
-}
 function ratios(m,raw){
   const st=resolve(m.code);
   const ref=(st.ref&&st.ref!==m.code)?st.ref:null;
   if(ref) return ratios(M(ref),raw);
-  const b=BILL[m.code], ex=exclOf(m.code,st);
+  const b=BILL[m.code];
   /* 계량기가 있으면 개별분을 청구한다. 배분 기준이 계량기 필요 여부를 정하므로
      「계량기는 있는데 청구하지 않는다」는 조합이 존재하지 않는다 → 4.1.3-1 */
   const charge=(METER[m.code]||[]).length>0;
@@ -1048,7 +1037,7 @@ function ratios(m,raw){
     const dir=b.direct||{}, tot=directSum(m.code);
     const rows=UNITS_B1.map(u=>{
       const d=+dir[u.no]||0;
-      return {...u,hasM:false,typed:false,use:0,aUse:0,mul:1,excl:ex[u.no]||null,
+      return {...u,hasM:false,typed:false,use:0,aUse:0,mul:1,
               direct:d,w:0,common:0,tot:0,ratio:tot?d/tot:0};
     });
     return {rows,sumUse:0,common:0,wSum:0,totUse:0,charge:false,byUse:false,direct:true};
@@ -1065,37 +1054,35 @@ function ratios(m,raw){
     /* raw는 「전 유닛 배율 1.0」 기준선 모드다. 지역 변수로 가리지 않도록 주의한다 */
     const mul=raw?1:((aj&&Number.isFinite(aj.mul))?aj.mul:1);  /* 0을 1로 되돌리지 않는다 */
     return {...u,pm:r?r[0]:null,cm:r?r[1]:null,hasM,typed,raw:diff,ct,use,mul,
-            neg:typed&&use<0,excl:ex[u.no]||null};
+            neg:typed&&use<0};
   });
-  /* 공용분은 안분 제외를 뺀 전 유닛이 부담한다 */
-  const inTarget=r=>!r.excl;
-  rows.forEach(r=>{ r.aUse = r.excl?0:r.use; });
+  /* 공용분은 전 유닛이 부담한다. 빼려면 배율 0 */
+  rows.forEach(r=>{ r.aUse = r.use; });
   /* ② */
-  const sumUse=rows.reduce((a,r)=>a+(r.excl?0:r.aUse),0);
+  const sumUse=rows.reduce((a,r)=>a+r.aUse,0);
   const totUse=b.use||0;
   const common=charge? totUse-sumUse : totUse;
   /* ④⑤⑥ 배율 적용 — 지정 유닛은 기준 공용 × 배율, 나머지가 잔여를 나눈다.
      정규화(배분 몫 ÷ Σ배분 몫)로 하면 분모가 함께 커져 배율만큼 늘지 않는다.
      총량 불변과 「정확히 N배」는 이 방식으로 동시에 성립한다 → 4.1.2 */
   const base=r=>byUse? r.use : r.ar;
-  const bSum=rows.reduce((a,r)=>a+(inTarget(r)? base(r) : 0),0);
-  const base0=r=>inTarget(r)&&bSum? common*base(r)/bSum : 0;   /* 배율 1.0 기준 공용 */
-  const set=rows.filter(r=>inTarget(r)&&r.mul!==1);            /* 배율을 지정한 유닛 */
-  const oth=rows.filter(r=>inTarget(r)&&r.mul===1);
+  const bSum=rows.reduce((a,r)=>a+base(r),0);
+  const base0=r=>bSum? common*base(r)/bSum : 0;   /* 배율 1.0 기준 공용 */
+  const set=rows.filter(r=>r.mul!==1);            /* 배율을 지정한 유닛 */
+  const oth=rows.filter(r=>r.mul===1);
   const fixSum=set.reduce((a,r)=>a+base0(r)*r.mul,0);
   const othSum=oth.reduce((a,r)=>a+base0(r),0);
   const rest=common-fixSum;
   /* 지정 유닛이 합계를 넘으면 나머지가 음수가 된다. 그때는 정규화로 물러선다 */
   const over=rest<-0.0001||(oth.length===0&&set.length>0);
-  const wSum=rows.reduce((a,r)=>a+(inTarget(r)? base(r)*r.mul : 0),0);
+  const wSum=rows.reduce((a,r)=>a+base(r)*r.mul,0);
   rows.forEach(r=>{
-    r.w=inTarget(r)? base(r)*r.mul : 0;
-    r.common=!inTarget(r)?0
-      :over ? (wSum? common*r.w/wSum : 0)
+    r.w=base(r)*r.mul;
+    r.common=over ? (wSum? common*r.w/wSum : 0)
       :r.mul!==1 ? base0(r)*r.mul
       :(othSum? rest*base0(r)/othSum : 0);
-    r.tot=r.excl?0:((charge&&r.hasM? r.use : 0)+r.common);
-    r.ratio=r.excl?0:(totUse?r.tot/totUse:(common?r.common/common:0));
+    r.tot=(charge&&r.hasM? r.use : 0)+r.common;
+    r.ratio=totUse?r.tot/totUse:(common?r.common/common:0);
   });
   return {rows,sumUse,common,wSum,totUse,charge,byUse,over};
 }
@@ -1109,7 +1096,7 @@ function calc(m,raw){
   const vat=b.vat||0;
   const rows=base.rows.map(r=>({...r,
     supply:Math.floor(sup*r.ratio), vat:Math.floor(vat*r.ratio), rnd:0}));
-  const top=()=>{let k=-1,best=-1;rows.forEach((r,i)=>{if(!r.excl&&r.ratio>best){best=r.ratio;k=i;}});return k;};
+  const top=()=>{let k=-1,best=-1;rows.forEach((r,i)=>{if(r.ratio>best){best=r.ratio;k=i;}});return k;};
   const k=top();
   if(k>=0){
     const rs=sup-rows.reduce((a,r)=>a+r.supply,0);
@@ -1118,7 +1105,7 @@ function calc(m,raw){
   }
   rows.forEach(r=>r.amt=r.supply+r.vat);
   const sum=f=>rows.filter(f).reduce((a,r)=>a+r.amt,0);
-  const bill=sum(r=>r.st==='사용중'&&!r.excl), vc=sum(r=>r.st!=='사용중'&&!r.excl);
+  const bill=sum(r=>r.st==='사용중'), vc=sum(r=>r.st!=='사용중');
   const total=sup+vat;
   return {...base,rows,bill,vac:vc,total,supply:sup,vatTotal:vat,
           diff:total-(bill+vc),rem:(k>=0?rows[k].rnd:0)};
@@ -1132,7 +1119,6 @@ function csHTML(){
   const used=BUILDINGS[0].charge.filter(c=>c.use).map(c=>c.it);
   let warn='';
   if(cs.neu&&!(cs.name||'').trim()) warn='항목명을 입력하세요.';
-  else if(Object.values(cs.excl||{}).some(e=>!(e.why||'').trim())) warn='안분 제외 유닛의 사유를 입력하세요. 다른 임차인이 형평성을 물을 때 근거가 됩니다.';
   else if(needM&&nM===0&&!cs.ref) warn='이 배분 기준은 계량기가 필요합니다. 보유 유닛을 선택하거나 참조 항목을 지정하세요.';
   /* 사용량 기준인데 일부 유닛만 계량기를 보유하면, 계량기 없는 유닛의 배분 몫이 0이 되어
      공용분을 한 푼도 부담하지 않는다. 그 몫을 계량기 보유 유닛이 대신 낸다 → 4.1.3-1
@@ -1216,17 +1202,6 @@ function csHTML(){
           <div class="hint" style="margin:-3px 0 0 114px">계량기가 없으므로 다른 항목의 검침값으로 나눕니다.</div>`:''}
       </div>
 
-      ${(()=>{const lock=cs.fixed?'계약서 약정이라 바꿀 수 없습니다':cs.basis==='직접 입력'?'직접 입력 항목은 나누지 않아 해당 없습니다':'';
-        const ex=cs.excl||{}, n=Object.keys(ex).length;
-        return `<div class="fg"><div class="fl">안분 제외 유닛${lock?' · '+lock:` · ${n}개`}</div>
-        <div class="c2" style="margin:-4px 0 8px;white-space:normal">임차인이 공급자와 직접 계약해 이 고지서에 들어 있지 않은 유닛(예: 한전 직접 계약). 이 항목을 나눌 때 빼고, 그 유닛에는 청구하지 않습니다.</div>
-        <div class="ulist ${lock?'locked':''}">${U.map(u=>{const on=!!ex[u.no];return `
-          <div class="ur ${on?'on':''}">
-            <div class="ck2" onclick="csExcl('${u.no}')">${on?'✓':''}</div>
-            <span class="un2" onclick="csExcl('${u.no}')">${u.no}</span>
-            <span class="ut2" onclick="csExcl('${u.no}')">${u.ten||'<span style="color:var(--faint)">공실</span>'}</span>
-            ${on?`<input class="inp" style="flex:1;max-width:190px" value="${ex[u.no].why||''}" placeholder="사유 (필수)" onclick="event.stopPropagation()" onchange="csExclWhy('${u.no}',this.value)">`:''}</div>`}).join('')}
-        </div></div>`;})()}
 
       ${cs.useMeter?`<div class="fg"><div class="fl">계량기 보유 유닛</div>
         <div class="utool">
@@ -1565,7 +1540,7 @@ function t청구(b){
         <td style="white-space:nowrap">${c.bill||m.bill||'—'} <span class="c2" style="margin:0 0 0 4px">${
           isTax(c.bill||m.bill)?'과세':(c.bill||m.bill)==='계산서'?'면세':'비과세'}</span></td>
         <td>${c.cycle||m.cycle||'—'}</td>
-        <td>${c.fixed?'<span style="color:var(--muted)">계약 약정액</span>':(c.basis||'—')}${c.ref?`<div class="c2">${c.ref} 검침값 참조</div>`:''}${!c.fixed&&Object.keys(st.excl||{}).length?`<div class="c2">안분 제외 ${Object.keys(st.excl).length}개 유닛</div>`:''}</td>
+        <td>${c.fixed?'<span style="color:var(--muted)">계약 약정액</span>':(c.basis||'—')}${c.ref?`<div class="c2">${c.ref} 검침값 참조</div>`:''}</td>
         <td>${!c.meter?'—':c.meter==='없음'?'<span style="color:var(--faint)">없음</span>':`<b>${c.meter}</b>`}</td>
         <td>${c.doc||`${st.by||m.src||''} ${st.doc||m.doc||''}`.trim()||'—'}</td>
         <td class="c"><span class="det" onclick="openCS(codeOf('${c.it}'))">수정</span></td></tr>`}).join('')}</tbody>
@@ -1735,7 +1710,7 @@ function setReadDateUnit(code,no,v){SAVED[code]=null;const b=BILL[code];(b.readD
    어느 유닛에 계량기가 있는지가 화면에서 그대로 읽히도록 한다. */
 function stRead(m,R){
   const b=BILL[m.code], st=resolve(m.code), U=m.unit||'';
-  const rows=R.rows.filter(r=>!r.excl);
+  const rows=R.rows;
   const mtr=rows.filter(r=>r.hasM);
   const noM=rows.filter(r=>!r.hasM);
   const todo=mtr.filter(r=>!r.typed).length;
@@ -1800,7 +1775,7 @@ function setDirect(code,no,v){
 }
 /* 직접 입력 항목 — 안분하지 않고 계약별 금액을 담당자가 넣는다 → 4.1.3 */
 function stDirect(m,R){
-  const rows=R.rows.filter(r=>!r.excl), tot=directSum(m.code);
+  const rows=R.rows, tot=directSum(m.code);
   return `
   <div class="card"><div class="ct">금액 입력
     <span class="sub">${m.name} · 안분하지 않는다 · 공급가액 합계 <b>${won(tot)}</b>${
@@ -1824,7 +1799,7 @@ function stDirect(m,R){
 function stAdj(m,R){
   if(R.direct) return stDirect(m,R);
   const U=m.unit||'', st=resolve(m.code), B=calc(m,true);   /* B = 배율 1.0 기준선 */
-  const rows=R.rows.filter(r=>!r.excl);
+  const rows=R.rows;
   if(!rows.length) return `<div class="tbl"><div class="empty">
     <div class="t">조정할 대상이 없습니다</div>${m.name}은 조정 가능한 유닛이 없습니다.</div></div>`;
   const bb=B.rows.reduce((o,r)=>(o[r.no]=r,o),{});
@@ -1938,12 +1913,6 @@ function stResult(m,R){
 }
 function row4(r,m,cls){
   const R=ratios(m), showM=R.charge&&isMetered(m.code);
-  if(r.excl) return `<tr class="exr">
-    <td>${cnameST(r,m)}</td>
-    ${showM?'<td class="n">—</td>':''}
-    ${m.unit?'<td class="n">—</td><td class="n">—</td>':''}<td class="n">—</td>
-    <td class="n"><span class="bd mu">안분 제외</span>
-      <div class="c2" style="text-align:right">${r.excl.why}</div></td></tr>`;
   return `<tr class="${cls||''}">
     <td>${cnameST(r,m)}</td>
     ${showM?`<td class="n">${r.hasM?fx(r.use):'—'}</td>`:''}
@@ -2283,7 +2252,7 @@ function ISSUE(){
       const rs=calc(m).rows.filter(r=>us.includes(r.no));
       if(!rs.length) return {...S,supply:null,vat:null,amt:null};
       const sm=k=>rs.reduce((a,r)=>a+r[k],0);
-      /* 0원인 정산 항목은 싣지 않는다(주차면 없음 · 안분 제외 등) */
+      /* 0원인 정산 항목은 싣지 않는다(주차면 없음 · 배율 0 등) */
       if(sm('amt')===0) return null;
       return {...S,supply:sm('supply'),vat:sm('vat'),amt:sm('amt')};
     };
@@ -2417,7 +2386,6 @@ function PAY1(){
     <b>관리비 정산에서 선택한 항목</b>으로 정해진다. 격월·반기 항목의 비대상 회차는
     관리비 정산에서 이미 빠졌으므로 여기에 나오지 않는다.<br>
     <b>대납</b>은 그 유닛의 안분 결과를 다른 계약이 부담한다는 뜻이다.
-    고지서에는 그 유닛 사용량이 포함되어 있으므로 안분 제외와 다르다.
     계약에 <b>정산액 대납 계약</b>을 지정하면 산출은 유닛 기준으로 하고 청구만 옮긴다.<br>
     <b>미납 잔액</b>은 원장에서 계산되는 값이며 이번 회차 청구와 별개다.
     청구서에는 <b>합계에 넣지 않고 별도 안내로</b> 표기한다. 세금계산서에는 넣지 않는다.<br>
