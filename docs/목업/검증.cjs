@@ -1,7 +1,10 @@
 /* 목업 수정 후 반드시 실행한다.  node 검증.js
    문법 검사만으로는 함수 유실을 잡지 못한다. 호출부만 남아도 문법은 정상이다. */
 const fs = require('fs'), path = require('path');
-const file = path.join(__dirname, 'brikka-mockup.html');
+/* 파일명에 날짜판이 붙는다(brikka-mockup_YYYYMMDD.html). 하나만 있어야 한다 */
+const files = fs.readdirSync(__dirname).filter(f => /^brikka-mockup_\d{8}\.html$/.test(f));
+if (files.length !== 1) { console.log('✗ 목업 파일이 ' + files.length + '개다. brikka-mockup_YYYYMMDD.html 하나만 둔다: ' + files.join(', ')); process.exit(1); }
+const file = path.join(__dirname, files[0]);
 const html = fs.readFileSync(file, 'utf8');
 
 const m = html.match(/<script>([\s\S]*)<\/script>/);
