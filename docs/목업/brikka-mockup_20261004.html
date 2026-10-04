@@ -2830,7 +2830,7 @@ function PAY13(){
         <td>${cnameHTML(bn.alias,l.no,c.ten)}</td><td>${ymTag(l)}</td><td class="c">${l.pr}</td>
         <td class="n" style="color:var(--muted)">${won(l.amt)}</td><td class="n"><b>${won(l.pay)}</b></td>
         <td class="n">${left>0?`<span style="color:var(--warn)">${won(left)}</span>`:'<span class="bd ok">완납</span>'}</td></tr>`;}).join('')}
-      ${ovL.map(o=>`<tr><td>${cnameHTML(bn.alias,o.no,o.ten)}</td><td>과납액 <span class="c2" style="margin-left:4px">${o.why}</span></td><td class="c">—</td>
+      ${ovL.map(o=>`<tr><td>${cnameHTML(bn.alias,o.no,o.ten)}</td><td>과납액</td><td class="c">—</td>
         <td class="n" style="color:var(--muted)">—</td><td class="n"><b>${won(o.amt)}</b></td><td class="n"><span style="color:var(--pri)">−${won(o.amt)}</span></td></tr>`).join('')}
       </tbody></table></div></div>
     ${ovL.length?`<div class="fnd wa3"><span class="h">과납액 ${won(ovL.reduce((a,o)=>a+o.amt,0))}</span>
@@ -2870,7 +2870,7 @@ function PAY13(){
           <td class="n" style="color:var(--muted)">${won(l.due)}</td><td class="n">${l.pay?`<b>${won(l.pay)}</b>`:'—'}</td>
           <td class="n">${l.due-l.pay?`<span style="color:var(--warn)">${won(l.due-l.pay)}</span>`:'<span class="bd ok">완납</span>'}</td></tr>`;}).join('')}
           ${pl.rest?`<tr><td>${cnameHTML(bn.alias,(pl.lines[pl.lines.length-1]||B[g.biz].ctrs[0]).no,(CTRS.find(y=>y.b===RC.b&&y.no===(pl.lines[pl.lines.length-1]||B[g.biz].ctrs[0]).no)||{}).ten)}</td>
-            <td>과납액 <span class="c2" style="margin-left:4px">배분하고 남은 돈</span></td><td class="c">—</td><td class="n" style="color:var(--muted)">—</td>
+            <td>과납액</td><td class="c">—</td><td class="n" style="color:var(--muted)">—</td>
             <td class="n"><b>${won(pl.rest)}</b></td><td class="n"><span style="color:var(--pri)">−${won(pl.rest)}</span></td></tr>`:''}
           <tr class="sumr"><td colspan="3">합계</td>
             <td class="n">${won(pl.all.reduce((a,l)=>a+l.due,0))}</td>
