@@ -547,6 +547,17 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   BO.bopOpen('b4'); BO.bo.why = '공사 완료'; BO.bopOK();
   r6.push(['건물 운영상태 — 카리나빌딩(진행중 계약 있음)은 비운영중 불가 · 사유 없으면 안 바뀜 · 카즈하타워 비운영중 → 청구서 발행 잠김 · 다시 운영중',
     kept && noWhy && off && /비운영중인 건물입니다/.test(h) && BO.bOp('b4') === '운영중']); }
+/* 일할 계산기 — 양 끝 포함 일수 · 원 미만 버림 · 줄인 몫은 공실·미청구분 · 검증 일치 · 청구서에 반영 */
+{ const PR = new Function(stub + bare + '; return {prcOpen,prcApply,prcCalc,calc,M,BILL,ISSUE,daysIn,get prc(){return prc;}};')();
+  const m = PR.M('elec'), R0 = PR.calc(m), r0 = R0.rows.find(r => r.no === '본관8층');
+  PR.prcOpen('elec', '본관8층'); const pd = PR.daysIn(PR.prc.from, PR.prc.to);
+  PR.prc.af = '2026-08-01'; PR.prc.at = '2026-08-09';
+  const want = Math.floor(r0.amt * 9 / 31), got = PR.prcCalc(); PR.prcApply();
+  const R1 = PR.calc(m), r1 = R1.rows.find(r => r.no === '본관8층');
+  const line = PR.ISSUE().find(c => c.no === '본관8층').lines.find(l => l.n === '전기요금');
+  const ex = Math.floor(28506 * 9 / 31);
+  r6.push(['일할 계산 — 7/10~8/9 = 31일(양 끝 포함) · 8/1~8/9 = 9일 · 본관8층 전기요금 × 9 ÷ 31 버림 · 줄인 몫은 공실분 · 검증 일치 · 청구서 반영 · 예시 28,506 × 9 ÷ 31 = 8,275',
+    pd === 31 && got === want && r1.amt === want && R1.vac === R0.vac + (r0.amt - want) && R1.diff === 0 && line.amt === want && ex === 8275]); }
 /* 수납 내역 더보기 — 받을 돈이 있는 계약(비씨에이전시)만 수납 처리가 눌리고, 다 받은 계약(에스씨케이컴퍼니)은 흐림 · 원장 보기는 모두 */
 { const MV = new Function(stub + bare + '; seedJuly(); return {PAY6,RC,MORE};')();
   MV.RC.f = {b:'b1', ym:'2026-07', st:''}; MV.MORE.length = 0; const h = MV.PAY6();

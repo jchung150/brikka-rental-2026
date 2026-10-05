@@ -714,7 +714,7 @@ const M=c=>MASTER.find(x=>x.code===c);
 const codeOf=name=>{const m=MASTER.find(x=>x.name===name);return m?m.code:'elec';};
 /* 이번 회차 입력값 — 기본은 전기·수도 2종 */
 let BILL={
- elec:{on:true,date:'2026-08-09',use:37703,supply:7719702,vat:771970,
+ elec:{on:true,date:'2026-08-09',from:'2026-07-10',to:'2026-08-09',use:37703,supply:7719702,vat:771970,
    /* 2026-08 검침 — 대표 제공. 본관6층·본관B1은 달 중간에 계량기를 교체했다.
       직전 값은 교체 전 계량기 것이라, 대표가 준 사용량(6층 85 · B1 464)에 맞춰 「당월 − 사용량」으로 둔다 */
    read:{'본관8층':[165836,169004], '본관7층':[142559,150366], '본관6층':[83398,83483],
@@ -723,7 +723,7 @@ let BILL={
          '본관B2':[77125,77533],    '별관4층':[83798,84193],   '별관3층':[83808,84627],
          '별관2층':[65851,66627]},
    readDate:'2026-08-09', adj:{}},
- water:{on:true,date:'2026-08-07',use:1386,supply:4788240,vat:0,
+ water:{on:true,date:'2026-08-07',from:'2026-06-08',to:'2026-08-07',use:1386,supply:4788240,vat:0,
    /* 본관1층만 계량기. 8월 청구서의 수도 합계 4,788,240원과 일치한다 */
    read:{'본관1층':[1240,1532]},readDate:'2026-08-07',adj:{}},
  fund:{on:true,date:'2026-08-09',use:null,supply:208430,vat:0,read:null,adj:{}},
@@ -1018,7 +1018,7 @@ function setWhy(code,no,v){
 function setBill(code,key,v){
   SAVED[code]=null;
   const b=BILL[code];
-  if(key==='date'){b.date=v;render();return;}
+  if(key==='date'||key==='from'||key==='to'){b[key]=v;render();return;}
   const n=Math.max(0,Math.round(parseFloat(String(v).replace(/[,\s]/g,''))||0));
   b[key]=n;
   if(key==='supply'&&M(code).tax&&!b.vatManual) b.vat=Math.round(n*0.1);
@@ -1136,8 +1136,12 @@ function calc(m,raw){
     rows[k].supply+=rs; rows[k].vat+=rv; rows[k].rnd=rs+rv;
   }
   rows.forEach(r=>r.amt=r.supply+r.vat);
+  /* 일할 계산 — 줄인 몫은 공실·미청구분으로 간다(고지서 합계는 그대로) → 4.1.9 */
+  let cut=0;
+  rows.forEach(r=>{const ov=(b.pr||{})[r.no]; if(!ov||r.st!=='사용중') return;
+    r.orig=r.amt; r.vat=r.amt?Math.floor(r.vat*ov.amt/r.amt):0; r.supply=ov.amt-r.vat; r.amt=ov.amt; r.pro=ov; cut+=r.orig-r.amt;});
   const sum=f=>rows.filter(f).reduce((a,r)=>a+r.amt,0);
-  const bill=sum(r=>r.st==='사용중'), vc=sum(r=>r.st!=='사용중');
+  const bill=sum(r=>r.st==='사용중'), vc=sum(r=>r.st!=='사용중')+cut;
   const total=sup+vat;
   return {...base,rows,bill,vac:vc,total,supply:sup,vatTotal:vat,
           diff:total-(bill+vc),rem:(k>=0?rows[k].rnd:0)};
@@ -1272,6 +1276,7 @@ function drawerHTML(){
   if(DRAWER==='cancel') return cancelHTML();
   if(DRAWER==='issue') return issueHTML();
   if(DRAWER==='park') return pkHTML();
+  if(DRAWER==='prc') return prcHTML();
   if(DRAWER==='bop') return bopHTML();
   if(DRAWER==='c3x') return cx3HTML();
   if(DRAWER==='over') return overHTML();
@@ -1925,6 +1930,9 @@ function stBillOne(m){
       <label><span>수령일</span>
         <div class="iw"><input class="inp d" type="date" value="${b.date}"
           onchange="setBill('${m.code}','date',this.value)"></div></label>
+      <label><span>사용 기간</span>
+        <div class="iw"><input class="inp d" type="date" value="${b.from||''}" onchange="setBill('${m.code}','from',this.value)">
+          <i>~</i><input class="inp d" type="date" value="${b.to||''}" onchange="setBill('${m.code}','to',this.value)"></div></label>
       ${m.unit?`<label><span>고지서 총사용량</span>
         <div class="iw"><input class="inp" type="number" value="${b.use||0}"
           onchange="setBill('${m.code}','use',this.value)"><i>${m.unit}</i></div></label>`:''}
@@ -2112,6 +2120,54 @@ function stAdj(m,R){
 }
 
 /* ── 4단계 · 산출 결과 ── */
+/* ═══ 일할 계산기 — 고지서 사용 기간 중 일부만 쓴 계약(입주·퇴거)의 몫을 줄인다 → PAY-10 · 4.1.9
+   일수는 양 끝을 모두 센다. 원 미만은 버린다. 계산값은 담당자가 고칠 수 있다. 줄어든 몫은 공실·미청구분(건물주 부담)으로 간다 ═══ */
+let prc=null;
+const daysIn=(a,b)=>a&&b?Math.max(0,dnum(b)-dnum(a)+1):0;
+function prcOpen(code,no){
+  const m=M(code), b=BILL[code], R=calc(m), r=R.rows.find(x=>x.no===no), ov=(b.pr||{})[no];
+  const c=CTRS.find(x=>x.b==='b1'&&x.no===no&&x.st==='진행중');
+  const from=itemFrom(c,m.name), end=ctrEnd(c);
+  const af=ov?ov.af:(b.from&&dnum(from)>dnum(b.from)?from:b.from||''), at=ov?ov.at:(b.to&&end&&dnum(end)<dnum(b.to)?end:b.to||'');
+  prc={code,no,ten:r.ten,from:b.from||'',to:b.to||'',af,at,base:r.orig!=null?r.orig:r.amt,amt:ov?String(ov.amt):'',why:ov?ov.why:'',had:!!ov};
+  DRAWER='prc';render(true);}
+const prcCalc=()=>{const pd=daysIn(prc.from,prc.to), ad=daysIn(prc.af,prc.at);return pd?Math.floor(prc.base*ad/pd):0;};
+const prcWhy=()=>`일할 ${daysIn(prc.af,prc.at)}/${daysIn(prc.from,prc.to)}일 (${prc.af.slice(5).replace('-','.')}~${prc.at.slice(5).replace('-','.')})`;
+function prcSet(f,v){prc[f]=v; if(f!=='amt'&&f!=='why'){prc.amt='';} render(true);}
+function prcApply(){const b=BILL[prc.code], v=prc.amt===''?prcCalc():numOf(prc.amt);
+  if(v>prc.base) return;
+  (b.pr=b.pr||{})[prc.no]={amt:v,af:prc.af,at:prc.at,why:prc.why.trim()||prcWhy()};
+  if(!b.from&&prc.from){b.from=prc.from;b.to=prc.to;}
+  SAVED[prc.code]=null;DRAWER=null;prc=null;render(true);}
+function prcReset(){const b=BILL[prc.code]; if(b.pr) delete b.pr[prc.no]; SAVED[prc.code]=null;DRAWER=null;prc=null;render(true);}
+function prcHTML(){
+  if(DRAWER!=='prc'||!prc) return '';
+  const m=M(prc.code), pd=daysIn(prc.from,prc.to), ad=daysIn(prc.af,prc.at), v=prcCalc(), fin=prc.amt===''?v:numOf(prc.amt);
+  const bad=(prc.af&&prc.from&&dnum(prc.af)<dnum(prc.from))||(prc.at&&prc.to&&dnum(prc.at)>dnum(prc.to))||ad>pd, over=fin>prc.base;
+  const D=(f,lab)=>`<div class="fr"><span class="fk">${lab}</span><input type="date" value="${prc[f]}" onchange="prcSet('${f}',this.value)"></div>`;
+  const V=(lab,val)=>`<div class="fr"><span class="fk">${lab}</span><span class="fv">${val}</span></div>`;
+  return `<div class="dro"><div class="ov" onclick="closeDrawer()"></div><div class="pn">
+    <div class="dh"><div><div class="t">${m.name} 일할 계산</div><div class="s">${cname(BUILDINGS[0].alias,prc.no,prc.ten)}</div></div>
+      <button class="x" onclick="closeDrawer()">✕</button></div>
+    <div class="db">
+      <div class="fg"><div class="fl">고지서 사용 기간</div>${D('from','부과 시작일')}${D('to','부과 종료일')}${V('부과 일수',`<b>${pd}일</b>`)}</div>
+      <div class="fg"><div class="fl">이 계약이 쓴 기간</div>${D('af','적용 시작일')}${D('at','적용 종료일')}${V('적용 일수',`<b>${ad}일</b>`)}
+        <div class="c2" style="margin:0;white-space:normal">기산일·계약 종료일로 미리 채웠습니다. 양 끝 날짜를 모두 셉니다.</div></div>
+      <div class="fg"><div class="fl">금액</div>
+        ${V(m.name,won(prc.base))}
+        ${V('계산값',`${won(v)} <span class="c2">${num(prc.base)} × ${ad} ÷ ${pd}, 원 미만 버림</span>`)}
+        <div class="fr"><span class="fk">조정 ${m.name}</span><input type="text" inputmode="numeric" value="${prc.amt===''?num(v):num(numOf(prc.amt))}"
+          onchange="prcSet('amt',this.value)" style="text-align:right;max-width:140px"><span class="c2" style="margin:0">원 · 직접 고칠 수 있음</span></div>
+        <div class="fr"><span class="fk">사유</span><input type="text" value="${prc.why}" placeholder="${prcWhy()}" oninput="prc.why=this.value"></div>
+        <div class="c2" style="margin:0;white-space:normal">줄어든 <b>${won(Math.max(0,prc.base-fin))}</b>은 공실·미청구분(건물주 부담)으로 갑니다. 고지서 합계는 그대로 맞습니다.</div></div>
+      ${bad?'<div class="fnd wa3" style="margin:0"><span class="h">적용 기간을 확인하세요</span>적용 기간은 고지서 사용 기간 안이어야 합니다.</div>':''}
+      ${over?'<div class="fnd wa3" style="margin:8px 0 0"><span class="h">원래 금액보다 클 수 없습니다</span></div>':''}
+    </div>
+    <div class="df"><button class="btn" onclick="closeDrawer()">닫기</button>
+      ${prc.had?'<button class="btn" onclick="prcReset()">원래대로</button>':''}
+      <button class="btn pri" ${bad||over||!pd?'disabled':''} onclick="prcApply()">적용</button></div>
+  </div></div>`;
+}
 function stResult(m,R){
   const b=BILL[m.code];
   return `
@@ -2128,7 +2184,7 @@ function stResult(m,R){
       <thead><tr><th>계약고유이름</th>
         ${R.charge&&isMetered(m.code)?'<th class="n">(조정 후)개별 사용량</th>':''}
         ${m.unit?'<th class="n">(조정 후)공용 사용량</th><th class="n">총 사용량</th>':''}
-        <th class="n">부담 비율</th><th class="n">청구 금액</th></tr></thead>
+        <th class="n">부담 비율</th><th class="n">청구 금액</th><th class="c">더보기</th></tr></thead>
       <tbody>
         ${R.rows.filter(r=>r.st==='사용중').map(r=>row4(r,m)).join('')}
         ${R.rows.filter(r=>r.st!=='사용중').map(r=>row4(r,m,'vacr')).join('')}
@@ -2137,7 +2193,7 @@ function stResult(m,R){
           ${m.unit?`<td class="n">${fx(R.common)}</td>
             <td class="n">${fx(R.rows.reduce((a,r)=>a+r.tot,0))}</td>`:''}
           <td class="n">100.0%</td>
-          <td class="n">${won(R.bill+R.vac)}</td></tr>
+          <td class="n">${won(R.bill+R.vac)}</td><td></td></tr>
       </tbody></table></div>
   </div>
   <div class="vfy ${R.diff===0?'ok':'no'}">
@@ -2169,7 +2225,8 @@ function row4(r,m,cls){
     ${m.unit?`<td class="n">${r.common?fx(r.common):'<span style="color:var(--faint)">—</span>'}</td>
       <td class="n"><b>${fx(r.tot)}</b></td>`:''}
     <td class="n">${(r.ratio*100).toFixed(2)}%</td>
-    <td class="n"><b>${won(r.amt)}</b>${r.rnd?`<span class="lock">절사 +${r.rnd}원</span>`:''}</td></tr>`;
+    <td class="n"><b>${won(r.amt)}</b>${r.pro?`<span class="lock" title="${r.pro.why}">일할 ${daysIn(r.pro.af,r.pro.at)}/${daysIn(BILL[m.code].from,BILL[m.code].to)}</span>`:''}${r.rnd?`<span class="lock">절사 +${r.rnd}원</span>`:''}</td>
+    <td class="c">${r.st==='사용중'&&!isDirect(m.code)?moreCell([{t:'일할 계산',go:`prcOpen('${m.code}','${r.no}')`}]):''}</td></tr>`;
 }
 
 /* ═══ PAY-12 청구·수납 개요 ═══ */
