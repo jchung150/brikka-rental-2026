@@ -3305,30 +3305,22 @@ function openDue(k,ym){dk=k;dym=ym||null;DRAWER='due';render(true);}
 function dueHTML(){
   if(DRAWER!=='due'||!dk) return '';
   const c=CTRS.find(x=>ckey(x)===dk), bn=BUILDINGS.find(x=>x.id===c.b)||BUILDINGS[0], a=arrears(c);
-  const md=d=>d.slice(5).replace('-','.'), R=(k,b)=>`<div class="fr"><span class="fk">${k}</span>${b}</div>`;
-  const months=a.months.slice().reverse().filter(m=>!dym||m.ym===dym);   /* 고른 달 하나. 없으면 오래된 달부터 전부 */
-  const one=months.length===1?months[0]:null;
+  const md=d=>d.slice(5).replace('-','.'), ymd=d=>d.slice(2).replace(/-/g,'.'), R=(k,b)=>`<div class="fr" style="align-items:flex-start"><span class="fk">${k}</span><div>${b}</div></div>`;
+  /* 그 달에 있었던 일만 — 청구 · 받은 돈 · 남은 미납액 · 연체료 · 계산법 */
+  const months=a.months.slice().reverse().filter(m=>!dym||m.ym===dym);
   return `<div class="dro"><div class="ov" onclick="closeDrawer()"></div><div class="pn">
-    <div class="dh"><div><div class="t">미납 상세${one?` · ${one.ym.slice(2).replace('-','.')}월분`:''}</div><div class="s">${cname(bn.alias,c.no,c.ten)}</div></div>
+    <div class="dh"><div><div class="t">미납 상세</div><div class="s">${cname(bn.alias,c.no,c.ten)}</div></div>
       <button class="x" onclick="closeDrawer()">✕</button></div>
     <div class="db">
-      <div class="fg"><div class="fl">${one?'이 달':'이 계약'} — 지금 (${md(TODAY_S)} 기준)</div>
-        ${R('남은 미납',`<b style="color:var(--warn)">${won(one?one.due:a.due)}</b>`)}
-        ${R('연체료',`<b>${won(one?one.fee:a.fee)}</b>`)}
-        ${R('<b>합계</b>',`<b style="font-size:15px">${won(one?one.due+one.fee:a.due+a.fee)}</b>`)}
-        ${one&&a.months.length>1?`<div class="c2" style="margin:2px 0 0 114px">이 계약 전체는 미납 ${won(a.due)} · 연체료 ${won(a.fee)}</div>`:''}</div>
-      <div class="c2" style="margin:-6px 0 16px;white-space:normal">연체료 = 밀린 금액 × 연 ${a.rate}% × 밀린 일수 ÷ 365.
-        돈이 들어올 때마다 기간을 나눠 그때 밀려 있던 금액으로 계산합니다.</div>
-      ${months.map(m=>`<div style="border:1px solid var(--line);border-radius:var(--r-sm);padding:12px 14px;margin-bottom:12px">
-        <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:8px"><b style="font-size:13.5px">${m.ym.slice(2).replace('-','.')}월분</b>
-          <span class="c2" style="margin:0">청구 ${won(m.bill)} · 납부마감 ${md(dueStr(m.ym))}</span>
-          <span class="bd ${PST[m.st]}" style="margin-left:auto">${m.st}</span></div>
-        ${R('받은 돈',m.pays.length?m.pays.map(x=>`${md(x.date)} <b>${won(x.amt)}</b>`).join('<br>'):'<span class="c2" style="margin:0">아직 받지 않음</span>')}
-        ${R('남은 미납',m.due?`<b style="color:var(--warn)">${won(m.due)}</b> <span class="c2">${m.days}일 밀림</span>`:`0원 <span class="c2">${m.lateDone?`${md(m.lastPay)}에 다 받음 · ${m.lateDone}일 늦게`:'다 받음'}</span>`)}
+      ${months.map(m=>{const late=m.days||m.lateDone;return `<div style="margin-bottom:18px">
+        <div style="font-size:15px;font-weight:700">${m.ym.slice(2).replace('-','.')}월분</div>
+        <div class="c2" style="margin:2px 0 12px">청구 ${won(m.bill)} · 납부마감 ${md(dueStr(m.ym))}</div>
+        ${R('받은 돈',m.pays.length?m.pays.map(x=>`${won(x.amt)}(${ymd(x.date)})`).join('<br>'):'없음')}
+        ${R('남은 미납액',m.due?`<b style="color:var(--warn)">${won(m.due)}</b>`:'0원')}
         ${R('연체료',`<b>${won(m.fee)}</b>`)}
-        ${m.periods.length?`<div style="margin:-2px 0 0 114px;font-size:12px;color:var(--muted);line-height:1.8">${m.periods.map(q=>
-          `${md(q.from)} ~ ${md(q.to)} · ${q.days}일 동안 ${won(q.bal)} 밀림 → <b style="color:var(--ink)">${won(q.fee)}</b>`).join('<br>')}</div>`:''}
-      </div>`).join('')}
+        ${m.periods.length?R('계산법',`총 ${late}일 연체<div style="font-size:12px;color:var(--muted);line-height:1.8;margin-top:2px">${m.periods.map(q=>
+          `${md(q.from)} ~ ${md(q.to)} · ${q.days}일 동안 ${won(q.bal)} 밀림 → ${won(q.fee)}`).join('<br>')}</div>`):''}
+      </div>`;}).join('')}
     </div>
     <div class="df"><button class="btn" onclick="closeDrawer()">닫기</button>
       <button class="btn pri" onclick="openPay('${dk}')">수납 처리</button></div>
