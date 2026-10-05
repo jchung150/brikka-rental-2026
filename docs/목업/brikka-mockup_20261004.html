@@ -2993,7 +2993,7 @@ function PAY6(){
         <div class="n">${cr.due?`<span style="color:var(--warn)">${won(cr.due)}</span>`:dash}</div>
         <div class="c"><span class="bd ${PST[cr.due?(x.st==='미납'&&closedBy(RC.b,RC.f.ym,TODAY_S)?'미납':cr.paid?'부분납':'미납'):'완납']}">${cr.due?(closedBy(RC.b,RC.f.ym,TODAY_S)?'미납':cr.paid?'부분납':'미납'):'완납'}</span></div></div>`:'')+x.it.map(i=>`
       <div class="schr ctr sub"><div class="nm">${i.n}</div>
-        <div class="n c2">${cutOf(i.id)?`<span style="color:var(--warn);margin-right:6px">감액 −${won(cutOf(i.id))}</span>`:''}${won(i.amt)}</div><div class="n c2">${i.paid?won(i.paid):dash}</div>
+        <div class="n c2">${won(i.amt)}</div><div class="n c2">${i.paid?won(i.paid):dash}</div>
         <div class="n">${i.due?`<span style="color:var(--warn)">${won(i.due)}</span>`:dash}</div>
         <div class="c"><span class="bd ${PST[i.st]}">${i.st}</span></div></div>`).join('')+(!op||!x.over?'':`
       <div class="schr ctr sub"><div class="nm">과납액 <span class="c2">청구항목이 아닌 남은 돈</span></div>
