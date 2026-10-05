@@ -3354,7 +3354,7 @@ function PAY2(){
       <div class="n">${a.fee?won(a.fee):dash}</div>
       <div class="c">${a.due||a.fee?`<button class="btn sm" onclick="event.stopPropagation();openPay('${a.k}')">수납</button>`:''}</div>
     </div>`+(!op||!can?'':a.months.map(m=>`
-    <div class="schr arr sub mo" onclick="RC.f.b='${RC.b}';RC.f.ym='${m.ym}';RC.f.st='';go('pay-6')">
+    <div class="schr arr sub mo" style="cursor:default">
       <div class="nm" style="flex-wrap:wrap">${m.ym.replace('-','년 ')}월분 <span class="c2">청구 ${won(m.bill)} · 납부마감 ${md(dueStr(m.ym))}</span>
         <div class="c2" style="flex-basis:100%;margin:3px 0 0">수납 ${m.pays.length?m.pays.map(x=>`${md(x.date)} ${won(x.amt)}`).join(' · '):'없음'}${
           m.periods.length?` <span style="color:var(--faint)">|</span> 늦은 돈 ${m.periods.map(q=>`${won(q.bal)} ${q.days}일`).join(' + ')}`:''}</div></div>
