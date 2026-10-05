@@ -1456,7 +1456,7 @@ function PRO2(){
   const sh=nbShare();
   const basic=card('기본 정보',`<div class="bpw"><div class="bpd">
       ${R('건물명',T('name','예: 카리나빌딩'),1)}
-      ${R('건물 별칭',T('alias','예: 카리나',160)+'<span class="c2" style="margin:0">계약고유이름에 씀 · 짧게</span>',1)}
+      ${R('건물 별칭',T('alias','예: 카리나',160)+`<span class="c2" style="margin:0">계약고유이름 예: <b style="color:var(--ink)">${nb.alias.trim()||'카리나'}|본관5층|(주)테온하우스</b></span>`,1)}
       ${R('건물구분',S('kind',BKIND,'선택'),1)}
       ${R('건물주소',T('addr','도로명 주소'),1)}
       ${R('',T('addr2','지번 주소'))}
@@ -1467,7 +1467,7 @@ function PRO2(){
           <select onchange="nbSet('dd',this.value)" style="flex:none;width:90px"><option value="">선택</option>${[...DAY_OPTS,'말일'].map(o=>`<option ${nb.dd===o?'selected':''}>${o}</option>`).join('')}</select>`,1)}
       ${nb.bd&&nb.dd?`<div class="c2" style="margin:-4px 0 9px 138px">예: 8월분 청구서 → ${ruleEx(nbBill(),'2026-08')} 청구 · ${ruleEx(nbDue(),'2026-08')}까지 납부</div>`:''}
       ${R('건물관리자',`<select onchange="nbSet('mgr',this.value)">${BMGRS.map(x=>`<option ${nb.mgr===x.n?'selected':''}>${x.n}</option>`).join('')}</select>
-          <span class="c2" style="margin:0">사용자 관리에 등록된 관리자만</span>`)}
+`)}
     </div>${bphHTML({id:'new',name:nb.name||'새 건물'})}</div>`);
   const spec=card('건물 제원',
       R('연면적',N('gross','','㎡'))+R('임대가능면적',N('area','','㎡'))
@@ -1480,7 +1480,7 @@ function PRO2(){
       +R('주차면수',`<span class="c2" style="margin:0">지상 자주식</span><input type="text" inputmode="numeric" value="${nb.pkUp}" onchange="nbSet('pkUp',this.value)" style="max-width:52px">
           <span class="c2" style="margin:0">지하 자주식</span><input type="text" inputmode="numeric" value="${nb.pkDown}" onchange="nbSet('pkDown',this.value)" style="max-width:52px">
           <span class="c2" style="margin:0">기계식</span><input type="text" inputmode="numeric" value="${nb.pkMech}" onchange="nbSet('pkMech',this.value)" style="max-width:52px">`)
-      +R('총 주차면수',`<span class="fv"><b>${nbPark()}면</b> <span class="c2">세 칸의 합</span></span>`)
+      +R('총 주차면수',`<span class="fv"><b>${nbPark()}면</b></span>`)
       +R('냉난방 방식',S('hvac',BHVAC,'선택')));
   const owner=card('임대인 정보',
       '<div class="c2" style="margin:-4px 0 10px">공동 소유면 임대인을 모두 넣고 지분 합계를 100%로 맞춥니다</div>'
@@ -1516,8 +1516,7 @@ function PRO2(){
   <div class="ph"><h1>새로운 건물 등록</h1><span class="sid">PRO-2</span>
     <div class="act"><button class="btn" onclick="nb=null;go('pro-1')">취소</button></div></div>
   ${basic}
-  <div class="two" style="align-items:start">${spec}${owner}</div>
-  <div class="two" style="align-items:start">${bond}${mgmt}</div>
+  ${spec}${owner}${bond}${mgmt}
   ${miss.length?`<div class="fnd wa3" style="margin-bottom:12px"><span class="h">저장할 수 없습니다</span>빠진 항목: <b>${miss.join(' · ')}</b></div>`:''}
   <div style="display:flex;gap:8px;justify-content:flex-end;align-items:center;padding:14px 0;border-top:1px solid var(--line)">
     <span class="c2" style="margin-right:auto"><b style="color:var(--warn)">*</b> 필수 · 나머지는 비워 두고 건물 상세에서 채울 수 있습니다 · 저장하면 건물 상세로 이동합니다</span>
@@ -1672,7 +1671,6 @@ function t요약(b){
       <dt>납부마감일</dt><dd>${b.dueDay}<span class="lock">예: 8월분 → ${ruleEx(b.dueDay,'2026-08')}</span></dd>
       <dt>건물관리자</dt><dd>${b.mgr}<span class="lock">${b.mgrTel}</span></dd>
     </dl>${bphHTML(b)}</div></div>
-  <div class="two">
     <div class="card"><div class="ct">건물 제원
       <span class="ca"><button class="btn sm">수정</button></span></div><div class="cc"><dl class="dl">
       <dt>연면적</dt><dd>${m2(b.gross)}</dd>
@@ -1688,8 +1686,6 @@ function t요약(b){
       <dt>임대료 납부 계좌</dt><dd>${b.acct}<span class="lock">${b.acctName}</span></dd>
       <dt>관리비 납부 계좌</dt><dd>${b.feeAcct}<span class="lock">${b.feeAcctName}</span></dd>
     </dl></div></div>
-  </div>
-  <div class="two">
     <div class="card"><div class="ct">채권 정보
       <span class="ca"><button class="btn sm">수정</button></span></div><div class="cc">
       ${b.bondMax?`<dl class="dl">
@@ -1702,7 +1698,6 @@ function t요약(b){
       <div class="cc" style="padding-top:12px">
       ${b.fac.map(f=>`<span class="tag">${f}<span class="x">✕</span></span>`).join('')||'<span style="color:var(--muted)">등록된 공용시설이 없습니다.</span>'}
     </div></div>
-  </div>
   <div class="card"><div class="ct">주차장
     <span class="ca"><button class="btn sm" onclick="pkOpen('${b.id}',-1,'edit')">주차면 추가</button></span></div>
     ${b.parks.length?`<div class="tw"><table>
