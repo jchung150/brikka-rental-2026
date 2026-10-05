@@ -513,6 +513,17 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   PK.pkOpen('b1', -1, 'edit'); PK.pk.n = 'M-02'; PK.pk.loc = '기계식'; PK.pkSave();
   r6.push(['주차면 — 배정된 면 삭제 막힘 · 배정 변경 · 해제 후 삭제 · 이름 없으면 추가 안 됨 · 기계식 추가',
     kept && asg && del && noName && b.parks.at(-1).n === 'M-02' && b.parks.at(-1).loc === '기계식']); }
+/* 건물 등록 — 빠진 필수 항목은 막힘 · 지분 합계 100% · 별칭 중복 막힘 · 저장하면 목록에 생기고 상세가 열림 */
+{ const NB = new Function(stub + bare + '; return {PRO2,PRO3,nbSave,nbMissing,BUILDINGS,get nb(){return nb;}};')();
+  NB.PRO2(); NB.nbSave(); const blocked = NB.BUILDINGS.length === 3 && NB.nbMissing().includes('건물명');
+  Object.assign(NB.nb, {name:'윈터타워', alias:'카리나', kind:'오피스빌딩', addr:'서울특별시 마포구 독막로 1', bill:'매월 25일', due:'익월 10일', rb:'하나은행', ra:'123-456', rn:'윈터'});
+  Object.assign(NB.nb.owners[0], {biz:'214-07-63390', n:'윈터', share:'60'});
+  const dup = NB.nbMissing().some(m => /이미 쓰는 별칭/.test(m)), share = NB.nbMissing().some(m => /지분 합계 100%/.test(m));
+  NB.nb.alias = '윈터'; NB.nb.owners.push({biz:'105-81-42117', n:'카리나', share:'40'}); NB.nb.dong = [{n:'본관',up:'10',down:'2'},{n:'별관',up:'3',down:''}]; NB.nb.pkUp = '5'; NB.nb.pkDown = '20';
+  NB.nbSave(); const b = NB.BUILDINGS.at(-1), h = NB.PRO3(b.id);
+  r6.push(['건물 등록 — 필수 빠지면 막힘 · 별칭 중복 · 지분 100% · 저장 → 동 2개 · 주차 25면 · 관리비 계좌 = 임대료 계좌 · 상세 열림(위임계약 없음)',
+    blocked && dup && share && NB.BUILDINGS.length === 4 && b.alias === '윈터' && b.dong.length === 2 && b.park === 25
+    && b.feeAcct === '하나은행 123-456' && b.owners.length === 2 && /관리위임계약이 없습니다/.test(h)]); }
 /* 수납 내역 더보기 — 받을 돈이 있는 계약(비씨에이전시)만 수납 처리가 눌리고, 다 받은 계약(에스씨케이컴퍼니)은 흐림 · 원장 보기는 모두 */
 { const MV = new Function(stub + bare + '; seedJuly(); return {PAY6,RC,MORE};')();
   MV.RC.f = {b:'b1', ym:'2026-07', st:''}; MV.MORE.length = 0; const h = MV.PAY6();
