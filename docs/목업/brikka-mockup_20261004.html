@@ -3793,12 +3793,7 @@ function CTR3head(c,k){
       </div>`:''}
     </div><span class="sid">CTR-3</span>
     <div class="act">
-      <button class="btn" onclick="go('ctr-1')">목록</button>
-      <button class="btn" onclick="openPay('${k}')">수납 처리</button>
-      <button class="btn" ${overOf(k)?'':'disabled title="돌려줄 과납이 없습니다"'} onclick="openRefund('${k}')">환불</button>
-      <button class="btn" ${cutBills(k).length?'':'disabled title="줄일 청구가 없습니다"'} onclick="cutOpenK('${k}')">감액</button>
-      <button class="btn" onclick="extraOpen('${k}')">추가 청구</button>
-      ${tab3c==='원장'?`<button class="btn pri" onclick="alert('원장 출력 — 선택한 기간·계정의 원장을 거래내역서 PDF로 내려받거나 임차인 담당자에게 보낸다')">원장 출력</button>`:''}</div>
+      <button class="btn" onclick="go('ctr-1')">목록</button></div>
   </div>
   <div class="tabs">
     ${['요약','임차인','원장','임대료·관리비','자료보관'].map(t=>`<button class="${t===tab3c?'on':''}" onclick="tab3c='${t}';render()">${t}</button>`).join('')}
@@ -3910,6 +3905,12 @@ function CTR3(k){
     <select onchange="setF3('acc',this.value)">
       ${[['','전체 계정'],['매출채권','매출채권 (청구·수납)'],['임대보증금','임대보증금']].map(([v,t])=>`<option value="${v}" ${f3.acc===v?'selected':''}>${t}</option>`).join('')}
     </select>
+    <span style="margin-left:auto;display:flex;gap:6px">   <!-- 돈을 다루는 버튼은 원장 탭에만 둔다 -->
+      <button class="btn" onclick="openPay('${k}')">수납 처리</button>
+      <button class="btn" ${overOf(k)?'':'disabled title="돌려줄 과납이 없습니다"'} onclick="openRefund('${k}')">환불</button>
+      <button class="btn" ${cutBills(k).length?'':'disabled title="줄일 청구가 없습니다"'} onclick="cutOpenK('${k}')">감액</button>
+      <button class="btn" onclick="extraOpen('${k}')">추가 청구</button>
+      <button class="btn pri" onclick="alert('원장 출력 — 선택한 기간·계정의 원장을 거래내역서 PDF로 내려받거나 임차인 담당자에게 보낸다')">원장 출력</button></span>
   </div>
   ${(()=>{
     /* 묶음 — 청구는 청구서 하나, 수납은 입금 하나, 보증금은 거래 하나. rows는 이미 최근 순이다 */
@@ -3949,7 +3950,8 @@ function CTR3(k){
     이 계약의 모든 돈 거래입니다. 청구서 한 장, 입금 한 건을 한 줄로 묶었습니다. 펼치면 항목별로 보입니다.<br>
     최근 거래가 위에 있고, 잔액은 그 거래 직후의 금액입니다. 매출채권(받을 돈)과 임대보증금(돌려줄 돈)의 잔액은 따로 셉니다.<br>
     원장은 고치지 않습니다. 잘못된 거래는 취소 거래를 추가해 바로잡습니다. 연체료는 수납 처리에서 받기로 한 금액만 청구로 올라옵니다.<br>
-    잔액을 바꾸지 않는 안쪽 옮김(미납 이월 · 전월 과납액 배분)은 적지 않습니다. 잔액이 0보다 작으면 <b>과납</b>이며, 돌려줄 때는 위의 <b>환불</b>을 누릅니다.</div>`;
+    잔액을 바꾸지 않는 안쪽 옮김(미납 이월 · 전월 과납액 배분)은 적지 않습니다. 잔액이 0보다 작으면 <b>과납</b>이며, 돌려줄 때는 위의 <b>환불</b>을 누릅니다.<br>
+    받은 돈·돌려준 돈·감액·추가 청구는 이 탭 위쪽 버튼으로 기록합니다.</div>`;
 }
 
 /* ═══ 라우터 ═══ */
