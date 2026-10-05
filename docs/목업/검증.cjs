@@ -503,6 +503,16 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   r6.push(['청구서 발행 — 메일 체크박스·미납 조회 없음 · 더보기 「청구서 발행」 → 메일 여부 묻기 → 메일 없이 발행',
     !h.includes('메일 보내기') && !h.includes('미납 조회') && m && !m[0].off && !!m[1].off
     && /메일을 보내시겠습니까/.test(ask) && IA.ISS['b21203호'] && IA.ISS['b21203호'].mail === false]); }
+/* 주차면 — 배정 변경(해제 → 다른 계약) · 배정된 주차면은 삭제 안 됨 · 추가는 이름 필수 */
+{ const PK = new Function(stub + bare + '; seedJuly(); return {BUILDINGS,pkOpen,pkSave,pkDel,pkHTML,get pk(){return pk;}};')();
+  const b = PK.BUILDINGS.find(x => x.id === 'b1'), n0 = b.parks.length;
+  PK.pkDel('b1', 0); const kept = b.parks.length === n0;
+  PK.pkOpen('b1', 3, 'assign'); PK.pk.k = '본관1층'; PK.pkSave(); const asg = b.parks[3].asu === '본관1층' && b.parks[3].as === '(주)에스씨케이컴퍼니';
+  PK.pkOpen('b1', 3, 'assign'); PK.pk.k = ''; PK.pkSave(); PK.pkDel('b1', 3); const del = b.parks.length === n0 - 1;
+  PK.pkOpen('b1', -1, 'edit'); PK.pkSave(); const noName = b.parks.length === n0 - 1;
+  PK.pkOpen('b1', -1, 'edit'); PK.pk.n = 'M-02'; PK.pk.loc = '기계식'; PK.pkSave();
+  r6.push(['주차면 — 배정된 면 삭제 막힘 · 배정 변경 · 해제 후 삭제 · 이름 없으면 추가 안 됨 · 기계식 추가',
+    kept && asg && del && noName && b.parks.at(-1).n === 'M-02' && b.parks.at(-1).loc === '기계식']); }
 /* 수납 내역 더보기 — 받을 돈이 있는 계약(비씨에이전시)만 수납 처리가 눌리고, 다 받은 계약(에스씨케이컴퍼니)은 흐림 · 원장 보기는 모두 */
 { const MV = new Function(stub + bare + '; seedJuly(); return {PAY6,RC,MORE};')();
   MV.RC.f = {b:'b1', ym:'2026-07', st:''}; MV.MORE.length = 0; const h = MV.PAY6();

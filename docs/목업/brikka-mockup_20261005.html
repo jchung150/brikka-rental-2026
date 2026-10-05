@@ -1270,6 +1270,7 @@ function drawerHTML(){
   if(DRAWER==='due') return dueHTML();
   if(DRAWER==='cancel') return cancelHTML();
   if(DRAWER==='issue') return issueHTML();
+  if(DRAWER==='park') return pkHTML();
   if(DRAWER==='over') return overHTML();
   if(DRAWER==='pay') return payHTML();
   if(DRAWER==='mclose') return mcHTML();
@@ -1477,6 +1478,42 @@ function bphHTML(b){
       <button class="btn sm" onclick="bphPick('${b.id}')">바꾸기</button><button class="btn sm" onclick="bphDel('${b.id}')">삭제</button></span></div>`
     :`<div class="bph none" onclick="bphPick('${b.id}')">${ic('bldg',20)}<span>건물 사진 올리기</span><span class="c2">한 장 · JPG·PNG</span></div>`;
 }
+/* 주차면 — 추가·수정·배정 변경은 오른쪽 패널. 배정은 계약 상세의 배정 주차면과 같은 기록이다 → PRO-3 · CTR-3 */
+let pk=null;
+const PK_LOC=['지상 자주식','지하 자주식','기계식'], PK_TYPE=['일반','소형','장애인'];
+function pkOpen(bid,i,mode){const b=BUILDINGS.find(x=>x.id===bid), p=i>=0?b.parks[i]:null;
+  pk={bid,i,mode,n:p?p.n:'',loc:p?p.loc:'지하 자주식',t:p?p.t:'일반',memo:p?p.memo:'',k:p&&p.as?(CTRS.find(c=>c.b===bid&&c.no===p.asu&&c.st==='진행중')||{}).no||'':''};
+  DRAWER='park';render(true);}
+function pkDel(bid,i){const b=BUILDINGS.find(x=>x.id===bid); if(b.parks[i].as) return; b.parks.splice(i,1);render(true);}
+function pkSave(){const b=BUILDINGS.find(x=>x.id===pk.bid);
+  if(pk.mode==='assign'){const c=CTRS.find(c=>c.b===pk.bid&&c.no===pk.k&&c.st==='진행중'), p=b.parks[pk.i];
+    p.as=c?c.ten:''; p.asu=c?c.no:'';}
+  else{if(!pk.n.trim()) return; const v={n:pk.n.trim(),loc:pk.loc,t:pk.t,memo:pk.memo.trim()};
+    if(pk.i<0) b.parks.push({...v,as:'',asu:''}); else Object.assign(b.parks[pk.i],v);}
+  DRAWER=null;pk=null;render(true);}
+function pkHTML(){
+  if(DRAWER!=='park'||!pk) return '';
+  const b=BUILDINGS.find(x=>x.id===pk.bid), inp='width:100%;border:1px solid var(--line);border-radius:var(--r-sm);padding:7px 9px;font:inherit';
+  const sel=(f,opts)=>`<select style="${inp}" onchange="pk.${f}=this.value">${opts.map(([v,t])=>`<option value="${v}" ${pk[f]===v?'selected':''}>${t}</option>`).join('')}</select>`;
+  const title=pk.mode==='assign'?'배정 변경':pk.i<0?'주차면 추가':'주차면 수정';
+  const body=pk.mode==='assign'?`
+      <div class="fg"><div class="fl">배정할 계약</div>
+        ${sel('k',[['','미배정 (배정 해제)'],...CTRS.filter(c=>c.b===pk.bid&&c.st==='진행중').map(c=>[c.no,cname(b.alias,c.no,c.ten)])])}</div>
+      <div class="c2" style="white-space:normal">계약 상세의 배정 주차면과 같은 기록입니다. 여기서 바꾸면 계약 상세에도 그대로 보입니다.</div>`
+    :`<div class="fg"><div class="fl">주차장이름 (필수)</div>
+        <input type="text" value="${pk.n}" placeholder="예: B1-06" oninput="pk.n=this.value;document.getElementById('pkok').disabled=!this.value.trim()" style="${inp}"></div>
+      <div class="fg"><div class="fl">위치</div>${sel('loc',PK_LOC.map(v=>[v,v]))}</div>
+      <div class="fg"><div class="fl">유형</div>${sel('t',PK_TYPE.map(v=>[v,v]))}</div>
+      <div class="fg"><div class="fl">메모</div>
+        <input type="text" value="${pk.memo}" placeholder="기계식은 차량 크기 제한 — 예: SUV 불가 · 높이 1.55m 이하" oninput="pk.memo=this.value" style="${inp}"></div>`;
+  return `<div class="dro"><div class="ov" onclick="closeDrawer()"></div><div class="pn">
+    <div class="dh"><div><div class="t">${title}</div><div class="s">${b.name}${pk.i>=0?` · ${b.parks[pk.i].n}`:''}</div></div>
+      <button class="x" onclick="closeDrawer()">✕</button></div>
+    <div class="db">${body}</div>
+    <div class="df"><button class="btn" onclick="closeDrawer()">닫기</button>
+      <button class="btn pri" id="pkok" ${pk.mode!=='assign'&&!pk.n.trim()?'disabled':''} onclick="pkSave()">저장</button></div>
+  </div></div>`;
+}
 function t요약(b){
   const d=dday(b.mgmtEnd);
   return `
@@ -1525,12 +1562,14 @@ function t요약(b){
   </div>
   <div class="card"><div class="ct">주차장
     <span class="sub">${b.parks.length?`${b.parks.filter(p=>p.as).length}면 배정 / 등록 ${b.parks.length}면 · 총 ${b.park}면`:`총 ${b.park}면`}</span>
-    <span class="ca"><button class="btn sm">주차면 추가</button></span></div>
+    <span class="ca"><button class="btn sm" onclick="pkOpen('${b.id}',-1,'edit')">주차면 추가</button></span></div>
     ${b.parks.length?`<div class="tw"><table>
-      <thead><tr><th>주차면</th><th>위치</th><th>유형</th><th>메모</th><th>배정 현황</th></tr></thead>
-      <tbody>${b.parks.map(p=>`<tr><td class="c1">${p.n}</td><td>${p.loc}</td><td>${p.t}</td><td style="color:var(--muted)">${p.memo||'—'}</td>
+      <thead><tr><th>주차면</th><th>위치</th><th>유형</th><th>메모</th><th>배정 현황</th><th class="c">더보기</th></tr></thead>
+      <tbody>${b.parks.map((p,pi)=>`<tr><td class="c1">${p.n}</td><td>${p.loc}</td><td>${p.t}</td><td style="color:var(--muted)">${p.memo||'—'}</td>
         <td>${p.as?(c=>c?`<span class="plk" onclick="tab3c='요약';go('ctr-3/${ckey(c)}')">${cnameHTML(b.alias,p.asu,p.as)}</span>`:cnameHTML(b.alias,p.asu,p.as))
-          (CTRS.find(c=>c.b===b.id&&c.no===p.asu&&c.st==='진행중')):'<span class="bd mu">미배정</span>'}</td></tr>`).join('')}</tbody>
+          (CTRS.find(c=>c.b===b.id&&c.no===p.asu&&c.st==='진행중')):'<span class="bd mu">미배정</span>'}</td>
+        <td class="c">${moreCell([{t:'배정 변경',go:`pkOpen('${b.id}',${pi},'assign')`},{t:'수정',go:`pkOpen('${b.id}',${pi},'edit')`},
+          {t:'삭제',go:`pkDel('${b.id}',${pi})`,off:p.as?'배정된 주차면입니다. 배정을 먼저 해제하세요':''}])}</td></tr>`).join('')}</tbody>
     </table></div>`:'<div class="empty">등록된 주차면이 없습니다.</div>'}
   </div>
   <div class="card" style="${d<=90?'border-color:var(--warn)':''}">
