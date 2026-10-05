@@ -3835,7 +3835,9 @@ function ledgerOf(k){
   /* 보증금상계 — 같은 돈이 임대보증금에서 빠지고(차변) 매출채권을 채운다(대변) */
   MANUAL_DEP.filter(m=>m.k===k).forEach(m=>rows.push({date:m.date,type:'보증금 차감',acc:'임대보증금',
     memo:'미납 청구에 상계',item:'미납 청구에 상계',g:'dd'+m.dep,dec:m.amt,sup:null,vat:null,ord:2,sq:m.sq}));
-  rows.sort((a,b)=>dnum(a.date)-dnum(b.date)||a.ord-b.ord||(a.sq||0)-(b.sq||0)||(a.pr||0)-(b.pr||0));
+  /* 청구서 안의 항목은 금액 순 — 화면은 최근이 위로 뒤집으므로 큰 금액이 위에 온다 */
+  rows.sort((a,b)=>dnum(a.date)-dnum(b.date)||a.ord-b.ord||(a.sq||0)-(b.sq||0)
+    ||(a.type==='청구'&&b.type==='청구'?(a.inc||0)-(b.inc||0):(a.pr||0)-(b.pr||0)));
   const bal={매출채권:0,임대보증금:0};
   rows.forEach(r=>{bal[r.acc]+=(r.inc||0)-(r.dec||0);r.bal=bal[r.acc];
     /* 차변·대변 — 매출채권(자산)은 늘면 차변, 임대보증금(부채)은 늘면 대변 */
@@ -3878,7 +3880,7 @@ function CTR3(k){
     G.forEach(x=>{const it=x.items;x.bal=it[0].bal;   /* 최근 순이므로 첫 행이 묶음 끝의 잔액 */
       x.dr=it.reduce((a,r)=>a+(r.dr||0),0);x.cr=it.reduce((a,r)=>a+(r.cr||0),0);
       x.sup=it.some(r=>r.sup!=null)?it.reduce((a,r)=>a+(r.sup||0),0):null;x.vat=it.reduce((a,r)=>a+(r.vat||0),0);
-      x.title=it[0].ttl?it[0].ttl:x.type==='청구'?`${it[0].ym.slice(2).replace('-','.')}월분 청구서`:x.type==='수납'?(it[0].src==='이전 입금'?'이전 입금':`${it[0].src} ${it[0].hand?'수납':'입금'}`):it[0].item;
+      x.title=it[0].ttl?it[0].ttl:x.type==='청구'?`${it[0].ym.slice(2).replace('-','.')}월분 청구서`:x.type==='수납'?(it[0].src==='이전 입금'?'이전 입금':`${it[0].src.replace(/^\d\d:\d\d:\d\d /,'')} ${it[0].hand?'수납':'입금'}`):it[0].item;   /* 입금 시각은 적지 않는다 */
       x.key=x.g+'|'+x.date;});
     const anyOp=G.some(x=>g3Open(x.key));
     const body=G.map(x=>{const op=g3Open(x.key), many=x.items.length>1;
