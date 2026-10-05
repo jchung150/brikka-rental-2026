@@ -3142,22 +3142,16 @@ function payHTML(){
     <div class="db">
       <div class="fg"><div class="fl">정리할 돈</div>
         <div class="fr"><span class="fk">미납</span><b>${won(dueN)}</b>${many?'<span class="c2">이 임차인의 이 건물 계약 전체</span>':''}</div>
-        ${pm.feeFull?`<div class="fr"><span class="fk">연체료</span><b>${won(pm.feeFull)}</b><span class="c2">${pm.date.slice(5).replace('-','.')}까지 · 연 ${rateOf(pm.k)}%</span></div>
-        <div class="fr" style="align-items:flex-start"><span class="fk" style="padding-top:5px">연체료 처리</span>
+        ${pm.feeFull?`<div class="fr" style="align-items:flex-start"><span class="fk" style="padding-top:5px">연체료 처리</span>
           <div style="display:flex;flex-wrap:wrap;gap:6px">${FEE_MODES.map(([v,t])=>
             `<button class="btn sm ${pm.feeMode===v?'pri':''}" onclick="setPm('feeMode','${v}')">${t}</button>`).join('')}</div></div>
-        ${pm.feeOn?`<div class="fr"><span class="fk">받을 연체료</span>
-          <input type="text" inputmode="numeric" value="${pm.fee.toLocaleString('ko-KR')}" ${pm.feeMode==='custom'?'':'readonly style="text-align:right;background:var(--line-2)"'}
-            onchange="setPm('fee',this.value)" ${pm.feeMode==='custom'?'style="text-align:right"':''}>
-          <span class="c2">${off?`<b style="color:var(--warn)">${won(off)} 감면</b>`:'감면 없음'}</span></div>`
-          :`<div class="c2" style="margin:-4px 0 9px 114px;white-space:normal">이번에는 연체료를 정리하지 않습니다. 계속 쌓입니다.</div>`}`:''}
+        <div class="fr"><span class="fk">연체료</span>${pm.feeMode==='custom'
+            ?`<input type="text" inputmode="numeric" value="${pm.fee.toLocaleString('ko-KR')}" onchange="setPm('fee',this.value)" style="text-align:right;max-width:140px">`
+            :`<b>${won(pm.feeOn?pm.fee:pm.feeFull)}</b>`}
+          <span class="c2">${!pm.feeOn?'이번엔 정리하지 않음 · 계속 쌓임':off?`${won(pm.feeFull)} 중 <b style="color:var(--warn)">${won(off)} 감면</b>`:`${pm.date.slice(5).replace('-','.')}까지 · 연 ${rateOf(pm.k)}%`}</span></div>`:''}
         <div class="fr" style="border-top:1px solid var(--line);padding-top:9px;margin-top:4px"><span class="fk"><b>합계</b></span>
-          <b style="font-size:15px">${won(dueN+pm.feeFull)}</b><span class="c2">미납 + 연체료 전액</span></div>
-        ${pm.feeFull?`<div class="fr"><span class="fk"><b>이번에 받을 돈</b></span>
-          <b style="font-size:15px">${won(need)}</b>
-          <span class="c2">${pm.feeOn?(off?`연체료 ${won(off)} 감면`:'모두 정리'):`연체료 ${won(pm.feeFull)}은 남음`}</span>
-          ${pm.amt!==need?`<button class="btn sm" style="margin-left:auto" onclick="setPm('amt','${need}')">이 금액으로</button>`:''}</div>`
-          :(pm.amt!==need?`<div style="text-align:right"><button class="btn sm" onclick="setPm('amt','${need}')">합계로 받기</button></div>`:'')}
+          <b style="font-size:15px">${won(need)}</b><span class="c2">${pm.feeFull&&pm.feeOn?'미납 + 연체료':'미납'}</span>
+          ${pm.amt!==need?`<button class="btn sm" style="margin-left:auto" onclick="setPm('amt','${need}')">이 금액으로</button>`:''}</div>
       </div>
       <div class="fg"><div class="fl">받은 돈</div>
         <div class="fr"><span class="fk">받은 날</span>
@@ -3170,9 +3164,8 @@ function payHTML(){
           <input type="text" value="${pm.memo}" placeholder="예: 카드 승인번호, 영수증 번호" oninput="pm.memo=this.value"></div>
         ${pm.how==='보증금상계'?`<div class="c2" style="margin:2px 0 0;white-space:normal">보증금 잔액 ${won(depBal)}. 이 계약의 미납에만 씁니다.</div>`:''}
       </div>
-      <div class="${leftDue||leftFee?'prev warn2':'prev'}" style="margin:-4px 0 18px"><div class="pt">${won(pm.amt)}을 받으면</div>
-        ${leftDue||leftFee?`남는 미납 <b>${won(leftDue)}</b>${pm.feeFull?` · 남는 연체료 <b>${won(leftFee)}</b>${pm.feeOn?'':' (계속 쌓임)'}`:''}`
-          :'미납과 연체료가 <b>모두 정리됩니다</b>.'}${off&&pm.feeOn?`<br>연체료 ${won(off)}은 감면되어 다시 청구되지 않습니다.`:''}</div>
+      ${leftDue||(pm.feeOn&&leftFee)?`<div class="prev warn2" style="margin:-4px 0 18px"><div class="pt">${won(pm.amt)}을 받으면</div>
+        남는 미납 <b>${won(leftDue)}</b>${pm.feeFull&&pm.feeOn?` · 남는 연체료 <b>${won(leftFee)}</b>`:''}</div>`:''}
       <div class="fg"><div class="fl">배분 미리보기</div>
         <div class="tbl" style="margin:0"><div class="schr rcp hd"><div>청구항목</div><div class="n">미납</div><div class="n">이번 수납</div><div>결과</div></div>
         ${pl.all.map(l=>`<div class="schr rcp"><div class="nm">${many?`<span class="c2" style="margin:0 6px 0 0">${l.no}</span>`:''}<span class="c2" style="margin:0 6px 0 0">${l.ym.slice(2).replace('-','.')}월</span>${l.n}</div>
