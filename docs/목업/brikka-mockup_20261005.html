@@ -3396,13 +3396,13 @@ function PAY2(){
       <div class="n">${a.fee?won(a.fee):dash}</div>
       <div class="c">${a.due||a.fee?`<span class="more" onclick="event.stopPropagation();openPay('${a.k}')">수납</span>`:''}</div>
     </div>`+(!op?'':a.months.map(m=>`
-    <div class="schr arr sub mo" onclick="openDue('${a.k}','${m.ym}')" title="누르면 이 달의 상세가 오른쪽에 열립니다">
+    <div class="schr arr sub mo" style="cursor:default">
       <div class="nm">${m.ym.replace('-','년 ')}월분 <span class="c2">청구 ${won(m.bill)}</span></div>
       <div class="n">${m.due?`<span style="color:var(--warn)">${won(m.due)}</span>`:dash} <span class="bd ${PST[m.st]}" style="margin-left:6px">${m.st}</span></div>
       <div class="n c2" style="margin:0">${m.days?`${m.days}일`:m.lateDone?`${m.lateDone}일 늦게 완납`:'—'}</div>
       <div></div>
       <div class="n">${m.fee?won(m.fee):'—'}</div>
-      <div class="c"><span class="more">상세</span></div>
+      <div class="c"><span class="more" onclick="event.stopPropagation();openDue('${a.k}','${m.ym}')">상세</span></div>
     </div>`).join(''));
   }).join('');
   return `
@@ -3436,7 +3436,7 @@ function PAY2(){
       <div class="n">${T.fee?won(T.fee):'—'}</div><div></div></div>
   </div>`}
   <div class="hint">
-    미납이 있는 계약을 모았습니다. 청구액을 다 냈어도 연체료가 남았으면 미납입니다. 계약 줄을 누르면 달별 미납이 펼쳐지고, 달을 누르면 그 달의 <b>미납 상세</b>가 오른쪽에 열립니다.<br>
+    미납이 있는 계약을 모았습니다. 청구액을 다 냈어도 연체료가 남았으면 미납입니다. 계약 줄을 누르면 달별 미납이 펼쳐지고, 달별 줄의 <b>상세</b>를 누르면 그 달의 미납 내역이 오른쪽에 열립니다.<br>
     다 냈어도 늦게 냈다면 연체료가 남습니다.<br>
     현금·카드로 받았거나 보증금에서 빼면 계약 줄 더보기의 <b>수납</b>을 누르세요. 은행 입금은 입금 매칭에서 처리합니다.<br>
     연체료는 수납할 때 정리합니다. 전액 받기 · 50% 감면 · 직접 입력 · 전액 감면 중에서 고릅니다.</div>`;
