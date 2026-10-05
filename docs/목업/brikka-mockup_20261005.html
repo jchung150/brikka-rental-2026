@@ -455,6 +455,7 @@ table.nowr th,table.nowr td{white-space:nowrap}
 .rcr{grid-template-columns:minmax(150px,.7fr) minmax(170px,1fr) 130px minmax(240px,1.4fr) 180px}
 .rcr > :nth-child(4){padding-left:28px}
 .ctr{grid-template-columns:minmax(260px,1fr) 150px 150px 150px 100px}
+.ctm{grid-template-columns:minmax(200px,1fr) 150px 150px 150px 100px 80px}
 .schr.dep .nm{color:var(--muted)}
 .led{grid-template-columns:96px 92px 76px minmax(260px,1fr) 124px 124px 132px}
 .schr.led.sub .nm{padding-left:14px}
@@ -2991,6 +2992,34 @@ function PAY13(){
   </div>`;
 }
 
+/* ═══ 계약 × 달 한 줄 — 수납 내역(PAY-6)과 계약 상세 「월별 청구·수납」 탭이 같은 모양을 쓴다 ═══ */
+/* 그룹 행 금액 — 들어온 전월 미납액은 더하고 전월 과납액은 뺀다 */
+const rcvSum=x=>({bill:x.bill+(x.carry?x.carry.amt:0)-(x.credit||0),paid:x.paid+(x.carry?x.carry.paid:0)-(x.credit||0),due:x.due+(x.carry?x.carry.due:0)});
+function rcvRow(x,o){
+  const dash='<span style="color:var(--faint)">—</span>', op=o.op, cr=x.carry, closed=closedBy(bOfK(x.k),o.ym,TODAY_S), g=rcvSum(x);
+  const tail=o.more!==undefined?'<div></div>':'';
+  const sub=!op?'':(cr?`
+      <div class="schr ${o.cls} sub ni"><div class="nm">전월 미납액</div>
+        <div class="n c2">${won(cr.amt)}</div><div class="n c2">${cr.paid?won(cr.paid):dash}</div>
+        <div class="n">${cr.due?`<span style="color:var(--warn)">${won(cr.due)}</span>`:dash}</div>
+        <div class="c"><span class="bd ${PST[cr.due?(closed?'미납':cr.paid?'부분납':'미납'):'완납']}">${cr.due?(closed?'미납':cr.paid?'부분납':'미납'):'완납'}</span></div>${tail}</div>`:'')+(x.credit?`
+      <div class="schr ${o.cls} sub ni"><div class="nm">전월 과납액</div>
+        <div class="n c2">−${won(x.credit)}</div><div class="n c2">−${won(x.credit)}</div><div class="n">${dash}</div><div class="c"></div>${tail}</div>`:'')+x.it.map(i=>`
+      <div class="schr ${o.cls} sub"><div class="nm">${i.n}</div>
+        <div class="n c2">${won(i.amt)}</div><div class="n c2">${i.paid?won(i.paid):dash}</div>
+        <div class="n">${i.due?`<span style="color:var(--warn)">${won(i.due)}</span>`:dash}</div>
+        <div class="c"><span class="bd ${PST[i.st]}">${i.st}</span></div>${tail}</div>`).join('')+(!x.over?'':`
+      <div class="schr ${o.cls} sub ni"><div class="nm">과납액</div>
+        <div class="n c2">${dash}</div><div class="n c2">${won(x.over)}</div><div class="n">${dash}</div>
+        <div class="c"></div>${tail}</div>`);
+  return `<div class="schr ${o.cls} grp" onclick="${o.tog}">
+      <div class="nm"><span class="tg ${op?'op':''}">${ic('chev',16)}</span>${o.label}</div>
+      <div class="n">${won(g.bill)}</div>
+      <div class="n">${g.paid?won(g.paid):dash}</div>
+      <div class="n">${g.due?`<b style="color:var(--warn)">${won(g.due)}</b>`:dash}</div>
+      <div class="c"><span class="bd ${PST[x.st]}">${x.st}</span></div>${o.more!==undefined?`<div class="c">${o.more}</div>`:''}</div>`+sub;
+}
+
 /* ═══ PAY-6 수납 내역 — 계약 기준 조회 화면. 한 계약 × 한 달이 한 행 ═══ */
 let g6={}, g6All=false;
 const g6Open=k=>(k in g6)?g6[k]:g6All;
@@ -3005,32 +3034,9 @@ function PAY6(){
   const rows=all.filter(x=>!RC.f.st||x.st===RC.f.st);
   const anyOp=rows.some(x=>g6Open(x.k));
   /* 그룹 행 — 들어온 미납액도 함께 더한다 */
-  const cg=x=>({bill:x.bill+(x.carry?x.carry.amt:0)-(x.credit||0),paid:x.paid+(x.carry?x.carry.paid:0)-(x.credit||0),due:x.due+(x.carry?x.carry.due:0)});
-  const T=rows.reduce((a,x)=>{const g=cg(x);return {bill:a.bill+g.bill,paid:a.paid+g.paid,due:a.due+g.due};},{bill:0,paid:0,due:0});
+  const T=rows.reduce((a,x)=>{const g=rcvSum(x);return {bill:a.bill+g.bill,paid:a.paid+g.paid,due:a.due+g.due};},{bill:0,paid:0,due:0});
   const dash='<span style="color:var(--faint)">—</span>';
-  const body=rows.map(x=>{
-    const op=g6Open(x.k);
-    const cr=x.carry, sub=!op?'':(cr?`
-      <div class="schr ctr sub ni"><div class="nm">전월 미납액</div>
-        <div class="n c2">${won(cr.amt)}</div><div class="n c2">${cr.paid?won(cr.paid):dash}</div>
-        <div class="n">${cr.due?`<span style="color:var(--warn)">${won(cr.due)}</span>`:dash}</div>
-        <div class="c"><span class="bd ${PST[cr.due?(x.st==='미납'&&closedBy(RC.b,RC.f.ym,TODAY_S)?'미납':cr.paid?'부분납':'미납'):'완납']}">${cr.due?(closedBy(RC.b,RC.f.ym,TODAY_S)?'미납':cr.paid?'부분납':'미납'):'완납'}</span></div></div>`:'')+(x.credit?`
-      <div class="schr ctr sub ni"><div class="nm">전월 과납액</div>
-        <div class="n c2">−${won(x.credit)}</div><div class="n c2">−${won(x.credit)}</div><div class="n">${dash}</div><div class="c"></div></div>`:'')+x.it.map(i=>`
-      <div class="schr ctr sub"><div class="nm">${i.n}</div>
-        <div class="n c2">${won(i.amt)}</div><div class="n c2">${i.paid?won(i.paid):dash}</div>
-        <div class="n">${i.due?`<span style="color:var(--warn)">${won(i.due)}</span>`:dash}</div>
-        <div class="c"><span class="bd ${PST[i.st]}">${i.st}</span></div></div>`).join('')+(!op||!x.over?'':`
-      <div class="schr ctr sub ni"><div class="nm">과납액</div>
-        <div class="n c2">${dash}</div><div class="n c2">${won(x.over)}</div><div class="n">${dash}</div>
-        <div class="c"></div></div>`);
-    return `<div class="schr ctr grp" onclick="g6Tog('${x.k}')">
-      <div class="nm"><span class="tg ${op?'op':''}">${ic('chev',16)}</span>${cnameHTML(bn.alias,x.c.no,x.c.ten)}</div>
-      <div class="n">${won(cg(x).bill)}</div>
-      <div class="n">${cg(x).paid?won(cg(x).paid):dash}</div>
-      <div class="n">${cg(x).due?`<b style="color:var(--warn)">${won(cg(x).due)}</b>`:dash}</div>
-      <div class="c"><span class="bd ${PST[x.st]}">${x.st}</span></div></div>`+sub;
-  }).join('');
+  const body=rows.map(x=>rcvRow(x,{cls:'ctr',op:g6Open(x.k),tog:`g6Tog('${x.k}')`,label:cnameHTML(bn.alias,x.c.no,x.c.ten),ym:RC.f.ym})).join('');
   return `
   <div class="ph"><h1>수납 내역</h1><span class="sid">PAY-6</span>
   </div>
@@ -3851,8 +3857,28 @@ function CTR3head(c,k){
       <button class="btn" onclick="go('ctr-1')">목록</button></div>
   </div>
   <div class="tabs">
-    ${['요약','임차인','원장','임대료·관리비','자료보관'].map(t=>`<button class="${t===tab3c?'on':''}" onclick="tab3c='${t}';render()">${t}</button>`).join('')}
+    ${['요약','임차인','원장','월별 청구·수납','임대료·관리비','자료보관'].map(t=>`<button class="${t===tab3c?'on':''}" onclick="tab3c='${t}';render()">${t}</button>`).join('')}
   </div>`;
+}
+/* CTR-3 월별 청구·수납 탭 — 수납 내역(PAY-6)과 같은 줄을 이 계약 하나로. 미납·연체료가 있는 달은 「상세」로 미납 상세 패널 */
+let g7={};
+function CTR3month(c,k){
+  const yms=[...new Set(BILLS.filter(i=>i.k===k).map(i=>i.ym))].sort().reverse();
+  const late=new Set(arrears(c).months.map(m=>m.ym));
+  const rows=yms.map(ym=>({ym,x:{...ctrPay(k,ym),k}})).filter(r=>r.x.st);
+  /* 합계 — 청구액은 달마다의 청구만 더한다(전월 미납액은 앞 달 청구라 두 번 세지 않는다). 수납액은 실제로 받은 돈 */
+  const T=rows.reduce((a,r)=>{const g=rcvSum(r.x);return {bill:a.bill+r.x.bill,paid:a.paid+g.paid};},{bill:0,paid:0});
+  if(!rows.length) return `<div class="tbl"><div class="empty"><div class="t">아직 발행한 청구서가 없습니다</div>청구서를 발행하면 달마다 한 줄씩 보입니다.</div></div>`;
+  return `<div class="tbl schl">
+    <div class="schr ctm hd"><div>청구년월 · 청구항목</div><div class="n">청구액</div><div class="n">수납액</div><div class="n">미납액</div><div class="c">납부상태</div><div class="c">더보기</div></div>
+    ${rows.map(r=>rcvRow(r.x,{cls:'ctm',op:!!g7[r.ym],tog:`g7['${r.ym}']=!g7['${r.ym}'];render(true)`,label:`${r.ym.replace('-','년 ')}월분`,ym:r.ym,
+      more:late.has(r.ym)?`<span class="more" onclick="event.stopPropagation();openDue('${k}','${r.ym}')">상세</span>`:''})).join('')}
+    <div class="schr ctm sum"><div>합계</div><div class="n">${won(T.bill)}</div><div class="n">${won(T.paid)}</div>
+      <div class="n">${(v=>v>0?`<span style="color:var(--warn)">${won(v)}</span>`:v<0?`<span style="color:var(--pri)">과납 ${won(-v)}</span>`:'—')(ledgerOf(k).bal.매출채권)}</div><div></div><div></div></div>
+  </div>
+  <div class="hint">달마다 청구액·수납액·미납액을 봅니다. 줄을 누르면 항목별로 펼쳐집니다. 미납이나 연체료가 있는 달은 더보기의 <b>상세</b>로 그 달의 내역을 봅니다.<br>
+    합계의 미납액은 지금 남은 받을 돈(원장 잔액)입니다. 마감한 달의 미납은 다음 달 전월 미납액으로 넘어가므로 달별 미납액을 더한 값과 다를 수 있습니다.<br>
+    돈을 기록하는 일(수납 처리 · 환불 · 청구 정정)은 원장 탭에서 합니다.</div>`;
 }
 /* CTR-3 요약 탭 — 계약·임대 정보. 잔액은 원장에서 */
 function CTR3sum(c,k){
@@ -3937,7 +3963,7 @@ const g3Tog=k=>{g3[k]=!g3Open(k);render(true);};
 function CTR3(k){
   const c=CTRS.find(x=>ckey(x)===k);
   if(!c) return TODO('ctr-1');
-  if(tab3c!=='원장') return CTR3head(c,k)+(tab3c==='요약'?CTR3sum(c,k):tab3c==='임대료·관리비'?CTR3rent(c,k)
+  if(tab3c!=='원장') return CTR3head(c,k)+(tab3c==='요약'?CTR3sum(c,k):tab3c==='월별 청구·수납'?CTR3month(c,k):tab3c==='임대료·관리비'?CTR3rent(c,k)
     :`<div class="tbl"><div class="empty"><div class="t">아직 만들지 않은 탭입니다</div>목업에는 요약 · 원장 · 임대료·관리비 탭만 있습니다.</div></div>`);
   const bn=BUILDINGS.find(x=>x.id===c.b)||BUILDINGS[0];
   const L=ledgerOf(k);
