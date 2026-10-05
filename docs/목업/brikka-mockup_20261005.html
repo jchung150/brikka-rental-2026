@@ -3395,7 +3395,7 @@ function PAY2(){
       <div class="c">${a.due||a.fee?`<span class="more" onclick="event.stopPropagation();openPay('${a.k}')">수납</span>`:''}</div>
     </div>`+(!op?'':a.months.map(m=>`
     <div class="schr arr sub mo" style="cursor:default">
-      <div class="nm">${m.ym.replace('-','년 ')}월분 <span class="c2">청구 ${won(m.bill)}</span></div>
+      <div class="nm">${m.ym.replace('-','년 ')}월분</div>
       <div class="n">${m.due?`<span style="color:var(--warn)">${won(m.due)}</span>`:dash}</div>
       <div class="n c2" style="margin:0">${m.days||m.lateDone?`${m.days||m.lateDone}일`:'—'}</div>
       <div></div>
@@ -3429,7 +3429,7 @@ function PAY2(){
     <div class="schr arr hd"><div>계약고유이름 · 청구년월</div><div class="n">미납액</div>
       <div class="n">연체일수</div><div class="n">연체이자율</div><div class="n">연체료(예상)</div><div class="c">더보기</div></div>
     ${body}
-    <div class="schr arr sum"><div>합계 <span class="lock">계약 ${act.length}</span></div>
+    <div class="schr arr sum"><div>합계</div>
       <div class="n">${T.due?`<span style="color:var(--warn)">${won(T.due)}</span>`:'—'}</div><div></div><div></div>
       <div class="n">${T.fee?won(T.fee):'—'}</div><div></div></div>
   </div>`}
