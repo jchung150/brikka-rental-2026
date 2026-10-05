@@ -1238,9 +1238,8 @@ function csHTML(){
 }
 function drawerHTML(){
   if(DRAWER==='chargeset') return csHTML();
-  if(DRAWER==='cut') return cutHTML();
+  if(DRAWER==='fix') return fixHTML();
   if(DRAWER==='cancel') return cancelHTML();
-  if(DRAWER==='extra') return extraHTML();
   if(DRAWER==='over') return overHTML();
   if(DRAWER==='pay') return payHTML();
   if(DRAWER==='mclose') return mcHTML();
@@ -3185,80 +3184,82 @@ function payHTML(){
   </div></div>`;
 }
 
-/* ═══ 감액 — 계약 원장의 청구 항목에서 연다. 발행한 청구 건을 줄인다 → PAY-5 ═══ */
-let cx=null;
-function cutOpen(id){cx={id,amt:0,why:''};DRAWER='cut';render(true);}
+/* ═══ 청구 정정 — 덜 받기(감액)와 더 받기(추가 청구)를 같은 화면 · 같은 순서로 → CTR-3 ═══
+   청구 항목 → 금액 → 사유 → 결과 → [정정 확정]. 아래에 이 계약의 정정 내역을 함께 보인다.
+   기록은 방향마다 다르다 — 덜 받기는 오늘 날짜 감액(원래 항목), 더 받기는 다음 청구서에 실린다 */
+let fz=null;
 /* 감액할 수 있는 청구 — 이 계약의 발행한 청구 중 남은 금액이 있는 것. 연체료 청구는 뺀다 */
 const cutBills=k=>BILLS.filter(i=>i.k===k&&!i.fee&&i.amt-cutOf(i.id)>0).sort((a,b)=>a.ym<b.ym?1:a.ym>b.ym?-1:b.amt-a.amt);
-function cutOpenK(k){const b=cutBills(k)[0]; if(b) cutOpen(b.id);}
-/* 청구 정정 — 한 패널에서 덜 받기(감액) / 더 받기(추가 청구)를 고른다. 기록 방식은 각각 그대로 → CTR-3 */
-function fixOpen(k){cutBills(k).length?cutOpenK(k):extraOpen(k);}
-function fixTabs(k,on){const can=cutBills(k).length;
-  return `<div style="display:flex;gap:6px;margin:-2px 0 14px">
-    <button class="btn sm ${on==='cut'?'pri':''}" ${can?'':'disabled title="줄일 청구가 없습니다"'} onclick="cutOpenK('${k}')">덜 받기 (감액)</button>
-    <button class="btn sm ${on==='add'?'pri':''}" onclick="extraOpen('${k}')">더 받기 (추가 청구)</button></div>`;}
-function cutSet(f,v){cx[f]=f==='amt'?numOf(v):v;if(f==='id') cx.amt=0;render(true);}
-function cutInfo(){const i=BILLS.find(x=>x.id===cx.id), paid=paidNet(i.id), left=i.amt-cutOf(i.id), after=left-cx.amt;
-  return {i,paid,left,after,over:Math.max(0,paid-Math.max(after,0))-Math.max(0,paid-left)};}
-function cutConfirm(){const I=cutInfo();if(!(cx.amt>0)||cx.amt>I.left||!cx.why.trim()) return;
-  addCut(cx.id,cx.amt,TODAY_S,cx.why.trim());DRAWER=null;cx=null;render(true);}
-function cutHTML(){
-  if(DRAWER!=='cut'||!cx) return '';
-  const I=cutInfo(), c=CTRS.find(x=>ckey(x)===I.i.k), bd=BUILDINGS.find(x=>x.id===c.b)||BUILDINGS[0];
-  const ok=cx.amt>0&&cx.amt<=I.left&&cx.why.trim();
-  const R=(k,b)=>`<div class="fr"><span class="fk">${k}</span>${b}</div>`;
-  return `<div class="dro"><div class="ov" onclick="closeDrawer()"></div><div class="pn">
-    <div class="dh"><div><div class="t">청구 정정</div><div class="s">${cname(bd.alias,c.no,c.ten)}</div></div>
-      <button class="x" onclick="closeDrawer()">✕</button></div>
-    <div class="db">
-      ${fixTabs(I.i.k,'cut')}
-      <div class="c2" style="margin:-2px 0 12px;white-space:normal">발행한 청구를 줄입니다. 오늘(${TODAY_S.slice(5).replace('-','.')}) 날짜로 원장에 <b>감액</b>이 기록되고, 원래 청구는 그대로 남습니다.
-        세금계산서는 원래 청구에 붙어 있으므로, 다음 달 청구에서 빼지 않고 원래 항목을 줄입니다.</div>
-      <div class="fg"><div class="fl">청구</div>
-        ${R('청구 항목',`<select onchange="cutSet('id',this.value)">${cutBills(I.i.k).map(i=>`<option value="${i.id}" ${i.id===cx.id?'selected':''}>${i.ym.slice(2).replace('-','.')}월분 ${i.n} · ${won(i.amt)}</option>`).join('')}</select>`)}
-        ${R('청구액',won(I.i.amt))}${cutOf(I.i.id)?R('이미 감액',won(cutOf(I.i.id))):''}${R('낸 금액',won(I.paid))}</div>
-      <div class="fg"><div class="fl">감액</div>
-        ${R('줄일 금액',`<input type="text" inputmode="numeric" value="${cx.amt?num(cx.amt):''}" placeholder="부가세 포함" oninput="kwLive(this)" onchange="cutSet('amt',this.value)" style="text-align:right"><span class="kw">${korWon(cx.amt)}</span>`)}
-        ${R('사유',`<input type="text" value="${cx.why}" placeholder="필수. 예: 7월 수도 검침값 입력 오류" onchange="cutSet('why',this.value)">`)}
-        ${cx.amt?R('감액 후',`<b>${won(Math.max(0,I.after))}</b>`):''}</div>
-      ${cx.amt>I.left?`<div class="prev warn2"><div class="pt">청구액보다 많이 줄일 수 없습니다</div>남은 청구액 ${won(I.left)}까지 줄일 수 있습니다.</div>`
-       :I.over>0?`<div class="prev"><div class="pt">과납 ${won(I.over)}이 생깁니다</div>이미 ${won(I.paid)}을 냈기 때문입니다. 다음 달로 넘어가 다음 청구에서 빠지며, 원장의 「환불」로 돌려줄 수도 있습니다.</div>`:''}
-      <div class="c2" style="margin:10px 0 0;white-space:normal">세금계산서 항목은 수정세금계산서가 필요할 수 있습니다(미확정).</div>
-    </div>
-    <div class="df"><button class="btn" onclick="closeDrawer()">취소</button>
-      <button class="btn pri" ${ok?'':'disabled'} onclick="cutConfirm()">감액 확정</button></div>
-  </div></div>`;
+/* 더 받을 수 있는 청구 — 발행한 청구 전부(지난 청구를 덜 받은 경우) + 새 항목 */
+const addBills=k=>BILLS.filter(i=>i.k===k&&!i.fee).sort((a,b)=>a.ym<b.ym?1:a.ym>b.ym?-1:b.amt-a.amt);
+const billLabel=i=>`${i.ym.slice(2).replace('-','.')}월분 ${i.n}`;
+function fixOpen(k,mode,id){
+  const m=mode||(cutBills(k).length?'cut':'add'), list=m==='cut'?cutBills(k):addBills(k);
+  if(m==='cut'&&!list.length) return fixOpen(k,'add');
+  fz={k,mode:m,id:id||(list[0]||{}).id||'__new',name:'',doc:'세금계산서',amt:0,why:''};DRAWER='fix';render(true);
 }
-/* ═══ 추가 청구 — 한 번만 받는 돈(엘리베이터 사용료, 수리비, 지난달 정산의 더 받을 차액). 다음 청구서에 실린다 → CTR-3 ═══ */
-let ex=null;
-function extraOpen(k){ex={k,n:'',amt:0,doc:'세금계산서',memo:''};DRAWER='extra';render(true);}
-function extraSet(f,v){ex[f]=f==='amt'?numOf(v):v;render(true);}
-function extraSave(){if(!ex.n.trim()||!(ex.amt>0)) return; ONCE.rows.push({k:ex.k,n:ex.n.trim(),amt:ex.amt,doc:ex.doc,memo:ex.memo});
-  ex={...ex,n:'',amt:0,memo:''};render(true);}
-function extraHTML(){
-  if(DRAWER!=='extra'||!ex) return '';
-  const c=CTRS.find(x=>ckey(x)===ex.k), bd=BUILDINGS.find(x=>x.id===c.b)||BUILDINGS[0], R=(k,b)=>`<div class="fr"><span class="fk">${k}</span>${b}</div>`;
-  const mine=ONCE.rows.map((r,i)=>({r,i})).filter(x=>x.r.k===ex.k);
+function fxSet(f,v){fz[f]=f==='amt'?numOf(v):v;if(f==='id') fz.amt=0;render(true);}
+function fxInfo(){
+  const i=BILLS.find(x=>x.id===fz.id);
+  if(!i) return {i:null};
+  const paid=paidNet(i.id), left=i.amt-cutOf(i.id), after=fz.mode==='cut'?left-fz.amt:left+fz.amt;
+  return {i,paid,left,after,over:fz.mode==='cut'?Math.max(0,paid-Math.max(after,0))-Math.max(0,paid-left):0};
+}
+function fxOK(){const I=fxInfo();
+  if(!(fz.amt>0)||!fz.why.trim()) return false;
+  if(fz.mode==='cut') return !!I.i&&fz.amt<=I.left;
+  return fz.id!=='__new'||!!fz.name.trim();}
+function fxConfirm(){if(!fxOK()) return; const I=fxInfo();
+  if(fz.mode==='cut') addCut(fz.id,fz.amt,TODAY_S,fz.why.trim());
+  else ONCE.rows.push({k:fz.k,ref:I.i?I.i.id:null,n:I.i?`${billLabel(I.i)} 정정`:fz.name.trim(),amt:fz.amt,
+    doc:I.i?itemDoc(CTRS.find(c=>ckey(c)===fz.k),I.i.n.split(' ')[0]):fz.doc,memo:fz.why.trim(),at:TODAY_S});
+  DRAWER=null;fz=null;render(true);}
+function fixHTML(){
+  if(DRAWER!=='fix'||!fz) return '';
+  const c=CTRS.find(x=>ckey(x)===fz.k), bd=BUILDINGS.find(x=>x.id===c.b)||BUILDINGS[0], I=fxInfo(), cut=fz.mode==='cut';
+  const list=cut?cutBills(fz.k):addBills(fz.k), R=(k,b)=>`<div class="fr"><span class="fk">${k}</span>${b}</div>`;
+  const can=cutBills(fz.k).length;
+  /* 이 계약의 정정 내역 — 덜 받기(감액 기록)와 더 받기(다음 청구서에 실릴 것)를 한 목록에 */
+  const hist=[...CUTS.filter(x=>x.k===fz.k).map(x=>({d:x.date,t:'덜 받기',n:`${x.ym.slice(2).replace('-','.')}월분 ${x.n}`,a:-x.amt,why:x.why,st:'원장에 감액'})),
+    ...ONCE.rows.map((r,i)=>({r,i})).filter(x=>x.r.k===fz.k).map(x=>({d:x.r.at||TODAY_S,t:'더 받기',n:x.r.n,a:x.r.amt,why:x.r.memo,st:'다음 청구서에',del:x.i}))]
+    .sort((a,b)=>a.d<b.d?1:-1);
   return `<div class="dro"><div class="ov" onclick="closeDrawer()"></div><div class="pn">
     <div class="dh"><div><div class="t">청구 정정</div><div class="s">${cname(bd.alias,c.no,c.ten)}</div></div>
       <button class="x" onclick="closeDrawer()">✕</button></div>
     <div class="db">
-      ${fixTabs(ex.k,'add')}
-      <div class="c2" style="margin:-2px 0 12px;white-space:normal">덜 받은 돈이나 한 번만 받는 돈을 넣습니다. <b>다음 청구서에 함께 실리고</b>, 그때 원장에 청구로 기록됩니다. 나눠 매기지 않습니다.</div>
-      <div class="fg"><div class="fl">새로 넣기</div>
-        ${R('항목명',`<input type="text" value="${ex.n}" placeholder="예: 엘리베이터 사용료, 7월 전기요금 정정" onchange="extraSet('n',this.value)">`)}
-        ${R('금액',`<input type="text" inputmode="numeric" value="${ex.amt?num(ex.amt):''}" placeholder="부가세 포함" oninput="kwLive(this)" onchange="extraSet('amt',this.value)" style="text-align:right"><span class="kw">${korWon(ex.amt)}</span>`)}
-        ${R('발행 문서',`<select onchange="extraSet('doc',this.value)">${ONCE_DOC.map(d=>`<option ${ex.doc===d?'selected':''}>${d}</option>`).join('')}</select>`)}
-        ${R('근거 · 메모',`<input type="text" value="${ex.memo}" onchange="extraSet('memo',this.value)">`)}
-        <div style="text-align:right"><button class="btn sm pri" ${ex.n.trim()&&ex.amt>0?'':'disabled'} onclick="extraSave()">넣기</button></div></div>
-      <div class="fg"><div class="fl">다음 청구서에 실릴 것</div>
-        ${mine.length?mine.map(({r,i})=>`<div class="fr"><span class="fk" style="width:auto;flex:1;color:var(--ink)">${r.n} <span class="c2">${r.doc}${r.memo?' · '+r.memo:''}</span></span><b>${won(r.amt)}</b>
-          <button class="btn sm" onclick="ONCE.rows.splice(${i},1);render(true)">삭제</button></div>`).join('')
+      <div style="display:flex;gap:6px;margin:-2px 0 14px">
+        <button class="btn sm ${cut?'pri':''}" ${can?'':'disabled title="줄일 청구가 없습니다"'} onclick="fixOpen('${fz.k}','cut')">덜 받기 (감액)</button>
+        <button class="btn sm ${cut?'':'pri'}" onclick="fixOpen('${fz.k}','add')">더 받기 (추가 청구)</button></div>
+      <div class="fg"><div class="fl">청구</div>
+        ${R('청구 항목',`<select onchange="fxSet('id',this.value)">${list.map(i=>`<option value="${i.id}" ${i.id===fz.id?'selected':''}>${billLabel(i)} · ${won(i.amt)}</option>`).join('')}
+          ${cut?'':`<option value="__new" ${fz.id==='__new'?'selected':''}>새 항목 (엘리베이터 사용료, 수리비 등)</option>`}</select>`)}
+        ${I.i?R('청구액',won(I.i.amt)+(cutOf(I.i.id)?` <span class="c2">감액 ${won(cutOf(I.i.id))}</span>`:''))+R('낸 금액',won(I.paid))
+          :R('항목명',`<input type="text" value="${fz.name}" placeholder="예: 엘리베이터 사용료" onchange="fxSet('name',this.value)">`)
+            +R('발행 문서',`<select onchange="fxSet('doc',this.value)">${ONCE_DOC.map(d=>`<option ${fz.doc===d?'selected':''}>${d}</option>`).join('')}</select>`)}</div>
+      <div class="fg"><div class="fl">${cut?'덜 받을 돈':'더 받을 돈'}</div>
+        ${R('금액',`<input type="text" inputmode="numeric" value="${fz.amt?num(fz.amt):''}" placeholder="부가세 포함" oninput="kwLive(this)" onchange="fxSet('amt',this.value)" style="text-align:right"><span class="kw">${korWon(fz.amt)}</span>`)}
+        ${R('사유',`<input type="text" value="${fz.why}" placeholder="필수. 예: 7월 검침값 입력 오류" onchange="fxSet('why',this.value)">`)}
+        ${I.i&&fz.amt?R('정정 후',`<b>${won(Math.max(0,I.after))}</b>`):''}</div>
+      ${cut&&I.i&&fz.amt>I.left?`<div class="prev warn2"><div class="pt">청구액보다 많이 줄일 수 없습니다</div>남은 청구액 ${won(I.left)}까지 줄일 수 있습니다.</div>`
+       :fz.amt?`<div class="prev"><div class="pt">정정 확정하면</div>${cut
+          ?`오늘(${TODAY_S.slice(5).replace('-','.')}) 날짜로 원장에 <b>감액 ${won(fz.amt)}</b>이 기록됩니다.${I.over>0?` 이미 낸 돈이 있어 <b>과납 ${won(I.over)}</b>이 생기고, 다음 청구에서 빠집니다.`:''}`
+          :`<b>다음 청구서</b>에 「${I.i?billLabel(I.i)+' 정정':(fz.name||'새 항목')}」 ${won(fz.amt)}이 함께 실리고, 그때 원장에 청구로 기록됩니다.`}</div>`:''}
+      <div class="fg" style="margin-top:16px"><div class="fl">정정 내역</div>
+        ${hist.length?hist.map(h=>`<div class="fr" style="align-items:flex-start"><span class="fk" style="width:auto;flex:1;color:var(--ink)">
+            <span class="bd ${h.t==='덜 받기'?'wa2':'ac'}" style="margin-right:6px">${h.t}</span>${h.n}<div class="c2" style="white-space:normal">${h.d.slice(5).replace('-','.')} · ${h.st}${h.why?' · '+h.why:''}</div></span>
+            <b>${h.a<0?'−':''}${won(Math.abs(h.a))}</b>${h.del!=null?`<button class="btn sm" onclick="ONCE.rows.splice(${h.del},1);render(true)">삭제</button>`:''}</div>`).join('')
           :'<div class="c2" style="margin:0">없습니다</div>'}</div>
     </div>
-    <div class="df"><button class="btn" onclick="closeDrawer()">닫기</button></div>
+    <div class="df"><button class="btn" onclick="closeDrawer()">취소</button>
+      <button class="btn pri" ${fxOK()?'':'disabled'} onclick="fxConfirm()">정정 확정</button></div>
   </div></div>`;
 }
+/* 예전 이름 — 검증 스크립트와 버튼이 쓴다 */
+const cutOpen=id=>{const i=BILLS.find(x=>x.id===id); if(i) fixOpen(i.k,'cut',id);};
+const cutOpenK=k=>fixOpen(k,'cut');
+const extraOpen=k=>fixOpen(k,'add','__new');
+const cutSet=fxSet, cutConfirm=fxConfirm, extraSave=fxConfirm;
+const extraSet=(f,v)=>fxSet(f==='n'?'name':f==='memo'?'why':f,v);
 /* ═══ 환불 — 과납은 계약 원장에서, 오납은 입금 매칭에서. 과납은 따로 처리하지 않으면 다음 달로 넘어간다 → 4.3.4 · 4.3.5 ═══ */
 let ov=null;
 function openRefund(k){ov={k,amt:overOf(k),date:TODAY_S,acct:'',memo:''};DRAWER='over';render(true);}

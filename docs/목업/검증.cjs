@@ -36,7 +36,7 @@ for (const c of ['elec', 'water', 'gas', 'parking'])
   run('PAY-10 ' + c, "pCode='" + c + "';PAY10()");
 run('PAY-10 항목 없음', "Object.keys(BILL).forEach(k=>BILL[k].on=false);PAY10()");
 run('PAY-10 패널', "DRAWER='additem';dPick=['fund'];drawerHTML()");
-run('CTR-3 추가 청구 패널', "extraOpen('b1본관B2');extraSet('n','엘리베이터 사용료');extraSet('amt','110000');extraSave();drawerHTML();tab3c='요약';CTR3('b1본관B2')");
+run('CTR-3 추가 청구 패널', "extraOpen('b1본관B2');extraSet('n','엘리베이터 사용료');extraSet('amt','110000');extraSet('memo','이사');extraSave();drawerHTML();tab3c='요약';CTR3('b1본관B2')");
 run('PAY-10 배율 0', "BILL.elec.adj['본관2층']={mul:0};pCode='elec';PAY10()");
 run('건물 관리비 설정 패널', "openCS('elec');drawerHTML();openCS('rent');drawerHTML();openCS('parking');drawerHTML()");
 run('PAY-10 7월 마감 회차', "f10ym='2026-07';PAY10()");
@@ -327,7 +327,7 @@ r6.push(['금액 읽기 — 500만원 · 1억원 · 1억 2,345만 6,789원 · 55
   KW(5000000) === '500만원' && KW(100000000) === '1억원' && KW(123456789) === '1억 2,345만 6,789원' && KW(550000) === '55만원']);
 /* 추가 청구 — 계약 상세에서 넣으면 그 계약의 다음 청구서에 실린다 → CTR-3 · PAY-1 */
 const Q = new Function(stub + bare + '; return {extraOpen,extraSet,extraSave,ISSUE,ONCE};')();
-Q.extraOpen('b1본관B2'); Q.extraSet('n', '엘리베이터 사용료'); Q.extraSet('amt', '110000'); Q.extraSave();
+Q.extraOpen('b1본관B2'); Q.extraSet('n', '엘리베이터 사용료'); Q.extraSet('amt', '110000'); Q.extraSet('memo', '이사'); Q.extraSave();
 const qb = Q.ISSUE().find(c => c.no === '본관B2'), ql = qb && qb.lines.find(l => l.n === '엘리베이터 사용료');
 r6.push(['추가 청구 11만(계약 상세) → 루비뮤직 8월 청구서에 한 줄 · 공급가액 100,000 · 부가세 10,000',
   Q.ONCE.rows.length === 1 && ql && ql.amt === 110000 && ql.supply === 100000 && ql.vat === 10000]);
@@ -441,7 +441,7 @@ run('환불 패널 · 오납 환불 패널', "seedJuly();openRefund('b1본관1�
 run('PAY-6 과납 필터', "seedJuly();RC.f={b:'b1',ym:'2026-07',st:'과납'};g6All=true;PAY6()");
 run('PAY-13 감액으로 과납이 생긴 입금 · 남는 입금 미리보기', "seedJuly();RC.f.ym='2026-07';RC.cur=6;PAY13();RC.f.ym='2026-07';delete RC.dec[8];RC.cur=8;PAY13()");
 run('CTR-3 원장 감액 · 요약 과납', "seedJuly();tab3c='원장';g3All=true;CTR3('b1본관1층');tab3c='요약';CTR3('b1본관1층')");
-run('감액 패널', "seedJuly();cutOpen('2026-07|본관1층|전기요금');cutSet('amt','10000');cutHTML();cutSet('amt','99999999');cutHTML()");
+run('감액 패널', "seedJuly();cutOpen('2026-07|본관1층|전기요금');cutSet('amt','10000');fixHTML();cutSet('amt','99999999');fixHTML()");
 run('PAY-1 과납', "seedJuly();g1All=true;PAY1()");
 run('PAY-11 8월 과납 확인', "seedJuly();s11={b:'b1',ym:'2026-08'};PAY11();mcOpen('close');mcHTML()");
 /* 미납 이월 — 6월 마감(07.03) 때 비씨에이전시 5,054,474가 미납액으로 · 7/31 입금은 미납액에 · 7월 마감(08.05) 때 54,474 + 5,091,998 → 4.3.6 */
@@ -483,6 +483,16 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   const d7 = PR.RC.dec[7].done;
   r6.push(['전월 과납액은 TV수신료 1,507 · 전력기금 16,493부터 채움 → 13,200,000 입금은 임대료 한 줄',
     d7.lines.length === 1 && d7.lines[0].n === '임대료' && d7.lines[0].pay === 13200000]); }
+/* 청구 정정 — 덜 받기·더 받기가 같은 칸(청구 항목 · 금액 · 사유)과 같은 버튼(정정 확정) · 더 받기도 사유 필수 · 지난 청구를 더 받으면 「…월분 ○○ 정정」 */
+{ const FX = new Function(stub + bare + '; seedJuly(); return {fixOpen,fxSet,fxConfirm,fixHTML,ONCE,ISSUE,get fz(){return fz;}};')();
+  FX.fixOpen('b1본관1층', 'cut'); const hc = FX.fixHTML();
+  FX.fixOpen('b1본관1층', 'add'); const ha = FX.fixHTML();
+  const same = ['청구 항목', '금액', '사유', '정정 확정', '정정 내역'].every(t => hc.includes(t) && ha.includes(t)) && !ha.includes('항목명');
+  FX.fxSet('id', '2026-07|본관1층|전기요금'); FX.fxSet('amt', '55000'); FX.fxConfirm(); const noWhy = FX.ONCE.rows.length === 0;
+  FX.fxSet('why', '7월 검침 누락'); FX.fxConfirm();
+  const r = FX.ONCE.rows[0], ln = FX.ISSUE().find(c => c.no === '본관1층').lines.find(l => /정정/.test(l.n));
+  r6.push(['청구 정정 — 두 방향 같은 칸·같은 버튼 · 사유 없으면 막힘 · 7월 전기요금 더 받기 55,000 → 8월 청구서에 「26.07월분 전기요금 정정」(세금계산서)',
+    same && noWhy && r && r.n === '26.07월분 전기요금 정정' && r.doc === '세금계산서' && ln && ln.amt === 55000]); }
 const bad6 = r6.filter(x => !x[1]);
 if (bad6.length) fail = 1;
 console.log('⑥ 수납 기록 ' + (bad6.length ? '✗ ' + bad6.map(x => x[0]).join(' / ') : 'OK — ' + r6.length + '개 검산'));
