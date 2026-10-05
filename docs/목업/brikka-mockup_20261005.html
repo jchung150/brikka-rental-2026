@@ -610,8 +610,8 @@ let opIdx=0;
 const BUILDINGS=[
  {id:'b1',name:'카리나빌딩',alias:'카리나',kind:'오피스빌딩',
   addr:'서울특별시 마포구 양화로 156',addr2:'서울 마포구 동교동 156-12',
-  owner:'카리나',ownerBiz:'105-81-42117',mgr:'슈퍼관리자',mgrTel:'010-3341-2205',
-  area:4820.5,gross:6240.8,up:8,down:2,park:24,hvac:'EHP(시스템에어컨)',
+  owner:'카리나',ownerBiz:'105-81-42117',owners:[{n:'카리나',biz:'105-81-42117',share:100}],built:'2009-04-10',approved:'2009-11-20',mgr:'슈퍼관리자',mgrTel:'010-3341-2205',
+  area:4820.5,gross:6240.8,up:8,down:2,park:24,pk:{up:4,down:16,mech:4},hvac:'EHP(시스템에어컨)',
   unitCnt:14,vacCnt:0,opCnt:0,vac:0,
   acct:'국민은행 812-01-0455-118',acctName:'카리나',feeAcct:'국민은행 812-01-0455-118',feeAcctName:'카리나',
   mgmtStart:'2025-03-01',mgmtEnd:'2027-02-28',fee:'임대료의 5%',mode:'임대인 직수취',
@@ -619,9 +619,10 @@ const BUILDINGS=[
   fac:['회의실','옥상정원','샤워실','무인택배함'],
   units:[],   /* 카리나빌딩 유닛은 정산 자료(UNITS_B1)에서 만든다 — 계약·검침과 같은 번호 */
   parks:[
-   {n:'B1-01',t:'일반',memo:'',as:'(주)아이씨비',asu:'본관8층'},{n:'B1-02',t:'일반',memo:'',as:'(주)아이씨비',asu:'본관8층'},
-   {n:'B1-03',t:'일반',memo:'',as:'(주)케이큐엔터테이먼트',asu:'본관4층'},{n:'B1-04',t:'소형',memo:'경차 전용',as:'',asu:''},
-   {n:'B1-05',t:'장애인',memo:'',as:'',asu:''},{n:'B2-01',t:'일반',memo:'',as:'(유)유니버셜대부',asu:'본관302호'}],
+   {loc:'지하 자주식',n:'B1-01',t:'일반',memo:'',as:'(주)아이씨비',asu:'본관8층'},{loc:'지하 자주식',n:'B1-02',t:'일반',memo:'',as:'(주)아이씨비',asu:'본관8층'},
+   {loc:'지하 자주식',n:'B1-03',t:'일반',memo:'',as:'(주)케이큐엔터테이먼트',asu:'본관4층'},{loc:'지하 자주식',n:'B1-04',t:'소형',memo:'경차 전용',as:'',asu:''},
+   {loc:'지하 자주식',n:'B1-05',t:'장애인',memo:'',as:'',asu:''},{loc:'지하 자주식',n:'B2-01',t:'일반',memo:'',as:'(유)유니버셜대부',asu:'본관302호'},
+   {loc:'기계식',n:'M-01',t:'일반',memo:'SUV 불가 · 높이 1.55m 이하',as:'',asu:''}],
   docs:[
    {t:'관리위임계약서_카리나빌딩_2025.pdf',sz:'1.2 MB',c:'건물서류',by:'슈퍼관리자',at:'2025-02-24 14:20'},
    {t:'등기부등본_20260801.pdf',sz:'340 KB',c:'건물서류',by:'슈퍼관리자',at:'2026-08-01 09:12'},
@@ -641,16 +642,16 @@ const BUILDINGS=[
   billDay:'매월 19일',dueDay:'매월 말일'},
 
  {id:'b2',name:'뉴진스하우스',alias:'뉴진스',kind:'오피스빌딩',addr:'서울특별시 용산구 이촌로 248',addr2:'서울 용산구 이촌동 301-8',
-  owner:'뉴진스',ownerBiz:'220-13-88402',mgr:'슈퍼관리자',mgrTel:'010-3341-2205',
-  area:7240.0,gross:9820.4,up:12,down:3,park:48,hvac:'중앙공조',unitCnt:22,vacCnt:1,opCnt:0,vac:4.5,
+  owner:'뉴진스',ownerBiz:'220-13-88402',owners:[{n:'뉴진스',biz:'220-13-88402',share:60},{n:'민지',biz:'110-24-55031',share:40}],built:'2015-02-03',approved:'2016-06-28',mgr:'슈퍼관리자',mgrTel:'010-3341-2205',
+  area:7240.0,gross:9820.4,up:12,down:3,park:48,pk:{up:6,down:38,mech:4},hvac:'중앙공조',unitCnt:22,vacCnt:1,opCnt:0,vac:4.5,
   acct:'신한은행 140-012-772301',acctName:'뉴진스',feeAcct:'신한은행 140-012-772415',feeAcctName:'뉴진스 관리비',
   mgmtStart:'2024-09-18',mgmtEnd:'2026-09-17',fee:'월 2,400,000원',mode:'임대인 직수취',
   bondBank:'신한은행 이촌동지점',bondTel:'02-797-1120',bondMax:4200000000,bondNow:3100000000,
   fac:['회의실','카페테리아','피트니스'],units:[],parks:[],docs:[],charge:[],billDay:'매월 25일',dueDay:'익월 10일'},
 
  {id:'b4',name:'카즈하타워',alias:'카즈하',kind:'복합상가',addr:'서울특별시 마포구 월드컵로 12',addr2:'서울 마포구 합정동 381-4',
-  owner:'카즈하',ownerBiz:'113-86-20447',mgr:'슈퍼관리자',mgrTel:'010-3341-2205',
-  area:3180.6,gross:4120.2,up:6,down:1,park:14,hvac:'개별 EHP',unitCnt:14,vacCnt:2,opCnt:0,vac:12.4,
+  owner:'카즈하',ownerBiz:'113-86-20447',owners:[{n:'카즈하',biz:'113-86-20447',share:100}],built:'2012-08-01',approved:'2013-03-15',mgr:'슈퍼관리자',mgrTel:'010-3341-2205',
+  area:3180.6,gross:4120.2,up:6,down:1,park:14,pk:{up:4,down:10,mech:0},hvac:'개별 EHP',unitCnt:14,vacCnt:2,opCnt:0,vac:12.4,
   acct:'우리은행 1005-903-442118',acctName:'카즈하',feeAcct:'우리은행 1005-903-442118',feeAcctName:'카즈하',
   mgmtStart:'2025-07-01',mgmtEnd:'2027-06-30',fee:'임대료의 4%',mode:'임대인 직수취',
   bondBank:'우리은행 문래지점',bondTel:'02-2632-4410',bondMax:900000000,bondNow:640000000,
@@ -665,6 +666,7 @@ const BUILDINGS=[
   billDay:'매월 20일',dueDay:'말일'},
 
 ];
+BUILDINGS.forEach(b=>{b.park=b.pk.up+b.pk.down+b.pk.mech;});   /* 총 주차면수는 지상 자주식 · 지하 자주식 · 기계식의 합 */
 
 /* ═══ PAY-10 정산 데이터 ═══ */
 /* 카리나빌딩 — 본관 11 · 별관 3 유닛. 임차인명은 실제 입주사다.
@@ -1391,7 +1393,7 @@ function PRO1(){
       <td class="c" onclick="event.stopPropagation()"><span class="cb"></span></td>
       <td><div class="c1">${b.name}</div><div class="c2">${b.alias} · ${b.kind}</div></td>
       <td><div class="c1" style="font-weight:400">${b.addr}</div><div class="c2">${b.addr2}</div></td>
-      <td><div class="c1" style="font-weight:400">${b.owner}</div><div class="c2">${b.ownerBiz}</div></td>
+      <td><div class="c1" style="font-weight:400">${b.owner}${b.owners.length>1?` <span class="c2">외 ${b.owners.length-1}</span>`:''}</div><div class="c2">${b.ownerBiz}</div></td>
       <td><div class="c1" style="font-weight:400">${b.mgr}</div><div class="c2">${b.mgrTel}</div></td>
       <td class="n"><div class="c1" style="font-weight:400">${m2(b.area)}</div><div class="c2">연면적 ${num(b.gross)}</div></td>
       <td class="n"><div class="c1" style="font-weight:400">${pct(b.vac)}</div>
@@ -1484,6 +1486,8 @@ function t요약(b){
         <span class="lock">계약고유이름에 사용 — ${b.alias}|101호|임차인명</span></dd>
       <dt>건물구분</dt><dd>${b.kind}</dd>
       <dt>건물주소</dt><dd>${b.addr}<div class="c2">${b.addr2}</div></dd>
+      <dt>건축일</dt><dd>${b.built}</dd>
+      <dt>사용승인일</dt><dd>${b.approved}</dd>
       <dt>청구일</dt><dd>${b.billDay}</dd>
       <dt>납부마감일</dt><dd>${b.dueDay}</dd>
       <dt>건물관리자</dt><dd>${b.mgr}<span class="lock">${b.mgrTel}</span></dd>
@@ -1494,12 +1498,12 @@ function t요약(b){
       <dt>연면적</dt><dd>${m2(b.gross)}</dd>
       <dt>임대가능면적</dt><dd>${m2(b.area)}</dd>
       <dt>층수</dt><dd>지상 ${b.up}층 · 지하 ${b.down}층</dd>
-      <dt>총 주차면수</dt><dd>${b.park}면</dd>
+      <dt>총 주차면수</dt><dd>${b.park}면<span class="lock">지상 자주식 ${b.pk.up} · 지하 자주식 ${b.pk.down} · 기계식 ${b.pk.mech}</span></dd>
       <dt>냉난방 방식</dt><dd>${b.hvac}</dd>
     </dl></div></div>
     <div class="card"><div class="ct">임대인 정보
       <span class="ca"><button class="btn sm">수정</button></span></div><div class="cc"><dl class="dl">
-      <dt>임대인(건물주)</dt><dd>${b.owner}<span class="lock">${b.ownerBiz}</span></dd>
+      ${b.owners.map((o,i)=>`<dt>${i?'':'임대인(건물주)'}</dt><dd>${o.n} <b>${o.share}%</b><span class="lock">${o.biz}</span></dd>`).join('')}
       <dt>임대료 납부 계좌</dt><dd>${b.acct}</dd>
       <dt>예금주</dt><dd>${b.acctName}</dd>
       <dt>관리비 납부 계좌</dt><dd>${b.feeAcct}</dd>
@@ -1518,8 +1522,8 @@ function t요약(b){
     <span class="sub">${b.parks.length?`${b.parks.filter(p=>p.as).length}면 배정 / 등록 ${b.parks.length}면 · 총 ${b.park}면`:`총 ${b.park}면`}</span>
     <span class="ca"><button class="btn sm">주차면 추가</button></span></div>
     ${b.parks.length?`<div class="tw"><table>
-      <thead><tr><th>주차면</th><th>유형</th><th>메모</th><th>배정 현황</th></tr></thead>
-      <tbody>${b.parks.map(p=>`<tr><td class="c1">${p.n}</td><td>${p.t}</td><td style="color:var(--muted)">${p.memo||'—'}</td>
+      <thead><tr><th>주차면</th><th>위치</th><th>유형</th><th>메모</th><th>배정 현황</th></tr></thead>
+      <tbody>${b.parks.map(p=>`<tr><td class="c1">${p.n}</td><td>${p.loc}</td><td>${p.t}</td><td style="color:var(--muted)">${p.memo||'—'}</td>
         <td>${p.as?`<div class="c1" style="font-weight:400">${p.as}</div><div class="c2">${p.asu}</div>`:'<span class="bd mu">미배정</span>'}</td></tr>`).join('')}</tbody>
     </table></div>`:'<div class="empty">등록된 주차면이 없습니다.</div>'}
   </div>
