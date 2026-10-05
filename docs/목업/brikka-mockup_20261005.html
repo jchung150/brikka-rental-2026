@@ -454,7 +454,7 @@ tr.off td:not(:last-child):not(:nth-last-child(2)){opacity:.5}
 table.nowr th,table.nowr td{white-space:nowrap}
 .rcr{grid-template-columns:minmax(150px,.7fr) minmax(170px,1fr) 130px minmax(240px,1.4fr) 180px}
 .rcr > :nth-child(4){padding-left:28px}
-.ctr{grid-template-columns:minmax(260px,1fr) 150px 150px 150px 100px}
+.ctr{grid-template-columns:minmax(260px,1fr) 150px 150px 150px 100px 150px}
 .ctm{grid-template-columns:minmax(200px,1fr) 150px 150px 150px 100px 80px}
 .schr.dep .nm{color:var(--muted)}
 .led{grid-template-columns:96px 92px 76px minmax(260px,1fr) 124px 124px 132px}
@@ -3036,7 +3036,12 @@ function PAY6(){
   /* 그룹 행 — 들어온 미납액도 함께 더한다 */
   const T=rows.reduce((a,x)=>{const g=rcvSum(x);return {bill:a.bill+g.bill,paid:a.paid+g.paid,due:a.due+g.due};},{bill:0,paid:0,due:0});
   const dash='<span style="color:var(--faint)">—</span>';
-  const body=rows.map(x=>rcvRow(x,{cls:'ctr',op:g6Open(x.k),tog:`g6Tog('${x.k}')`,label:cnameHTML(bn.alias,x.c.no,x.c.ten),ym:RC.f.ym})).join('');
+  /* 더보기 — 수납 처리는 받을 돈(미납·연체료)이 있는 계약만. 원장 보기는 계약 상세 원장 탭으로 */
+  const more=x=>{const owe=arrears(x.c).due+feeUntil(x.k,TODAY_S)>0;
+    return (owe?`<span class="more" onclick="event.stopPropagation();openPay('${x.k}')">수납 처리</span>`
+      :'<span class="more off" title="받을 돈이 없습니다">수납 처리</span>')
+      +` <span class="more" onclick="event.stopPropagation();tab3c='원장';go('ctr-3/${x.k}')">원장 보기</span>`;};
+  const body=rows.map(x=>rcvRow(x,{cls:'ctr',op:g6Open(x.k),tog:`g6Tog('${x.k}')`,label:cnameHTML(bn.alias,x.c.no,x.c.ten),ym:RC.f.ym,more:more(x)})).join('');
   return `
   <div class="ph"><h1>수납 내역</h1><span class="sid">PAY-6</span>
   </div>
@@ -3061,15 +3066,15 @@ function PAY6(){
      ${has?'다른 납부상태를 선택해 보세요.':'청구서를 발행하면 계약별 수납 상태가 표시됩니다.'}</div></div>`
   :`<div class="tbl schl">
     <div class="schr ctr hd"><div>계약고유이름 · 청구항목</div><div class="n">청구액</div><div class="n">수납액</div>
-      <div class="n">미납액</div><div class="c">납부상태</div></div>
+      <div class="n">미납액</div><div class="c">납부상태</div><div class="c">더보기</div></div>
     ${body}
     <div class="schr ctr sum"><div>합계 <span class="lock">계약 ${rows.length}</span></div>
       <div class="n">${won(T.bill)}</div><div class="n">${won(T.paid)}</div>
-      <div class="n">${T.due?`<span style="color:var(--warn)">${won(T.due)}</span>`:'—'}</div><div></div></div>
+      <div class="n">${T.due?`<span style="color:var(--warn)">${won(T.due)}</span>`:'—'}</div><div></div><div></div></div>
   </div>`}
   <div class="hint">
     선택한 달의 청구를 계약별로 다 받았는지 봅니다. 금액은 부가세 포함입니다.<br>
-    밀린 달 전부의 미납과 미납 안내는 미납 관리에서, 입금 한 건 한 건은 입금 매칭에서 봅니다.<br>
+    밀린 달 전부의 미납과 미납 안내는 미납 관리에서, 입금 한 건 한 건은 입금 매칭에서 봅니다. 현금·카드로 받은 돈은 더보기의 <b>수납 처리</b>로 기록합니다.<br>
     <b>전월 미납액</b>은 지난달 마감 때 다 받지 못해 넘어온 돈, <b>전월 과납액</b>은 더 받아 넘어온 돈입니다(이 달 청구에서 먼저 빠짐). 마감한 달은 그 뒤로 바뀌지 않고, 들어온 돈은 전월 미납액부터 줄입니다.<br>
     <b>과납액</b>은 그 달 청구를 다 받고 남은 돈입니다. 입금은 우선순위대로 배분되므로 어느 항목의 돈이라고 할 수 없어 따로 한 줄로 둡니다.
     다음 달로 넘어가 다음 청구서를 발행할 때 먼저 배분되어 낼 돈이 줍니다. 청구항목이 아닌 줄(전월 미납액 · 전월 과납액 · 과납액)은 연한 배경으로 구분합니다.</div>`;
