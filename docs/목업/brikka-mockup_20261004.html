@@ -2422,6 +2422,7 @@ function PAY1(){
 /* 2026-07 카리나빌딩 운영계좌 거래내역 — 은행에서 내려받은 형식 그대로다. 7/20 ~ 7/31분.
    8월 실제 거래내역의 날짜를 7월로 옮기고, 임차인 입금액은 7월 청구액에 맞춰 만든 예시값이다.
    (주)비씨에이전시는 6·7월분 중 5,000,000원만 냈다 · 주식회사루비뮤직은 6월 부족분 385,000원을 얹어 냈다
+   에스씨케이컴퍼니는 6월 과납 18,000원(전월 과납액)을 뺀 금액을 냈다
    거래후 잔액 열은 원본 값이며 계산에 쓰지 않는다.
    앞 2행은 머리말, 출금 행과 임대 외 입금이 섞여 있다. 시스템이 걸러내야 한다 → 4.6.1 */
 const BANK_RAW=`카리나빌딩
@@ -2432,7 +2433,7 @@ No.    거래일시    적요    기재내용    지급(원)    입금(원)    �
 3    2026.07.31 15:48:24    인터넷    (주)케이더블유인터    0    14,505,276    109,577,547    하나은행(081569)        0
 4    2026.07.31 15:48:23    인터넷    (주)케이더블유인터    0    4,903,057    95,105,912    하나은행(081569)        0
 5    2026.07.31 15:39:16    타행대량    ICB    0    28,719,173    90,150,687    기업은행(003472)        0
-6    2026.07.31 13:05:37    펌뱅킹    에스씨케이컴퍼니    0    6,002,814    61,360,720    본점기업영업지원팀        0
+6    2026.07.31 13:05:37    펌뱅킹    에스씨케이컴퍼니    0    5,984,814    61,360,720    본점기업영업지원팀        0
 7    2026.07.31 13:05:36    펌뱅킹    에스씨케이컴퍼니    0    13,200,000    53,811,426    본점기업영업지원팀        0
 8    2026.07.31 12:34:01    ＰＣ뱅킹    AMADEUS KO    0    13,694,892    40,611,426    HSBC은행(054002)        0
 9    2026.07.31 12:04:11    인터넷    유한회사 고우컴퍼니    0    396,000    27,001,395    서교중앙금융센터        0
@@ -2486,7 +2487,8 @@ No.    거래일시    적요    기재내용    지급(원)    입금(원)    �
 
 /* 2026-06 카리나빌딩 운영계좌 거래내역 — 목업 예시값. 6월 청구액을 6/24 ~ 6/30에 받았다.
    (주)비씨에이전시는 내지 않았다 · 주식회사루비뮤직은 385,000원을 덜 냈다 · 국세환급금은 임차인 입금이 아니다
-   아마데우스는 7월과 입금자명이 다르다(AMADEUS KOREA) — 7월에는 자동 매칭되지 않는다 */
+   아마데우스는 7월과 입금자명이 다르다(AMADEUS KOREA) — 7월에는 자동 매칭되지 않는다
+   에스씨케이컴퍼니는 18,000원을 더 냈다(과납) — 7월 청구에서 전월 과납액으로 빠지고, 7월에는 그만큼 덜 냈다 */
 const BANK_JUN=`카리나빌딩
 조회기간 : 2026.06.01~2026.06.30 조회일시 : 2026.07.02 08:10:14
 No.    거래일시    적요    기재내용    지급(원)    입금(원)    거래후 잔액(원)    취급점    메모    수표·어음·증권금액(원)
@@ -2495,7 +2497,7 @@ No.    거래일시    적요    기재내용    지급(원)    입금(원)    �
 3    2026.06.30 15:41:02    인터넷    (주)케이더블유인터    0    14,376,968    113,149,897    하나은행(081569)        0
 4    2026.06.30 15:41:01    인터넷    (주)케이더블유인터    0    4,871,281    98,772,885    하나은행(081569)        0
 5    2026.06.30 15:22:37    타행대량    ICB    0    28,298,673    93,901,668    기업은행(003472)        0
-6    2026.06.30 13:02:15    펌뱅킹    에스씨케이컴퍼니    0    18,891,511    65,603,280    본점기업영업지원팀        0
+6    2026.06.30 13:02:15    펌뱅킹    에스씨케이컴퍼니    0    18,909,511    65,603,280    본점기업영업지원팀        0
 7    2026.06.30 12:30:44    ＰＣ뱅킹    AMADEUS KOREA    0    13,668,194    46,711,787    HSBC은행(054002)        0
 8    2026.06.30 12:01:09    인터넷    유한회사 고우컴퍼니    0    396,000    33,043,665    서교중앙금융센터        0
 9    2026.06.30 11:50:27    인터넷    (유)유니버셜대부    0    13,477,517    32,647,665    도산대로금융센터        0
@@ -2632,7 +2634,9 @@ function ctrPay(k,ym){
   const net=it.reduce((a,i)=>a+i.amt-(D?by(CUTS,i.id):cutOf(i.id)),0), over=it.length?overMonth(k,ym,D):0;
   /* 수납액에는 과납액도 들어간다 — 실제로 받은 돈이다 */
   const dAll=due+(carry?carry.due:0), nAll=net+(carry?carry.amt:0);
-  return {it,bill,paid:paid+over,due,over,carry,st:!it.length?null:dAll>0?(closed?'미납':payState(nAll,nAll-dAll,ym)):over>0?'과납':'완납'};
+  /* 전월 과납액 — 이 달 청구에 먼저 배분된 지난달 과납 */
+  const credit=CREDITS.filter(x=>x.k===k&&x.ym===ym).reduce((a,x)=>a+x.amt,0);
+  return {it,bill,paid:paid+over,due,over,carry,credit,st:!it.length?null:dAll>0?(closed?'미납':payState(nAll,nAll-dAll,ym)):over>0?'과납':'완납'};
 }
 /* 연체료(예상) — 구간별로 계산한다 → 4.4
    납부마감일 다음날부터 오늘까지를 수납이 들어올 때마다 끊고, 구간마다 그 동안의 미납액 × 연체이자율 × 일수 ÷ 365.
@@ -2684,7 +2688,8 @@ function rcPrefix(nm,B){
 function rcPlan(amt,keys,paid,extra,t){
   const ci=k=>CTRS.findIndex(c=>ckey(c)===k);
   /* t(입금일)에 마감되어 있던 달의 청구에는 배분하지 않는다. 그 달 미납은 미납액으로 넘어갔다 → 4.3.6 */
-  const open=[...BILLS.filter(i=>!(t&&closedBy(bOfK(i.k),i.ym,t))),...(t?keys.map(k=>carryAt(k,t)).filter(Boolean):[]),...(extra||[])].filter(i=>keys.includes(i.k))
+  /* 입금일에 아직 발행되지 않은 청구(발행일 = 매월 19일)는 넣지 않는다 */
+  const open=[...BILLS.filter(i=>!(t&&(closedBy(bOfK(i.k),i.ym,t)||dnum(i.date||i.ym+'-19')>dnum(t)))),...(t?keys.map(k=>carryAt(k,t)).filter(Boolean):[]),...(extra||[])].filter(i=>keys.includes(i.k))
     .map(i=>({...i,pr:i.carry?0:prioOf(i.n.split(' ')[0]),due:i.amt-cutOf(i.id)-paidNet(i.id,paid)})).filter(i=>i.due>0)
     .sort((a,b)=>a.ym<b.ym?-1:a.ym>b.ym?1:a.pr!==b.pr?a.pr-b.pr:ci(a.k)-ci(b.k));
   let r=amt;const lines=[];
@@ -2791,8 +2796,6 @@ function seedJuly(){
     rcConfirm(d.no);
   });
   QUIET=false; RC.cur=null; RC.f.ym=kf;
-  /* 8/7 — 8월 정산 중 7월 본관1층 수도 검침값 오기를 발견해 감액했다. 7월분은 이미 다 냈으므로 과납이 된다 → 4.3.4 */
-  addCut('2026-07|본관1층|수도요금',18000,'2026-08-07','7월 수도 검침값 입력 오류 — 8월 정산 중 발견');
 }
 /* 6월 입금 — 7월보다 먼저 처리됐다(7/3 마감). 원장 자료이므로 검증에서도 처리된 상태로 시작한다.
    첫 달이라 등록된 입금자명이 없어 모두 담당자가 골랐다 → 이때 등록한 입금자명으로 7월 입금은 대부분 자동 매칭된다 */
@@ -2807,6 +2810,17 @@ function seedMonth(ym,pk,ign){
 }
 seedMonth('2026-06',{101:'루비뮤직',102:'케이큐엔터테이먼트',103:'케이더블유인터내셔널',104:'케이더블유인터내셔널',105:'아이씨비',
   106:'에스씨케이컴퍼니',107:'아마데우스',108:'고우컴퍼니',109:'유니버셜대부',112:'좋은생각사람들'},[114]);
+/* 전월 과납액 — 청구서를 발행할 때 남은 과납을 새 청구에 자동으로 먼저 배분한다 → 4.3.4
+   원장에는 과납 수납을 취소하고(차변) 새 청구 건에 수납으로 옮긴다(대변). 잔액은 그대로 */
+const CREDITS=[];
+function applyCredits(ym,date){
+  /* 발행일 전날까지의 원장 잔액이 0보다 작으면 그만큼이 과납이다 */
+  const before=k=>ledgerOf(k).rows.filter(r=>r.acc==='매출채권'&&dnum(r.date)<dnum(date)).reduce((a,r)=>a+(r.inc||0)-(r.dec||0),0);
+  CTRS.filter(c=>c.b==='b1'&&c.st==='진행중').forEach(c=>{const k=ckey(c), amt=Math.max(0,-before(k)); if(!amt) return;
+    const pl=rcPlan(amt,[k],PAID,null,date), dep='cr'+ym, sq=++paySeq;
+    pl.lines.forEach(l=>addPay(l.id,l.pay,date,'전월 과납액',dep));
+    const used=pl.lines.reduce((a,l)=>a+l.pay,0); if(used) CREDITS.push({k,ym,amt:used,date,dep,sq});});
+}
 /* 테스트·목업 시연용 — 대기 입금을 순서대로 모두 확정한다 */
 function rcConfirmAll(){rcQueue().filter(rcIsOpen).forEach(d=>{
   const g=rcGuess(d,rcBiz()); if(g.biz) rcConfirm(d.no);});}
@@ -2982,7 +2996,7 @@ function PAY6(){
   const rows=all.filter(x=>!RC.f.st||x.st===RC.f.st);
   const anyOp=rows.some(x=>g6Open(x.k));
   /* 그룹 행 — 들어온 미납액도 함께 더한다 */
-  const cg=x=>({bill:x.bill+(x.carry?x.carry.amt:0),paid:x.paid+(x.carry?x.carry.paid:0),due:x.due+(x.carry?x.carry.due:0)});
+  const cg=x=>({bill:x.bill+(x.carry?x.carry.amt:0)-(x.credit||0),paid:x.paid+(x.carry?x.carry.paid:0)-(x.credit||0),due:x.due+(x.carry?x.carry.due:0)});
   const T=rows.reduce((a,x)=>{const g=cg(x);return {bill:a.bill+g.bill,paid:a.paid+g.paid,due:a.due+g.due};},{bill:0,paid:0,due:0});
   const dash='<span style="color:var(--faint)">—</span>';
   const body=rows.map(x=>{
@@ -2991,7 +3005,9 @@ function PAY6(){
       <div class="schr ctr sub ni"><div class="nm">전월 미납액</div>
         <div class="n c2">${won(cr.amt)}</div><div class="n c2">${cr.paid?won(cr.paid):dash}</div>
         <div class="n">${cr.due?`<span style="color:var(--warn)">${won(cr.due)}</span>`:dash}</div>
-        <div class="c"><span class="bd ${PST[cr.due?(x.st==='미납'&&closedBy(RC.b,RC.f.ym,TODAY_S)?'미납':cr.paid?'부분납':'미납'):'완납']}">${cr.due?(closedBy(RC.b,RC.f.ym,TODAY_S)?'미납':cr.paid?'부분납':'미납'):'완납'}</span></div></div>`:'')+x.it.map(i=>`
+        <div class="c"><span class="bd ${PST[cr.due?(x.st==='미납'&&closedBy(RC.b,RC.f.ym,TODAY_S)?'미납':cr.paid?'부분납':'미납'):'완납']}">${cr.due?(closedBy(RC.b,RC.f.ym,TODAY_S)?'미납':cr.paid?'부분납':'미납'):'완납'}</span></div></div>`:'')+(x.credit?`
+      <div class="schr ctr sub ni"><div class="nm">전월 과납액</div>
+        <div class="n c2">−${won(x.credit)}</div><div class="n c2">−${won(x.credit)}</div><div class="n">${dash}</div><div class="c"></div></div>`:'')+x.it.map(i=>`
       <div class="schr ctr sub"><div class="nm">${i.n}</div>
         <div class="n c2">${won(i.amt)}</div><div class="n c2">${i.paid?won(i.paid):dash}</div>
         <div class="n">${i.due?`<span style="color:var(--warn)">${won(i.due)}</span>`:dash}</div>
@@ -3039,7 +3055,7 @@ function PAY6(){
   <div class="hint">
     선택한 달의 청구를 계약별로 다 받았는지 봅니다. 금액은 부가세 포함입니다.<br>
     밀린 달 전부의 미납과 미납 안내는 미납 관리에서, 입금 한 건 한 건은 입금 매칭에서 봅니다.<br>
-    <b>전월 미납액</b>은 지난달 마감 때 다 받지 못해 넘어온 돈입니다. 마감한 달은 그 뒤로 바뀌지 않고, 들어온 돈은 전월 미납액부터 줄입니다.<br>
+    <b>전월 미납액</b>은 지난달 마감 때 다 받지 못해 넘어온 돈, <b>전월 과납액</b>은 더 받아 넘어온 돈입니다(이 달 청구에서 먼저 빠짐). 마감한 달은 그 뒤로 바뀌지 않고, 들어온 돈은 전월 미납액부터 줄입니다.<br>
     <b>과납액</b>은 그 달 청구를 다 받고 남은 돈입니다. 입금은 우선순위대로 배분되므로 어느 항목의 돈이라고 할 수 없어 따로 한 줄로 둡니다.
     다음 달로 넘어가 다음 청구에서 빠집니다. 청구항목이 아닌 줄(전월 미납액 · 과납액)은 연한 배경으로 구분합니다.</div>`;
 }
@@ -3821,6 +3837,9 @@ function ledgerOf(k){
     if(amt-own>0) R({item:'지난 전월 미납액 닫음',dec:amt-own,sq:0});
     if(own>0) R({item:`${vL} 미납 닫음`,dec:own,sq:1});
     R({item:`전월 미납액 열기 → ${ymNext(v).slice(2).replace('-','.')}월`,inc:amt,sq:2});});
+  /* 전월 과납액 배분 — 과납으로 받아 둔 수납을 취소하고(차변) 새 청구 건 수납으로 옮긴다. 수납 줄은 위 PAYEV에서 온다 */
+  CREDITS.filter(x=>x.k===k).forEach(x=>rows.push({date:x.date,type:'수납 취소',acc:'매출채권',memo:'전월 과납액',item:'전월 과납액 (과납 수납 취소)',
+    ttl:`전월 과납액 → ${x.ym.slice(2).replace('-','.')}월 청구에 배분`,g:'pay'+x.dep,inc:x.amt,sup:null,vat:null,ord:2.5,sq:x.sq}));
   /* 과납 환불 — 돌려준 돈(차변) */
   REFUNDS.filter(x=>x.k===k).forEach(x=>rows.push({date:x.date,type:'환불',acc:'매출채권',memo:`과납 환불${x.acct?' · '+x.acct:''}`,item:`과납 환불${x.acct?' · '+x.acct:''}`,
     g:'rf'+x.sq,inc:x.amt,sup:null,vat:null,ord:3,sq:x.sq}));
@@ -3940,5 +3959,7 @@ function render(keep){
   if(keep) window.scrollTo(0,y); else if(!DRAWER) window.scrollTo(0,0);
 }
 addEventListener('hashchange',render);
+/* 7/19 7월 청구서 발행 — 6월에 생긴 과납이 7월 청구에서 빠진다. 7월 입금보다 먼저다 */
+applyCredits('2026-07','2026-07-19');
 seedJuly();paintOp();paintFold();render();
 </script>

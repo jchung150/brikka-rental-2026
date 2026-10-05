@@ -199,7 +199,7 @@ for (const d of W.rcQueue()) {
   W.rcConfirm(d.no);
   got[d.no] = W.RC.dec[d.no].done;
 }
-r6.push(['분리 입금 — 13,200,000은 임대료에', got[7].lines.length === 1 && got[7].lines[0].n === '임대료']);
+r6.push(['분리 입금 — 임대료는 전월 과납액 18,000이 먼저 채워 13,200,000 중 13,182,000은 임대료, 18,000은 고정관리비', got[7].lines.length === 2 && got[7].lines[0].n === '임대료' && got[7].lines[0].pay === 13182000 && got[7].lines[1].pay === 18000]);
 r6.push(['분리 입금 — 나머지는 같은 계약에', got[6].was === '자동' && got[6].rest === 0 && got[6].lines.every(l => l.no === '본관1층')]);
 r6.push(['입금자명 등록 후 같은 이름 입금 자동', got[4].was === '자동' || got[3].was === '자동']);
 r6.push(['입금 1건 → 계약 2개 (ICB)', new Set(got[5].lines.map(l => l.no)).size === 2 && got[5].rest === 0]);
@@ -342,9 +342,10 @@ const same = ['2026-06','2026-07'].every(ym => {
   D.f1.ym = ym; const scr = D.withMonth(ym, () => D.ISSUE().reduce((a, c) => a + c.sum, 0));
   return scr > 0 && scr === D.BILLS.filter(i => i.ym === ym).reduce((a, i) => a + i.amt, 0);});
 const j6 = n => D.ctrPay('b1' + n, '2026-06');
-const others6 = ['본관8층','본관7층','본관6층','본관5층','본관4층','본관301호','본관302호','본관2층','본관1층','별관4층','별관2층'].every(n => j6(n).st === '완납');
+const others6 = ['본관8층','본관7층','본관6층','본관5층','본관4층','본관301호','본관302호','본관2층','별관4층','별관2층'].every(n => j6(n).st === '완납')
+  && j6('본관1층').st === '과납' && j6('본관1층').over === 18000;   /* 에스씨케이컴퍼니는 6월에 18,000 더 냈다 */
 const P6j = D.BANKS['2026-06'];
-r6.push(['6·7월 청구서 화면 합계 = 원장 청구 · 6월 거래 18건(입금 11) · 6월 처리 후 비씨에이전시 미납 · 루비뮤직 385,000 부족 · 나머지 완납',
+r6.push(['6·7월 청구서 화면 합계 = 원장 청구 · 6월 거래 18건(입금 11) · 6월 처리 후 비씨에이전시 미납 · 루비뮤직 385,000 부족 · 에스씨케이컴퍼니 과납 18,000 · 나머지 완납',
   same && P6j.rows.length === 18 && P6j.dep.length === 11 && P6j.dep.every(d => d.no > 100)
   && j6('별관3층').st === '미납' && j6('본관B2').due === 385000 && others6
   && D.BILL_M['2026-07'].elec.read['본관8층'][1] === D.BILL_M['2026-08'].elec.read['본관8층'][0]]);
@@ -394,7 +395,7 @@ r6.push(['임대료·관리비 탭 — 분기 · 기산일 8월 청구 · 9월 �
   r6.push(['공용분 빼기 = 배율 0 — 2층 공용분 0 · 개별분은 청구 · 비율 합 1 · 1층 몫 증가 · 합계 = 고지서',
     r2.common === 0 && r2.amt > 0 && Math.abs(ratioSum - 1) < 1e-9 && after > before && R.diff === 0]); }
 /* 감액 · 과납 — 8/7 본관1층 7월 수도요금 18,000 감액. 7월분은 07.31에 완납이라 과납 18,000이 된다 → PAY-5 · 4.3.4 */
-{ const OV = new Function(stub + bare + '; const pre=ctrPay("b1본관1층","2026-07"); seedJuly(); return {pre,ctrPay,overOf,ledgerOf,CTRS,PAY1,CTR3,ISSUE,mcChecks,openRefund,ovSet,ovConfirm,cutOpen,cutSet,cutConfirm,set tab3c(v){tab3c=v;}};')();
+{ const OV = new Function(stub + bare + '; const pre=ctrPay("b1본관1층","2026-07"); seedJuly(); addCut("2026-07|본관1층|수도요금",18000,"2026-08-07","7월 수도 검침값 입력 오류"); return {pre,ctrPay,overOf,ledgerOf,CTRS,PAY1,CTR3,ISSUE,mcChecks,openRefund,ovSet,ovConfirm,cutOpen,cutSet,cutConfirm,set tab3c(v){tab3c=v;}};')();
   const k = 'b1본관1층', L = OV.ledgerOf(k), cut = L.rows.find(r => r.type === '감액');
   const post = OV.ctrPay(k, '2026-07'), item = post.it.find(i => i.n === '수도요금');
   const mv = L.rows.filter(r => r.g === cut.g);
@@ -460,6 +461,13 @@ run('PAY-11 8월 과납 확인', "seedJuly();s11={b:'b1',ym:'2026-08'};PAY11();m
   r6.push(['마감 취소 — 6월은 미납액에 7/31 입금이 들어가 취소 불가 · 7월은 가능', used6 && !used7 && kept6]); }
 run('PAY-11 6월 마감 취소 패널(막힘)', "seedJuly();s11={b:'b1',ym:'2026-06'};mcOpen('undo');mcHTML()");
 run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1별관3층')+CTR3('b1본관B2')");
+/* 전월 과납액 — 에스씨케이컴퍼니 6월 과납 18,000 → 7/19 7월 청구에 먼저 배분 · 7월 입금은 그만큼 적고 완납 · 잔액 0 · 6월 입금 화면에 7월 청구가 섞이지 않음 */
+{ const CR = new Function(stub + bare + '; seedJuly(); return {ctrPay,ledgerOf,CREDITS,RC,overOf};')();
+  const k = 'b1본관1층', j7 = CR.ctrPay(k, '2026-07'), L = CR.ledgerOf(k), g = L.rows.filter(r => r.g === 'paycr2026-07');
+  const jun = ['105','106','108','109'].every(no => (CR.RC.dec[no].done.all || []).every(l => l.ym === '2026-06'));
+  r6.push(['전월 과납액 — 6월 과납 18,000이 7/19 7월 청구에 배분(과납 수납 취소 + 임대료 수납 한 묶음) · 7월 완납 · 청구 19,202,814 − 18,000 = 받을 돈 19,184,814 · 잔액 0 · 6월 입금 화면엔 6월 청구만',
+    CR.CREDITS.length === 1 && CR.CREDITS[0].amt === 18000 && j7.credit === 18000 && j7.st === '완납'
+    && g.length === 2 && g.reduce((a, r) => a + (r.inc || 0) - (r.dec || 0), 0) === 0 && L.bal.매출채권 === 0 && CR.overOf(k) === 0 && jun]); }
 const bad6 = r6.filter(x => !x[1]);
 if (bad6.length) fail = 1;
 console.log('⑥ 수납 기록 ' + (bad6.length ? '✗ ' + bad6.map(x => x[0]).join(' / ') : 'OK — ' + r6.length + '개 검산'));
