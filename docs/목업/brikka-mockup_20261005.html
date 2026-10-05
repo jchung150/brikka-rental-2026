@@ -1561,7 +1561,6 @@ function t요약(b){
     </div></div>
   </div>
   <div class="card"><div class="ct">주차장
-    <span class="sub">${b.parks.length?`${b.parks.filter(p=>p.as).length}면 배정 / 등록 ${b.parks.length}면 · 총 ${b.park}면`:`총 ${b.park}면`}</span>
     <span class="ca"><button class="btn sm" onclick="pkOpen('${b.id}',-1,'edit')">주차면 추가</button></span></div>
     ${b.parks.length?`<div class="tw"><table>
       <thead><tr><th>주차면</th><th>위치</th><th>유형</th><th>메모</th><th>배정 현황</th><th class="c">더보기</th></tr></thead>
