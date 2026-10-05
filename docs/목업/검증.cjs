@@ -36,7 +36,7 @@ for (const c of ['elec', 'water', 'gas', 'parking'])
   run('PAY-10 ' + c, "pCode='" + c + "';PAY10()");
 run('PAY-10 항목 없음', "Object.keys(BILL).forEach(k=>BILL[k].on=false);PAY10()");
 run('PAY-10 패널', "DRAWER='additem';dPick=['fund'];drawerHTML()");
-run('PAY-10 일회성 청구', "dPick=['once'];dApply();onceSet(0,'k','b1본관B2');onceSet(0,'amt','110000');onceAdd();PAY10()+drawerHTML()");
+run('CTR-3 추가 청구 패널', "extraOpen('b1본관B2');extraSet('n','엘리베이터 사용료');extraSet('amt','110000');extraSave();drawerHTML();tab3c='요약';CTR3('b1본관B2')");
 run('PAY-10 배율 0', "BILL.elec.adj['본관2층']={mul:0};pCode='elec';PAY10()");
 run('건물 관리비 설정 패널', "openCS('elec');drawerHTML();openCS('rent');drawerHTML();openCS('parking');drawerHTML()");
 run('PAY-10 7월 마감 회차', "f10ym='2026-07';PAY10()");
@@ -48,7 +48,8 @@ run('PAY-1 7월 마감 회차', "f1.ym='2026-07';PAY1()");
 run('PAY-1 6월 마감 취소 후 · 다른 건물', "delete MC.b1['2026-06'];f1.ym='2026-06';PAY1();f1.b='b2';PAY1()");
 run('PAY-13 7월 잠금', "seedJuly();RC.f.ym='2026-07';PAY13()");
 run('CTR-2 자료', "nc=null;CTR2();ncFile();ncFile();ncRow('files',0,'c','기타');CTR2()");
-run('PAY-10 일회성 청구만', "Object.keys(BILL).forEach(k=>BILL[k].on=false);ONCE.on=true;pCode='once';PAY10()");
+run('CTR-3 감액 패널', "seedJuly();cutOpenK('b1본관1층');cutSet('id','2026-07|본관1층|전기요금');cutSet('amt','10000');drawerHTML()");
+run('PAY-1 발행 · 취소 패널 · 메일', "f1.b='b2';PAY1();issue1(['b21203호']);PAY1();cancelOpen('b21203호');cancelHTML();cx1.why='약정 오기';cancelOK();mail1=false;PAY1()");
 run('CTR-2 변경 일정', "nc=null;CTR2();nc.adj.push({d:'2028-11-01',rent:'3465000',mgmt:''});CTR2()");
 run('PRO-1', 'PRO1()');
 run('CTR-2 빈 화면', "nc=null;CTR2()");
@@ -199,7 +200,7 @@ for (const d of W.rcQueue()) {
   W.rcConfirm(d.no);
   got[d.no] = W.RC.dec[d.no].done;
 }
-r6.push(['분리 입금 — 임대료는 전월 과납액 18,000이 먼저 채워 13,200,000 중 13,182,000은 임대료, 18,000은 고정관리비', got[7].lines.length === 2 && got[7].lines[0].n === '임대료' && got[7].lines[0].pay === 13182000 && got[7].lines[1].pay === 18000]);
+r6.push(['분리 입금 — 13,200,000은 임대료에(전월 과납액은 작은 항목부터 채웠다)', got[7].lines.length === 1 && got[7].lines[0].n === '임대료' && got[7].lines[0].pay === 13200000]);
 r6.push(['분리 입금 — 나머지는 같은 계약에', got[6].was === '자동' && got[6].rest === 0 && got[6].lines.every(l => l.no === '본관1층')]);
 r6.push(['입금자명 등록 후 같은 이름 입금 자동', got[4].was === '자동' || got[3].was === '자동']);
 r6.push(['입금 1건 → 계약 2개 (ICB)', new Set(got[5].lines.map(l => l.no)).size === 2 && got[5].rest === 0]);
@@ -324,12 +325,12 @@ run('CTR-3 새로 등록한 계약', "seedJuly();CTRS.push({b:'b1',no:'본관302
 const KW = new Function(stub + bare + '; return korWon;')();
 r6.push(['금액 읽기 — 500만원 · 1억원 · 1억 2,345만 6,789원 · 55만원',
   KW(5000000) === '500만원' && KW(100000000) === '1억원' && KW(123456789) === '1억 2,345만 6,789원' && KW(550000) === '55만원']);
-/* 일회성 청구 — 관리비 정산에서 넣으면 그 계약의 이번 청구서에 실린다 → PAY-10 · PAY-1 */
-const Q = new Function(stub + bare + '; return {dApply,onceSet,ISSUE,ONCE,set dPick(v){dPick=v;}};')();
-Q.dPick = ['once']; Q.dApply(); Q.onceSet(0, 'k', 'b1본관B2'); Q.onceSet(0, 'n', '엘리베이터 사용료'); Q.onceSet(0, 'amt', '110000');
+/* 추가 청구 — 계약 상세에서 넣으면 그 계약의 다음 청구서에 실린다 → CTR-3 · PAY-1 */
+const Q = new Function(stub + bare + '; return {extraOpen,extraSet,extraSave,ISSUE,ONCE};')();
+Q.extraOpen('b1본관B2'); Q.extraSet('n', '엘리베이터 사용료'); Q.extraSet('amt', '110000'); Q.extraSave();
 const qb = Q.ISSUE().find(c => c.no === '본관B2'), ql = qb && qb.lines.find(l => l.n === '엘리베이터 사용료');
-r6.push(['일회성 청구 11만 → 루비뮤직 8월 청구서에 한 줄 · 공급가액 100,000 · 부가세 10,000',
-  Q.ONCE.on && ql && ql.amt === 110000 && ql.supply === 100000 && ql.vat === 10000]);
+r6.push(['추가 청구 11만(계약 상세) → 루비뮤직 8월 청구서에 한 줄 · 공급가액 100,000 · 부가세 10,000',
+  Q.ONCE.rows.length === 1 && ql && ql.amt === 110000 && ql.supply === 100000 && ql.vat === 10000]);
 /* 항목별 저장 — 저장해야 ✓. 주차비는 저장 전이라 정산 확정 불가. 저장 후 고치면 다시 저장 전 → PAY-10 */
 const SV = new Function(stub + bare + '; return {PAY10,saveItem,setDirect,SAVED,set pCode(v){pCode=v;}};')();
 const lockRe = /disabled onclick="alert\('정산 확정/; const h0 = SV.PAY10(); const block0 = lockRe.test(h0) && !/저장 전/.test(h0);
@@ -467,6 +468,21 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   r6.push(['전월 과납액 — 6월 과납 18,000이 7/19 7월 청구에 배분(원장엔 적지 않음) · 7월 완납 · 청구 19,202,814 − 18,000 = 받을 돈 19,184,814 · 잔액 0 · 6월 입금 화면엔 6월 청구만',
     CR.CREDITS.length === 1 && CR.CREDITS[0].amt === 18000 && j7.credit === 18000 && j7.st === '완납'
     && g.length === 0 && L.bal.매출채권 === 0 && CR.overOf(k) === 0 && jun]); }
+/* 청구서 취소 — 발행한 뒤 입금이 없고 마감 전이면 취소하고 다시 발행 · 사유가 없으면 막힘 · 마감한 달·입금 있는 청구는 막힘 → PAY-1 */
+{ const IS = new Function(stub + bare + '; seedJuly(); return {issue1,cancelOpen,cancelOK,cancelBlock,ISS,ISS_LOG,ISSUE,CTRS,set f1b(v){f1.b=v;},get cx1(){return cx1;}};')();
+  IS.f1b = 'b2'; IS.issue1(['b21203호']);
+  const issued = IS.ISSUE().find(c => c.no === '1203호').st === '발행 완료';
+  IS.cancelOpen('b21203호'); IS.cancelOK(); const noWhy = !!IS.ISS['b21203호'];
+  IS.cx1.why = '약정 오기'; IS.cancelOK();
+  const back = IS.ISSUE().find(c => c.no === '1203호').st === '발행 대기' && IS.ISS_LOG.length === 1;
+  const c1 = IS.CTRS.find(c => c.no === '본관1층'), c3 = IS.CTRS.find(c => c.no === '별관3층');
+  r6.push(['청구서 취소 — 발행 → 사유 없으면 막힘 → 취소하면 발행 대기 · 7월(마감)·입금 있는 청구는 취소 불가',
+    issued && noWhy && back && /마감/.test(IS.cancelBlock(c3, '2026-07')) && !!IS.cancelBlock(c1, '2026-07')]); }
+/* 전월 과납액은 우선순위가 낮은 항목부터 — 에스씨케이컴퍼니 13,200,000 입금이 임대료에 그대로 들어간다 */
+{ const PR = new Function(stub + bare + '; seedJuly(); return {RC};')();
+  const d7 = PR.RC.dec[7].done;
+  r6.push(['전월 과납액은 TV수신료 1,507 · 전력기금 16,493부터 채움 → 13,200,000 입금은 임대료 한 줄',
+    d7.lines.length === 1 && d7.lines[0].n === '임대료' && d7.lines[0].pay === 13200000]); }
 const bad6 = r6.filter(x => !x[1]);
 if (bad6.length) fail = 1;
 console.log('⑥ 수납 기록 ' + (bad6.length ? '✗ ' + bad6.map(x => x[0]).join(' / ') : 'OK — ' + r6.length + '개 검산'));

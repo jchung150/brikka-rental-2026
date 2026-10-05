@@ -955,23 +955,21 @@ function csDrop(){
 function openDrawer(k){DRAWER=k;dPick=[];render();}
 function closeDrawer(){DRAWER=null;cs=null;render();}
 function dToggle(c){dPick.includes(c)?dPick=dPick.filter(x=>x!==c):dPick.push(c);render();}
-function dApply(){dPick.forEach(c=>{if(c==='once'){ONCE.on=true;if(!ONCE.rows.length) ONCE.rows.push({k:'',n:'',amt:'',doc:'세금계산서',memo:''});pCode='once';}else BILL[c].on=true;});DRAWER=null;dPick=[];render();}
+function dApply(){dPick.forEach(c=>{BILL[c].on=true;});DRAWER=null;dPick=[];render();}
 function delItem(code){BILL[code].on=false;render();}
 /* 새 회차를 열면 올라와 있는 항목 — 건물 관리비 탭에서 반복주기가 매월인 정산 항목 → PAY-10 */
 function monthlyItems(bid){
   const b=BUILDINGS.find(x=>x.id===bid)||BUILDINGS[0];
   return (b.charge||[]).filter(x=>x.use&&!x.fixed&&x.cycle==='매월').map(x=>codeOf(x.it));
 }
-/* 일회성 청구 — 이번 회차에만 특정 계약에 붙는 돈. 엘리베이터 사용료, 파손 수리비 등. 안분하지 않는다 → PAY-10 */
-const ONCE={on:false,rows:[]};
+/* 추가 청구 — 한 번만 특정 계약에 붙는 돈. 엘리베이터 사용료, 파손 수리비 등. 안분하지 않는다 → CTR-3 */
+/* 추가 청구 — 계약 상세에서 넣는다. 다음 청구서에 함께 실린다(원장에는 발행할 때 기록) → CTR-3 */
+const ONCE={rows:[]};
 const ONCE_DOC=['세금계산서','계산서','일반내역서'];
-function onceAdd(){ONCE.rows.push({k:'',n:'',amt:'',doc:'세금계산서',memo:''});render(true);}
-function onceSet(i,f,v){ONCE.rows[i][f]=f==='amt'?numOf(v):v;render(true);}
-function onceDrop(){ONCE.on=false;ONCE.rows=[];pCode=(selItems()[0]||{}).code||'elec';render();}
-/* 청구서에 실리는 일회성 청구 줄 — 부가세 포함 금액에서 역산 */
-const onceLines=k=>!ONCE.on||PAST_CTX?[]:ONCE.rows.filter(r=>r.k===k&&r.amt>0).map(r=>{
+/* 청구서에 실리는 추가 청구 줄 — 부가세 포함 금액에서 역산 */
+const onceLines=k=>PAST_CTX?[]:ONCE.rows.filter(r=>r.k===k&&r.amt>0).map(r=>{
   const tax=r.doc==='세금계산서', sup=tax?Math.floor(r.amt*10/11):r.amt;
-  return {n:r.n||'일회성 청구',bill:r.doc,src:`일회성 청구${r.memo?' · '+r.memo:''}`,supply:sup,vat:r.amt-sup,amt:r.amt};});
+  return {n:r.n||'추가 청구',bill:r.doc,src:`추가 청구${r.memo?' · '+r.memo:''}`,supply:sup,vat:r.amt-sup,amt:r.amt};});
 function setMul(code,no,v){
   SAVED[code]=null;
   const b=BILL[code], m=parseFloat(v);
@@ -1241,6 +1239,8 @@ function csHTML(){
 function drawerHTML(){
   if(DRAWER==='chargeset') return csHTML();
   if(DRAWER==='cut') return cutHTML();
+  if(DRAWER==='cancel') return cancelHTML();
+  if(DRAWER==='extra') return extraHTML();
   if(DRAWER==='over') return overHTML();
   if(DRAWER==='pay') return payHTML();
   if(DRAWER==='mclose') return mcHTML();
@@ -1248,7 +1248,6 @@ function drawerHTML(){
   if(DRAWER!=='additem') return '';
   const used=BUILDINGS[0].charge.filter(c=>c.use).map(c=>c.it);
   const rest=MASTER.filter(m=>!m.fixed&&!BILL[m.code].on&&used.includes(m.name));
-  if(!ONCE.on) rest.push({code:'once',name:'일회성 청구 — 이번 회차에만 특정 계약에 (엘리베이터 사용료, 수리비 등)'});
   const card=m=>{
     const on=dPick.includes(m.code);
     return `<div class="pick ${on?'on':''}" onclick="dToggle('${m.code}')">
@@ -1602,7 +1601,6 @@ function PAY10(){
   /* 지난 회차(6·7월)도 같은 항목 페이지로 본다. 그 달의 입력값으로 계산하고 입력 칸은 잠근다 */
   if(!PAST_CTX&&f10ym!=='2026-08') return withMonth(f10ym,PAY10);
   const sel=selItems();
-  if(!PAST_CTX&&ONCE.on&&(pCode==='once'||!sel.length)) return pay10Head(sel)+oncePage();
   if(!sel.length) return `
   ${pay10Head(null)}
   <div class="tbl"><div class="empty"><div class="t">이번 회차에 정산할 항목이 없습니다</div>
@@ -1616,8 +1614,8 @@ function PAY10(){
     return `${pay10Head(sel)}
     <div class="fnd"><span class="h">${ic('lock',14)} ${c?'마감된':'확정된'} 회차입니다</span>
       ${c?`${ymL}은 ${c.at.replace('-','.')}에 마감했습니다(${c.by}).`:`${ymL} 정산은 확정·발행이 끝났습니다.`} 정산 입력값을 볼 수만 있습니다.<br>
-      확정한 정산은 마감을 취소해도 고치지 않습니다. 틀린 금액은 더 받을 때는 <b>이번 회차 일회성 청구</b>로,
-      덜 받을 때는 계약 원장에서 그 청구를 <b>감액</b>해 바로잡습니다.</div>
+      확정한 정산은 마감을 취소해도 고치지 않습니다. 틀린 금액은 계약 상세에서 더 받을 때는 <b>추가 청구</b>로,
+      덜 받을 때는 <b>감액</b>으로 바로잡습니다.</div>
     <div class="locked">${body}</div>`;}
   return `
   ${pay10Head(sel)}
@@ -1638,39 +1636,12 @@ function pay10Head(sel){
       .map(([v,t])=>`<option value="${v}" ${f10ym===v?'selected':''}>${t}</option>`).join('')}</select>
   </div>
   ${!sel?'':`<div class="itab">
-    ${(sel||[]).map(x=>{const f0=itemFlag(x), f=f0.c==='ok'&&!SAVED[x.code]&&!PAST_CTX?{t:'',c:'plain'}:f0, on=(PAST_CTX||pCode!=='once')&&x.code===((sel.some(y=>y.code===pCode)&&pCode)||sel[0].code);return `
+    ${(sel||[]).map(x=>{const f0=itemFlag(x), f=f0.c==='ok'&&!SAVED[x.code]&&!PAST_CTX?{t:'',c:'plain'}:f0, on=x.code===((sel.some(y=>y.code===pCode)&&pCode)||sel[0].code);return `
     <button class="${on?'on':''}" onclick="setPItem('${x.code}')">${
       f.c==='ok'?'<span class="okd">✓</span>':''}${x.name}${
       f.c==='ok'||f.c==='plain'?'':`<span class="bd ${f.c}" style="margin-left:5px">${f.t}</span>`}</button>`}).join('')}
-    ${ONCE.on&&!PAST_CTX?`<button class="${pCode==='once'?'on':''}" onclick="setPItem('once')">일회성 청구${
-      ONCE.rows.filter(r=>r.k&&r.amt).length?` <span class="bd mu" style="margin-left:5px">${ONCE.rows.filter(r=>r.k&&r.amt).length}건</span>`:''}</button>`:''}
     ${PAST_CTX?'':`<button class="add" onclick="openDrawer('additem')">+ 청구항목 추가</button>`}
   </div>`}`;
-}
-function oncePage(){
-  const cs=CTRS.filter(c=>c.b==='b1'&&c.st==='진행중'), BA=(BUILDINGS[0]||{}).alias;
-  const rows=ONCE.rows.map((r,i)=>`<tr>
-    <td><select onchange="onceSet(${i},'k',this.value)" style="width:100%"><option value="">계약 선택</option>
-      ${cs.map(c=>`<option value="${ckey(c)}" ${r.k===ckey(c)?'selected':''}>${cname(BA,c.no,c.ten)}</option>`).join('')}</select></td>
-    <td><input type="text" value="${r.n}" placeholder="예: 엘리베이터 사용료" onchange="onceSet(${i},'n',this.value)" style="width:100%"></td>
-    <td class="n"><input type="text" inputmode="numeric" value="${r.amt?num(r.amt):''}" placeholder="부가세 포함" oninput="kwLive(this)"
-      onchange="onceSet(${i},'amt',this.value)" style="width:120px;text-align:right"><span class="kw" style="margin-left:6px">${korWon(r.amt)}</span></td>
-    <td><select onchange="onceSet(${i},'doc',this.value)">${ONCE_DOC.map(d=>`<option ${r.doc===d?'selected':''}>${d}</option>`).join('')}</select></td>
-    <td><input type="text" value="${r.memo}" placeholder="근거 · 메모" onchange="onceSet(${i},'memo',this.value)" style="width:100%"></td>
-    <td class="c"><button class="btn sm" onclick="ONCE.rows.splice(${i},1);render(true)">삭제</button></td></tr>`).join('');
-  const tot=ONCE.rows.reduce((a,r)=>a+(r.k?r.amt||0:0),0);
-  return `
-  <div class="card"><div class="ct">일회성 청구<span class="sub">이번 회차에만 · 나눠 매기지 않고 고른 계약에 그대로</span>
-    <span class="ca"><button class="btn ex sm" onclick="onceDrop()">이번 회차 제외</button></span></div>
-    <div class="tw"><table class="once">
-      <thead><tr><th style="width:26%">계약</th><th style="width:20%">항목명</th><th class="n">금액</th><th>발행 문서</th><th>근거 · 메모</th><th></th></tr></thead>
-      <tbody>${rows||'<tr><td colspan="6"><div class="empty">아래 버튼으로 한 줄씩 추가합니다</div></td></tr>'}</tbody></table></div>
-    <div class="cc" style="display:flex;align-items:center;gap:10px;padding-top:12px">
-      <button class="btn sm" onclick="onceAdd()">+ 한 줄 추가</button>
-      <span class="c2" style="margin-left:auto">합계 <b style="color:var(--ink)">${won(tot)}</b></span></div></div>
-  <div class="hint">
-    이사할 때 엘리베이터 사용료, 부순 시설의 수리비처럼 <b>한 번만 받는 돈</b>을 넣습니다. 금액은 부가세 포함입니다.<br>
-    정산을 확정하면 고른 계약의 이번 달 청구서에 함께 실립니다(청구서 발행 화면에서 확인).</div>`;
 }
 /* 항목 하나의 고지서 입력 */
 function stBillOne(m){
@@ -2079,7 +2050,7 @@ function mcHTML(){
       :`${bad.length?`<div class="prev warn2"><div class="pt">확인할 항목 ${bad.length}건</div>
           ${bad.map(x=>`· ${x.t}: ${x.v}`).join('<br>')}<br>그래도 마감할 수 있습니다. 마감 후에는 이 달의 청구·수납을 고칠 수 없습니다.</div>`
         :`<div class="prev"><div class="pt">확인 항목을 모두 통과했습니다</div>
-          마감하면 이 달의 청구·수납을 고칠 수 없습니다. 이후 정정은 이번 달의 감액·일회성 청구로 합니다.</div>`}`}
+          마감하면 이 달의 청구·수납을 고칠 수 없습니다. 이후 정정은 이번 달의 감액·추가 청구로 합니다.</div>`}`}
     </div>
     <div class="df"><button class="btn" onclick="closeDrawer()">닫기</button>
       <button class="btn pri" id="mcok" ${undo&&(!mcx.why.trim()||mcCarryUsed(b,ym))?'disabled':''} onclick="mcApply()">${undo?'마감 취소':'마감'}</button></div>
@@ -2138,7 +2109,7 @@ function PAY11(){
       <th class="n">이 달 청구분 미납</th><th class="c">마감</th><th>마감일시 · 마감자</th><th></th></tr></thead>
     <tbody>${rows}</tbody></table></div></div>
   <div class="hint">
-    <b>월 마감</b>은 그 달의 장부를 잠그는 일입니다. 마감한 달의 청구·수납은 고칠 수 없고, 정정은 이번 달의 감액·일회성 청구로 합니다. 확정한 정산은 마감을 취소해도 고치지 않습니다.<br>
+    <b>월 마감</b>은 그 달의 장부를 잠그는 일입니다. 마감한 달의 청구·수납은 고칠 수 없고, 정정은 이번 달의 감액·추가 청구로 합니다. 확정한 정산은 마감을 취소해도 고치지 않습니다.<br>
     마감한 달을 체크하고 <b>월 마감 보고서 발행</b>을 누르면 고른 달마다 보고서가 한 부씩 나옵니다.<br>
     <b>미납이 남아 있어도 마감합니다.</b> 미납은 사라지지 않고 다음 달로 넘어가 미납 관리에 계속 보입니다.<br>
     청구서를 발행하기 전인 달은 마감할 수 없습니다. 마감 취소는 슈퍼관리자만 할 수 있고 사유를 남깁니다.
@@ -2233,9 +2204,36 @@ const pickAll=v=>{ISSUE().forEach(c=>sel1[c.k]=v&&c.st==='발행 대기');render
      정산     PAY-10 1단계에서 담당자가 선택한 항목이다. 고지서 수령 여부를 시스템이 모른다
               → PAY-1 「이번 회차 대상 항목만 올린다」
    대상이 아닌 항목은 화면에 올리지 않는다. 그 판단은 1단계에서 이미 끝났다. */
+/* 이번 회차에 발행한 청구서 — 계약별. 취소하면 지운다(원장에는 「청구 취소」) → PAY-1 */
+const ISS={}, ISS_LOG=[];
+let mail1=true, cx1=null;
+function issue1(keys){keys.forEach(k=>{ISS[k]={at:TODAY_S,mail:mail1};});sel1={};render(true);}
+function cancelOpen(k){cx1={k,why:''};DRAWER='cancel';render(true);}
+function cancelOK(){if(!cx1||!cx1.why.trim()) return; ISS_LOG.push({k:cx1.k,ym:SETTLE.ym,why:cx1.why.trim(),at:TODAY_S});delete ISS[cx1.k];DRAWER=null;cx1=null;render(true);}
+/* 취소할 수 없는 이유 — 입금이 있거나 그 달을 마감했다 */
+function cancelBlock(c,ym){
+  if(closedBy(c.b,ym,TODAY_S)) return '마감한 달의 청구서입니다';
+  if(BILLS.some(i=>i.k===ckey(c)&&i.ym===ym&&(PAID[i.id]||0)>0)) return '입금이 있는 청구서입니다. 수납부터 취소하세요';
+  return '';
+}
+function cancelHTML(){
+  if(DRAWER!=='cancel'||!cx1) return '';
+  const c=CTRS.find(x=>ckey(x)===cx1.k), bd=BUILDINGS.find(x=>x.id===c.b)||BUILDINGS[0];
+  return `<div class="dro"><div class="ov" onclick="closeDrawer()"></div><div class="pn">
+    <div class="dh"><div><div class="t">청구서 취소</div><div class="s">${cname(bd.alias,c.no,c.ten)} · ${SETTLE.ym.replace('-','년 ').replace(/년 0/,'년 ')}월</div></div>
+      <button class="x" onclick="closeDrawer()">✕</button></div>
+    <div class="db">
+      <div class="c2" style="margin:-2px 0 12px;white-space:normal">원장에 <b>청구 취소</b>가 기록되고 이 계약은 <b>발행 대기</b>로 돌아갑니다. 고친 뒤 다시 발행하세요.</div>
+      <div class="fg"><div class="fl">취소 사유 (필수)</div>
+        <input type="text" value="${cx1.why}" placeholder="예: 임대료 약정액 오기" oninput="cx1.why=this.value;document.getElementById('cxok').disabled=!this.value.trim()" style="width:100%;border:1px solid var(--line);border-radius:var(--r-sm);padding:7px 9px;font:inherit"></div>
+    </div>
+    <div class="df"><button class="btn" onclick="closeDrawer()">닫기</button>
+      <button class="btn pri" id="cxok" ${cx1.why.trim()?'':'disabled'} onclick="cancelOK()">청구서 취소</button></div>
+  </div></div>`;
+}
 function ISSUE(){
-  /* 지난 회차는 정산 확정 · 발행 완료다 */
-  const P=PAST_CTX?{inv:1,settle:'확정'}:PROG[f1.b]||{}, done=P.inv>0, fixed=P.settle==='확정';
+  /* 지난 회차는 정산 확정 · 발행 완료다. 이번 회차는 계약마다 발행했는지 본다 */
+  const P=PAST_CTX?{inv:1,settle:'확정'}:PROG[f1.b]||{}, fixed=P.settle==='확정';
   const all=CTRS.filter(c=>c.b===f1.b&&c.st==='진행중');
   return all.map(c=>{
     /* 정산액을 다른 계약이 부담하는 유닛 — 그 유닛의 안분 결과를 이 계약에 얹는다 */
@@ -2287,7 +2285,7 @@ function ISSUE(){
     const miss=lines.filter(l=>l.amt==null).length;
     const k=ckey(c);
     return {...c,k,lines,sum,sup,vat,miss,via,
-            due:dueOf(k,PAST_CTX||SETTLE.ym),over:PAST_CTX?0:overOf(k),st:done?'발행 완료':'발행 대기'};
+            due:dueOf(k,PAST_CTX||SETTLE.ym),over:PAST_CTX?0:overOf(k),st:PAST_CTX||ISS[k]?'발행 완료':'발행 대기'};
   });
 }
 /* 지난 회차(6·7월)도 같은 표로 본다. 그 달의 정산 입력값으로 계산하고, 발행 완료라 체크·발행이 막힌다 */
@@ -2327,7 +2325,8 @@ function PAY1(){
       <div class="n c2">${won(c.sup)}</div>
       <div class="n c2">${won(c.vat)}</div>
       <div class="n"><span class="c2">VAT 포함</span><b>${won(c.sum)}</b></div>
-      <div class="c">${c.st==='발행 완료'?'<span class="bd ok">발행 완료</span>'
+      <div class="c">${c.st==='발행 완료'?(()=>{const why=cancelBlock(c,PAST_CTX||SETTLE.ym);
+          return `<span class="bd ok">발행 완료</span> <button class="btn sm" style="padding:1px 8px;margin-left:4px" ${why?`disabled title="${why}"`:''} onclick="event.stopPropagation();cancelOpen('${c.k}')">취소</button>`;})()
         :'<span class="bd mu">발행 대기</span>'}</div>
     </div>` + (!op?'':c.lines.map(l=>`
     <div class="schr sub">
@@ -2346,8 +2345,9 @@ function PAY1(){
   <div class="ph"><h1>청구서 발행</h1><span class="sid">PAY-1</span>
     <div class="act"><button class="btn" onclick="go('pay-2')">미납 조회</button>
       <button class="btn">미리보기</button>
-      <button class="btn pri" ${ok&&!PAST_CTX?'':'disabled'}
-        onclick=""alert('${nSel?nSel+'건':'전체 '+wait.length+'건'} 발행 → 원장 기록 + 임차인 담당자 이메일 발송')">
+      <label class="ck" style="margin:0 4px 0 6px"><input type="checkbox" ${mail1?'checked':''} ${PAST_CTX?'disabled':''} onchange="mail1=this.checked"> 임차인에게 메일 보내기</label>
+      <button class="btn pri" ${ok&&!PAST_CTX&&wait.length?'':'disabled'}
+        onclick="issue1(${JSON.stringify((nSel?wait.filter(c=>sel1[c.k]):wait).map(c=>c.k)).replace(/"/g,"'")})">
         ${nSel?`선택 ${nSel}건 발행`:`전체 ${wait.length}건 발행`}</button></div>
   </div>
   <div class="fbar">
@@ -2367,7 +2367,7 @@ function PAY1(){
     ${ymL}은 ${lk.at.replace('-','.')}에 마감했습니다(${lk.by}). 발행한 청구서를 볼 수만 있습니다.
     고치려면 월 마감에서 <b>마감 취소</b>를 먼저 하세요. <b class="lk" onclick="s11={b:'${f1.b}',ym:'${PAST_CTX}'};go('pay-11')">월 마감으로 이동 →</b></div>`
    :`<div class="fnd wa3"><span class="h">발행이 끝난 회차입니다</span>
-    ${ymL} 청구서는 이미 발행했습니다. 발행한 청구서를 고치거나 취소하는 일은 발행 청구 수정·취소(PAY-5)에서 합니다.</div>`):''}
+    ${ymL} 청구서는 이미 발행했습니다. 입금이 없는 청구서는 계약 줄의 <b>취소</b>로 취소할 수 있습니다.</div>`):''}
   ${ok?'':`<div class="fnd"><span class="h">정산이 확정되지 않았습니다</span>
     ${BN(f1.b)}의 2026년 8월 정산 상태는 <b>${P.settle}</b>입니다.
     정산을 확정해야 정산 항목의 금액이 확정되고 청구서를 발행할 수 있습니다.
@@ -2415,7 +2415,8 @@ function PAY1(){
     발행 문서가 <b>세금계산서</b>인 항목만 부가세가 붙는다.<br>
     금액 칸의 <b style="color:var(--warn)">미산출</b>은 이번 회차 대상인데 금액이 없다는 뜻이다.
     그대로 발행하면 그 항목이 빠진 청구서가 나간다.<br>
-    발행하면 원장에 <b>청구</b> 거래로 기록되고 임차인 담당자에게 이메일이 발송된다.</div>`;
+    발행하면 원장에 <b>청구</b> 거래로 기록된다. <b>임차인에게 메일 보내기</b>를 체크하면 임차인 담당자에게 이메일이 발송된다.<br>
+    발행한 청구서는 고치지 않는다. 입금이 없고 마감 전이면 <b>취소</b>하고 다시 발행한다(원장에 청구 취소). 입금 뒤에는 계약 상세의 <b>감액</b>·<b>추가 청구</b>로 바로잡는다.</div>`;
 }
 
 /* ═══ PAY-6 수납 내역 ═══ */
@@ -2817,9 +2818,11 @@ function applyCredits(ym,date){
   /* 발행일 전날까지의 원장 잔액이 0보다 작으면 그만큼이 과납이다 */
   const before=k=>ledgerOf(k).rows.filter(r=>r.acc==='매출채권'&&dnum(r.date)<dnum(date)).reduce((a,r)=>a+(r.inc||0)-(r.dec||0),0);
   CTRS.filter(c=>c.b==='b1'&&c.st==='진행중').forEach(c=>{const k=ckey(c), amt=Math.max(0,-before(k)); if(!amt) return;
-    const pl=rcPlan(amt,[k],PAID,null,date), dep='cr'+ym, sq=++paySeq;
-    pl.lines.forEach(l=>addPay(l.id,l.pay,date,'전월 과납액',dep));
-    const used=pl.lines.reduce((a,l)=>a+l.pay,0); if(used) CREDITS.push({k,ym,amt:used,date,dep,sq});});
+    /* 우선순위가 낮은 항목부터 채운다 — 임차인이 낸 돈이 임대료처럼 큰 항목에 그대로 맞도록 → 4.3.4 */
+    const its=BILLS.filter(i=>i.k===k&&i.ym===ym).map(i=>({i,pr:prioOf(i.n.split(' ')[0]),due:i.amt-cutOf(i.id)-paidNet(i.id)})).filter(x=>x.due>0).sort((a,b)=>b.pr-a.pr);
+    const dep='cr'+ym, sq=++paySeq; let r=amt, used=0;
+    its.forEach(x=>{if(r<=0) return; const p=Math.min(r,x.due); addPay(x.i.id,p,date,'전월 과납액',dep); r-=p; used+=p;});
+    if(used) CREDITS.push({k,ym,amt:used,date,dep,sq});});
 }
 /* 테스트·목업 시연용 — 대기 입금을 순서대로 모두 확정한다 */
 function rcConfirmAll(){rcQueue().filter(rcIsOpen).forEach(d=>{
@@ -3181,7 +3184,10 @@ function payHTML(){
 /* ═══ 감액 — 계약 원장의 청구 항목에서 연다. 발행한 청구 건을 줄인다 → PAY-5 ═══ */
 let cx=null;
 function cutOpen(id){cx={id,amt:0,why:''};DRAWER='cut';render(true);}
-function cutSet(f,v){cx[f]=f==='amt'?numOf(v):v;render(true);}
+/* 감액할 수 있는 청구 — 이 계약의 발행한 청구 중 남은 금액이 있는 것. 연체료 청구는 뺀다 */
+const cutBills=k=>BILLS.filter(i=>i.k===k&&!i.fee&&i.amt-cutOf(i.id)>0).sort((a,b)=>a.ym<b.ym?1:a.ym>b.ym?-1:b.amt-a.amt);
+function cutOpenK(k){const b=cutBills(k)[0]; if(b) cutOpen(b.id);}
+function cutSet(f,v){cx[f]=f==='amt'?numOf(v):v;if(f==='id') cx.amt=0;render(true);}
 function cutInfo(){const i=BILLS.find(x=>x.id===cx.id), paid=paidNet(i.id), left=i.amt-cutOf(i.id), after=left-cx.amt;
   return {i,paid,left,after,over:Math.max(0,paid-Math.max(after,0))-Math.max(0,paid-left)};}
 function cutConfirm(){const I=cutInfo();if(!(cx.amt>0)||cx.amt>I.left||!cx.why.trim()) return;
@@ -3196,8 +3202,9 @@ function cutHTML(){
       <button class="x" onclick="closeDrawer()">✕</button></div>
     <div class="db">
       <div class="c2" style="margin:-2px 0 12px;white-space:normal">발행한 청구를 줄입니다. 오늘(${TODAY_S.slice(5).replace('-','.')}) 날짜로 원장에 <b>감액</b>이 기록되고, 원래 청구는 그대로 남습니다.
-        더 받아야 할 때는 감액이 아니라 관리비 정산의 일회성 청구로 넣습니다.</div>
+        더 받아야 할 때는 감액이 아니라 <b>추가 청구</b>로 넣습니다.</div>
       <div class="fg"><div class="fl">청구</div>
+        ${R('청구 항목',`<select onchange="cutSet('id',this.value)">${cutBills(I.i.k).map(i=>`<option value="${i.id}" ${i.id===cx.id?'selected':''}>${i.ym.slice(2).replace('-','.')}월분 ${i.n} · ${won(i.amt)}</option>`).join('')}</select>`)}
         ${R('청구액',won(I.i.amt))}${cutOf(I.i.id)?R('이미 감액',won(cutOf(I.i.id))):''}${R('낸 금액',won(I.paid))}</div>
       <div class="fg"><div class="fl">감액</div>
         ${R('줄일 금액',`<input type="text" inputmode="numeric" value="${cx.amt?num(cx.amt):''}" placeholder="부가세 포함" oninput="kwLive(this)" onchange="cutSet('amt',this.value)" style="text-align:right"><span class="kw">${korWon(cx.amt)}</span>`)}
@@ -3209,6 +3216,35 @@ function cutHTML(){
     </div>
     <div class="df"><button class="btn" onclick="closeDrawer()">취소</button>
       <button class="btn pri" ${ok?'':'disabled'} onclick="cutConfirm()">감액 확정</button></div>
+  </div></div>`;
+}
+/* ═══ 추가 청구 — 한 번만 받는 돈(엘리베이터 사용료, 수리비, 지난달 정산의 더 받을 차액). 다음 청구서에 실린다 → CTR-3 ═══ */
+let ex=null;
+function extraOpen(k){ex={k,n:'',amt:0,doc:'세금계산서',memo:''};DRAWER='extra';render(true);}
+function extraSet(f,v){ex[f]=f==='amt'?numOf(v):v;render(true);}
+function extraSave(){if(!ex.n.trim()||!(ex.amt>0)) return; ONCE.rows.push({k:ex.k,n:ex.n.trim(),amt:ex.amt,doc:ex.doc,memo:ex.memo});
+  ex={...ex,n:'',amt:0,memo:''};render(true);}
+function extraHTML(){
+  if(DRAWER!=='extra'||!ex) return '';
+  const c=CTRS.find(x=>ckey(x)===ex.k), bd=BUILDINGS.find(x=>x.id===c.b)||BUILDINGS[0], R=(k,b)=>`<div class="fr"><span class="fk">${k}</span>${b}</div>`;
+  const mine=ONCE.rows.map((r,i)=>({r,i})).filter(x=>x.r.k===ex.k);
+  return `<div class="dro"><div class="ov" onclick="closeDrawer()"></div><div class="pn">
+    <div class="dh"><div><div class="t">추가 청구</div><div class="s">${cname(bd.alias,c.no,c.ten)}</div></div>
+      <button class="x" onclick="closeDrawer()">✕</button></div>
+    <div class="db">
+      <div class="c2" style="margin:-2px 0 12px;white-space:normal">한 번만 받는 돈을 넣습니다. <b>다음 청구서에 함께 실리고</b>, 그때 원장에 청구로 기록됩니다. 나눠 매기지 않습니다.</div>
+      <div class="fg"><div class="fl">새로 넣기</div>
+        ${R('항목명',`<input type="text" value="${ex.n}" placeholder="예: 엘리베이터 사용료, 7월 전기요금 정정" onchange="extraSet('n',this.value)">`)}
+        ${R('금액',`<input type="text" inputmode="numeric" value="${ex.amt?num(ex.amt):''}" placeholder="부가세 포함" oninput="kwLive(this)" onchange="extraSet('amt',this.value)" style="text-align:right"><span class="kw">${korWon(ex.amt)}</span>`)}
+        ${R('발행 문서',`<select onchange="extraSet('doc',this.value)">${ONCE_DOC.map(d=>`<option ${ex.doc===d?'selected':''}>${d}</option>`).join('')}</select>`)}
+        ${R('근거 · 메모',`<input type="text" value="${ex.memo}" onchange="extraSet('memo',this.value)">`)}
+        <div style="text-align:right"><button class="btn sm pri" ${ex.n.trim()&&ex.amt>0?'':'disabled'} onclick="extraSave()">넣기</button></div></div>
+      <div class="fg"><div class="fl">다음 청구서에 실릴 것</div>
+        ${mine.length?mine.map(({r,i})=>`<div class="fr"><span class="fk" style="width:auto;flex:1;color:var(--ink)">${r.n} <span class="c2">${r.doc}${r.memo?' · '+r.memo:''}</span></span><b>${won(r.amt)}</b>
+          <button class="btn sm" onclick="ONCE.rows.splice(${i},1);render(true)">삭제</button></div>`).join('')
+          :'<div class="c2" style="margin:0">없습니다</div>'}</div>
+    </div>
+    <div class="df"><button class="btn" onclick="closeDrawer()">닫기</button></div>
   </div></div>`;
 }
 /* ═══ 환불 — 과납은 계약 원장에서, 오납은 입금 매칭에서. 과납은 따로 처리하지 않으면 다음 달로 넘어간다 → 4.3.4 · 4.3.5 ═══ */
@@ -3598,7 +3634,7 @@ function CTR2(){
 
 /* ═══ 청구 약정(PAY-3) — 계약 상세의 임대료·관리비 탭과 오른쪽 패널 ═══ */
 /* 반복 주기 — 우리 건물은 매월뿐이지만 다른 운영사는 분기·연 1회 받는 항목이 있다 */
-const ITEM_CYCLES=['매월','격월','분기','반기','연1회'];   /* 반복주기 → 3.3. 「이번만」은 관리비 정산의 일회성 청구가 맡는다 */
+const ITEM_CYCLES=['매월','격월','분기','반기','연1회'];   /* 반복주기 → 3.3. 「이번만」은 계약 상세의 추가 청구가 맡는다 */
 /* 이번 회차 대상인지 — 기산일이 속한 달부터 반복 주기마다 */
 function cycleDue(cycle,from,ym){
   const [fy,fm]=from.slice(0,7).split('-').map(Number), [y,m]=ym.split('-').map(Number), diff=(y-fy)*12+(m-fm);
@@ -3760,6 +3796,8 @@ function CTR3head(c,k){
       <button class="btn" onclick="go('ctr-1')">목록</button>
       <button class="btn" onclick="openPay('${k}')">수납 처리</button>
       <button class="btn" ${overOf(k)?'':'disabled title="돌려줄 과납이 없습니다"'} onclick="openRefund('${k}')">환불</button>
+      <button class="btn" ${cutBills(k).length?'':'disabled title="줄일 청구가 없습니다"'} onclick="cutOpenK('${k}')">감액</button>
+      <button class="btn" onclick="extraOpen('${k}')">추가 청구</button>
       ${tab3c==='원장'?`<button class="btn pri" onclick="alert('원장 출력 — 선택한 기간·계정의 원장을 거래내역서 PDF로 내려받거나 임차인 담당자에게 보낸다')">원장 출력</button>`:''}</div>
   </div>
   <div class="tabs">
