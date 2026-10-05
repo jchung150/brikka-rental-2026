@@ -538,6 +538,15 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   r6.push(['청구일·납부마감일 — 7월분: 전월 25일 = 6/25 · 당월 1일 = 7/1 · 당월 19일 = 7/19 · 당월 말일 = 7/31 · 익월 10일 = 8/10 · 2월분 당월 말일 = 2/28',
     DR('전월 25일','2026-07') === '2026-06-25' && DR('당월 1일','2026-07') === '2026-07-01' && DR('당월 19일','2026-07') === '2026-07-19'
     && DR('당월 말일','2026-07') === '2026-07-31' && DR('익월 10일','2026-07') === '2026-08-10' && DR('당월 말일','2027-02') === '2027-02-28']); }
+/* 건물 운영상태 — 진행중 계약이 있으면 비운영중 못 함 · 사유 필수 · 비운영중이면 청구서 발행 잠김 · 다시 운영중 */
+{ const BO = new Function(stub + bare + '; return {bopOpen,bopOK,bOp,PAY1,MORE,get bo(){return bo;},set f1b(v){f1.b=v;}};')();
+  BO.bopOpen('b1'); BO.bo.why = '대수선'; BO.bopOK(); const kept = BO.bOp('b1') === '운영중';
+  BO.bopOpen('b4'); BO.bopOK(); const noWhy = BO.bOp('b4') === '운영중';
+  BO.bo.why = '대수선 공사'; BO.bopOK(); const off = BO.bOp('b4') === '비운영중';
+  BO.f1b = 'b4'; BO.MORE.length = 0; const h = BO.PAY1();
+  BO.bopOpen('b4'); BO.bo.why = '공사 완료'; BO.bopOK();
+  r6.push(['건물 운영상태 — 카리나빌딩(진행중 계약 있음)은 비운영중 불가 · 사유 없으면 안 바뀜 · 카즈하타워 비운영중 → 청구서 발행 잠김 · 다시 운영중',
+    kept && noWhy && off && /비운영중인 건물입니다/.test(h) && BO.bOp('b4') === '운영중']); }
 /* 수납 내역 더보기 — 받을 돈이 있는 계약(비씨에이전시)만 수납 처리가 눌리고, 다 받은 계약(에스씨케이컴퍼니)은 흐림 · 원장 보기는 모두 */
 { const MV = new Function(stub + bare + '; seedJuly(); return {PAY6,RC,MORE};')();
   MV.RC.f = {b:'b1', ym:'2026-07', st:''}; MV.MORE.length = 0; const h = MV.PAY6();

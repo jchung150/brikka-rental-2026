@@ -1272,6 +1272,7 @@ function drawerHTML(){
   if(DRAWER==='cancel') return cancelHTML();
   if(DRAWER==='issue') return issueHTML();
   if(DRAWER==='park') return pkHTML();
+  if(DRAWER==='bop') return bopHTML();
   if(DRAWER==='c3x') return cx3HTML();
   if(DRAWER==='over') return overHTML();
   if(DRAWER==='pay') return payHTML();
@@ -1540,7 +1541,7 @@ function PRO1(){
     const d=dday(b.mgmtEnd);
     return `<tr onclick="go('pro-3/${b.id}')">
       <td class="c" onclick="event.stopPropagation()"><span class="cb"></span></td>
-      <td><div class="c1">${b.name}</div><div class="c2">${b.alias} · ${b.kind}</div></td>
+      <td><div class="c1">${b.name}${bOp(b.id)==='비운영중'?' <span class="bd mu">비운영중</span>':''}</div><div class="c2">${b.alias} · ${b.kind}</div></td>
       <td><div class="c1" style="font-weight:400">${b.addr}</div><div class="c2">${b.addr2}</div></td>
       <td><div class="c1" style="font-weight:400">${b.owner}${b.owners.length>1?` <span class="c2">외 ${b.owners.length-1}</span>`:''}</div><div class="c2">${b.ownerBiz}</div></td>
       <td><div class="c1" style="font-weight:400">${b.mgr}</div><div class="c2">${b.mgrTel}</div></td>
@@ -1578,6 +1579,38 @@ let tab3='요약', BSW=false;
 function toggleBsw(){BSW=!BSW;render();}
 function switchB(id){BSW=false;go('pro-3/'+id);}
 const setTab=t=>{tab3=t;render();};
+/* 건물 운영상태 — 운영중 / 비운영중. 대수선 등으로 건물 전체 운영을 멈출 때. 슈퍼관리자만 바꾼다 → 3.2 · 3.7
+   비운영중이면 새로 시작되는 일(청구서 발행 · 계약 등록 · 관리비 정산)을 막고, 남은 돈 정리(수납 · 미납 · 환불 · 월 마감)는 열어 둔다 */
+const BOP={}, BOP_LOG=[];
+const bOp=id=>(BOP[id]||{}).st||'운영중';
+let bo=null;
+/* 진행중·준비중 계약이 있으면 비운영중으로 바꿀 수 없다 — 공사 중에 청구가 이어지는 실수를 막는다 */
+const bopBlock=id=>CTRS.filter(c=>c.b===id&&(c.st==='진행중'||c.st==='준비중'));
+function bopOpen(id){bo={id,why:''};DRAWER='bop';render(true);}
+function bopOK(){if(!bo||!bo.why.trim()) return; const to=bOp(bo.id)==='운영중'?'비운영중':'운영중';
+  if(to==='비운영중'&&bopBlock(bo.id).length) return;
+  BOP[bo.id]={st:to,why:bo.why.trim(),at:TODAY_S}; BOP_LOG.push({id:bo.id,to,why:bo.why.trim(),at:TODAY_S});
+  DRAWER=null;bo=null;render(true);}
+function bopHTML(){
+  if(DRAWER!=='bop'||!bo) return '';
+  const b=BUILDINGS.find(x=>x.id===bo.id), stop=bOp(b.id)==='운영중', bl=stop?bopBlock(b.id):[];
+  return `<div class="dro"><div class="ov" onclick="closeDrawer()"></div><div class="pn">
+    <div class="dh"><div><div class="t">${stop?'운영 중지':'운영 재개'}</div><div class="s">${b.name}</div></div>
+      <button class="x" onclick="closeDrawer()">✕</button></div>
+    <div class="db">
+      ${bl.length?`<div class="fnd wa3" style="margin:0 0 12px"><span class="h">진행중·준비중 계약 ${bl.length}건이 있습니다</span>
+        계약을 먼저 해지하거나 끝내야 비운영중으로 바꿀 수 있습니다.<br>${bl.map(c=>cname(b.alias,c.no,c.ten)).join('<br>')}</div>`
+      :`<div class="c2" style="margin:-2px 0 12px;white-space:normal">${stop
+        ?'비운영중이면 <b>청구서 발행 · 계약 등록 · 관리비 정산</b>을 할 수 없습니다. 수납 · 미납 관리 · 환불 · 월 마감은 계속할 수 있습니다.'
+        :'운영중으로 돌리면 청구서 발행 · 계약 등록 · 관리비 정산을 다시 할 수 있습니다.'}</div>`}
+      <div class="fg"><div class="fl">사유 (필수)</div>
+        <input type="text" value="${bo.why}" ${bl.length?'disabled':''} placeholder="${stop?'예: 대수선 공사 (2026.09 ~ 2027.02)':'예: 공사 완료'}"
+          oninput="bo.why=this.value;document.getElementById('bopok').disabled=!this.value.trim()" style="width:100%;border:1px solid var(--line);border-radius:var(--r-sm);padding:7px 9px;font:inherit"></div>
+    </div>
+    <div class="df"><button class="btn" onclick="closeDrawer()">닫기</button>
+      <button class="btn pri" id="bopok" disabled onclick="bopOK()">${stop?'운영 중지':'운영 재개'}</button></div>
+  </div></div>`;
+}
 function PRO3(id){
   const b=BUILDINGS.find(x=>x.id===id)||BUILDINGS[0];
   const T=['요약','유닛','관리비','자료보관'];
@@ -1597,8 +1630,12 @@ function PRO3(id){
           <span class="mn">${x.name}</span><span class="mk">${x.kind} · ${x.unitCnt}유닛</span></div>`).join('')}
       </div>`:''}
     </div>
+    ${bOp(b.id)==='비운영중'?`<span class="bd mu" title="${(BOP[b.id]||{}).why||''}">비운영중</span>`:''}
     <span class="sid">PRO-3</span>
+    <div class="act"><button class="btn" onclick="bopOpen('${b.id}')" title="슈퍼관리자만">${bOp(b.id)==='운영중'?'운영 중지':'운영 재개'}</button></div>
   </div>
+  ${bOp(b.id)==='비운영중'?`<div class="fnd wa3"><span class="h">비운영중인 건물입니다</span>
+    ${BOP[b.id].at.replace(/-/g,'.')} · ${BOP[b.id].why}. 청구서 발행 · 계약 등록 · 관리비 정산을 할 수 없습니다. 수납 · 미납 관리 · 환불 · 월 마감은 계속할 수 있습니다.</div>`:''}
   <div class="tabs">
     ${T.map(t=>`<button class="${t===tab3?'on':''}" onclick="setTab('${t}')">${t}</button>`).join('')}
     <button disabled>요청 <span class="cnt">2차</span></button>
@@ -2547,7 +2584,7 @@ function PAY1(){
   if(!PAST_CTX&&f1.ym&&f1.ym!=='2026-08') return withMonth(f1.ym,PAY1);
   const BN=id=>(BUILDINGS.find(x=>x.id===id)||{}).name||id;
   const BA=id=>(BUILDINGS.find(x=>x.id===id)||{}).alias||'';
-  const P=PAST_CTX?{settle:'확정'}:PROG[f1.b]||{}, ok=P.settle==='확정';
+  const P=PAST_CTX?{settle:'확정'}:PROG[f1.b]||{}, ok=P.settle==='확정', stop=!PAST_CTX&&bOp(f1.b)==='비운영중';
   const lk=PAST_CTX?(MC[f1.b]||{})[PAST_CTX]:null, ymL=(f1.ym||'2026-08').replace('-','년 ').replace(/년 0/,'년 ')+'월';
   const rows=ISSUE().filter(c=>!f1.st||c.st===f1.st);
   const wait=rows.filter(c=>c.st==='발행 대기');
@@ -2581,7 +2618,7 @@ function PAY1(){
       <div class="n"><span class="c2">VAT 포함</span><b>${won(c.sum)}</b></div>
       <div class="c">${c.st==='발행 완료'?'<span class="bd ok">발행 완료</span>':'<span class="bd mu">발행 대기</span>'}</div>
       <div class="c">${moreCell([
-        {t:'청구서 발행',go:`issueAsk(['${c.k}'])`,off:PAST_CTX?'지난 회차입니다':!can?'이미 발행했습니다':!ok?'정산이 확정되지 않았습니다':''},
+        {t:'청구서 발행',go:`issueAsk(['${c.k}'])`,off:PAST_CTX?'지난 회차입니다':!can?'이미 발행했습니다':stop?'비운영중인 건물입니다':!ok?'정산이 확정되지 않았습니다':''},
         {t:'청구서 취소',go:`cancelOpen('${c.k}')`,off:can?'발행 전입니다':cancelBlock(c,PAST_CTX||SETTLE.ym)}])}</div>
     </div>` + (!op?'':c.lines.map(l=>`
     <div class="schr iss sub">
@@ -2599,7 +2636,7 @@ function PAY1(){
   return `
   <div class="ph"><h1>청구서 발행</h1><span class="sid">PAY-1</span>
     <div class="act"><button class="btn">미리보기</button>
-      <button class="btn pri" ${ok&&!PAST_CTX&&wait.length?'':'disabled'}
+      <button class="btn pri" ${ok&&!stop&&!PAST_CTX&&wait.length?'':'disabled'}
         onclick="issueAsk(${JSON.stringify((nSel?wait.filter(c=>sel1[c.k]):wait).map(c=>c.k)).replace(/"/g,"'")})">
         ${nSel?`선택 ${nSel}건 발행`:`전체 ${wait.length}건 발행`}</button></div>
   </div>
@@ -2621,6 +2658,9 @@ function PAY1(){
     고치려면 월 마감에서 <b>마감 취소</b>를 먼저 하세요. <b class="lk" onclick="s11={b:'${f1.b}',ym:'${PAST_CTX}'};go('pay-11')">월 마감으로 이동 →</b></div>`
    :`<div class="fnd wa3"><span class="h">발행이 끝난 회차입니다</span>
     ${ymL} 청구서는 이미 발행했습니다. 입금이 없는 청구서는 더보기의 <b>청구서 취소</b>로 취소할 수 있습니다.</div>`):''}
+  ${stop?`<div class="fnd wa3"><span class="h">비운영중인 건물입니다</span>
+    ${BN(f1.b)}은 ${BOP[f1.b].at.replace(/-/g,'.')}부터 비운영중입니다(${BOP[f1.b].why}). 청구서를 발행할 수 없습니다.
+    <b class="lk" onclick="go('pro-3/${f1.b}')">건물 상세로 이동 →</b></div>`:''}
   ${ok?'':`<div class="fnd"><span class="h">정산이 확정되지 않았습니다</span>
     ${BN(f1.b)}의 2026년 8월 정산 상태는 <b>${P.settle}</b>입니다.
     정산을 확정해야 정산 항목의 금액이 확정되고 청구서를 발행할 수 있습니다.
@@ -3882,7 +3922,8 @@ function CTR2(){
   const card=(t,body,sub)=>`<div class="card" style="margin:0 0 16px"><div class="ct">${t}${sub?`<span class="sub">${sub}</span>`:''}</div><div class="cc">${body}</div></div>`;
   const left=
     card('기본 정보',
-      R('건물',S('b',BUILDINGS.map(x=>[x.id,x.name])),1)
+      R('건물',`<select onchange="ncSet('b',this.value)">${BUILDINGS.map(x=>bOp(x.id)==='비운영중'
+          ?`<option value="${x.id}" disabled>${x.name} (비운영중)</option>`:`<option value="${x.id}" ${nc.b===x.id?'selected':''}>${x.name}</option>`).join('')}</select>`,1)
       +R('유닛',U.length?S('no',[['','유닛 선택'],...U.map(u=>{const on=CTRS.find(c=>c.b===nc.b&&c.no===u.no&&c.st==='진행중');
           return [u.no,`${u.no} · ${u.st==='비운영중'?'비운영중':on?`${on.ten} (${d8(ctrEnd(on))} 종료)`:'공실'}`];})])
           :'<span class="c2" style="margin:0">목업의 유닛 자료는 카리나빌딩뿐입니다</span>',1)
