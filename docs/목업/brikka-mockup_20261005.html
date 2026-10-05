@@ -1239,6 +1239,7 @@ function csHTML(){
 function drawerHTML(){
   if(DRAWER==='chargeset') return csHTML();
   if(DRAWER==='fix') return fixHTML();
+  if(DRAWER==='due') return dueHTML();
   if(DRAWER==='cancel') return cancelHTML();
   if(DRAWER==='over') return overHTML();
   if(DRAWER==='pay') return payHTML();
@@ -3298,6 +3299,39 @@ function overHTML(){
   </div></div>`;
 }
 
+/* ═══ 미납 상세 — 계약 하나의 사정을 위에서 아래로. 언제 얼마를 청구했고, 언제 얼마를 받았고, 얼마가 남았고, 연체료가 어떻게 나왔는지 → PAY-2 ═══ */
+let dk=null;
+function openDue(k){dk=k;DRAWER='due';render(true);}
+function dueHTML(){
+  if(DRAWER!=='due'||!dk) return '';
+  const c=CTRS.find(x=>ckey(x)===dk), bn=BUILDINGS.find(x=>x.id===c.b)||BUILDINGS[0], a=arrears(c);
+  const md=d=>d.slice(5).replace('-','.'), R=(k,b)=>`<div class="fr"><span class="fk">${k}</span>${b}</div>`;
+  const months=a.months.slice().reverse();   /* 오래된 달부터 읽는다 */
+  return `<div class="dro"><div class="ov" onclick="closeDrawer()"></div><div class="pn">
+    <div class="dh"><div><div class="t">미납 상세</div><div class="s">${cname(bn.alias,c.no,c.ten)}</div></div>
+      <button class="x" onclick="closeDrawer()">✕</button></div>
+    <div class="db">
+      <div class="fg"><div class="fl">지금 (${md(TODAY_S)} 기준)</div>
+        ${R('남은 미납',`<b style="color:var(--warn)">${won(a.due)}</b>`)}
+        ${R('연체료',`<b>${won(a.fee)}</b>`)}
+        ${R('<b>합계</b>',`<b style="font-size:15px">${won(a.due+a.fee)}</b>`)}</div>
+      <div class="c2" style="margin:-6px 0 16px;white-space:normal">연체료 = 밀린 금액 × 연 ${a.rate}% × 밀린 일수 ÷ 365.
+        돈이 들어올 때마다 기간을 나눠 그때 밀려 있던 금액으로 계산합니다.</div>
+      ${months.map(m=>`<div style="border:1px solid var(--line);border-radius:var(--r-sm);padding:12px 14px;margin-bottom:12px">
+        <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:8px"><b style="font-size:13.5px">${m.ym.slice(2).replace('-','.')}월분</b>
+          <span class="c2" style="margin:0">청구 ${won(m.bill)} · 납부마감 ${md(dueStr(m.ym))}</span>
+          <span class="bd ${PST[m.st]}" style="margin-left:auto">${m.st}</span></div>
+        ${R('받은 돈',m.pays.length?m.pays.map(x=>`${md(x.date)} <b>${won(x.amt)}</b>`).join('<br>'):'<span class="c2" style="margin:0">아직 받지 않음</span>')}
+        ${R('남은 미납',m.due?`<b style="color:var(--warn)">${won(m.due)}</b> <span class="c2">${m.days}일 밀림</span>`:`0원 <span class="c2">${m.lateDone?`${md(m.lastPay)}에 다 받음 · ${m.lateDone}일 늦게`:'다 받음'}</span>`)}
+        ${R('연체료',`<b>${won(m.fee)}</b>`)}
+        ${m.periods.length?`<div style="margin:-2px 0 0 114px;font-size:12px;color:var(--muted);line-height:1.8">${m.periods.map(q=>
+          `${md(q.from)} ~ ${md(q.to)} · ${q.days}일 동안 ${won(q.bal)} 밀림 → <b style="color:var(--ink)">${won(q.fee)}</b>`).join('<br>')}</div>`:''}
+      </div>`).join('')}
+    </div>
+    <div class="df"><button class="btn" onclick="closeDrawer()">닫기</button>
+      <button class="btn pri" onclick="openPay('${dk}')">수납 처리</button></div>
+  </div></div>`;
+}
 /* ═══ PAY-2 미납 관리 — 미납이 있는 계약을 따로 관리한다. 계약별로 지금까지 쌓인 미납액 전부. 청구년월로 자르지 않는다 ═══ */
 /* 미납(연체료 포함)이 있는 계약만 올린다 */
 let f2={b:'b1',cs:'',view:'due'}, g2={}, g2All=false, sel2={};
@@ -3343,8 +3377,8 @@ function PAY2(){
   const dash='<span style="color:var(--faint)">—</span>';
   const body=rows.map(a=>{
     const op=g2Open(a.k), on=!!sel2[a.k], can=a.due>0||a.fee>0;
-    return `<div class="schr arr grp" onclick="g2Tog('${a.k}')">
-      <div class="nm">${can?`<span class="cb ${on?'on':''}" onclick="pick2('${a.k}',event)"></span>`:'<span class="cb dis"></span>'}<span class="tg ${op?'op':''}" style="${can?'':'visibility:hidden'}">${ic('chev',16)}</span>${cnameHTML(bn.alias,a.c.no,a.c.ten)}${
+    return `<div class="schr arr grp" onclick="openDue('${a.k}')">
+      <div class="nm">${can?`<span class="cb ${on?'on':''}" onclick="pick2('${a.k}',event)"></span>`:'<span class="cb dis"></span>'}<span style="margin-left:8px">${cnameHTML(bn.alias,a.c.no,a.c.ten)}</span>${
         a.c.st!=='진행중'?` <span class="bd mu">${a.c.st}</span>`:''}${
         !a.due?`<span class="c2">${a.fee?(()=>{const m=a.months.find(x=>x.fee&&x.lateDone);
           return m?`연체료 미납 · ${ymK(m.ym)}분 ${m.lateDone}일 늦게 완납`:'연체료 미납';})():'미납 없음'}</span>`:''}</div>
@@ -3353,17 +3387,7 @@ function PAY2(){
       <div class="n">연 ${a.rate}%</div>
       <div class="n">${a.fee?won(a.fee):dash}</div>
       <div class="c">${a.due||a.fee?`<button class="btn sm" onclick="event.stopPropagation();openPay('${a.k}')">수납</button>`:''}</div>
-    </div>`+(!op||!can?'':a.months.map(m=>`
-    <div class="schr arr sub mo" style="cursor:default">
-      <div class="nm" style="flex-wrap:wrap">${m.ym.replace('-','년 ')}월분 <span class="c2">청구 ${won(m.bill)} · 납부마감 ${md(dueStr(m.ym))}</span>
-        <div class="c2" style="flex-basis:100%;margin:3px 0 0">수납 ${m.pays.length?m.pays.map(x=>`${md(x.date)} ${won(x.amt)}`).join(' · '):'없음'}${
-          m.periods.length?` <span style="color:var(--faint)">|</span> 늦은 돈 ${m.periods.map(q=>`${won(q.bal)} ${q.days}일`).join(' + ')}`:''}</div></div>
-      <div class="n">${m.due?`<span style="color:var(--warn)">${won(m.due)}</span>`:dash} <span class="bd ${PST[m.st]}" style="margin-left:6px">${m.st}</span></div>
-      <div class="n c2" style="margin:0">${m.days?`${m.days}일`:m.lateDone?`${m.lateDone}일 늦게 완납`:'—'}</div>
-      <div></div>
-      <div class="n">${m.fee?won(m.fee):'—'}</div>
-      <div></div>
-    </div>`).join(''));
+    </div>`;
   }).join('');
   return `
   <div class="ph"><h1>미납 관리</h1><span class="sid">PAY-2</span>
@@ -3377,7 +3401,6 @@ function PAY2(){
     <select onchange="setF2('cs',this.value)">
       ${[['','전체 계약상태'],['진행중','진행중'],['종료','종료됨·파기됨']].map(([v,t])=>`<option value="${v}" ${f2.cs===v?'selected':''}>${t}</option>`).join('')}
     </select>
-    ${rows.length?`<span style="margin-left:auto"><button class="btn sm" onclick="g2All=${anyOp?'false':'true'};g2={};render(true)">${anyOp?'전체 접기':'전체 펼치기'}</button></span>`:''}
   </div>
   ${waitN?`<div class="fnd wa3"><span class="h">확정 전 입금 ${waitN}건</span>
     아직 기록되지 않은 입금이 있어 이미 낸 계약도 미납으로 보입니다.
@@ -3385,7 +3408,7 @@ function PAY2(){
   ${!rows.length?`<div class="tbl"><div class="empty"><div class="t">${has?'미납이 없습니다':'자료가 없습니다'}</div>
      ${has?'모든 계약이 완납 상태이고 연체료도 없습니다.':'목업 자료는 카리나빌딩뿐입니다.'}</div></div>`
   :`<div class="tbl schl">
-    <div class="schr arr hd"><div>계약고유이름 · 청구년월</div><div class="n">미납액</div>
+    <div class="schr arr hd"><div>계약고유이름</div><div class="n">미납액</div>
       <div class="n">연체일수</div><div class="n">연체이자율</div><div class="n">연체료(예상)</div><div></div></div>
     ${body}
     <div class="schr arr sum"><div>합계 <span class="lock">계약 ${act.length}</span></div>
@@ -3393,8 +3416,8 @@ function PAY2(){
       <div class="n">${T.fee?won(T.fee):'—'}</div><div></div></div>
   </div>`}
   <div class="hint">
-    미납이 있는 계약을 모았습니다. 청구액을 다 냈어도 연체료가 남았으면 미납입니다. 펼치면 달마다 청구액·수납 일자·며칠 늦었는지가 최근 달부터 보입니다.<br>
-    연체료(예상)는 늦은 돈 × 늦은 일수로 생깁니다. 다 냈어도 늦게 냈다면 연체료가 남습니다.<br>
+    미납이 있는 계약을 모았습니다. 청구액을 다 냈어도 연체료가 남았으면 미납입니다. 계약 줄을 누르면 오른쪽에 <b>미납 상세</b>가 열립니다.<br>
+    다 냈어도 늦게 냈다면 연체료가 남습니다.<br>
     현금·카드로 받았거나 보증금에서 빼면 계약 줄의 수납을 누르세요. 은행 입금은 입금 매칭에서 처리합니다.<br>
     연체료는 수납할 때 정리합니다. 전액 받기 · 50% 감면 · 직접 입력 · 전액 감면 중에서 고릅니다.</div>`;
 }
