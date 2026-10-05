@@ -110,6 +110,7 @@ run('CTR-3 없는 계약', "CTR3('b9없음')");
 run('PAY-2 펼침 · 달별 미납 상세 패널', "seedJuly();g2All=true;PAY2();openDue('b1별관3층','2026-06');dueHTML();openDue('b1별관3층','2026-07');dueHTML();openDue('b1본관B2','2026-06');dueHTML()");
 run('PAY-2 종료 계약', "f2.cs='종료';PAY2()");
 run('PAY-2 다른 건물', "f2.b='b2';PAY2()");
+run('PAY-2 연체일수 필터', "seedJuly();f2.dd='30';PAY2();f2.dd='90';PAY2()");
 run('PAY-6 7월', "RC.f.ym='2026-07';g6All=true;PAY6()");
 run('PAY-13 임차인 선택', "RC.pre[8]='아마데우스';RC.cur=8;PAY13()");
 run('PAY-13 미매칭', "RC.cur=5;PAY13()");
@@ -493,6 +494,9 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   const r = FX.ONCE.rows[0], ln = FX.ISSUE().find(c => c.no === '본관1층').lines.find(l => /정정/.test(l.n));
   r6.push(['청구 정정 — 두 방향 같은 칸·같은 버튼 · 사유 없으면 막힘 · 7월 전기요금 더 받기 55,000 → 8월 청구서에 「26.07월분 전기요금 정정」(세금계산서)',
     same && noWhy && r && r.n === '26.07월분 전기요금 정정' && r.doc === '세금계산서' && ln && ln.amt === 55000]); }
+{ const DD = new Function(stub + bare + '; seedJuly(); return {PAY2,f2};')();
+  DD.f2.dd = '30'; const h30 = DD.PAY2(); DD.f2.dd = '60'; const h60 = DD.PAY2();
+  r6.push(['미납 관리 연체일수 필터 — 30일 이상이면 비씨에이전시(41일)만 · 60일 이상이면 없음', /별관3층/.test(h30) && !/본관B2/.test(h30) && /60일 이상 밀린 계약이 없습니다/.test(h60)]); }
 const bad6 = r6.filter(x => !x[1]);
 if (bad6.length) fail = 1;
 console.log('⑥ 수납 기록 ' + (bad6.length ? '✗ ' + bad6.map(x => x[0]).join(' / ') : 'OK — ' + r6.length + '개 검산'));
