@@ -516,7 +516,7 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
 /* 건물 등록 — 빠진 필수 항목은 막힘 · 지분 합계 100% · 별칭 중복 막힘 · 저장하면 목록에 생기고 상세가 열림 */
 { const NB = new Function(stub + bare + '; return {PRO2,PRO3,nbSave,nbMissing,BUILDINGS,get nb(){return nb;}};')();
   NB.PRO2(); NB.nbSave(); const blocked = NB.BUILDINGS.length === 3 && NB.nbMissing().includes('건물명');
-  Object.assign(NB.nb, {name:'윈터타워', alias:'카리나', kind:'오피스빌딩', addr:'서울특별시 마포구 독막로 1', bill:'매월 25일', due:'익월 10일', rb:'하나은행', ra:'123-456', rn:'윈터'});
+  Object.assign(NB.nb, {name:'윈터타워', alias:'카리나', kind:'오피스빌딩', addr:'서울특별시 마포구 독막로 1', bm:'전월', bd:'25일', dm:'당월', dd:'1일', rb:'하나은행', ra:'123-456', rn:'윈터'});
   Object.assign(NB.nb.owners[0], {biz:'214-07-63390', n:'윈터', share:'60'});
   const dup = NB.nbMissing().some(m => /이미 쓰는 별칭/.test(m)), share = NB.nbMissing().some(m => /지분 합계 100%/.test(m));
   NB.nb.alias = '윈터'; NB.nb.owners.push({biz:'105-81-42117', n:'카리나', share:'40'}); NB.nb.dong = [{n:'본관',up:'10',down:'2'},{n:'별관',up:'3',down:''}]; NB.nb.pkUp = '5'; NB.nb.pkDown = '20';
@@ -533,6 +533,11 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   CP.chvOpen('b1본관4층'); CP.cx3Save(); const noT = !CP.CHVAC['b1본관4층']; CP.cx3.t = '건물주 것 사용'; CP.cx3Save();
   r6.push(['계약 상세 — 주차정보에 배정 주차면 2면 · 계약에서 B1-04 배정 → 건물 주차면에도 반영 · 냉난방기 구분 없으면 저장 안 됨',
     two && /주차정보/.test(h) && /냉난방기/.test(h) && /임차인 설치/.test(h) && moved && noT && CP.CHVAC['b1본관4층'].t === '건물주 것 사용']); }
+/* 청구일·납부마감일 규칙 — 청구년월 기준 전월·당월·익월 + N일·말일 */
+{ const DR = new Function(stub + bare + '; return {dayRule};')().dayRule;
+  r6.push(['청구일·납부마감일 — 7월분: 전월 25일 = 6/25 · 당월 1일 = 7/1 · 당월 19일 = 7/19 · 당월 말일 = 7/31 · 익월 10일 = 8/10 · 2월분 당월 말일 = 2/28',
+    DR('전월 25일','2026-07') === '2026-06-25' && DR('당월 1일','2026-07') === '2026-07-01' && DR('당월 19일','2026-07') === '2026-07-19'
+    && DR('당월 말일','2026-07') === '2026-07-31' && DR('익월 10일','2026-07') === '2026-08-10' && DR('당월 말일','2027-02') === '2027-02-28']); }
 /* 수납 내역 더보기 — 받을 돈이 있는 계약(비씨에이전시)만 수납 처리가 눌리고, 다 받은 계약(에스씨케이컴퍼니)은 흐림 · 원장 보기는 모두 */
 { const MV = new Function(stub + bare + '; seedJuly(); return {PAY6,RC,MORE};')();
   MV.RC.f = {b:'b1', ym:'2026-07', st:''}; MV.MORE.length = 0; const h = MV.PAY6();

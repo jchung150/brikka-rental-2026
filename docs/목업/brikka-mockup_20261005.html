@@ -641,7 +641,7 @@ const BUILDINGS=[
    {it:'주차비',use:1,cycle:'매월',bill:'세금계산서',meter:'없음',mtr:'—',rest:'—',basis:'직접 입력',doc:'경비실 내역서'},
    {it:'교통유발부담금',use:1,cycle:'연1회',bill:'계산서',meter:'없음',mtr:'—',rest:'전체 유닛',basis:'임대면적',doc:'구청 고지서'},
    {it:'정화조청소비',use:1,cycle:'반기',bill:'계산서',meter:'없음',mtr:'—',rest:'전체 유닛',basis:'임대면적',doc:'청소업체 내역서'}],
-  billDay:'매월 19일',dueDay:'매월 말일'},
+  billDay:'당월 19일',dueDay:'당월 말일'},
 
  {id:'b2',name:'뉴진스하우스',alias:'뉴진스',kind:'오피스빌딩',addr:'서울특별시 용산구 이촌로 248',addr2:'서울 용산구 이촌동 301-8',
   owner:'뉴진스',ownerBiz:'220-13-88402',owners:[{n:'뉴진스',biz:'220-13-88402',share:60},{n:'민지',biz:'110-24-55031',share:40}],built:'2015-02-03',approved:'2016-06-28',mgr:'슈퍼관리자',mgrTel:'010-3341-2205',
@@ -649,7 +649,7 @@ const BUILDINGS=[
   acct:'신한은행 140-012-772301',acctName:'뉴진스',feeAcct:'신한은행 140-012-772415',feeAcctName:'뉴진스 관리비',
   mgmtStart:'2024-09-18',mgmtEnd:'2026-09-17',fee:'월 2,400,000원',mode:'임대인 직수취',
   bondBank:'신한은행 이촌동지점',bondTel:'02-797-1120',bondMax:4200000000,bondNow:3100000000,
-  fac:['회의실','카페테리아','피트니스'],units:[],parks:[],docs:[],charge:[],billDay:'매월 25일',dueDay:'익월 10일'},
+  fac:['회의실','카페테리아','피트니스'],units:[],parks:[],docs:[],charge:[],billDay:'당월 25일',dueDay:'익월 10일'},
 
  {id:'b4',name:'카즈하타워',alias:'카즈하',kind:'복합상가',addr:'서울특별시 마포구 월드컵로 12',addr2:'서울 마포구 합정동 381-4',
   owner:'카즈하',ownerBiz:'113-86-20447',owners:[{n:'카즈하',biz:'113-86-20447',share:100}],built:'2012-08-01',approved:'2013-03-15',mgr:'슈퍼관리자',mgrTel:'010-3341-2205',
@@ -665,7 +665,7 @@ const BUILDINGS=[
     basis:'임대면적',doc:'상수도사업본부 고지서'},
    {it:'정화조청소비',use:1,bill:'계산서',cycle:'반기',meter:'없음',mtr:'—',
     basis:'임대면적',doc:'청소업체 내역서'}],
-  billDay:'매월 20일',dueDay:'말일'},
+  billDay:'전월 25일',dueDay:'당월 1일'},
 
 ];
 BUILDINGS.forEach(b=>{b.park=b.pk.up+b.pk.down+b.pk.mech;});   /* 총 주차면수는 지상 자주식 · 지하 자주식 · 기계식의 합 */
@@ -1392,10 +1392,11 @@ const setF1p=(k,v)=>{f1p[k]=v;render();};
 let nb=null;
 const BKIND=['오피스빌딩','근린생활시설(상가)','지식산업센터','복합상가','물류창고','기타'];   /* 건물구분 → 3.1 */
 const BHVAC=['중앙공조','EHP(시스템에어컨)','지역난방','개별냉난방'];                  /* 냉난방 방식 → 3.1 */
-const BMGRS=[{n:'슈퍼관리자',tel:'010-3341-2205'}];
-const DUE_OPTS=['매월 말일',...Array.from({length:28},(_,i)=>`익월 ${i+1}일`)];
+/* 건물관리자 — 사용자 관리(USER-3)에 등록된 관리자 중에서만 고른다. 여기서 새로 만들지 않는다 → 3.7 */
+const BMGRS=[{n:'슈퍼관리자',tel:'010-3341-2205'},{n:'김관리',tel:'010-5521-0934'},{n:'박현장',tel:'010-7716-2280'}];
+const DAY_OPTS=[...Array.from({length:28},(_,i)=>`${i+1}일`)];
 function nbInit(){
-  nb={name:'',alias:'',kind:'',addr:'',addr2:'',built:'',approved:'',bill:'',due:'',mgr:'슈퍼관리자',
+  nb={name:'',alias:'',kind:'',addr:'',addr2:'',built:'',approved:'',bm:'당월',bd:'',dm:'당월',dd:'',mgr:'슈퍼관리자',
       gross:'',area:'',dong:[{n:'',up:'',down:''}],pkUp:'',pkDown:'',pkMech:'',hvac:'',
       owners:[{biz:'',found:null,n:'',kind:'개인',email:'',tel:'',share:'100'}],
       rb:'',ra:'',rn:'',same:true,fb:'',fa:'',fn:'',
@@ -1408,13 +1409,15 @@ const nbRow=(l,i,f,v)=>{nb[l][i][f]=v;render(true);};
 function nbLookup(i){const o=nb.owners[i], biz=o.biz.trim();
   const f=BUILDINGS.flatMap(b=>b.owners).find(x=>x.biz===biz);
   o.found=biz?(f?'기존':'신규'):null; if(f) o.n=f.n; render(true);}
+const nbBill=()=>`${nb.bm} ${nb.bd}`, nbDue=()=>`${nb.dm} ${nb.dd}`;
 const nbShare=()=>nb.owners.reduce((a,o)=>a+(parseFloat(o.share)||0),0);
 const nbPark=()=>['pkUp','pkDown','pkMech'].reduce((a,f)=>a+(parseInt(nb[f])||0),0);
 function nbMissing(){const m=[];
   if(!nb.name.trim()) m.push('건물명');
   if(!nb.alias.trim()) m.push('건물 별칭'); else if(BUILDINGS.some(b=>b.alias===nb.alias.trim())) m.push('건물 별칭(이미 쓰는 별칭)');
   if(!nb.kind) m.push('건물구분'); if(!nb.addr.trim()) m.push('건물주소');
-  if(!nb.bill) m.push('청구일'); if(!nb.due) m.push('납부마감일');
+  if(!nb.bd) m.push('청구일'); if(!nb.dd) m.push('납부마감일');
+  if(nb.bd&&nb.dd&&dnum(dayRule(nbDue(),'2026-08'))<=dnum(dayRule(nbBill(),'2026-08'))) m.push('납부마감일(청구일보다 뒤여야 함)');
   if(nb.owners.some(o=>!o.biz.trim()||!o.n.trim())) m.push('임대인(사업자등록번호 · 이름)');
   if(nbShare()!==100) m.push(`지분 합계 100%(지금 ${nbShare()}%)`);
   if(!nb.rb.trim()||!nb.ra.trim()||!nb.rn.trim()) m.push('임대료 납부 계좌');
@@ -1435,7 +1438,7 @@ function nbSave(){
     acct,acctName:nb.rn.trim(),feeAcct:nb.same?acct:`${nb.fb.trim()} ${nb.fa.trim()}`,feeAcctName:nb.same?nb.rn.trim():nb.fn.trim(),
     mgmtStart:nb.mg?nb.ms:'',mgmtEnd:nb.mg?nb.me:'',fee:nb.mg&&nb.fv?(nb.fk==='요율'?`임대료의 ${nb.fv}%`:`월 ${numOf(nb.fv).toLocaleString('ko-KR')}원`):'—',mode:'임대인 직수취',
     bondBank:[nb.bb.trim()].filter(Boolean).join(' '),bondTel:nb.bt.trim(),bondMax:numOf(nb.bmax),bondNow:numOf(nb.bnow),
-    fac:[],units:[],parks:[],docs:[],charge:[],billDay:nb.bill,dueDay:nb.due});
+    fac:[],units:[],parks:[],docs:[],charge:[],billDay:nbBill(),dueDay:nbDue()});
   if(BPHOTO.new){BPHOTO[id]=BPHOTO.new;delete BPHOTO.new;}
   nb=null; tab3='요약'; go('pro-3/'+id);
 }
@@ -1458,9 +1461,13 @@ function PRO2(){
       ${R('건물주소',T('addr','도로명 주소'),1)}
       ${R('',T('addr2','지번 주소'))}
       ${R('건축일 · 사용승인일',D('built')+D('approved'))}
-      ${R('청구일',`<select onchange="nbSet('bill',this.value)"><option value="">선택</option>${Array.from({length:28},(_,i)=>`매월 ${i+1}일`).map(o=>`<option ${nb.bill===o?'selected':''}>${o}</option>`).join('')}</select>`,1)}
-      ${R('납부마감일',S('due',DUE_OPTS,'선택'),1)}
-      ${R('건물관리자',`<select onchange="nbSet('mgr',this.value)">${BMGRS.map(x=>`<option ${nb.mgr===x.n?'selected':''}>${x.n}</option>`).join('')}<option>+ 새 건물 관리자 등록</option></select>`)}
+      ${R('청구일',`<select onchange="nbSet('bm',this.value)" style="flex:none;width:76px">${['전월','당월'].map(o=>`<option ${nb.bm===o?'selected':''}>${o}</option>`).join('')}</select>
+          <select onchange="nbSet('bd',this.value)" style="flex:none;width:90px"><option value="">선택</option>${DAY_OPTS.map(o=>`<option ${nb.bd===o?'selected':''}>${o}</option>`).join('')}</select>`,1)}
+      ${R('납부마감일',`<select onchange="nbSet('dm',this.value)" style="flex:none;width:76px">${['당월','익월'].map(o=>`<option ${nb.dm===o?'selected':''}>${o}</option>`).join('')}</select>
+          <select onchange="nbSet('dd',this.value)" style="flex:none;width:90px"><option value="">선택</option>${[...DAY_OPTS,'말일'].map(o=>`<option ${nb.dd===o?'selected':''}>${o}</option>`).join('')}</select>`,1)}
+      ${nb.bd&&nb.dd?`<div class="c2" style="margin:-4px 0 9px 138px">예: 8월분 청구서 → ${ruleEx(nbBill(),'2026-08')} 청구 · ${ruleEx(nbDue(),'2026-08')}까지 납부</div>`:''}
+      ${R('건물관리자',`<select onchange="nbSet('mgr',this.value)">${BMGRS.map(x=>`<option ${nb.mgr===x.n?'selected':''}>${x.n}</option>`).join('')}</select>
+          <span class="c2" style="margin:0">사용자 관리에 등록된 관리자만</span>`)}
     </div>${bphHTML({id:'new',name:nb.name||'새 건물'})}</div>`);
   const spec=card('건물 제원',
       R('연면적',N('gross','','㎡'))+R('임대가능면적',N('area','','㎡'))
@@ -1517,7 +1524,8 @@ function PRO2(){
     <button class="btn pri" onclick="nbSave()">저장</button></div>
   <div class="hint">
     건물 상세 요약 탭과 같은 카드, 같은 순서입니다. 공용시설과 주차면은 저장한 뒤 건물 상세에서 하나씩 넣습니다.<br>
-    청구일과 납부마감일이 있어야 이 건물의 청구서를 낼 수 있어 필수입니다.<br>
+    청구일과 납부마감일이 있어야 이 건물의 청구서를 낼 수 있어 필수입니다. 청구년월을 기준으로 전월·당월·익월을 고릅니다. 7월분을 6월 25일에 청구하고 7월 1일까지 받는다면 「전월 25일 · 당월 1일」입니다.<br>
+    건물관리자는 사용자 관리에 등록된 관리자 중에서 고릅니다. 새 관리자는 슈퍼관리자가 사용자 관리에서 먼저 등록합니다.<br>
     임대인은 사업자등록번호로 조회합니다. 목업에서는 <b>105-81-42117</b>(카리나)이 기존 임대인이고, 다른 번호는 새 임대인입니다.</div></div>`;
 }
 function PRO1(){
@@ -1660,8 +1668,8 @@ function t요약(b){
       <dt>건물구분</dt><dd>${b.kind}</dd>
       <dt>건물주소</dt><dd>${b.addr}<div class="c2">${b.addr2}</div></dd>
       <dt>건축일 · 사용승인일</dt><dd>${b.built} · ${b.approved}</dd>
-      <dt>청구일</dt><dd>${b.billDay}</dd>
-      <dt>납부마감일</dt><dd>${b.dueDay}</dd>
+      <dt>청구일</dt><dd>${b.billDay}<span class="lock">예: 8월분 → ${ruleEx(b.billDay,'2026-08')}</span></dd>
+      <dt>납부마감일</dt><dd>${b.dueDay}<span class="lock">예: 8월분 → ${ruleEx(b.dueDay,'2026-08')}</span></dd>
       <dt>건물관리자</dt><dd>${b.mgr}<span class="lock">${b.mgrTel}</span></dd>
     </dl>${bphHTML(b)}</div></div>
   <div class="two">
@@ -2217,9 +2225,13 @@ const REPS={b1:{'2026-06':'07-02','2026-07':'08-04'},
 const MC_WAIT={b2:{'2026-07':3}};
 let s11={b:'b1',ym:'2026-07'}, mcx=null;
 const mcKey=(b,ym)=>b+'|'+ym;
-const mcDue=(b,ym)=>{const bd=BUILDINGS.find(x=>x.id===b);   /* 납부마감일 — 익월 10일인 건물이 있다 */
-  if(/익월 10일/.test(bd.dueDay||'')){const [y,m]=ym.split('-').map(Number);return new Date(Date.UTC(y,m,10)).toISOString().slice(0,10);}
-  return dueStr(ym);};
+/* 청구일 · 납부마감일 — 청구년월을 기준으로 「전월·당월·익월」 + 「N일·말일」. 7월분을 6/25에 청구하고 7/1까지 받는 건물도 있다 → 3.5 */
+function dayRule(rule,ym){const m=/(전월|당월|익월)\s*(\d+일|말일)/.exec(rule||''); if(!m) return dueStr(ym);
+  const [y,mo]=ym.split('-').map(Number), off={전월:-1,당월:0,익월:1}[m[1]];
+  const d=m[2]==='말일'?new Date(Date.UTC(y,mo+off,0)):new Date(Date.UTC(y,mo-1+off,parseInt(m[2])));
+  return d.toISOString().slice(0,10);}
+const ruleEx=(rule,ym)=>{const d=dayRule(rule,ym);return `${+d.slice(5,7)}월 ${+d.slice(8)}일`;};
+const mcDue=(b,ym)=>dayRule((BUILDINGS.find(x=>x.id===b)||{}).dueDay,ym);   /* 납부마감일 — 건물마다 다르다 */
 /* 금액 — 카리나빌딩은 원장에서 센다. 나머지는 예시값(5·6월은 완납) */
 function mcNum(b,ym){
   if(b==='b1'){const ks=[...new Set(BILLS.filter(i=>i.ym===ym&&i.k.startsWith('b1')&&!i.fee).map(i=>i.k))];
