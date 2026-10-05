@@ -1528,7 +1528,7 @@ function t요약(b){
     ${b.parks.length?`<div class="tw"><table>
       <thead><tr><th>주차면</th><th>위치</th><th>유형</th><th>메모</th><th>배정 현황</th></tr></thead>
       <tbody>${b.parks.map(p=>`<tr><td class="c1">${p.n}</td><td>${p.loc}</td><td>${p.t}</td><td style="color:var(--muted)">${p.memo||'—'}</td>
-        <td>${p.as?`<div class="c1" style="font-weight:400">${p.as}</div><div class="c2">${p.asu}</div>`:'<span class="bd mu">미배정</span>'}</td></tr>`).join('')}</tbody>
+        <td>${p.as?cnameHTML(b.alias,p.asu,p.as):'<span class="bd mu">미배정</span>'}</td></tr>`).join('')}</tbody>
     </table></div>`:'<div class="empty">등록된 주차면이 없습니다.</div>'}
   </div>
   <div class="card" style="${d<=90?'border-color:var(--warn)':''}">
