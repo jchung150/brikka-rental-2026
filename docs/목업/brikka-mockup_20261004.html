@@ -3897,7 +3897,7 @@ function CTR3(k){
         <div class="nm">${r.item}</div>
         <div class="n c2" style="margin:0">${r.dr?won(r.dr):''}</div>
         <div class="n c2" style="margin:0">${r.cr?won(r.cr):''}</div>
-        <div class="n c2" style="margin:0">${balTx(r.bal)}</div></div>`).join(''));}).join('');
+        <div></div></div>`).join(''));}).join('');   /* 항목 줄은 같은 순간이라 잔액을 적지 않는다 */
     return `<div style="display:flex;align-items:center;gap:18px;margin:-6px 0 8px;font-size:12.5px">
       <span><span class="c2" style="margin:0 6px 0 0">지금 매출채권</span>${now}</span>
       <span><span class="c2" style="margin:0 6px 0 0">임대보증금</span><b>${won(L.bal.임대보증금)}</b></span>
