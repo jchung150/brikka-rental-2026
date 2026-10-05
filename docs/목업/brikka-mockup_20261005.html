@@ -367,7 +367,7 @@ tr.off td:not(:last-child):not(:nth-last-child(2)){opacity:.5}
 .card > .ct + .tw table th{border-top:1px solid var(--line)}
 
 .bpw{display:flex;gap:16px;align-items:flex-start}
-.bpw > .dl{flex:1;min-width:0}
+.bpw > .bpd{flex:1;min-width:0;gap:0 40px;margin:0}
 .bph{position:relative;flex:0 0 150px;aspect-ratio:3/4;border-radius:var(--r-sm);overflow:hidden;margin-top:2px;background:var(--soft)}
 @media (max-width:640px){.bpw{flex-direction:column-reverse}.bph{width:150px}}
 .bph img{width:100%;height:100%;object-fit:cover;display:block}
@@ -1476,20 +1476,21 @@ function bphHTML(b){
 function t요약(b){
   const d=dday(b.mgmtEnd);
   return `
-  <div class="two">
-    <div class="card"><div class="ct">기본 정보
-      <span class="ca"><button class="btn sm">수정</button></span></div><div class="cc bpw"><dl class="dl">
+  <div class="card"><div class="ct">기본 정보
+      <span class="ca"><button class="btn sm">수정</button></span></div><div class="cc bpw"><div class="two bpd"><dl class="dl">
       <dt>건물명</dt><dd>${b.name}</dd>
       <dt>건물 별칭</dt><dd><b>${b.alias}</b>
         <span class="lock">계약고유이름에 사용 — ${b.alias}|101호|임차인명</span></dd>
       <dt>건물구분</dt><dd>${b.kind}</dd>
       <dt>건물주소</dt><dd>${b.addr}<div class="c2">${b.addr2}</div></dd>
+    </dl><dl class="dl">
       <dt>청구일 · 납부마감일</dt><dd>${b.billDay} · ${b.dueDay}
         <div class="c2">계약 등록 시 상속. 변경해도 기존 계약은 유지</div></dd>
       <dt>건물주</dt><dd>${b.owner}<span class="lock">${b.ownerBiz}</span></dd>
       <dt>건물관리자</dt><dd>${b.mgr}<span class="lock">${b.mgrTel}</span></dd>
       <dt>건물운영계좌</dt><dd>${b.acct}<div class="c2">예금주 ${b.acctName}</div></dd>
-    </dl>${bphHTML(b)}</div></div>
+    </dl></div>${bphHTML(b)}</div></div>
+  <div class="two">
     <div class="card"><div class="ct">건물 제원
       <span class="ca"><button class="btn sm">수정</button></span></div><div class="cc"><dl class="dl">
       <dt>연면적</dt><dd>${m2(b.gross)}</dd>
@@ -1498,8 +1499,6 @@ function t요약(b){
       <dt>총 주차면수</dt><dd>${b.park}면</dd>
       <dt>냉난방 방식</dt><dd>${b.hvac}</dd>
     </dl></div></div>
-  </div>
-  <div class="two">
     <div class="card"><div class="ct">채권 정보
       <span class="ca"><button class="btn sm">수정</button></span></div><div class="cc">
       ${b.bondMax?`<dl class="dl">
@@ -1508,11 +1507,11 @@ function t요약(b){
         <dt>실제채권금액</dt><dd>${won(b.bondNow)}<span class="lock">${eok(b.bondNow)}</span></dd>
       </dl>`:'<div style="padding:12px 0;color:var(--muted)">등록된 채권 정보가 없습니다.</div>'}
       <div class="hint">등기부등본 기준. 등기 변동 시 담당자가 직접 갱신한다.</div></div></div>
-    <div class="card"><div class="ct">공용시설<span class="ca"><button class="btn sm">추가</button></span></div>
-      <div class="cc" style="padding-top:12px">
-      ${b.fac.map(f=>`<span class="tag">${f}<span class="x">✕</span></span>`).join('')||'<span style="color:var(--muted)">등록된 공용시설이 없습니다.</span>'}
-    </div></div>
   </div>
+  <div class="card"><div class="ct">공용시설<span class="ca"><button class="btn sm">추가</button></span></div>
+    <div class="cc" style="padding-top:12px">
+    ${b.fac.map(f=>`<span class="tag">${f}<span class="x">✕</span></span>`).join('')||'<span style="color:var(--muted)">등록된 공용시설이 없습니다.</span>'}
+  </div></div>
   <div class="card"><div class="ct">주차장
     <span class="sub">${b.parks.length?`${b.parks.filter(p=>p.as).length}면 배정 / 등록 ${b.parks.length}면 · 총 ${b.park}면`:`총 ${b.park}면`}</span>
     <span class="ca"><button class="btn sm">주차면 추가</button></span></div>
