@@ -366,6 +366,13 @@ tr.off td:not(:last-child):not(:nth-last-child(2)){opacity:.5}
 .card > .cc{padding:3px 16px 16px}
 .card > .ct + .tw table th{border-top:1px solid var(--line)}
 
+.bph{position:relative;height:170px;border-radius:var(--r-sm);overflow:hidden;margin:2px 0 14px;background:var(--soft)}
+.bph img{width:100%;height:100%;object-fit:cover;display:block}
+.bph .bpa{position:absolute;right:8px;bottom:8px;display:flex;gap:6px}
+.bph .bpa .btn{background:rgba(255,255,255,.92);color:#222;border-color:transparent}
+.bph.none{border:1px dashed var(--line);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;
+  color:var(--muted);font-size:12px;cursor:pointer}
+.bph.none:hover{border-color:var(--pri);color:var(--pri)}
 .dl{display:grid;grid-template-columns:minmax(124px,auto) 1fr;column-gap:12px;font-size:12.5px}
 .dl dt{padding:8px 0;color:var(--muted);border-bottom:1px solid var(--line-2);font-size:12px}
 .dl dd{padding:8px 0;margin:0;border-bottom:1px solid var(--line-2)}
@@ -1446,12 +1453,30 @@ function PRO3(id){
   </div>${body}`;
 }
 
+/* 건물 사진 — 한 장. 건물을 알아보기 위한 용도뿐이다 → PRO-3 기본 정보
+   목업은 카리나빌딩에만 예시 그림을 넣는다. 올린 사진은 이 화면을 닫으면 사라진다 */
+const BPHOTO={b1:'data:image/svg+xml;utf8,'+encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 170">
+  <rect width="400" height="170" fill="#cfe3f3"/><rect y="138" width="400" height="32" fill="#9aa8b4"/>
+  <rect x="135" y="18" width="130" height="122" fill="#5b6b7a"/><rect x="60" y="62" width="78" height="78" fill="#7a8a99"/>
+  ${[0,1,2,3,4,5].map(r=>[0,1,2,3].map(c=>`<rect x="${147+c*30}" y="${28+r*18}" width="18" height="10" fill="#e8f1f8"/>`).join('')).join('')}
+  ${[0,1,2].map(r=>[0,1].map(c=>`<rect x="${74+c*30}" y="${74+r*20}" width="18" height="10" fill="#e8f1f8"/>`).join('')).join('')}
+  <rect x="188" y="118" width="24" height="22" fill="#2f3b47"/></svg>`)};
+function bphPick(id){const i=document.createElement('input');i.type='file';i.accept='image/jpeg,image/png';
+  i.onchange=()=>{const f=i.files[0]; if(!f) return; const r=new FileReader(); r.onload=()=>{BPHOTO[id]=r.result;render(true);}; r.readAsDataURL(f);};
+  i.click();}
+function bphDel(id){delete BPHOTO[id];render(true);}
+function bphHTML(b){
+  const u=BPHOTO[b.id];
+  return u?`<div class="bph"><img src="${u}" alt="${b.name} 사진"><span class="bpa">
+      <button class="btn sm" onclick="bphPick('${b.id}')">바꾸기</button><button class="btn sm" onclick="bphDel('${b.id}')">삭제</button></span></div>`
+    :`<div class="bph none" onclick="bphPick('${b.id}')">${ic('bldg',20)}<span>건물 사진 올리기</span><span class="c2">한 장 · JPG·PNG</span></div>`;
+}
 function t요약(b){
   const d=dday(b.mgmtEnd);
   return `
   <div class="two">
     <div class="card"><div class="ct">기본 정보
-      <span class="ca"><button class="btn sm">수정</button></span></div><div class="cc"><dl class="dl">
+      <span class="ca"><button class="btn sm">수정</button></span></div><div class="cc">${bphHTML(b)}<dl class="dl">
       <dt>건물명</dt><dd>${b.name}</dd>
       <dt>건물 별칭</dt><dd><b>${b.alias}</b>
         <span class="lock">계약고유이름에 사용 — ${b.alias}|101호|임차인명</span></dd>
