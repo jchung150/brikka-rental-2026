@@ -451,7 +451,7 @@ table.nowr th,table.nowr td{white-space:nowrap}
 .rcr > :nth-child(4){padding-left:28px}
 .ctr{grid-template-columns:minmax(260px,1fr) 150px 150px 150px 100px}
 .schr.dep .nm{color:var(--muted)}
-.led{grid-template-columns:96px 92px 76px minmax(200px,1fr) 104px 90px 112px 112px 124px}
+.led{grid-template-columns:96px 92px 76px minmax(260px,1fr) 124px 124px 132px}
 .schr.led.sub .nm{padding-left:14px}
 .arr{grid-template-columns:minmax(300px,1.6fr) 210px 90px 100px 130px 76px}
 .rcp{grid-template-columns:minmax(120px,1fr) 92px 92px 58px;gap:0 8px;padding:9px 12px;font-size:12.5px}
@@ -3281,7 +3281,7 @@ function PAY2(){
   const has=f2.b===RC.b;
   const all=has?CTRS.filter(c=>c.b===RC.b&&(!f2.cs||(f2.cs==='진행중'?c.st==='진행중':c.st!=='진행중'))).map(arrears):[];
   /* 연체료도 계약서에 정한 돈이다 — 연체료만 남은 계약도 미납으로 올린다 */
-  const rows=all.filter(a=>f2.view==='all'||a.due>0||a.fee>0).sort((x,y)=>(y.due-x.due)||(y.fee-x.fee));
+  const rows=all.filter(a=>a.due>0||a.fee>0).sort((x,y)=>(y.due-x.due)||(y.fee-x.fee));
   const act=rows.filter(a=>a.due>0||a.fee>0);
   const T={due:act.reduce((a,x)=>a+x.due,0),fee:act.reduce((a,x)=>a+x.fee,0)};
 
@@ -3326,9 +3326,6 @@ function PAY2(){
     </select>
     <select onchange="setF2('cs',this.value)">
       ${[['','전체 계약상태'],['진행중','진행중'],['종료','종료됨·파기됨']].map(([v,t])=>`<option value="${v}" ${f2.cs===v?'selected':''}>${t}</option>`).join('')}
-    </select>
-    <select onchange="setF2('view',this.value)">
-      ${[['due','미납 있는 계약'],['all','전체 계약']].map(([v,t])=>`<option value="${v}" ${f2.view===v?'selected':''}>${t}</option>`).join('')}
     </select>
     ${rows.length?`<span style="margin-left:auto"><button class="btn sm" onclick="g2All=${anyOp?'false':'true'};g2={};render(true)">${anyOp?'전체 접기':'전체 펼치기'}</button></span>`:''}
   </div>
@@ -3898,16 +3895,12 @@ function CTR3(k){
         <div><span class="bd ${TP[x.type]||'mu'}">${x.type}</span></div>
         <div class="c2" style="margin:0">${x.acc}</div>
         <div>${x.title}${many?`<span class="c2" style="margin-left:6px">${x.type==='수납'?`${x.items.length}건에 배분`:`${x.items.length}건`}</span>`:''}</div>
-        <div class="n c2" style="margin:0">${x.sup!=null?won(x.sup):''}</div>
-        <div class="n c2" style="margin:0">${x.vat?won(x.vat):''}</div>
         <div class="n">${x.dr?won(x.dr):''}</div>
         <div class="n">${x.cr?won(x.cr):''}</div>
         <div class="n"><b>${balTx(x.bal)}</b></div></div>`
       +(!op||!many?'':x.items.map(r=>`<div class="schr led sub">
         <div></div><div></div><div></div>
         <div class="nm">${r.item}${r.bid&&r.type==='청구'?` <button class="btn sm" style="margin-left:8px;padding:1px 8px" onclick="event.stopPropagation();cutOpen('${r.bid}')">감액</button>`:''}</div>
-        <div class="n c2" style="margin:0">${r.sup!=null?won(r.sup):''}</div>
-        <div class="n c2" style="margin:0">${r.vat?won(r.vat):''}</div>
         <div class="n c2" style="margin:0">${r.dr?won(r.dr):''}</div>
         <div class="n c2" style="margin:0">${r.cr?won(r.cr):''}</div>
         <div class="n c2" style="margin:0">${balTx(r.bal)}</div></div>`).join(''));}).join('');
@@ -3917,7 +3910,7 @@ function CTR3(k){
       <span style="margin-left:auto">${G.length?`<button class="btn sm" onclick="g3All=${anyOp?'false':'true'};g3={};render(true)">${anyOp?'전체 접기':'전체 펼치기'}</button>`:''}</span></div>
     <div class="tbl schl">
       <div class="schr led hd"><div>날짜</div><div>거래유형</div><div>계정</div><div>내용</div>
-        <div class="n">공급가액</div><div class="n">부가세</div><div class="n">차변</div><div class="n">대변</div><div class="n">잔액</div></div>
+        <div class="n">차변</div><div class="n">대변</div><div class="n">잔액</div></div>
       ${body||'<div class="empty">이 기간에 거래가 없습니다</div>'}
     </div>`;})()}
   <div class="hint">

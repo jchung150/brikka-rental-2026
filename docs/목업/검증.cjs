@@ -106,7 +106,7 @@ run('CTR-3 원장 비씨에이전시', "tab3c='원장';CTR3('b1별관3층')");
 run('CTR-3 원장 전체 펼침', "tab3c='원장';g3All=true;CTR3('b1본관1층')");
 run('CTR-3 원장 필터', "tab3c='원장';f3={per:'3',acc:'매출채권'};CTR3('b1본관302호')");
 run('CTR-3 없는 계약', "CTR3('b9없음')");
-run('PAY-2 전체 펼침 · 전체 계약', "g2All=true;f2.view='all';PAY2()");
+run('PAY-2 전체 펼침', "g2All=true;PAY2()");
 run('PAY-2 종료 계약', "f2.cs='종료';PAY2()");
 run('PAY-2 다른 건물', "f2.b='b2';PAY2()");
 run('PAY-6 7월', "RC.f.ym='2026-07';g6All=true;PAY6()");
