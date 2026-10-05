@@ -1122,24 +1122,34 @@ function ratios(m,raw){
 /* ⑥ 유닛 청구금액 — 4.1.2 · 잔차 처리 4.1.8
    공급가액과 부가세를 각각 배분한다. 합쳐서 배분하면 유닛별 부가세를 알 수 없어
    세금계산서를 만들 수 없다. 잔차도 각각 최대 몫 유닛에 더한다. */
+/* 기간 일수 — 양 끝을 모두 센다 → 4.2.1 */
+function daysIn(a,b){return a&&b?Math.max(0,dnum(b)-dnum(a)+1):0;}
 function calc(m,raw){
   const base=ratios(m,raw), b=BILL[m.code];
   const sup=isDirect(m.code)?directSum(m.code):(b.supply||0);
   const vat=b.vat||0;
-  const rows=base.rows.map(r=>({...r,
-    supply:Math.floor(sup*r.ratio), vat:Math.floor(vat*r.ratio), rnd:0}));
-  const top=()=>{let k=-1,best=-1;rows.forEach((r,i)=>{if(r.ratio>best){best=r.ratio;k=i;}});return k;};
+  /* 일할 계산 — 버리기 전에 몫을 줄이고, 줄인 몫은 공실·미청구분으로 보낸다. 그 뒤에 원 미만을 버리고 절사 잔차를 다시 나눈다 → 4.1.9
+     담당자가 금액을 직접 고친 줄은 그 금액으로 고정한다 */
+  const pd=daysIn(b.from,b.to);
+  const rows=base.rows.map(r=>{const ov=r.st==='사용중'?(b.pr||{})[r.no]:null;
+    const f=ov&&pd?daysIn(ov.af,ov.at)/pd:1, es=sup*r.ratio, ev=vat*r.ratio;
+    const o={...r,full:Math.floor(es)+Math.floor(ev),rnd:0,pro:ov||null,fix:ov&&ov.amt!=null};
+    if(o.fix){o.vat=es+ev?Math.floor(ov.amt*ev/(es+ev)):0;o.supply=ov.amt-o.vat;}
+    else{o.supply=Math.floor(es*f);o.vat=Math.floor(ev*f);}
+    o.cutS=o.fix?es-o.supply:es*(1-f); o.cutV=o.fix?ev-o.vat:ev*(1-f);
+    return o;});
+  const cutS=Math.floor(rows.reduce((a,r)=>a+(r.pro?r.cutS:0),0)), cutV=Math.floor(rows.reduce((a,r)=>a+(r.pro?r.cutV:0),0));
+  /* 절사 잔차 — 부담 비율이 가장 큰 계약에 붙인다. 일할하지 않은 계약을 먼저 고른다 */
+  const top=()=>{let k=-1,best=-1;rows.forEach((r,i)=>{if(!r.pro&&r.ratio>best){best=r.ratio;k=i;}});
+    if(k<0) rows.forEach((r,i)=>{if(!r.fix&&r.ratio>best){best=r.ratio;k=i;}});return k;};
   const k=top();
   if(k>=0){
-    const rs=sup-rows.reduce((a,r)=>a+r.supply,0);
-    const rv=vat-rows.reduce((a,r)=>a+r.vat,0);
+    const rs=sup-rows.reduce((a,r)=>a+r.supply,0)-cutS;
+    const rv=vat-rows.reduce((a,r)=>a+r.vat,0)-cutV;
     rows[k].supply+=rs; rows[k].vat+=rv; rows[k].rnd=rs+rv;
   }
-  rows.forEach(r=>r.amt=r.supply+r.vat);
-  /* 일할 계산 — 줄인 몫은 공실·미청구분으로 간다(고지서 합계는 그대로) → 4.1.9 */
-  let cut=0;
-  rows.forEach(r=>{const ov=(b.pr||{})[r.no]; if(!ov||r.st!=='사용중') return;
-    r.orig=r.amt; r.vat=r.amt?Math.floor(r.vat*ov.amt/r.amt):0; r.supply=ov.amt-r.vat; r.amt=ov.amt; r.pro=ov; cut+=r.orig-r.amt;});
+  rows.forEach(r=>{r.amt=r.supply+r.vat; if(r.pro) r.orig=r.full;});
+  const cut=cutS+cutV;
   const sum=f=>rows.filter(f).reduce((a,r)=>a+r.amt,0);
   const bill=sum(r=>r.st==='사용중'), vc=sum(r=>r.st!=='사용중')+cut;
   const total=sup+vat;
@@ -1927,10 +1937,7 @@ function stBillOne(m){
     <span class="sub">${m.src} ${m.doc} · ${m.cycle} · ${m.bill}</span>
     <span class="ca"><button class="btn ex sm" onclick="delItem('${m.code}')">이번 회차 제외</button></span></div>
     <div class="cc"><div class="frow">
-      <label><span>수령일</span>
-        <div class="iw"><input class="inp d" type="date" value="${b.date}"
-          onchange="setBill('${m.code}','date',this.value)"></div></label>
-      <label><span>사용 기간</span>
+      <label><span>부과 기간</span>
         <div class="iw"><input class="inp d" type="date" value="${b.from||''}" onchange="setBill('${m.code}','from',this.value)">
           <i>~</i><input class="inp d" type="date" value="${b.to||''}" onchange="setBill('${m.code}','to',this.value)"></div></label>
       ${m.unit?`<label><span>고지서 총사용량</span>
@@ -2123,20 +2130,23 @@ function stAdj(m,R){
 /* ═══ 일할 계산기 — 고지서 사용 기간 중 일부만 쓴 계약(입주·퇴거)의 몫을 줄인다 → PAY-10 · 4.1.9
    일수는 양 끝을 모두 센다. 원 미만은 버린다. 계산값은 담당자가 고칠 수 있다. 줄어든 몫은 공실·미청구분(건물주 부담)으로 간다 ═══ */
 let prc=null;
-const daysIn=(a,b)=>a&&b?Math.max(0,dnum(b)-dnum(a)+1):0;
 function prcOpen(code,no){
   const m=M(code), b=BILL[code], R=calc(m), r=R.rows.find(x=>x.no===no), ov=(b.pr||{})[no];
   const c=CTRS.find(x=>x.b==='b1'&&x.no===no&&x.st==='진행중');
   const from=itemFrom(c,m.name), end=ctrEnd(c);
   const af=ov?ov.af:(b.from&&dnum(from)>dnum(b.from)?from:b.from||''), at=ov?ov.at:(b.to&&end&&dnum(end)<dnum(b.to)?end:b.to||'');
-  prc={code,no,ten:r.ten,from:b.from||'',to:b.to||'',af,at,base:r.orig!=null?r.orig:r.amt,amt:ov?String(ov.amt):'',why:ov?ov.why:'',had:!!ov};
+  prc={code,no,ten:r.ten,from:b.from||'',to:b.to||'',af,at,base:r.orig!=null?r.orig:r.amt,amt:ov&&ov.amt!=null?String(ov.amt):'',why:ov?ov.why:'',had:!!ov};
   DRAWER='prc';render(true);}
-const prcCalc=()=>{const pd=daysIn(prc.from,prc.to), ad=daysIn(prc.af,prc.at);return pd?Math.floor(prc.base*ad/pd):0;};
+/* 계산값 — 정산 엔진에 이 기간을 넣어 본 값. 절사 잔차까지 다시 나눈 결과다 */
+const prcCalc=()=>{const b=BILL[prc.code], keep=b.pr, kf=b.from, kt=b.to;
+  b.pr={...(keep||{}),[prc.no]:{af:prc.af,at:prc.at,amt:null}}; b.from=prc.from; b.to=prc.to;
+  const v=(calc(M(prc.code)).rows.find(r=>r.no===prc.no)||{}).amt||0;
+  b.pr=keep; b.from=kf; b.to=kt; return v;};
 const prcWhy=()=>`일할 ${daysIn(prc.af,prc.at)}/${daysIn(prc.from,prc.to)}일 (${prc.af.slice(5).replace('-','.')}~${prc.at.slice(5).replace('-','.')})`;
 function prcSet(f,v){prc[f]=v; if(f!=='amt'&&f!=='why'){prc.amt='';} render(true);}
-function prcApply(){const b=BILL[prc.code], v=prc.amt===''?prcCalc():numOf(prc.amt);
-  if(v>prc.base) return;
-  (b.pr=b.pr||{})[prc.no]={amt:v,af:prc.af,at:prc.at,why:prc.why.trim()||prcWhy()};
+function prcApply(){const b=BILL[prc.code], v=prc.amt===''?null:numOf(prc.amt);
+  if(v!=null&&v>prc.base) return;
+  (b.pr=b.pr||{})[prc.no]={amt:v===prcCalc()?null:v,af:prc.af,at:prc.at,why:prc.why.trim()||prcWhy()};
   if(!b.from&&prc.from){b.from=prc.from;b.to=prc.to;}
   SAVED[prc.code]=null;DRAWER=null;prc=null;render(true);}
 function prcReset(){const b=BILL[prc.code]; if(b.pr) delete b.pr[prc.no]; SAVED[prc.code]=null;DRAWER=null;prc=null;render(true);}
@@ -2155,7 +2165,7 @@ function prcHTML(){
         <div class="c2" style="margin:0;white-space:normal">기산일·계약 종료일로 미리 채웠습니다. 양 끝 날짜를 모두 셉니다.</div></div>
       <div class="fg"><div class="fl">금액</div>
         ${V(m.name,won(prc.base))}
-        ${V('계산값',`${won(v)} <span class="c2">${num(prc.base)} × ${ad} ÷ ${pd}, 원 미만 버림</span>`)}
+        ${V('계산값',`${won(v)} <span class="c2">몫 × ${ad} ÷ ${pd}, 원 미만 버림 · 절사 잔차 다시 나눔</span>`)}
         <div class="fr"><span class="fk">조정 ${m.name}</span><input type="text" inputmode="numeric" value="${prc.amt===''?num(v):num(numOf(prc.amt))}"
           onchange="prcSet('amt',this.value)" style="text-align:right;max-width:140px"><span class="c2" style="margin:0">원 · 직접 고칠 수 있음</span></div>
         <div class="fr"><span class="fk">사유</span><input type="text" value="${prc.why}" placeholder="${prcWhy()}" oninput="prc.why=this.value"></div>
