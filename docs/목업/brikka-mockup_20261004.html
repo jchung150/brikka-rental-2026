@@ -462,6 +462,7 @@ table.nowr th,table.nowr td{white-space:nowrap}
 .rcx .ln{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:9px 0;font-size:12.5px}
 .rcx select{border:1px solid var(--line);background:var(--bg);padding:6px 9px;border-radius:var(--r-sm);font:inherit;font-size:12.5px}
 
+.schr.sub.ni,tr.ni td{background:color-mix(in srgb,var(--pri) 6%,var(--bg))}
 .fnd.wa3{border-color:color-mix(in srgb,var(--warn) 40%,var(--line))}
 .bd.wa2{background:color-mix(in srgb,var(--warn) 14%,transparent);color:var(--warn)}
 .lk{color:var(--pri);cursor:pointer;text-decoration:underline}
@@ -553,7 +554,6 @@ const MENU=[
    {id:'pay-13',n:'입금 매칭',sid:'PAY-13',i:'card'},
    {id:'pay-6',n:'수납 내역',sid:'PAY-6',i:'list'},
    {id:'pay-2',n:'미납 관리',sid:'PAY-2',i:'wallet'},
-   {id:'pay-14',n:'과오납 관리',sid:'PAY-14',i:'back'},
    {id:'pay-11',n:'월 마감',sid:'PAY-11',i:'lock'}]},
  {k:'상대',g:'거래 상대',i:'users',items:[
    {id:'user-6',n:'임차인',sid:'USER-6',i:'users'},
@@ -2034,17 +2034,16 @@ function mcNum(b,ym){
 function mcChecks(b,ym){
   const settle=ym<'2026-08'?'확정':PROG[b].settle, N=mcNum(b,ym), due=mcDue(b,ym);
   const wait=b==='b1'?(ym==='2026-07'?rcOpenN():0):((MC_WAIT[b]||{})[ym]||0);
-  /* 처리하지 않은 과납 — 이 달에 생겼고 아직 다음 청구에서 빼기·환불을 고르지 않은 것 */
-  const ovs=b==='b1'?CTRS.filter(c=>c.b===b&&overOf(ckey(c))>0&&!OVERSET[ckey(c)]&&overSrc(ckey(c)).some(x=>x.date.slice(0,7)===ym)):[];
+  /* 돌려주지 않은 오납 — 이 달에 들어왔고 아직 환불하지 않은 것. 과납은 다음 달로 넘어가므로 확인하지 않는다 */
   const mis=b===RC.b?Object.entries(RC.dec).filter(([no,x])=>x.mis&&!x.mis.refund&&(misDep(no)||{dt:''}).dt.slice(0,7)===ym):[];
-  const rest=ovs.reduce((a,c)=>a+overOf(ckey(c)),0)+mis.reduce((a,[no])=>a+misDep(no).amt,0), nOv=ovs.length+mis.length;
+  const rest=mis.reduce((a,[no])=>a+misDep(no).amt,0), nOv=mis.length;
   const rep=(REPS[b]||{})[ym];
   return [
     {t:'관리비 정산 확정',ok:settle==='확정',v:settle,go:'pay-10'},
     {t:'청구서 발행',ok:N.N>0&&N.n===N.N,v:`${N.n} / ${N.N}건`,go:'pay-1'},
     {t:'납부마감일 경과',ok:dnum(TODAY_S)>dnum(due),v:`${due.slice(5).replace('-','.')}${dnum(TODAY_S)>dnum(due)?'':' (아직 전)'}`},
     {t:'처리하지 않은 입금',ok:!wait,v:wait?`${wait}건`:'없음',go:'pay-13'},
-    {t:'처리하지 않은 과오납',ok:!rest,v:rest?`${nOv}건 ${won(rest)}`:'없음',go:'pay-14'},
+    {t:'돌려주지 않은 오납',ok:!rest,v:rest?`${nOv}건 ${won(rest)}`:'없음',go:'pay-13'},
     {t:'임대인 보고서 발송',ok:!!rep,v:rep?`${rep.replace('-','.')} 발송`:'미발송',go:'rep-1'},
   ];
 }
@@ -2153,7 +2152,7 @@ function TODO(id){
   <div class="tbl"><div class="empty"><div class="t">아직 만들지 않은 화면입니다</div>
     구현된 화면 — <b>PRO-1</b> 건물 목록 · <b>PRO-3</b> 건물 상세 ·
     <b>PAY-12</b> 청구 · 수납 현황 · <b>PAY-10</b> 관리비 정산 · <b>PAY-1</b> 청구서 발행 ·
-    <b>PAY-13</b> 입금 매칭 · <b>PAY-6</b> 수납 내역 · <b>PAY-2</b> 미납 관리 · <b>PAY-14</b> 과오납 관리 · <b>PAY-11</b> 월 마감</div></div>`;   /* PAY-8 수납 내역은 PAY-6에 합쳤다 */
+    <b>PAY-13</b> 입금 매칭 · <b>PAY-6</b> 수납 내역 · <b>PAY-2</b> 미납 관리 · <b>PAY-11</b> 월 마감</div></div>`;   /* PAY-8 수납 내역은 PAY-6에 합쳤다 */
 }
 
 /* ═══ PAY-1 · 청구 약정 ═══ */
@@ -2381,8 +2380,7 @@ function PAY1(){
       <b class="lk" onclick="go('pay-13')">입금 매칭으로 이동 →</b>`:''}</div>`:''}
   ${overs.length?`<div class="fnd"><span class="h">과납이 있는 계약 ${overs.length}건 · ${won(overSum)}</span>
     청구서에 <b>별도 안내</b>로 표기됩니다. <b>청구 합계와 세금계산서에는 넣지 않습니다.</b>
-    다음 청구에서 빼기로 정한 과납은 발행할 때 이 청구에 먼저 배분해, 임차인이 낼 돈만 줄어듭니다.
-    <b class="lk" onclick="go('pay-14')">과오납 관리로 이동 →</b></div>`:''}
+    과납은 발행할 때 이 청구에 먼저 배분해, 임차인이 낼 돈만 줄어듭니다.</div>`:''}
   ${!rows.length?`<div class="tbl"><div class="empty"><div class="t">발행할 청구서가 없습니다</div>
      진행중인 계약이 없거나 조건에 맞는 건이 없습니다.</div></div>`
   :`<div class="tbl schl">
@@ -2543,7 +2541,7 @@ const PAID={};
 const CUTS=[];
 const cutOf=id=>CUTS.filter(x=>x.id===id).reduce((a,x)=>a+x.amt,0);
 /* 과납 처리 — 다음 청구에서 빼기로 정한 계약 · 환불 기록 → PAY-2 · 4.3.4 */
-const OVERSET={}, REFUNDS=[];
+const REFUNDS=[];
 /* 감액으로 넘친 수납 — 청구 건에서 빼(수납 취소) 청구 건 없는 수납(과납)으로 옮긴다. 청구 건은 완납 그대로 → 4.3.4 */
 const REL={}, MOVES=[];
 const paidNet=(id,paid)=>((paid||PAID)[id]||0)-(REL[id]||0);
@@ -2622,14 +2620,16 @@ const lateDays=ym=>Math.max(0,dnum(TODAY_S)-dnum(dueStr(ym)));
 const payState=(bill,paid,ym)=>paid>=bill?'완납':paid>0?'부분납':lateDays(ym)>0?'미납':'납부전';
 function ctrPay(k,ym){
   /* 받을 금액 = 청구액 − 감액. 그보다 많이 받았으면 과납이다 → 3.2 */
-  const b=bOfK(k), closed=closedBy(b,ym,TODAY_S);
-  const it=BILLS.filter(i=>i.k===k&&i.ym===ym).map(i=>{const raw=paidNet(i.id), net=i.amt-cutOf(i.id), due=Math.max(0,net-raw);
+  const b=bOfK(k), closed=closedBy(b,ym,TODAY_S), D=closed?closeOn(b,ym):null;
+  const by=(L,id)=>L.filter(x=>x.id===id&&dnum(x.date)<=dnum(D)).reduce((a,x)=>a+x.amt,0);
+  /* 마감한 달은 마감일의 모습 그대로 — 그 뒤의 감액은 다음 달의 전월 잔액을 바꾼다 → 4.3.6 */
+  const it=BILLS.filter(i=>i.k===k&&i.ym===ym).map(i=>{const raw=D?paidBy(i.id,D)-by(MOVES,i.id):paidNet(i.id), net=i.amt-(D?by(CUTS,i.id):cutOf(i.id)), due=Math.max(0,net-raw);
     return {...i,paid:Math.min(raw,i.amt),due,st:closed&&due>0?'미납':raw>net?'과납':payState(net,raw,ym)};});
   /* 지난달 마감 때 넘어온 미납액 */
   const pv=ymPrev(ym), ca=closeOn(b,pv)?carryAmt(k,pv):0, cp=ca?(PAID[carryId(k,pv)]||0):0;
   const carry=ca?{id:carryId(k,pv),from:pv,amt:ca,paid:cp,due:Math.max(0,ca-cp)}:null;
   const bill=it.reduce((a,i)=>a+i.amt,0), paid=it.reduce((a,i)=>a+i.paid,0), due=it.reduce((a,i)=>a+i.due,0);
-  const net=it.reduce((a,i)=>a+i.amt-cutOf(i.id),0), over=it.length?overMonth(k,ym):0;
+  const net=it.reduce((a,i)=>a+i.amt-(D?by(CUTS,i.id):cutOf(i.id)),0), over=it.length?overMonth(k,ym,D):0;
   /* 수납액에는 과납액도 들어간다 — 실제로 받은 돈이다 */
   const dAll=due+(carry?carry.due:0), nAll=net+(carry?carry.amt:0);
   return {it,bill,paid:paid+over,due,over,carry,st:!it.length?null:dAll>0?(closed?'미납':payState(nAll,nAll-dAll,ym)):over>0?'과납':'완납'};
@@ -2708,11 +2708,12 @@ function dueOf(k,before){
 /* 과납 — 계약 원장의 매출채권 잔액이 0보다 작은 만큼이다 → 4.3.4 */
 const overOf=k=>Math.max(0,-ledgerOf(k).bal.매출채권);
 /* 그 달의 과납액 — 감액으로 옮긴 수납 + 그 달 청구에 배분하고 남은 입금. 지금 남은 과납까지만 → 3.2 */
-function overMonth(k,ym){
-  const a=MOVES.filter(m=>m.k===k&&m.ym===ym).reduce((s,m)=>s+m.amt,0);
-  const b=Object.values(RC.dec).filter(x=>x.done&&x.done.rest>0&&x.done.ok===k&&((x.done.lines[x.done.lines.length-1]||{}).ym||x.done.dt.slice(0,7))===ym)
+function overMonth(k,ym,D){
+  const by=d=>!D||dnum(d)<=dnum(D);
+  const a=MOVES.filter(m=>m.k===k&&m.ym===ym&&by(m.date)).reduce((s,m)=>s+m.amt,0);
+  const b=Object.values(RC.dec).filter(x=>x.done&&x.done.rest>0&&x.done.ok===k&&by(x.done.dt.slice(0,10))&&((x.done.lines[x.done.lines.length-1]||{}).ym||x.done.dt.slice(0,7))===ym)
     .reduce((s,x)=>s+x.done.rest,0);
-  return a+b?Math.min(a+b,overOf(k)):0;
+  return D?a+b:(a+b?Math.min(a+b,overOf(k)):0);
 }
 /* 과납이 생긴 내역 — 남은 입금 · 감액 */
 const depsAll=()=>Object.values(BANKS).flatMap(b=>b.dep);
@@ -2773,7 +2774,7 @@ function rcConfirm(no){
   RC.cur=rcNext(); if(!QUIET) render(true);
 }
 function rcIgnore(no){RC.dec[no]={ex:true};RC.cur=rcNext();if(!QUIET) render(true);}
-/* 오납 — 잘못 들어와 돌려줄 입금. 과오납 관리에서 환불을 기록한다 → 4.3.5 */
+/* 오납 — 잘못 들어와 돌려줄 입금. 이 화면에서 환불을 기록한다 → 4.3.5 */
 function rcMis(no){RC.dec[no]={mis:{}};RC.cur=rcNext();if(!QUIET) render(true);}
 function rcUnignore(no){delete RC.dec[no];RC.cur=no;render(true);}
 
@@ -2871,16 +2872,16 @@ function PAY13(){
     <div class="card"><div class="tw"><table class="nowr">
       <thead><tr><th>계약고유명</th><th>청구항목</th><th class="c">우선순위</th>
         <th class="n">청구액</th><th class="n">배분액</th><th class="n">배분 후 미과납</th></tr></thead>
-      <tbody>${(r.all||r.lines).map(l=>{const c=CTRS.find(y=>y.b===RC.b&&y.no===l.no), left=Math.max(0,l.amt-cutOf(l.id)-paidNet(l.id));return `<tr${l.pay?'':' class="dim"'}>
-        <td>${cnameHTML(bn.alias,l.no,c.ten)}</td><td>${ymTag(l)}</td><td class="c">${l.carry?'먼저':l.pr}</td>
+      <tbody>${(r.all||r.lines).map(l=>{const c=CTRS.find(y=>y.b===RC.b&&y.no===l.no), left=Math.max(0,l.amt-cutOf(l.id)-paidNet(l.id));return `<tr class="${l.pay?'':'dim'} ${l.carry?'ni':''}">
+        <td>${cnameHTML(bn.alias,l.no,c.ten)}</td><td>${ymTag(l)}</td><td class="c">${l.carry?'—':l.pr}</td>
         <td class="n" style="color:var(--muted)">${won(l.amt)}</td><td class="n">${l.pay?`<b>${won(l.pay)}</b>`:'—'}</td>
         <td class="n">${left>0?`<span style="color:var(--warn)">${won(left)}</span>`:'<span class="bd ok">완납</span>'}</td></tr>`;}).join('')}
-      ${ovL.map(o=>`<tr><td>${cnameHTML(bn.alias,o.no,o.ten)}</td><td>과납액</td><td class="c">—</td>
+      ${ovL.map(o=>`<tr class="ni"><td>${cnameHTML(bn.alias,o.no,o.ten)}</td><td>과납액</td><td class="c">—</td>
         <td class="n" style="color:var(--muted)">—</td><td class="n"><b>${won(o.amt)}</b></td><td class="n"><span style="color:var(--pri)">−${won(o.amt)}</span></td></tr>`).join('')}
       </tbody></table></div></div>
     ${ovL.length?`<div class="fnd wa3"><span class="h">과납액 ${won(ovL.reduce((a,o)=>a+o.amt,0))}</span>
       ${r.rest>0?'입금액이 미납보다 많아 남았습니다.':'이 입금으로 채운 청구가 나중에 감액되어 넘친 돈입니다.'} 돌려줄 돈(과납)으로 이 임차인의 계약에 기록했습니다.
-      다음 청구에서 빼기 또는 환불은 과오납 관리에서 고릅니다. <b class="lk" onclick="go('pay-14')">과오납 관리로 이동 →</b></div>`:''}
+      다음 달로 넘어가 다음 청구에서 빠집니다. 돌려줄 때는 계약 상세 원장의 「환불」을 씁니다.</div>`:''}
     ${(()=>{const left=B[r.biz]?B[r.biz].ctrs.reduce((a,c)=>a+Math.max(0,ledgerOf(ckey(c)).bal.매출채권),0):0;   /* 원장의 받을 돈 — 미납액 포함 */
       return left?`<div class="fnd wa3"><span class="h">${B[r.biz].n} 남은 미납 ${won(left)}</span>
         이 입금으로 채우지 못한 청구가 있습니다. 수납 내역·미납 관리에서 확인하세요.</div>`:'';})()}
@@ -2891,9 +2892,8 @@ function PAY13(){
     panel=`<div class="card"><div class="cc" style="padding:18px 20px">
       <div class="c2" style="margin:0">오납 — 잘못 들어온 돈입니다. 돌려줍니다</div>
       <div style="font-size:15px;font-weight:700;margin:6px 0">${d.name}</div><div class="big">${won(d.amt)}</div>
-      <div style="margin-top:14px;display:flex;gap:8px;align-items:center">${rf?`<span class="bd ok">환불함 · ${rf.date.slice(5).replace('-','.')}</span>`
-        :`<button class="btn sm" onclick="rcUnignore(${d.no})">되돌리기</button>`}
-        <b class="lk" style="margin-left:auto" onclick="go('pay-14')">과오납 관리로 이동 →</b></div></div></div>`;
+      <div style="margin-top:14px;display:flex;gap:8px;align-items:center">${rf?`<span class="bd ok">환불함 · ${rf.date.slice(5).replace('-','.')}${rf.acct?' · '+rf.acct:''}</span>`
+        :`<button class="btn sm pri" onclick="openMis(${d.no})">환불 기록</button><button class="btn sm" onclick="rcUnignore(${d.no})">되돌리기</button>`}</div></div></div>`;
   }else if(x.ex){
     panel=`<div class="card"><div class="cc" style="padding:18px 20px">
       <div class="c2" style="margin:0">무시함 — 수납으로 기록하지 않습니다</div>
@@ -2908,11 +2908,11 @@ function PAY13(){
       :`<div class="tw"><table class="nowr">
         <thead><tr><th>계약고유명</th><th>청구항목</th><th class="c">우선순위</th>
           <th class="n">배분 전 미납</th><th class="n">배분액</th><th class="n">배분 후 미과납</th></tr></thead>
-        <tbody>${pl.all.map(l=>{const c=CTRS.find(y=>y.b===RC.b&&y.no===l.no);return `<tr${l.pay?'':' class="dim"'}>
-          <td>${cnameHTML(bn.alias,l.no,c.ten)}</td><td>${ymTag(l)}</td><td class="c">${l.carry?'먼저':l.pr}</td>
+        <tbody>${pl.all.map(l=>{const c=CTRS.find(y=>y.b===RC.b&&y.no===l.no);return `<tr class="${l.pay?'':'dim'} ${l.carry?'ni':''}">
+          <td>${cnameHTML(bn.alias,l.no,c.ten)}</td><td>${ymTag(l)}</td><td class="c">${l.carry?'—':l.pr}</td>
           <td class="n" style="color:var(--muted)">${won(l.due)}</td><td class="n">${l.pay?`<b>${won(l.pay)}</b>`:'—'}</td>
           <td class="n">${l.due-l.pay?`<span style="color:var(--warn)">${won(l.due-l.pay)}</span>`:'<span class="bd ok">완납</span>'}</td></tr>`;}).join('')}
-          ${pl.rest?`<tr><td>${cnameHTML(bn.alias,(pl.lines[pl.lines.length-1]||B[g.biz].ctrs[0]).no,(CTRS.find(y=>y.b===RC.b&&y.no===(pl.lines[pl.lines.length-1]||B[g.biz].ctrs[0]).no)||{}).ten)}</td>
+          ${pl.rest?`<tr class="ni"><td>${cnameHTML(bn.alias,(pl.lines[pl.lines.length-1]||B[g.biz].ctrs[0]).no,(CTRS.find(y=>y.b===RC.b&&y.no===(pl.lines[pl.lines.length-1]||B[g.biz].ctrs[0]).no)||{}).ten)}</td>
             <td>과납액</td><td class="c">—</td><td class="n" style="color:var(--muted)">—</td>
             <td class="n"><b>${won(pl.rest)}</b></td><td class="n"><span style="color:var(--pri)">−${won(pl.rest)}</span></td></tr>`:''}
           <tr class="sumr"><td colspan="3">합계</td>
@@ -2921,7 +2921,7 @@ function PAY13(){
             <td class="n">${(v=>v>0?`<span style="color:var(--warn)">${won(v)}</span>`:v<0?`<span style="color:var(--pri)">−${won(-v)}</span>`:'0원')(pl.all.reduce((a,l)=>a+l.due-l.pay,0)-pl.rest)}</td></tr>
         </tbody></table></div>
         ${pl.rest?`<div class="fnd wa3" style="margin:0;border-radius:0 0 var(--r) var(--r)"><span class="h">남는 금액 ${won(pl.rest)}</span>
-          미납보다 많이 들어왔습니다. 확정하면 과납(돌려줄 돈)이 되고, 처리는 과오납 관리에서 합니다.</div>`:''}`;
+          미납보다 많이 들어왔습니다. 확정하면 과납(돌려줄 돈)이 되어 다음 달로 넘어갑니다.</div>`:''}`;
     panel=`
     <div class="card"><div class="cc" style="padding:18px 20px">
       <div style="display:flex;align-items:center;gap:8px">
@@ -2988,7 +2988,7 @@ function PAY6(){
   const body=rows.map(x=>{
     const op=g6Open(x.k);
     const cr=x.carry, sub=!op?'':(cr?`
-      <div class="schr ctr sub"><div class="nm">전월 미납액</div>
+      <div class="schr ctr sub ni"><div class="nm">전월 미납액</div>
         <div class="n c2">${won(cr.amt)}</div><div class="n c2">${cr.paid?won(cr.paid):dash}</div>
         <div class="n">${cr.due?`<span style="color:var(--warn)">${won(cr.due)}</span>`:dash}</div>
         <div class="c"><span class="bd ${PST[cr.due?(x.st==='미납'&&closedBy(RC.b,RC.f.ym,TODAY_S)?'미납':cr.paid?'부분납':'미납'):'완납']}">${cr.due?(closedBy(RC.b,RC.f.ym,TODAY_S)?'미납':cr.paid?'부분납':'미납'):'완납'}</span></div></div>`:'')+x.it.map(i=>`
@@ -2996,9 +2996,9 @@ function PAY6(){
         <div class="n c2">${won(i.amt)}</div><div class="n c2">${i.paid?won(i.paid):dash}</div>
         <div class="n">${i.due?`<span style="color:var(--warn)">${won(i.due)}</span>`:dash}</div>
         <div class="c"><span class="bd ${PST[i.st]}">${i.st}</span></div></div>`).join('')+(!op||!x.over?'':`
-      <div class="schr ctr sub"><div class="nm">과납액 <span class="c2">청구항목이 아닌 남은 돈</span></div>
+      <div class="schr ctr sub ni"><div class="nm">과납액</div>
         <div class="n c2">${dash}</div><div class="n c2">${won(x.over)}</div><div class="n">${dash}</div>
-        <div class="c"><span class="bd ac">${OVERSET[x.k]?'다음 청구에서 뺌':'처리 전'}</span></div></div>`);
+        <div class="c"></div></div>`);
     return `<div class="schr ctr grp" onclick="g6Tog('${x.k}')">
       <div class="nm"><span class="tg ${op?'op':''}">${ic('chev',16)}</span>${cnameHTML(bn.alias,x.c.no,x.c.ten)}</div>
       <div class="n">${won(cg(x).bill)}</div>
@@ -3041,7 +3041,7 @@ function PAY6(){
     밀린 달 전부의 미납과 미납 안내는 미납 관리에서, 입금 한 건 한 건은 입금 매칭에서 봅니다.<br>
     <b>전월 미납액</b>은 지난달 마감 때 다 받지 못해 넘어온 돈입니다. 마감한 달은 그 뒤로 바뀌지 않고, 들어온 돈은 전월 미납액부터 줄입니다.<br>
     <b>과납액</b>은 그 달 청구를 다 받고 남은 돈입니다. 입금은 우선순위대로 배분되므로 어느 항목의 돈이라고 할 수 없어 따로 한 줄로 둡니다.
-    처리는 과오납 관리에서 합니다.</div>`;
+    다음 달로 넘어가 다음 청구에서 빠집니다. 청구항목이 아닌 줄(전월 미납액 · 과납액)은 연한 배경으로 구분합니다.</div>`;
 }
 
 /* ═══ 수납 처리 — 현금·카드로 받았거나 보증금에서 뺀 돈. 은행 입금은 입금 매칭(PAY-13)에서 → PAY-2 · CTR-3 ═══ */
@@ -3188,100 +3188,47 @@ function cutHTML(){
         ${R('사유',`<input type="text" value="${cx.why}" placeholder="필수. 예: 7월 수도 검침값 입력 오류" onchange="cutSet('why',this.value)">`)}
         ${cx.amt?R('감액 후',`<b>${won(Math.max(0,I.after))}</b>`):''}</div>
       ${cx.amt>I.left?`<div class="prev warn2"><div class="pt">청구액보다 많이 줄일 수 없습니다</div>남은 청구액 ${won(I.left)}까지 줄일 수 있습니다.</div>`
-       :I.over>0?`<div class="prev"><div class="pt">과납 ${won(I.over)}이 생깁니다</div>이미 ${won(I.paid)}을 냈기 때문입니다. 과오납 관리에서 다음 청구에서 빼기 또는 환불로 처리합니다.</div>`:''}
+       :I.over>0?`<div class="prev"><div class="pt">과납 ${won(I.over)}이 생깁니다</div>이미 ${won(I.paid)}을 냈기 때문입니다. 다음 달로 넘어가 다음 청구에서 빠지며, 원장의 「환불」로 돌려줄 수도 있습니다.</div>`:''}
       <div class="c2" style="margin:10px 0 0;white-space:normal">세금계산서 항목은 수정세금계산서가 필요할 수 있습니다(미확정).</div>
     </div>
     <div class="df"><button class="btn" onclick="closeDrawer()">취소</button>
       <button class="btn pri" ${ok?'':'disabled'} onclick="cutConfirm()">감액 확정</button></div>
   </div></div>`;
 }
-/* ═══ 과납 처리 — 다음 청구에서 빼기 / 환불. 자동으로 처리하지 않는다 → PAY-2 · 4.3.4 ═══ */
+/* ═══ 환불 — 과납은 계약 원장에서, 오납은 입금 매칭에서. 과납은 따로 처리하지 않으면 다음 달로 넘어간다 → 4.3.4 · 4.3.5 ═══ */
 let ov=null;
-function openOver(k){ov={k,how:'빼기',date:TODAY_S,acct:'',memo:''};DRAWER='over';render(true);}
-/* 오납 — 계약이 없어 환불만 할 수 있다 */
-function openMis(no){ov={mis:no,how:'환불',date:TODAY_S,acct:'',memo:''};DRAWER='over';render(true);}
-function ovSet(f,v){if(f==='how'&&ov.mis) return;ov[f]=v;render(true);}
+function openRefund(k){ov={k,amt:overOf(k),date:TODAY_S,acct:'',memo:''};DRAWER='over';render(true);}
+function openMis(no){ov={mis:no,date:TODAY_S,acct:'',memo:''};DRAWER='over';render(true);}
+function ovSet(f,v){ov[f]=f==='amt'?numOf(v):v;render(true);}
 const misDep=no=>depsAll().find(d=>d.no===+no);
 function ovConfirm(){
   if(ov.mis){const x=RC.dec[ov.mis];if(!x||!x.mis||x.mis.refund) return;
     x.mis.refund={date:ov.date,acct:ov.acct.trim(),memo:ov.memo};DRAWER=null;ov=null;render(true);return;}
-  const amt=overOf(ov.k);if(!amt) return;
-  if(ov.how==='빼기') OVERSET[ov.k]={how:'빼기',date:ov.date,amt};
-  else{REFUNDS.push({k:ov.k,amt,date:ov.date,acct:ov.acct.trim(),memo:ov.memo,sq:++paySeq});delete OVERSET[ov.k];
-}
+  const max=overOf(ov.k);if(!(ov.amt>0)||ov.amt>max) return;
+  REFUNDS.push({k:ov.k,amt:ov.amt,date:ov.date,acct:ov.acct.trim(),memo:ov.memo,sq:++paySeq});
   DRAWER=null;ov=null;render(true);}
-/* 과오납 목록 — 과납(계약)은 지금 남은 금액 한 줄, 환불한 과납, 오납(입금) → PAY-14 */
-function ovRows(b){
-  if(b!==RC.b) return [];
-  const BA=(BUILDINGS.find(x=>x.id===b)||{}).alias, rows=[];
-  CTRS.filter(c=>c.b===b).forEach(c=>{const k=ckey(c), amt=overOf(k), src=overSrc(k);
-    if(amt>0) rows.push({key:k,kind:'과납',who:cnameHTML(BA,c.no,c.ten),date:(src[src.length-1]||{}).date||TODAY_S,
-      how:src.map(x=>x.src).join(' · '),memo:src.map(x=>x.memo).join('<br>'),amt,st:OVERSET[k]?'다음 청구에서 뺌':'처리 전',open:true,act:`openOver('${k}')`});
-    REFUNDS.filter(r=>r.k===k).forEach(r=>rows.push({key:k,kind:'과납',who:cnameHTML(BA,c.no,c.ten),date:r.date,how:'환불',
-      memo:`과납 환불${r.acct?' · '+r.acct:''}`,amt:r.amt,st:`환불함 · ${r.date.slice(5).replace('-','.')}`,open:false}));});
-  Object.entries(RC.dec).forEach(([no,x])=>{if(!x.mis) return; const d=misDep(no); if(!d) return; const rf=x.mis.refund;
-    rows.push({key:'m'+no,kind:'오납',who:`<b>${d.name}</b>`,date:d.dt.slice(0,10),how:'잘못 들어온 입금',
-      memo:`${d.dt.slice(5,16).replace('-','.')} ${d.name} 입금${rf&&rf.acct?' · 환불계좌 '+rf.acct:''}`,amt:d.amt,
-      st:rf?`환불함 · ${rf.date.slice(5).replace('-','.')}`:'처리 전',open:!rf,act:`openMis(${no})`});});
-  return rows.sort((p,q)=>p.date<q.date?1:-1);
-}
-let f14={b:'b1',view:'open'};
-function PAY14(){
-  const bn=BUILDINGS.find(x=>x.id===f14.b)||BUILDINGS[0];
-  const all=ovRows(f14.b), rows=all.filter(r=>f14.view==='all'||r.open);
-  const T=rows.filter(r=>r.open).reduce((a,r)=>a+r.amt,0), dash='<span style="color:var(--faint)">—</span>';
-  return `
-  <div class="ph"><h1>과오납 관리</h1><span class="sid">PAY-14</span></div>
-  <div class="fbar">
-    <select onchange="f14.b=this.value;render()">${BUILDINGS.map(b=>`<option value="${b.id}" ${f14.b===b.id?'selected':''}>${b.name}</option>`).join('')}</select>
-    <select onchange="f14.view=this.value;render()">${[['open','처리할 것'],['all','전체']].map(([v,t])=>`<option value="${v}" ${f14.view===v?'selected':''}>${t}</option>`).join('')}</select>
-  </div>
-  ${!rows.length?`<div class="tbl"><div class="empty"><div class="t">${f14.b===RC.b?'돌려줄 돈이 없습니다':'자료가 없습니다'}</div>
-     ${f14.b===RC.b?'과납·오납이 생기면 여기에 올라옵니다.':'목업 자료는 카리나빌딩뿐입니다.'}</div></div>`
-  :`<div class="tbl"><div class="tw"><table class="nowr">
-    <thead><tr><th>대상</th><th>종류</th><th>생긴 날</th><th>생긴 경우 · 내용</th><th class="n">금액</th><th>처리 상태</th><th></th></tr></thead>
-    <tbody>${rows.map(r=>`<tr${r.open?'':' class="dim"'}>
-      <td>${r.who}</td><td><span class="bd ${r.kind==='과납'?'ac':'wa2'}">${r.kind}</span></td>
-      <td>${r.date.slice(2).replace(/-/g,'.')}</td>
-      <td style="white-space:normal"><b style="font-weight:500">${r.how}</b><div class="c2" style="white-space:normal">${r.memo}</div></td>
-      <td class="n"><b>${won(r.amt)}</b></td>
-      <td>${r.open?`<span class="bd ${r.st==='처리 전'?'wa':'mu'}">${r.st}</span>`:`<span class="bd ok">${r.st}</span>`}</td>
-      <td class="c">${r.open?`<button class="btn sm" onclick="${r.act}">처리</button>`:''}</td></tr>`).join('')}
-      <tr class="sumr"><td colspan="4">합계 · ${rows.length}건</td><td class="n">${T?won(T):dash}</td><td colspan="2" class="c2" style="margin:0">처리할 금액</td></tr>
-    </tbody></table></div></div>`}
-  <div class="hint">
-    임차인에게 <b>돌려줄 돈</b>을 모았습니다. <b>과납</b>은 낼 돈보다 많이 낸 돈(입금이 남음 · 이미 낸 청구를 감액)이고,
-    <b>오납</b>은 낼 의무가 없는 돈이 잘못 들어온 입금입니다(입금 매칭에서 표시).<br>
-    과납은 <b>다음 청구에서 빼기</b> 또는 <b>환불</b>, 오납은 <b>환불</b>로 처리합니다. 자동으로 처리하지 않습니다.<br>
-    받을 돈(미납)은 미납 관리에서 봅니다.</div>`;
-}
 function overHTML(){
   if(DRAWER!=='over'||!ov) return '';
   const md=ov.mis?misDep(ov.mis):null, c=md?null:CTRS.find(x=>ckey(x)===ov.k), bd=c?BUILDINGS.find(x=>x.id===c.b)||BUILDINGS[0]:BUILDINGS[0];
-  const amt=md?md.amt:overOf(ov.k);
-  const src=md?[{date:md.dt.slice(0,10),src:'잘못 들어온 입금',memo:`${md.dt.slice(5,16).replace('-','.')} ${md.name} 입금`,amt:md.amt}]:overSrc(ov.k);
+  const max=md?md.amt:overOf(ov.k), amt=md?md.amt:ov.amt, ok=md?true:amt>0&&amt<=max;
   const R=(k,b)=>`<div class="fr"><span class="fk">${k}</span>${b}</div>`;
   return `<div class="dro"><div class="ov" onclick="closeDrawer()"></div><div class="pn">
-    <div class="dh"><div><div class="t">${md?'오납 환불':'과납 처리'}</div><div class="s">${md?md.name:cname(bd.alias,c.no,c.ten)}</div></div>
+    <div class="dh"><div><div class="t">${md?'오납 환불':'환불'}</div><div class="s">${md?md.name:cname(bd.alias,c.no,c.ten)}</div></div>
       <button class="x" onclick="closeDrawer()">✕</button></div>
     <div class="db">
       <div class="fg"><div class="fl">돌려줄 돈</div>
-        ${R(md?'오납':'과납',`<b style="color:var(--pri)">${won(amt)}</b>`)}
-        ${src.map(x=>`<div class="c2" style="margin:0 0 6px 114px;white-space:normal">${x.date.slice(5).replace('-','.')} · ${x.src} · ${won(x.amt)}<br>${x.memo}</div>`).join('')}</div>
-      <div class="fg"><div class="fl">처리</div>
-        <div class="fr"><span class="fk">방법</span><div style="display:flex;gap:6px">
-          ${[['빼기','다음 청구에서 빼기'],['환불','환불']].map(([v,t])=>`<button class="btn sm ${ov.how===v?'pri':''}" ${md&&v==='빼기'?'disabled':''} onclick="ovSet('how','${v}')">${t}</button>`).join('')}</div></div>
-        ${md?'<div class="c2" style="margin:-4px 0 9px 114px">계약이 없는 입금이라 다음 청구에서 뺄 수 없습니다</div>':''}
-        ${ov.how==='환불'?R('환불계좌',`<input type="text" value="${ov.acct}" placeholder="${md?'보낸 사람 계좌':'계약자 환불계좌 (계약 상세 › 임차인)'}" onchange="ovSet('acct',this.value)">`)
-          +R('보낸 날',`<input type="date" value="${ov.date}" max="${TODAY_S}" onchange="ovSet('date',this.value)">`)
-          +R('메모',`<input type="text" value="${ov.memo}" onchange="ovSet('memo',this.value)">`):''}
-        <div class="c2" style="margin:2px 0 0;white-space:normal">${ov.how==='빼기'
-          ?'다음 청구서를 발행할 때 그 청구에 먼저 배분합니다. 청구 합계는 그대로이고 청구서에 과납이 따로 안내됩니다.'
-          :md?'입금 기록에 환불일과 계좌가 남습니다. 계약이 없는 돈이라 원장에는 기록하지 않습니다.'
-          :'원장에 환불이 기록되고 과납이 0이 됩니다. 감액한 청구는 완납으로 돌아옵니다.'}</div></div>
+        ${R(md?'오납':'과납',`<b style="color:var(--pri)">${won(max)}</b>`)}
+        ${md?R('입금',`${md.dt.slice(5,16).replace('-','.')} ${md.name}`):R('환불할 금액',`<input type="text" inputmode="numeric" value="${amt?num(amt):''}" oninput="kwLive(this)" onchange="ovSet('amt',this.value)" style="text-align:right"><span class="kw">${korWon(amt)}</span>`)}
+        ${!md&&amt>max?'<div class="c2" style="margin:-4px 0 9px 114px;color:var(--danger)">과납보다 많이 돌려줄 수 없습니다</div>':''}</div>
+      <div class="fg"><div class="fl">보낸 기록</div>
+        ${R('환불계좌',`<input type="text" value="${ov.acct}" placeholder="${md?'보낸 사람 계좌':'계약자 환불계좌 (계약 상세 › 임차인)'}" onchange="ovSet('acct',this.value)">`)}
+        ${R('보낸 날',`<input type="date" value="${ov.date}" max="${TODAY_S}" onchange="ovSet('date',this.value)">`)}
+        ${R('메모',`<input type="text" value="${ov.memo}" onchange="ovSet('memo',this.value)">`)}
+        <div class="c2" style="margin:2px 0 0;white-space:normal">${md?'입금 기록에 환불일과 계좌가 남습니다. 계약이 없는 돈이라 원장에는 기록하지 않습니다.'
+          :'원장에 환불이 기록되고 그만큼 과납이 줄어듭니다. 환불하지 않은 과납은 다음 달로 넘어가 다음 청구에서 빠집니다.'}</div></div>
     </div>
     <div class="df"><button class="btn" onclick="closeDrawer()">취소</button>
-      <button class="btn pri" ${amt?'':'disabled'} onclick="ovConfirm()">처리 확정</button></div>
+      <button class="btn pri" ${ok?'':'disabled'} onclick="ovConfirm()">환불 확정</button></div>
   </div></div>`;
 }
 
@@ -3799,6 +3746,7 @@ function CTR3head(c,k){
     <div class="act">
       <button class="btn" onclick="go('ctr-1')">목록</button>
       <button class="btn" onclick="openPay('${k}')">수납 처리</button>
+      <button class="btn" ${overOf(k)?'':'disabled title="돌려줄 과납이 없습니다"'} onclick="openRefund('${k}')">환불</button>
       ${tab3c==='원장'?`<button class="btn pri" onclick="alert('원장 출력 — 선택한 기간·계정의 원장을 거래내역서 PDF로 내려받거나 임차인 담당자에게 보낸다')">원장 출력</button>`:''}</div>
   </div>
   <div class="tabs">
@@ -3820,7 +3768,7 @@ function CTR3sum(c,k){
       <dt>계약기간</dt><dd>${d8(c.base)} - ${d8(end)} ${c.st==='진행중'?ddBadge(end):''}</dd>
     </dl></div></div>
     <div class="card"><div class="ct">임대정보</div><div class="cc"><dl class="dl">
-      <dt>미납 잔액</dt><dd>${L.bal.매출채권<0?`<b style="color:var(--pri)">과납 ${won(-L.bal.매출채권)}</b><span class="lock">돌려줄 돈 · <b class="lk" onclick="go('pay-14')">과오납 관리</b></span>`
+      <dt>미납 잔액</dt><dd>${L.bal.매출채권<0?`<b style="color:var(--pri)">과납 ${won(-L.bal.매출채권)}</b><span class="lock">돌려줄 돈 · 다음 달로 넘어가 다음 청구에서 빠집니다</span>`
         :`<b style="${L.bal.매출채권?'color:var(--warn)':''}">${won(L.bal.매출채권)}</b>`}
 </dd>
       <dt>보증금 잔액</dt><dd>${won(L.bal.임대보증금)}</dd>
@@ -3904,7 +3852,7 @@ function CTR3(k){
   const balTx=v=>won(v);
   const b0=L.bal.매출채권, late=arrears(c).due;
   const now=b0>0?`<b style="color:var(--warn)">미납 ${won(late)}</b>${b0>late?` <span class="c2" style="margin:0 0 0 4px">납부 전 ${won(b0-late)}</span>`:''}`
-    :b0<0?`<b style="color:var(--pri)">과납 ${won(-b0)}</b> <span class="c2" style="margin:0 0 0 4px">돌려줄 돈 · <b class="lk" onclick="go('pay-14')">과오납 관리</b></span>`:'<b>0원</b>';
+    :b0<0?`<b style="color:var(--pri)">과납 ${won(-b0)}</b> <span class="c2" style="margin:0 0 0 4px">돌려줄 돈 · 다음 청구에서 빠지며 위 「환불」로 돌려줄 수 있습니다</span>`:'<b>0원</b>';
   const dash='<span style="color:var(--faint)">—</span>';
   return CTR3head(c,k)+`
   <div class="fbar">
@@ -3958,7 +3906,7 @@ function CTR3(k){
     최근 거래가 위에 있고, 잔액은 그 거래 직후의 금액입니다. 매출채권(받을 돈)과 임대보증금(돌려줄 돈)의 잔액은 따로 셉니다.<br>
     원장은 고치지 않습니다. 잘못된 거래는 취소 거래를 추가해 바로잡습니다. 연체료는 수납 처리에서 받기로 한 금액만 청구로 올라옵니다.<br>
     청구를 줄여야 하면 청구서를 펼쳐 그 항목의 <b>감액</b>을 누릅니다. 오늘 날짜로 기록되므로 마감한 달의 청구도 줄일 수 있습니다.
-    이미 낸 청구를 줄이면 잔액이 <b>과납</b>이 되고, 처리는 과오납 관리에서 합니다.</div>`;
+    이미 낸 청구를 줄이면 잔액이 <b>과납</b>이 됩니다. 과납은 다음 달로 넘어가 다음 청구에서 빠지고, 돌려줄 때는 위의 <b>환불</b>을 누릅니다.</div>`;
 }
 
 /* ═══ 라우터 ═══ */
@@ -3985,7 +3933,6 @@ function render(keep){
     crumb=`<span class="c" onclick="go('ctr-1')">계약 관리</span> <span>›</span> <b>${c?cname(BUILDINGS[0].alias,c.no,c.ten):'—'}</b>`;}
   else if(id==='pay-2'){html=PAY2();crumb='청구 · 수납 <span>›</span> <b>미납 관리</b>';}
   else if(id==='pay-13'){html=PAY13();crumb='청구 · 수납 <span>›</span> <b>입금 매칭</b>';}
-  else if(id==='pay-14'){html=PAY14();crumb='청구 · 수납 <span>›</span> <b>과오납 관리</b>';}
   else{html=TODO(id);const g=MENU.find(m=>m.items&&m.items.some(i=>i.id===id));
     const m=ALL.find(i=>i.id===id);
     crumb=(g?g.g+' <span>›</span> ':'')+`<b>${m?m.n:'—'}</b>`;}

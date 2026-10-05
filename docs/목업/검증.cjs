@@ -394,40 +394,37 @@ r6.push(['임대료·관리비 탭 — 분기 · 기산일 8월 청구 · 9월 �
   r6.push(['공용분 빼기 = 배율 0 — 2층 공용분 0 · 개별분은 청구 · 비율 합 1 · 1층 몫 증가 · 합계 = 고지서',
     r2.common === 0 && r2.amt > 0 && Math.abs(ratioSum - 1) < 1e-9 && after > before && R.diff === 0]); }
 /* 감액 · 과납 — 8/7 본관1층 7월 수도요금 18,000 감액. 7월분은 07.31에 완납이라 과납 18,000이 된다 → PAY-5 · 4.3.4 */
-{ const OV = new Function(stub + bare + '; const pre=ctrPay("b1본관1층","2026-07"); seedJuly(); return {pre,ctrPay,overOf,ledgerOf,arrears,CTRS,PAY2,PAY14,ISSUE,mcChecks,openOver,ovSet,ovConfirm,OVERSET,cutOpen,cutSet,cutConfirm,BILLS,PAID,f14,set f1(v){f1=v;}};')();
+{ const OV = new Function(stub + bare + '; const pre=ctrPay("b1본관1층","2026-07"); seedJuly(); return {pre,ctrPay,overOf,ledgerOf,CTRS,PAY1,CTR3,ISSUE,mcChecks,openRefund,ovSet,ovConfirm,cutOpen,cutSet,cutConfirm,set tab3c(v){tab3c=v;}};')();
   const k = 'b1본관1층', L = OV.ledgerOf(k), cut = L.rows.find(r => r.type === '감액');
-  const post = OV.ctrPay(k, '2026-07');
-  const item = post.it.find(i => i.n === '수도요금');
-  const shown = /본관1층/.test(OV.PAY14()) && /18,000원/.test(OV.PAY14()) && !/과납 18,000원/.test(OV.PAY2())
-    && OV.ISSUE().find(c => c.no === '본관1층').over === 18000;
-  const julOK = OV.mcChecks('b1', '2026-07').every(x => x.ok) && !OV.mcChecks('b1', '2026-08').find(x => x.t === '처리하지 않은 과오납').ok;
+  const post = OV.ctrPay(k, '2026-07'), item = post.it.find(i => i.n === '수도요금');
   const mv = L.rows.filter(r => r.g === cut.g);
-  r6.push(['감액 — 본관1층 7월 수도 18,000 · 08.07 감액 + 넘친 수납 취소 18,000 + 과납 수납 18,000 한 묶음 · 원장 잔액 −18,000 = 과납 · 수도요금은 완납 그대로 · 7월은 과납액 18,000 줄 · 납부상태 과납 · 청구액·수납액 그대로 · 과오납 관리·청구서 발행에 과납 · 7월 마감 확인 통과, 8월은 과오납 처리 전',
+  const shown = OV.ISSUE().find(c => c.no === '본관1층').over === 18000 && /−18,000원/.test(OV.PAY1());
+  r6.push(['감액 — 본관1층 7월 수도 18,000 · 08.07 감액 + 넘친 수납 취소 + 과납 수납 한 묶음 · 원장 잔액 −18,000 = 과납 · 7월은 08.05 마감 모습 그대로(수도 1,337,087 받음 · 완납 · 과납액 없음) · 8월 청구서에 −18,000 · 7월 마감 확인 통과',
     cut && cut.dec === 18000 && cut.date === '2026-08-07' && mv.length === 3 && mv.some(r => r.type === '수납 취소' && r.inc === 18000)
     && L.bal.매출채권 === -18000 && OV.overOf(k) === 18000
-    && post.bill === OV.pre.bill && post.paid === post.bill && item.st === '완납' && post.over === 18000 && post.st === '과납' && post.due === 0 && shown && julOK]);
-  OV.openOver(k); OV.ovConfirm(); const set = OV.OVERSET[k] && OV.OVERSET[k].amt === 18000 && OV.overOf(k) === 18000;
-  OV.openOver(k); OV.ovSet('how', '환불'); OV.ovSet('acct', '기업 123-45'); OV.ovConfirm();
-  const L2 = OV.ledgerOf(k), rf = L2.rows.find(r => r.type === '환불');
-  const done = OV.ctrPay(k, '2026-07'); OV.f14.view = 'all'; const hist = /환불함/.test(OV.PAY14()); OV.f14.view = 'open';
-  r6.push(['과납 처리 — 다음 청구에서 빼기로 정하면 과납 그대로 · 환불하면 환불 거래 18,000 · 잔액 0 · 7월 수도요금 완납으로 돌아옴 · 처리할 것에서 빠지고 전체에 환불함',
-    set && rf && rf.inc === 18000 && L2.bal.매출채권 === 0 && OV.overOf(k) === 0 && !OV.OVERSET[k]
-    && done.st === '완납' && done.over === 0 && done.paid === done.bill - 18000 && done.it.find(i => i.n === '수도요금').st === '완납' && hist && !/본관1층/.test(OV.PAY14())]);
-  /* 감액 패널 — 남은 청구액을 넘으면 막고, 미납 청구를 줄이면 과납 없이 미납만 준다 */
+    && post.bill === OV.pre.bill && post.paid === post.bill && item.paid === 1337087 && item.st === '완납' && post.over === 0 && post.st === '완납'
+    && shown && OV.mcChecks('b1', '2026-07').every(x => x.ok)]);
+  OV.tab3c = '원장'; const btnOn = !/disabled title="돌려줄 과납이 없습니다"/.test(OV.CTR3(k));
+  OV.openRefund(k); OV.ovSet('amt', '20000'); OV.ovConfirm(); const over1 = OV.overOf(k) === 18000;
+  OV.ovSet('amt', '10000'); OV.ovSet('acct', '기업 123-45'); OV.ovConfirm(); const part = OV.overOf(k) === 8000;
+  OV.openRefund(k); OV.ovConfirm();
+  const L2 = OV.ledgerOf(k), rfs = L2.rows.filter(r => r.type === '환불');
+  r6.push(['원장 환불 — 과납보다 많으면 막힘 · 10,000 일부 환불 → 과납 8,000 · 나머지 8,000 환불 → 잔액 0 · 환불 거래 2건 · 그 뒤 환불 버튼 잠김',
+    btnOn && over1 && part && rfs.length === 2 && rfs.reduce((a, r) => a + r.inc, 0) === 18000 && L2.bal.매출채권 === 0
+    && /disabled title="돌려줄 과납이 없습니다"/.test(OV.CTR3(k))]);
+  /* 감액 패널 — 남은 청구액을 넘으면 막고, 사유가 없으면 막는다 */
   OV.cutOpen('2026-07|본관1층|전기요금'); OV.cutSet('amt', '99999999'); OV.cutSet('why', '시험'); OV.cutConfirm();
   const blocked = !OV.ledgerOf(k).rows.some(r => r.type === '감액' && r.dec === 99999999);
   OV.cutOpen('2026-07|본관1층|전기요금'); OV.cutSet('amt', '5000'); OV.cutConfirm(); const noWhy = OV.ledgerOf(k).rows.filter(r => r.type === '감액').length === 1;
   r6.push(['감액 패널 — 청구액 초과 막힘 · 사유 없으면 막힘', blocked && noWhy]); }
-/* 오납 — 7월 SK렌터카(주) 1,938,620 입금을 오납으로 → 과오납 관리 · 7월 마감 확인에 걸림 · 환불하면 풀림. 원장에는 없다 → 4.3.5 */
-{ const MS = new Function(stub + bare + '; seedJuly(); return {RC,rcUnignore,rcMis,rcOpenN,PAY14,PAY13,mcChecks,openMis,ovSet,ovConfirm,ovRows,get ov(){return ov;}};')();
-  MS.RC.f.ym = '2026-07'; MS.rcUnignore(55); MS.rcMis(55);
-  const listed = /SK렌터카/.test(MS.PAY14()) && MS.rcOpenN() === 0;
-  const blockedJul = !MS.mcChecks('b1', '2026-07').find(x => x.t === '처리하지 않은 과오납').ok;
-  MS.openMis(55); MS.ovSet('how', '빼기'); const onlyRefund = MS.ov.how === '환불';
-  MS.ovSet('acct', '신한 110-1'); MS.ovConfirm();
-  const refunded = MS.RC.dec[55].mis.refund && MS.mcChecks('b1', '2026-07').every(x => x.ok) && !/SK렌터카/.test(MS.PAY14());
-  r6.push(['오납 — 입금 매칭에서 오납 표시 → 과오납 관리 · 대기 0건 · 7월 마감 확인에 걸림 · 다음 청구에서 빼기는 잠김 · 환불하면 풀림',
-    listed && blockedJul && onlyRefund && refunded]); }
+/* 오납 — 7월 SK렌터카(주) 1,938,620 입금을 오납으로 → 7월 마감 확인에 걸림 · 입금 매칭에서 환불 기록하면 풀림. 원장에는 없다 → 4.3.5 */
+{ const MS = new Function(stub + bare + '; seedJuly(); return {RC,rcUnignore,rcMis,rcOpenN,PAY13,mcChecks,openMis,ovSet,ovConfirm,ledgerOf};')();
+  MS.RC.f.ym = '2026-07'; MS.rcUnignore(55); MS.rcMis(55); MS.RC.cur = 55;
+  const listed = /환불 기록/.test(MS.PAY13()) && MS.rcOpenN() === 0;
+  const blockedJul = !MS.mcChecks('b1', '2026-07').find(x => x.t === '돌려주지 않은 오납').ok;
+  MS.openMis(55); MS.ovSet('acct', '신한 110-1'); MS.ovConfirm(); MS.RC.cur = 55;
+  const refunded = MS.RC.dec[55].mis.refund && MS.mcChecks('b1', '2026-07').every(x => x.ok) && /환불함/.test(MS.PAY13());
+  r6.push(['오납 — 입금 매칭에서 오납 표시 · 대기 0건 · 7월 마감 확인에 걸림 · 같은 화면에서 환불 기록하면 풀림', listed && blockedJul && refunded]); }
 /* 입금이 미납보다 많으면 — 남는 돈은 마지막으로 배분된 계약의 과납 */
 { const S2 = new Function(stub + bare + '; return {RC,rcConfirm,ctrPay,overOf,ledgerOf};')();
   const due = S2.ctrPay('b1본관6층', '2026-07').due;
@@ -438,13 +435,12 @@ r6.push(['임대료·관리비 탭 — 분기 · 기산일 8월 청구 · 9월 �
   r6.push(['입금 남음 — 아마데우스 7월 미납 + 50,000 입금 → 항목은 모두 완납 · 7월 과납액 50,000 · 납부상태 과납 · 원장에 청구 없는 수납 50,000',
     p7.st === '과납' && p7.over === 50000 && p7.it.every(i => i.st === '완납') && S2.overOf('b1본관6층') === 50000 && L3.bal.매출채권 === -50000
     && L3.rows.some(r => r.type === '수납' && r.dec === 50000 && /과납/.test(r.item))]); }
-run('PAY-14 · 과납 처리 패널', "seedJuly();PAY14();f14.view='all';PAY14();f14.b='b2';PAY14();openOver('b1본관1층');overHTML();ovSet('how','환불');overHTML();g2All=true;PAY2()");
-run('PAY-14 오납 패널 · PAY-13 오납', "seedJuly();RC.f.ym='2026-07';rcUnignore(55);rcMis(55);RC.cur=55;PAY13();openMis(55);overHTML();PAY14()");
+run('환불 패널 · 오납 환불 패널', "seedJuly();openRefund('b1본관1층');overHTML();ovSet('amt','99999');overHTML();RC.f.ym='2026-07';rcUnignore(55);rcMis(55);RC.cur=55;PAY13();openMis(55);overHTML()");
 run('PAY-6 과납 필터', "seedJuly();RC.f={b:'b1',ym:'2026-07',st:'과납'};g6All=true;PAY6()");
 run('PAY-13 감액으로 과납이 생긴 입금 · 남는 입금 미리보기', "seedJuly();RC.f.ym='2026-07';RC.cur=6;PAY13();RC.f.ym='2026-07';delete RC.dec[8];RC.cur=8;PAY13()");
 run('CTR-3 원장 감액 · 요약 과납', "seedJuly();tab3c='원장';g3All=true;CTR3('b1본관1층');tab3c='요약';CTR3('b1본관1층')");
 run('감액 패널', "seedJuly();cutOpen('2026-07|본관1층|전기요금');cutSet('amt','10000');cutHTML();cutSet('amt','99999999');cutHTML()");
-run('PAY-1 과납 · 다음 청구에서 뺌', "seedJuly();OVERSET['b1본관1층']={how:'빼기',date:'2026-08-10',amt:18000};g1All=true;PAY1()");
+run('PAY-1 과납', "seedJuly();g1All=true;PAY1()");
 run('PAY-11 8월 과납 확인', "seedJuly();s11={b:'b1',ym:'2026-08'};PAY11();mcOpen('close');mcHTML()");
 /* 미납 이월 — 6월 마감(07.03) 때 비씨에이전시 5,054,474가 미납액으로 · 7/31 입금은 미납액에 · 7월 마감(08.05) 때 54,474 + 5,091,998 → 4.3.6 */
 { const CF = new Function(stub + bare + '; seedJuly(); return {ledgerOf,carryAmt,carryParts,ctrPay,MC,mcCarryUsed,mcOpen,mcApply,lateCalc,get mcx(){return mcx;},set s11(v){s11=v;}};')();
