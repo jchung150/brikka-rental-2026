@@ -491,6 +491,7 @@ table.nowr th,table.nowr td{white-space:nowrap}
 .fnd.wa3{border-color:color-mix(in srgb,var(--warn) 40%,var(--line))}
 .bd.wa2{background:color-mix(in srgb,var(--warn) 14%,transparent);color:var(--warn)}
 .lk{color:var(--pri);cursor:pointer;text-decoration:underline}
+.plk{cursor:pointer}.plk:hover,.plk:hover *{color:var(--pri)}
 .dlt{font-size:11px;font-weight:700;margin-left:4px}
 .dlt.up{color:var(--warn)} .dlt.dn{color:var(--muted)}
 </style>
@@ -1528,7 +1529,8 @@ function t요약(b){
     ${b.parks.length?`<div class="tw"><table>
       <thead><tr><th>주차면</th><th>위치</th><th>유형</th><th>메모</th><th>배정 현황</th></tr></thead>
       <tbody>${b.parks.map(p=>`<tr><td class="c1">${p.n}</td><td>${p.loc}</td><td>${p.t}</td><td style="color:var(--muted)">${p.memo||'—'}</td>
-        <td>${p.as?cnameHTML(b.alias,p.asu,p.as):'<span class="bd mu">미배정</span>'}</td></tr>`).join('')}</tbody>
+        <td>${p.as?(c=>c?`<span class="plk" onclick="tab3c='요약';go('ctr-3/${ckey(c)}')">${cnameHTML(b.alias,p.asu,p.as)}</span>`:cnameHTML(b.alias,p.asu,p.as))
+          (CTRS.find(c=>c.b===b.id&&c.no===p.asu&&c.st==='진행중')):'<span class="bd mu">미배정</span>'}</td></tr>`).join('')}</tbody>
     </table></div>`:'<div class="empty">등록된 주차면이 없습니다.</div>'}
   </div>
   <div class="card" style="${d<=90?'border-color:var(--warn)':''}">
@@ -1540,7 +1542,7 @@ function t요약(b){
       <dl class="dl"><dt>관리 수수료</dt><dd>${b.fee}</dd>
         <dt>운영방식</dt><dd>${b.mode}<span class="lock">위탁사 수취 후 정산은 2차</span></dd></dl>
       <dl class="dl"><dt>위임계약서</dt><dd>${b.docs.length?'<span style="color:var(--pri);cursor:pointer">관리위임계약서_카리나빌딩_2025.pdf</span>':'<span style="color:var(--muted)">미등록</span>'}</dd>
-        <dt>임대인</dt><dd>${b.owner}</dd></dl>
+        <dt>임대인</dt><dd>${b.owners[0].n}${b.owners.length>1?` 외 ${b.owners.length-1}`:''}</dd></dl>
     </div>${d<=90?`<div class="hint" style="color:var(--warn)">만료 90일 이내입니다. 갱신하지 않으면 이 건물의 관리 권한이 소멸합니다.</div>`:''}</div>
   </div>`;
 }
