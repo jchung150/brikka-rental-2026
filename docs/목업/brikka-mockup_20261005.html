@@ -1139,17 +1139,15 @@ function calc(m,raw){
     o.cutS=o.fix?es-o.supply:es*(1-f); o.cutV=o.fix?ev-o.vat:ev*(1-f);
     return o;});
   const cutS=Math.floor(rows.reduce((a,r)=>a+(r.pro?r.cutS:0),0)), cutV=Math.floor(rows.reduce((a,r)=>a+(r.pro?r.cutV:0),0));
-  /* 절사 잔차 — 부담 비율이 가장 큰 계약에 붙인다. 일할하지 않은 계약을 먼저 고른다 */
-  const top=()=>{let k=-1,best=-1;rows.forEach((r,i)=>{if(!r.pro&&r.ratio>best){best=r.ratio;k=i;}});
-    if(k<0) rows.forEach((r,i)=>{if(!r.fix&&r.ratio>best){best=r.ratio;k=i;}});return k;};
-  const k=top();
-  if(k>=0){
-    const rs=sup-rows.reduce((a,r)=>a+r.supply,0)-cutS;
-    const rv=vat-rows.reduce((a,r)=>a+r.vat,0)-cutV;
-    rows[k].supply+=rs; rows[k].vat+=rv; rows[k].rnd=rs+rv;
-  }
+  /* 남는 원 단위 — 일할이 없으면 부담 비율이 가장 큰 계약에 붙여 고지서 금액에 맞춘다(4.1.8).
+     일할이 하나라도 있으면 임차인에게 억지로 맞추지 않고 건물주(공실·미청구분)가 가져간다 → 4.1.9 */
+  const anyPro=rows.some(r=>r.pro);
+  const rs=sup-rows.reduce((a,r)=>a+r.supply,0)-cutS, rv=vat-rows.reduce((a,r)=>a+r.vat,0)-cutV;
+  let k=-1;
+  if(!anyPro){let best=-1;rows.forEach((r,i)=>{if(r.ratio>best){best=r.ratio;k=i;}});}
+  if(k>=0){rows[k].supply+=rs; rows[k].vat+=rv; rows[k].rnd=rs+rv;}
   rows.forEach(r=>{r.amt=r.supply+r.vat; if(r.pro) r.orig=r.full;});
-  const cut=cutS+cutV;
+  const cut=cutS+cutV+(k<0?rs+rv:0);
   const sum=f=>rows.filter(f).reduce((a,r)=>a+r.amt,0);
   const bill=sum(r=>r.st==='사용중'), vc=sum(r=>r.st!=='사용중')+cut;
   const total=sup+vat;
@@ -2165,7 +2163,7 @@ function prcHTML(){
         <div class="c2" style="margin:0;white-space:normal">기산일·계약 종료일로 미리 채웠습니다. 양 끝 날짜를 모두 셉니다.</div></div>
       <div class="fg"><div class="fl">금액</div>
         ${V(m.name,won(prc.base))}
-        ${V('계산값',`${won(v)} <span class="c2">몫 × ${ad} ÷ ${pd}, 원 미만 버림 · 절사 잔차 다시 나눔</span>`)}
+        ${V('계산값',`${won(v)} <span class="c2">몫 × ${ad} ÷ ${pd}, 원 미만 버림</span>`)}
         <div class="fr"><span class="fk">조정 ${m.name}</span><input type="text" inputmode="numeric" value="${prc.amt===''?num(v):num(numOf(prc.amt))}"
           onchange="prcSet('amt',this.value)" style="text-align:right;max-width:140px"><span class="c2" style="margin:0">원 · 직접 고칠 수 있음</span></div>
         <div class="fr"><span class="fk">사유</span><input type="text" value="${prc.why}" placeholder="${prcWhy()}" oninput="prc.why=this.value"></div>
