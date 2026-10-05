@@ -2992,7 +2992,7 @@ function PAY13(){
   </div>`;
 }
 
-/* ═══ 계약 × 달 한 줄 — 수납 내역(PAY-6)과 계약 상세 「월별 청구·수납」 탭이 같은 모양을 쓴다 ═══ */
+/* ═══ 계약 × 달 한 줄 — 수납 내역(PAY-6)과 계약 상세 「청구·수납」 탭이 같은 모양을 쓴다 ═══ */
 /* 그룹 행 금액 — 들어온 전월 미납액은 더하고 전월 과납액은 뺀다 */
 const rcvSum=x=>({bill:x.bill+(x.carry?x.carry.amt:0)-(x.credit||0),paid:x.paid+(x.carry?x.carry.paid:0)-(x.credit||0),due:x.due+(x.carry?x.carry.due:0)});
 function rcvRow(x,o){
@@ -3857,10 +3857,10 @@ function CTR3head(c,k){
       <button class="btn" onclick="go('ctr-1')">목록</button></div>
   </div>
   <div class="tabs">
-    ${['요약','임차인','원장','월별 청구·수납','임대료·관리비','자료보관'].map(t=>`<button class="${t===tab3c?'on':''}" onclick="tab3c='${t}';render()">${t}</button>`).join('')}
+    ${['요약','임차인','청구·수납','원장','임대료·관리비','자료보관'].map(t=>`<button class="${t===tab3c?'on':''}" onclick="tab3c='${t}';render()">${t}</button>`).join('')}
   </div>`;
 }
-/* CTR-3 월별 청구·수납 탭 — 수납 내역(PAY-6)과 같은 줄을 이 계약 하나로. 미납·연체료가 있는 달은 「상세」로 미납 상세 패널 */
+/* CTR-3 청구·수납 탭 — 수납 내역(PAY-6)과 같은 줄을 이 계약 하나로. 미납·연체료가 있는 달은 「상세」로 미납 상세 패널 */
 let g7={};
 function CTR3month(c,k){
   const yms=[...new Set(BILLS.filter(i=>i.k===k).map(i=>i.ym))].sort().reverse();
@@ -3963,7 +3963,7 @@ const g3Tog=k=>{g3[k]=!g3Open(k);render(true);};
 function CTR3(k){
   const c=CTRS.find(x=>ckey(x)===k);
   if(!c) return TODO('ctr-1');
-  if(tab3c!=='원장') return CTR3head(c,k)+(tab3c==='요약'?CTR3sum(c,k):tab3c==='월별 청구·수납'?CTR3month(c,k):tab3c==='임대료·관리비'?CTR3rent(c,k)
+  if(tab3c!=='원장') return CTR3head(c,k)+(tab3c==='요약'?CTR3sum(c,k):tab3c==='청구·수납'?CTR3month(c,k):tab3c==='임대료·관리비'?CTR3rent(c,k)
     :`<div class="tbl"><div class="empty"><div class="t">아직 만들지 않은 탭입니다</div>목업에는 요약 · 원장 · 임대료·관리비 탭만 있습니다.</div></div>`);
   const bn=BUILDINGS.find(x=>x.id===c.b)||BUILDINGS[0];
   const L=ledgerOf(k);
@@ -4018,8 +4018,7 @@ function CTR3(k){
         <div class="n c2" style="margin:0">${r.cr?won(r.cr):''}</div>
         <div></div></div>`).join(''));}).join('');   /* 항목 줄은 같은 순간이라 잔액을 적지 않는다 */
     return `<div style="display:flex;align-items:center;gap:18px;margin:-6px 0 8px;font-size:12.5px">
-      <span><span class="c2" style="margin:0 6px 0 0">지금 매출채권</span>${now}</span>
-      <span><span class="c2" style="margin:0 6px 0 0">임대보증금</span><b>${won(L.bal.임대보증금)}</b></span>
+      <span><span class="c2" style="margin:0 6px 0 0">보증금</span><b>${won(L.bal.임대보증금)}</b></span>
       <span style="margin-left:auto">${G.length?`<button class="btn sm" onclick="g3All=${anyOp?'false':'true'};g3={};render(true)">${anyOp?'전체 접기':'전체 펼치기'}</button>`:''}</span></div>
     <div class="tbl schl">
       <div class="schr led hd"><div>날짜</div><div>거래유형</div><div>계정</div><div>내용</div>

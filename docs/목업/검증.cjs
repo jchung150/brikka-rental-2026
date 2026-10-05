@@ -99,7 +99,7 @@ run('PAY-2', 'PAY2()');
 run('CTR-1', 'CTR1()');
 for (const f of ["f1c.st=''", "f1c.b='b2'", "f1c.dd='90'", "f1c.dd='0'"]) run('CTR-1 필터 ' + f, "f1c={b:'',st:'진행중',dd:''};" + f + ';CTR1()');
 run('CTR-3 요약', "tab3c='요약';CTR3('b1별관3층')");
-run('CTR-3 월별 청구·수납', "seedJuly();tab3c='월별 청구·수납';g7={'2026-07':true,'2026-06':true};CTR3('b1별관3층')+CTR3('b1본관1층')+CTR3('b1본관B2')+CTR3('b21203호')");
+run('CTR-3 청구·수납', "seedJuly();tab3c='청구·수납';g7={'2026-07':true,'2026-06':true};CTR3('b1별관3층')+CTR3('b1본관1층')+CTR3('b1본관B2')+CTR3('b21203호')");
 run('CTR-3 빈 탭', "tab3c='자료보관';CTR3('b1별관3층')");
 run('CTR-3 임대료·관리비', "tab3c='임대료·관리비';CTR3('b1별관3층')+CTR3('b1본관301호')");
 run('CTR-3 계약 전환 메뉴', "CSW=true;tab3c='원장';CTR3('b1별관3층')");
@@ -499,8 +499,8 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   DD.f2.dd = '30'; const h30 = DD.PAY2(); DD.f2.dd = '60'; const h60 = DD.PAY2();
   r6.push(['미납 관리 연체일수 필터 — 30일 이상이면 비씨에이전시(41일)만 · 60일 이상이면 없음', /별관3층/.test(h30) && !/본관B2/.test(h30) && /60일 이상 밀린 계약이 없습니다/.test(h60)]); }
 { const MT = new Function(stub + bare + '; seedJuly(); return {CTR3,set tab3c(v){tab3c=v;}};')();
-  MT.tab3c = '월별 청구·수납'; const h = MT.CTR3('b1별관3층'), h2 = MT.CTR3('b1본관1층');
-  r6.push(['계약 상세 월별 청구·수납 — 비씨에이전시 6·7월 줄 · 미납 달에 상세 · 합계 미납 5,146,472 · 에스씨케이는 상세 없음',
+  MT.tab3c = '청구·수납'; const h = MT.CTR3('b1별관3층'), h2 = MT.CTR3('b1본관1층');
+  r6.push(['계약 상세 청구·수납 탭 — 비씨에이전시 6·7월 줄 · 미납 달에 상세 · 합계 미납 5,146,472 · 에스씨케이는 상세 없음',
     /2026년 07월분/.test(h) && /2026년 06월분/.test(h) && (h.match(/openDue\('b1별관3층'/g) || []).length === 2 && /5,146,472원/.test(h) && !/openDue/.test(h2)]); }
 const bad6 = r6.filter(x => !x[1]);
 if (bad6.length) fail = 1;
