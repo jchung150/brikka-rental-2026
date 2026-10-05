@@ -611,7 +611,7 @@ const BUILDINGS=[
  {id:'b1',name:'카리나빌딩',alias:'카리나',kind:'오피스빌딩',
   addr:'서울특별시 마포구 양화로 156',addr2:'서울 마포구 동교동 156-12',
   owner:'카리나',ownerBiz:'105-81-42117',owners:[{n:'카리나',biz:'105-81-42117',share:100}],built:'2009-04-10',approved:'2009-11-20',mgr:'슈퍼관리자',mgrTel:'010-3341-2205',
-  area:4820.5,gross:6240.8,up:8,down:2,park:24,pk:{up:4,down:16,mech:4},hvac:'EHP(시스템에어컨)',
+  area:4820.5,gross:6240.8,up:8,down:2,dong:[{n:'본관',up:8,down:2},{n:'별관',up:3,down:0}],park:24,pk:{up:4,down:16,mech:4},hvac:'EHP(시스템에어컨)',
   unitCnt:14,vacCnt:0,opCnt:0,vac:0,
   acct:'국민은행 812-01-0455-118',acctName:'카리나',feeAcct:'국민은행 812-01-0455-118',feeAcctName:'카리나',
   mgmtStart:'2025-03-01',mgmtEnd:'2027-02-28',fee:'임대료의 5%',mode:'임대인 직수취',
@@ -1486,8 +1486,7 @@ function t요약(b){
         <span class="lock">계약고유이름에 사용 — ${b.alias}|101호|임차인명</span></dd>
       <dt>건물구분</dt><dd>${b.kind}</dd>
       <dt>건물주소</dt><dd>${b.addr}<div class="c2">${b.addr2}</div></dd>
-      <dt>건축일</dt><dd>${b.built}</dd>
-      <dt>사용승인일</dt><dd>${b.approved}</dd>
+      <dt>건축일 · 사용승인일</dt><dd>${b.built} · ${b.approved}</dd>
       <dt>청구일</dt><dd>${b.billDay}</dd>
       <dt>납부마감일</dt><dd>${b.dueDay}</dd>
       <dt>건물관리자</dt><dd>${b.mgr}<span class="lock">${b.mgrTel}</span></dd>
@@ -1497,7 +1496,8 @@ function t요약(b){
       <span class="ca"><button class="btn sm">수정</button></span></div><div class="cc"><dl class="dl">
       <dt>연면적</dt><dd>${m2(b.gross)}</dd>
       <dt>임대가능면적</dt><dd>${m2(b.area)}</dd>
-      <dt>층수</dt><dd>지상 ${b.up}층 · 지하 ${b.down}층</dd>
+      ${b.dong?b.dong.map((g,i)=>`<dt>${i?'':'층수'}</dt><dd><b>${g.n}</b> 지상 ${g.up}층${g.down?` · 지하 ${g.down}층`:''}</dd>`).join('')
+        :`<dt>층수</dt><dd>지상 ${b.up}층 · 지하 ${b.down}층</dd>`}
       <dt>총 주차면수</dt><dd>${b.park}면<span class="lock">지상 자주식 ${b.pk.up} · 지하 자주식 ${b.pk.down} · 기계식 ${b.pk.mech}</span></dd>
       <dt>냉난방 방식</dt><dd>${b.hvac}</dd>
     </dl></div></div>
