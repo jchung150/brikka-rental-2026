@@ -3810,33 +3810,25 @@ function ledgerOf(k){
     rows.push({date:i.date||i.ym+'-19',type:'청구',acc:'매출채권',memo:i.memo||`${ymL} ${i.n}`,item:i.memo||`${ymL} ${i.n}`,bid:i.fee?null:i.id,
       g:i.fee?'fee'+i.id:'bill'+i.ym,ym:i.ym,ttl:i.memo,
       inc:i.amt,sup,vat:i.amt-sup,ord:1,pr:prioOf(i.n.split(' ')[0])});
-    (PAYEV[i.id]||[]).forEach(e=>rows.push({date:e.date,type:'수납',acc:'매출채권',
+    (PAYEV[i.id]||[]).filter(e=>!e.dep.startsWith('cr')).forEach(e=>rows.push({date:e.date,type:'수납',acc:'매출채권',
       memo:`${i.fee?'연체료':ymL+' '+i.n} ← ${e.src}`,item:i.fee?'연체료':`${ymL} ${i.n}`,src:e.src,g:'pay'+e.dep,dec:e.amt,sup:null,vat:null,ord:2,pr:prioOf(i.n.split(' ')[0]),
       hand:e.dep.startsWith('m'),sq:e.sq}));
   });
   /* 감액 — 받을 돈을 줄인다(대변). 이미 낸 청구라면 잔액이 0보다 작아져 과납이 된다 → PAY-5 */
   CUTS.filter(x=>x.k===k).forEach(x=>{const tax=isTaxItem(x.n), sup=tax?Math.round(x.amt/1.1):x.amt, t=`${x.ym.slice(2).replace('-','.')}월분 ${x.n} 감액 — ${x.why}`;
-    rows.push({date:x.date,type:'감액',acc:'매출채권',memo:t,item:t,g:'cut'+x.sq,dec:x.amt,sup,vat:x.amt-sup,ord:2.2,sq:x.sq});
-    MOVES.filter(m=>m.sq===x.sq).forEach(m=>{const y=`${m.ym.slice(2).replace('-','.')}월분 ${m.n}`;
-      rows.push({date:x.date,type:'수납 취소',acc:'매출채권',memo:`${y} 넘친 수납`,item:`${y} 넘친 수납 취소`,g:'cut'+x.sq,inc:m.amt,sup:null,vat:null,ord:2.1,sq:x.sq});
-      rows.push({date:x.date,type:'수납',acc:'매출채권',memo:'과납으로 옮김',item:'과납액 (청구항목 없음)',g:'cut'+x.sq,dec:m.amt,sup:null,vat:null,ord:2,sq:x.sq});});});
+    /* 넘친 수납을 과납으로 돌리는 일은 잔액을 바꾸지 않으므로 원장에 적지 않는다 → 2.7 */
+    rows.push({date:x.date,type:'감액',acc:'매출채권',memo:t,item:t,g:'cut'+x.sq,dec:x.amt,sup,vat:x.amt-sup,ord:2.2,sq:x.sq});});
   /* 남은 입금 — 청구 건 없이 이 계약에 수납으로 기록한다(과납) → 4.3.4 */
   Object.entries(RC.dec).forEach(([no,x])=>{const d=x.done;if(!d||!(d.rest>0)||d.ok!==k) return;
     rows.push({date:d.dt.slice(0,10),type:'수납',acc:'매출채권',memo:`과납 ← ${d.dt.slice(11,19)} ${d.name}`,item:'과납 (배분할 청구 없음)',src:`${d.dt.slice(11,19)} ${d.name}`,
       g:'payd'+no,dec:d.rest,sup:null,vat:null,ord:2,sq:1e9});});
-  /* 미납 이월 — 마감할 때 그 달 미납을 닫고(대변) 같은 금액으로 미납액을 연다(차변). 잔액은 그대로 → 4.3.6 */
+  /* 전월 미납액에 들어온 수납 — 실제로 들어온 돈이라 원장에 적는다 → 4.3.6 */
   MC_YMS.filter(v=>closeOn(c.b,v)).forEach(v=>{const vL=v.slice(2).replace('-','.')+'월분';
     (PAYEV[carryId(k,v)]||[]).forEach(e=>rows.push({date:e.date,type:'수납',acc:'매출채권',memo:`전월 미납액 ← ${e.src}`,item:'전월 미납액',src:e.src,
       g:'pay'+e.dep,dec:e.amt,sup:null,vat:null,ord:2,pr:0,hand:e.dep.startsWith('m'),sq:e.sq}));
-    const amt=carryAmt(k,v); if(!amt) return;
-    const own=carryParts(k,v).filter(p=>p.ym===v).reduce((a,p)=>a+p.amt,0), D=closeOn(c.b,v), ttl=`${vL} 마감 · 미납 이월`;
-    const R=o=>rows.push({date:D,type:'미납 이월',acc:'매출채권',memo:ttl,ttl,g:'cf'+v,sup:null,vat:null,ord:1.5,...o});
-    if(amt-own>0) R({item:'지난 전월 미납액 닫음',dec:amt-own,sq:0});
-    if(own>0) R({item:`${vL} 미납 닫음`,dec:own,sq:1});
-    R({item:`전월 미납액 열기 → ${ymNext(v).slice(2).replace('-','.')}월`,inc:amt,sq:2});});
+    /* 미납 이월 자체는 잔액을 바꾸지 않으므로 원장에 적지 않는다 → 2.7 */});
   /* 전월 과납액 배분 — 과납으로 받아 둔 수납을 취소하고(차변) 새 청구 건 수납으로 옮긴다. 수납 줄은 위 PAYEV에서 온다 */
-  CREDITS.filter(x=>x.k===k).forEach(x=>rows.push({date:x.date,type:'수납 취소',acc:'매출채권',memo:'전월 과납액',item:'전월 과납액 (과납 수납 취소)',
-    ttl:`전월 과납액 → ${x.ym.slice(2).replace('-','.')}월 청구에 배분`,g:'pay'+x.dep,inc:x.amt,sup:null,vat:null,ord:2.5,sq:x.sq}));
+  /* 전월 과납액을 새 청구에 배분한 일은 잔액을 바꾸지 않으므로 원장에 적지 않는다(아래 PAYEV에서도 뺀다) → 2.7 */
   /* 과납 환불 — 돌려준 돈(차변) */
   REFUNDS.filter(x=>x.k===k).forEach(x=>rows.push({date:x.date,type:'환불',acc:'매출채권',memo:`과납 환불${x.acct?' · '+x.acct:''}`,item:`과납 환불${x.acct?' · '+x.acct:''}`,
     g:'rf'+x.sq,inc:x.amt,sup:null,vat:null,ord:3,sq:x.sq}));
@@ -3900,7 +3892,7 @@ function CTR3(k){
         <div class="n"><b>${balTx(x.bal)}</b></div></div>`
       +(!op||!many?'':x.items.map(r=>`<div class="schr led sub">
         <div></div><div></div><div></div>
-        <div class="nm">${r.item}${r.bid&&r.type==='청구'?` <button class="btn sm" style="margin-left:8px;padding:1px 8px" onclick="event.stopPropagation();cutOpen('${r.bid}')">감액</button>`:''}</div>
+        <div class="nm">${r.item}</div>
         <div class="n c2" style="margin:0">${r.dr?won(r.dr):''}</div>
         <div class="n c2" style="margin:0">${r.cr?won(r.cr):''}</div>
         <div class="n c2" style="margin:0">${balTx(r.bal)}</div></div>`).join(''));}).join('');
@@ -3917,8 +3909,7 @@ function CTR3(k){
     이 계약의 모든 돈 거래입니다. 청구서 한 장, 입금 한 건을 한 줄로 묶었습니다. 펼치면 항목별로 보입니다.<br>
     최근 거래가 위에 있고, 잔액은 그 거래 직후의 금액입니다. 매출채권(받을 돈)과 임대보증금(돌려줄 돈)의 잔액은 따로 셉니다.<br>
     원장은 고치지 않습니다. 잘못된 거래는 취소 거래를 추가해 바로잡습니다. 연체료는 수납 처리에서 받기로 한 금액만 청구로 올라옵니다.<br>
-    청구를 줄여야 하면 청구서를 펼쳐 그 항목의 <b>감액</b>을 누릅니다. 오늘 날짜로 기록되므로 마감한 달의 청구도 줄일 수 있습니다.
-    이미 낸 청구를 줄이면 잔액이 <b>과납</b>이 됩니다. 과납은 다음 달로 넘어가 다음 청구에서 빠지고, 돌려줄 때는 위의 <b>환불</b>을 누릅니다.</div>`;
+    잔액을 바꾸지 않는 안쪽 옮김(미납 이월 · 전월 과납액 배분)은 적지 않습니다. 잔액이 0보다 작으면 <b>과납</b>이며, 돌려줄 때는 위의 <b>환불</b>을 누릅니다.</div>`;
 }
 
 /* ═══ 라우터 ═══ */

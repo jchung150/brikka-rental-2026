@@ -400,8 +400,8 @@ r6.push(['임대료·관리비 탭 — 분기 · 기산일 8월 청구 · 9월 �
   const post = OV.ctrPay(k, '2026-07'), item = post.it.find(i => i.n === '수도요금');
   const mv = L.rows.filter(r => r.g === cut.g);
   const shown = OV.ISSUE().find(c => c.no === '본관1층').over === 18000 && /−18,000원/.test(OV.PAY1());
-  r6.push(['감액 — 본관1층 7월 수도 18,000 · 08.07 감액 + 넘친 수납 취소 + 과납 수납 한 묶음 · 원장 잔액 −18,000 = 과납 · 7월은 08.05 마감 모습 그대로(수도 1,337,087 받음 · 완납 · 과납액 없음) · 8월 청구서에 −18,000 · 7월 마감 확인 통과',
-    cut && cut.dec === 18000 && cut.date === '2026-08-07' && mv.length === 3 && mv.some(r => r.type === '수납 취소' && r.inc === 18000)
+  r6.push(['감액 — 본관1층 7월 수도 18,000 · 원장엔 08.07 감액 한 줄(넘친 수납을 과납으로 돌린 일은 적지 않음) · 원장 잔액 −18,000 = 과납 · 7월은 08.05 마감 모습 그대로(수도 1,337,087 받음 · 완납 · 과납액 없음) · 8월 청구서에 −18,000 · 7월 마감 확인 통과',
+    cut && cut.dec === 18000 && cut.date === '2026-08-07' && mv.length === 1 && !L.rows.some(r => r.type === '수납 취소')
     && L.bal.매출채권 === -18000 && OV.overOf(k) === 18000
     && post.bill === OV.pre.bill && post.paid === post.bill && item.paid === 1337087 && item.st === '완납' && post.over === 0 && post.st === '완납'
     && shown && OV.mcChecks('b1', '2026-07').every(x => x.ok)]);
@@ -446,14 +446,13 @@ run('PAY-11 8월 과납 확인', "seedJuly();s11={b:'b1',ym:'2026-08'};PAY11();m
 /* 미납 이월 — 6월 마감(07.03) 때 비씨에이전시 5,054,474가 미납액으로 · 7/31 입금은 미납액에 · 7월 마감(08.05) 때 54,474 + 5,091,998 → 4.3.6 */
 { const CF = new Function(stub + bare + '; seedJuly(); return {ledgerOf,carryAmt,carryParts,ctrPay,MC,mcCarryUsed,mcOpen,mcApply,lateCalc,get mcx(){return mcx;},set s11(v){s11=v;}};')();
   const k = 'b1별관3층', L = CF.ledgerOf(k);
-  const g6 = L.rows.filter(r => r.g === 'cf2026-06'), g7 = L.rows.filter(r => r.g === 'cf2026-07');
-  const net = rs => rs.reduce((a, r) => a + (r.inc || 0) - (r.dec || 0), 0);
+  const noCf = !L.rows.some(r => r.type === '미납 이월'), cp = L.rows.filter(r => r.item === '전월 미납액');
   const p7 = CF.carryParts(k, '2026-07');
   const jun = CF.ctrPay(k, '2026-06'), jul = CF.ctrPay(k, '2026-07');
-  r6.push(['미납 이월 — 6월 마감 때 5,054,474 · 7월 마감 때 54,474(6월분) + 5,091,998(7월분) = 5,146,472 · 이월 묶음은 잔액을 바꾸지 않음 · 6월은 수납 0·미납으로 굳음 · 7월 미납액 행 5,054,474 중 5,000,000 받음 · 연체료 그대로',
+  r6.push(['미납 이월 — 6월 마감 때 5,054,474 · 7월 마감 때 54,474(6월분) + 5,091,998(7월분) = 5,146,472 · 원장엔 이월 줄 없이 7/31 「전월 미납액」 수납 5,000,000만 · 6월은 수납 0·미납으로 굳음 · 연체료 그대로',
     CF.carryAmt(k, '2026-06') === 5054474 && CF.carryAmt(k, '2026-07') === 5146472
     && p7.length === 2 && p7[0].ym === '2026-06' && p7[0].amt === 54474 && p7[1].amt === 5091998
-    && g6.length === 2 && g7.length === 3 && net(g6) === 0 && net(g7) === 0 && L.bal.매출채권 === 5146472
+    && noCf && cp.length === 1 && cp[0].dec === 5000000 && L.bal.매출채권 === 5146472
     && jun.paid === 0 && jun.st === '미납' && jul.carry.amt === 5054474 && jul.carry.paid === 5000000 && jul.st === '미납'
     && CF.lateCalc(k, '2026-06').fee === 51693]);
   const used6 = CF.mcCarryUsed('b1', '2026-06'), used7 = CF.mcCarryUsed('b1', '2026-07');
@@ -463,11 +462,11 @@ run('PAY-11 6월 마감 취소 패널(막힘)', "seedJuly();s11={b:'b1',ym:'2026
 run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1별관3층')+CTR3('b1본관B2')");
 /* 전월 과납액 — 에스씨케이컴퍼니 6월 과납 18,000 → 7/19 7월 청구에 먼저 배분 · 7월 입금은 그만큼 적고 완납 · 잔액 0 · 6월 입금 화면에 7월 청구가 섞이지 않음 */
 { const CR = new Function(stub + bare + '; seedJuly(); return {ctrPay,ledgerOf,CREDITS,RC,overOf};')();
-  const k = 'b1본관1층', j7 = CR.ctrPay(k, '2026-07'), L = CR.ledgerOf(k), g = L.rows.filter(r => r.g === 'paycr2026-07');
+  const k = 'b1본관1층', j7 = CR.ctrPay(k, '2026-07'), L = CR.ledgerOf(k), g = L.rows.filter(r => r.g === 'paycr2026-07' || /전월 과납액/.test(r.item || ''));
   const jun = ['105','106','108','109'].every(no => (CR.RC.dec[no].done.all || []).every(l => l.ym === '2026-06'));
-  r6.push(['전월 과납액 — 6월 과납 18,000이 7/19 7월 청구에 배분(과납 수납 취소 + 임대료 수납 한 묶음) · 7월 완납 · 청구 19,202,814 − 18,000 = 받을 돈 19,184,814 · 잔액 0 · 6월 입금 화면엔 6월 청구만',
+  r6.push(['전월 과납액 — 6월 과납 18,000이 7/19 7월 청구에 배분(원장엔 적지 않음) · 7월 완납 · 청구 19,202,814 − 18,000 = 받을 돈 19,184,814 · 잔액 0 · 6월 입금 화면엔 6월 청구만',
     CR.CREDITS.length === 1 && CR.CREDITS[0].amt === 18000 && j7.credit === 18000 && j7.st === '완납'
-    && g.length === 2 && g.reduce((a, r) => a + (r.inc || 0) - (r.dec || 0), 0) === 0 && L.bal.매출채권 === 0 && CR.overOf(k) === 0 && jun]); }
+    && g.length === 0 && L.bal.매출채권 === 0 && CR.overOf(k) === 0 && jun]); }
 const bad6 = r6.filter(x => !x[1]);
 if (bad6.length) fail = 1;
 console.log('⑥ 수납 기록 ' + (bad6.length ? '✗ ' + bad6.map(x => x[0]).join(' / ') : 'OK — ' + r6.length + '개 검산'));
