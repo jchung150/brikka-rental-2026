@@ -2071,7 +2071,7 @@ function mcHTML(){
       <button class="x" onclick="closeDrawer()">✕</button></div>
     <div class="db">
       ${undo&&mcCarryUsed(b,ym)?`<div class="prev warn2"><div class="pt">마감을 취소할 수 없습니다</div>
-          이 달 마감 때 넘어간 미납액에 이미 돈이 들어왔습니다. 마감을 풀면 그 돈을 이 달 청구에 다시 나눠야 해 장부가 꼬입니다.</div>`
+          이 달 마감 때 넘어간 전월 미납액에 이미 돈이 들어왔습니다. 마감을 풀면 그 돈을 이 달 청구에 다시 나눠야 해 장부가 꼬입니다.</div>`
       :undo?`<div class="prev warn2"><div class="pt">마감을 풀면 이 달의 장부를 다시 고칠 수 있게 됩니다</div>
           이미 보낸 임대인 보고서와 숫자가 달라질 수 있습니다. 확정한 정산은 마감을 풀어도 고치지 않습니다. 고친 뒤 다시 마감하세요.</div>
         <div class="fg" style="margin-top:14px"><div class="fl">취소 사유 (필수)</div>
@@ -2569,7 +2569,7 @@ const carryAmt=(k,ym)=>carryParts(k,ym).reduce((a,p)=>a+p.amt,0);
 function carryAt(k,t){
   const b=bOfK(k), ym=MC_YMS.slice().reverse().find(v=>closedBy(b,v,t)); if(!ym) return null;
   const amt=carryAmt(k,ym); if(!amt) return null; const c=CTRS.find(x=>ckey(x)===k);
-  return {id:carryId(k,ym),ym:ymNext(ym),from:ym,k,no:c.no,n:'미납액',amt,carry:true};
+  return {id:carryId(k,ym),ym:ymNext(ym),from:ym,k,no:c.no,n:'전월 미납액',amt,carry:true};
 }
 /* 미납액에 들어온 돈을 생긴 달별로 — 오래된 달 몫부터 줄인다 */
 function carryEv(k){
@@ -2988,7 +2988,7 @@ function PAY6(){
   const body=rows.map(x=>{
     const op=g6Open(x.k);
     const cr=x.carry, sub=!op?'':(cr?`
-      <div class="schr ctr sub"><div class="nm">미납액 <span class="c2">${cr.from.slice(2).replace('-','.')}월 마감 때 넘어온 돈</span></div>
+      <div class="schr ctr sub"><div class="nm">전월 미납액</div>
         <div class="n c2">${won(cr.amt)}</div><div class="n c2">${cr.paid?won(cr.paid):dash}</div>
         <div class="n">${cr.due?`<span style="color:var(--warn)">${won(cr.due)}</span>`:dash}</div>
         <div class="c"><span class="bd ${PST[cr.due?(x.st==='미납'&&closedBy(RC.b,RC.f.ym,TODAY_S)?'미납':cr.paid?'부분납':'미납'):'완납']}">${cr.due?(closedBy(RC.b,RC.f.ym,TODAY_S)?'미납':cr.paid?'부분납':'미납'):'완납'}</span></div></div>`:'')+x.it.map(i=>`
@@ -3039,7 +3039,7 @@ function PAY6(){
   <div class="hint">
     선택한 달의 청구를 계약별로 다 받았는지 봅니다. 금액은 부가세 포함입니다.<br>
     밀린 달 전부의 미납과 미납 안내는 미납 관리에서, 입금 한 건 한 건은 입금 매칭에서 봅니다.<br>
-    <b>미납액</b>은 지난달 마감 때 다 받지 못해 넘어온 돈입니다. 마감한 달은 그 뒤로 바뀌지 않고, 들어온 돈은 미납액부터 줄입니다.<br>
+    <b>전월 미납액</b>은 지난달 마감 때 다 받지 못해 넘어온 돈입니다. 마감한 달은 그 뒤로 바뀌지 않고, 들어온 돈은 전월 미납액부터 줄입니다.<br>
     <b>과납액</b>은 그 달 청구를 다 받고 남은 돈입니다. 입금은 우선순위대로 배분되므로 어느 항목의 돈이라고 할 수 없어 따로 한 줄로 둡니다.
     처리는 과오납 관리에서 합니다.</div>`;
 }
@@ -3321,7 +3321,7 @@ function PAY2(){
   const rows=all.filter(a=>f2.view==='all'||a.due>0||a.fee>0).sort((x,y)=>(y.due-x.due)||(y.fee-x.fee));
   const act=rows.filter(a=>a.due>0||a.fee>0);
   const T={due:act.reduce((a,x)=>a+x.due,0),fee:act.reduce((a,x)=>a+x.fee,0)};
-  const ovN=has?ovRows(RC.b).filter(r=>r.open):[];
+
   const nSel=rows.filter(a=>sel2[a.k]&&(a.due>0||a.fee>0)).length;
   const waitN=has?RC.P.dep.filter(rcIsOpen).length:0;
   const anyOp=rows.some(a=>g2Open(a.k));
@@ -3372,8 +3372,6 @@ function PAY2(){
   ${waitN?`<div class="fnd wa3"><span class="h">확정 전 입금 ${waitN}건</span>
     아직 기록되지 않은 입금이 있어 이미 낸 계약도 미납으로 보입니다.
     <b class="lk" onclick="go('pay-13')">입금 매칭으로 이동 →</b></div>`:''}
-  ${ovN.length?`<div class="fnd"><span class="h">돌려줄 돈 ${ovN.length}건 · ${won(ovN.reduce((a,r)=>a+r.amt,0))}</span>
-    과납·오납은 과오납 관리에서 다음 청구에서 빼기 또는 환불로 처리합니다. <b class="lk" onclick="go('pay-14')">과오납 관리로 이동 →</b></div>`:''}
   ${!rows.length?`<div class="tbl"><div class="empty"><div class="t">${has?'미납이 없습니다':'자료가 없습니다'}</div>
      ${has?'모든 계약이 완납 상태이고 연체료도 없습니다.':'목업 자료는 카리나빌딩뿐입니다.'}</div></div>`
   :`<div class="tbl schl">
@@ -3867,14 +3865,14 @@ function ledgerOf(k){
       g:'payd'+no,dec:d.rest,sup:null,vat:null,ord:2,sq:1e9});});
   /* 미납 이월 — 마감할 때 그 달 미납을 닫고(대변) 같은 금액으로 미납액을 연다(차변). 잔액은 그대로 → 4.3.6 */
   MC_YMS.filter(v=>closeOn(c.b,v)).forEach(v=>{const vL=v.slice(2).replace('-','.')+'월분';
-    (PAYEV[carryId(k,v)]||[]).forEach(e=>rows.push({date:e.date,type:'수납',acc:'매출채권',memo:`미납액 ← ${e.src}`,item:'미납액',src:e.src,
+    (PAYEV[carryId(k,v)]||[]).forEach(e=>rows.push({date:e.date,type:'수납',acc:'매출채권',memo:`전월 미납액 ← ${e.src}`,item:'전월 미납액',src:e.src,
       g:'pay'+e.dep,dec:e.amt,sup:null,vat:null,ord:2,pr:0,hand:e.dep.startsWith('m'),sq:e.sq}));
     const amt=carryAmt(k,v); if(!amt) return;
     const own=carryParts(k,v).filter(p=>p.ym===v).reduce((a,p)=>a+p.amt,0), D=closeOn(c.b,v), ttl=`${vL} 마감 · 미납 이월`;
     const R=o=>rows.push({date:D,type:'미납 이월',acc:'매출채권',memo:ttl,ttl,g:'cf'+v,sup:null,vat:null,ord:1.5,...o});
-    if(amt-own>0) R({item:'지난 미납액 닫음',dec:amt-own,sq:0});
+    if(amt-own>0) R({item:'지난 전월 미납액 닫음',dec:amt-own,sq:0});
     if(own>0) R({item:`${vL} 미납 닫음`,dec:own,sq:1});
-    R({item:`미납액 열기 → ${ymNext(v).slice(2).replace('-','.')}월`,inc:amt,sq:2});});
+    R({item:`전월 미납액 열기 → ${ymNext(v).slice(2).replace('-','.')}월`,inc:amt,sq:2});});
   /* 과납 환불 — 돌려준 돈(차변) */
   REFUNDS.filter(x=>x.k===k).forEach(x=>rows.push({date:x.date,type:'환불',acc:'매출채권',memo:`과납 환불${x.acct?' · '+x.acct:''}`,item:`과납 환불${x.acct?' · '+x.acct:''}`,
     g:'rf'+x.sq,inc:x.amt,sup:null,vat:null,ord:3,sq:x.sq}));

@@ -187,7 +187,7 @@ r6.push(['처음 입금한 이름이 상호와 같으면 미매칭이되 임차�
 /* 배분 미리보기는 채우지 못하는 청구까지 보여야 한다 */
 const pvB = W.rcPreview(P6.dep.find(d => d.no === 12), '비씨에이전시', W.rcBiz());
 r6.push(['미리보기 — 비씨에이전시 6월은 마감(07.03)이라 미납액 한 줄 5,054,474 + 7월 6개 항목 · 미납액부터 채우고 배분 후 미납 5,146,472',
-  pvB.all.length === 7 && pvB.lines[0].n === '미납액' && pvB.lines[0].due === 5054474 && pvB.all.reduce((a, l) => a + l.due - l.pay, 0) === 5146472]);
+  pvB.all.length === 7 && pvB.lines[0].n === '전월 미납액' && pvB.lines[0].due === 5054474 && pvB.all.reduce((a, l) => a + l.due - l.pay, 0) === 5146472]);
 /* 입금 매칭 — 대기열 순서(입금일시 오름차순)대로 한 건씩 임차인을 고르고 확정한다 */
 const PICK = {1:'루비뮤직', 2:'케이큐엔터테이먼트', 3:'케이더블유인터내셔널', 5:'아이씨비', 7:'에스씨케이컴퍼니',
   8:'아마데우스', 9:'고우컴퍼니', 10:'유니버셜대부', 12:'비씨에이전시', 24:'좋은생각사람들'};
@@ -398,7 +398,7 @@ r6.push(['임대료·관리비 탭 — 분기 · 기산일 8월 청구 · 9월 �
   const k = 'b1본관1층', L = OV.ledgerOf(k), cut = L.rows.find(r => r.type === '감액');
   const post = OV.ctrPay(k, '2026-07');
   const item = post.it.find(i => i.n === '수도요금');
-  const shown = /본관1층/.test(OV.PAY14()) && /18,000원/.test(OV.PAY14()) && /과오납 관리로 이동/.test(OV.PAY2()) && !/과납 18,000원/.test(OV.PAY2())
+  const shown = /본관1층/.test(OV.PAY14()) && /18,000원/.test(OV.PAY14()) && !/과납 18,000원/.test(OV.PAY2())
     && OV.ISSUE().find(c => c.no === '본관1층').over === 18000;
   const julOK = OV.mcChecks('b1', '2026-07').every(x => x.ok) && !OV.mcChecks('b1', '2026-08').find(x => x.t === '처리하지 않은 과오납').ok;
   const mv = L.rows.filter(r => r.g === cut.g);
