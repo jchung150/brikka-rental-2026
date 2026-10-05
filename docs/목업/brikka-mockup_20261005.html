@@ -613,7 +613,7 @@ const BUILDINGS=[
  {id:'b1',name:'카리나빌딩',alias:'카리나',kind:'오피스빌딩',
   addr:'서울특별시 마포구 양화로 156',addr2:'서울 마포구 동교동 156-12',
   owner:'카리나',ownerBiz:'105-81-42117',owners:[{n:'카리나',biz:'105-81-42117',share:60},{n:'윈터',biz:'214-07-63390',share:40}],built:'2009-04-10',approved:'2009-11-20',mgr:'슈퍼관리자',mgrTel:'010-3341-2205',
-  area:4820.5,gross:6240.8,up:8,down:2,dong:[{n:'본관',up:8,down:2},{n:'별관',up:3,down:0}],park:24,pk:{up:4,down:16,mech:4},hvac:'EHP(시스템에어컨)',
+  area:4820.5,gross:6240.8,up:8,down:2,dong:[{n:'본관',up:8,down:2},{n:'별관',up:3,down:0}],park:24,pk:{up:4,down:16,mech:4},hvac:['EHP(시스템에어컨)'],
   unitCnt:14,vacCnt:0,opCnt:0,vac:0,
   acct:'국민은행 812-01-0455-118',acctName:'카리나',feeAcct:'국민은행 812-01-0455-118',feeAcctName:'카리나',
   mgmtStart:'2025-03-01',mgmtEnd:'2027-02-28',fee:'임대료의 5%',mode:'임대인 직수취',
@@ -645,7 +645,7 @@ const BUILDINGS=[
 
  {id:'b2',name:'뉴진스하우스',alias:'뉴진스',kind:'오피스빌딩',addr:'서울특별시 용산구 이촌로 248',addr2:'서울 용산구 이촌동 301-8',
   owner:'뉴진스',ownerBiz:'220-13-88402',owners:[{n:'뉴진스',biz:'220-13-88402',share:60},{n:'민지',biz:'110-24-55031',share:40}],built:'2015-02-03',approved:'2016-06-28',mgr:'슈퍼관리자',mgrTel:'010-3341-2205',
-  area:7240.0,gross:9820.4,up:12,down:3,park:48,pk:{up:6,down:38,mech:4},hvac:'중앙공조',unitCnt:22,vacCnt:1,opCnt:0,vac:4.5,
+  area:7240.0,gross:9820.4,up:12,down:3,park:48,pk:{up:6,down:38,mech:4},hvac:['중앙공조','EHP(시스템에어컨)'],unitCnt:22,vacCnt:1,opCnt:0,vac:4.5,
   acct:'신한은행 140-012-772301',acctName:'뉴진스',feeAcct:'신한은행 140-012-772415',feeAcctName:'뉴진스 관리비',
   mgmtStart:'2024-09-18',mgmtEnd:'2026-09-17',fee:'월 2,400,000원',mode:'임대인 직수취',
   bondBank:'신한은행 이촌동지점',bondTel:'02-797-1120',bondMax:4200000000,bondNow:3100000000,
@@ -653,7 +653,7 @@ const BUILDINGS=[
 
  {id:'b4',name:'카즈하타워',alias:'카즈하',kind:'복합상가',addr:'서울특별시 마포구 월드컵로 12',addr2:'서울 마포구 합정동 381-4',
   owner:'카즈하',ownerBiz:'113-86-20447',owners:[{n:'카즈하',biz:'113-86-20447',share:100}],built:'2012-08-01',approved:'2013-03-15',mgr:'슈퍼관리자',mgrTel:'010-3341-2205',
-  area:3180.6,gross:4120.2,up:6,down:1,park:14,pk:{up:4,down:10,mech:0},hvac:'개별 EHP',unitCnt:14,vacCnt:2,opCnt:0,vac:12.4,
+  area:3180.6,gross:4120.2,up:6,down:1,park:14,pk:{up:4,down:10,mech:0},hvac:['EHP(시스템에어컨)'],unitCnt:14,vacCnt:2,opCnt:0,vac:12.4,
   acct:'우리은행 1005-903-442118',acctName:'카즈하',feeAcct:'우리은행 1005-903-442118',feeAcctName:'카즈하',
   mgmtStart:'2025-07-01',mgmtEnd:'2027-06-30',fee:'임대료의 4%',mode:'임대인 직수취',
   bondBank:'우리은행 문래지점',bondTel:'02-2632-4410',bondMax:900000000,bondNow:640000000,
@@ -1391,13 +1391,13 @@ const setF1p=(k,v)=>{f1p[k]=v;render();};
    공용시설 · 주차면은 하나씩 늘어나는 목록이라 등록 후 상세에서 넣는다 ═══ */
 let nb=null;
 const BKIND=['오피스빌딩','근린생활시설(상가)','지식산업센터','복합상가','물류창고','기타'];   /* 건물구분 → 3.1 */
-const BHVAC=['중앙공조','EHP(시스템에어컨)','지역난방','개별냉난방'];                  /* 냉난방 방식 → 3.1 */
+const BHVAC=['중앙공조','EHP(시스템에어컨)','GHP(가스 시스템에어컨)','지역난방','개별냉난방'];   /* 냉난방 방식 → 3.1. 여러 개 고를 수 있고, 목록에 없으면 기타에 직접 쓴다 */
 /* 건물관리자 — 사용자 관리(USER-3)에 등록된 관리자 중에서만 고른다. 여기서 새로 만들지 않는다 → 3.7 */
 const BMGRS=[{n:'슈퍼관리자',tel:'010-3341-2205'},{n:'김관리',tel:'010-5521-0934'},{n:'박현장',tel:'010-7716-2280'}];
 const DAY_OPTS=[...Array.from({length:28},(_,i)=>`${i+1}일`)];
 function nbInit(){
   nb={name:'',alias:'',kind:'',addr:'',addr2:'',built:'',approved:'',bm:'당월',bd:'',dm:'당월',dd:'',mgr:'슈퍼관리자',
-      gross:'',area:'',dong:[{n:'',up:'',down:''}],pkUp:'',pkDown:'',pkMech:'',hvac:'',
+      gross:'',area:'',dong:[{n:'',up:'',down:''}],pkUp:'',pkDown:'',pkMech:'',hvac:[],hvx:'',
       owners:[{biz:'',found:null,n:'',kind:'개인',email:'',tel:'',share:'100'}],
       rb:'',ra:'',rn:'',same:true,fb:'',fa:'',fn:'',
       bb:'',bt:'',bmax:'',bnow:'',mg:false,ms:'',me:'',fk:'요율',fv:'',tried:false};
@@ -1434,7 +1434,7 @@ function nbSave(){
     owner:own[0].n,ownerBiz:own[0].biz,owners:own,built:nb.built||'—',approved:nb.approved||'—',mgr:m.n,mgrTel:m.tel,
     area:numOf(nb.area),gross:numOf(nb.gross),up:Math.max(...dong.map(g=>g.up)),down:Math.max(...dong.map(g=>g.down)),
     dong:dong.length>1||dong[0].n?dong:undefined,pk:{up:parseInt(nb.pkUp)||0,down:parseInt(nb.pkDown)||0,mech:parseInt(nb.pkMech)||0},park:nbPark(),
-    hvac:nb.hvac||'—',unitCnt:0,vacCnt:0,opCnt:0,vac:0,
+    hvac:[...nb.hvac,...(nb.hvx.trim()?[nb.hvx.trim()]:[])],unitCnt:0,vacCnt:0,opCnt:0,vac:0,
     acct,acctName:nb.rn.trim(),feeAcct:nb.same?acct:`${nb.fb.trim()} ${nb.fa.trim()}`,feeAcctName:nb.same?nb.rn.trim():nb.fn.trim(),
     mgmtStart:nb.mg?nb.ms:'',mgmtEnd:nb.mg?nb.me:'',fee:nb.mg&&nb.fv?(nb.fk==='요율'?`임대료의 ${nb.fv}%`:`월 ${numOf(nb.fv).toLocaleString('ko-KR')}원`):'—',mode:'임대인 직수취',
     bondBank:[nb.bb.trim()].filter(Boolean).join(' '),bondTel:nb.bt.trim(),bondMax:numOf(nb.bmax),bondNow:numOf(nb.bnow),
@@ -1452,11 +1452,13 @@ function PRO2(){
   const S=(f,opts,ph)=>`<select onchange="nbSet('${f}',this.value)">${ph?`<option value="">${ph}</option>`:''}${opts.map(o=>`<option ${nb[f]===o?'selected':''}>${o}</option>`).join('')}</select>`;
   const R=(k,body,req)=>`<div class="fr"><span class="fk">${k}${req?' <b style="color:var(--warn)">*</b>':''}</span>${body}</div>`;
   const box=b=>`<div style="border:1px solid var(--line);border-radius:var(--r-sm);padding:10px 12px 2px;margin-bottom:10px">${b}</div>`;
-  const card=(t,body,sub)=>`<div class="card" style="margin:0 0 16px"><div class="ct">${t}${sub?`<span class="sub">${sub}</span>`:''}</div><div class="cc">${body}</div></div>`;
+  const card=(t,body,sub,act)=>`<div class="card" style="margin:0 0 16px"><div class="ct">${t}${sub?`<span class="sub">${sub}</span>`:''}${act?`<span class="ca">${act}</span>`:''}</div><div class="cc">${body}</div></div>`;
   const sh=nbShare();
-  const basic=card('기본 정보',`<div class="bpw"><div class="bpd">
+  const basic=card('기본 정보',`
       ${R('건물명',T('name','예: 카리나빌딩'),1)}
-      ${R('건물 별칭',T('alias','예: 카리나',160)+`<span class="c2" style="margin:0">계약고유이름 예: <b style="color:var(--ink)">${nb.alias.trim()||'카리나'}|본관5층|(주)테온하우스</b></span>`,1)}
+      ${R('건물 별칭',T('alias','예: 카리나',160),1)}
+      <div class="c2" style="margin:-4px 0 10px 138px;white-space:normal;line-height:1.6">건물을 짧게 부르는 이름입니다. 모든 목록에서 계약은 <b style="color:var(--ink)">건물 별칭|유닛|임차인</b> 순서로 표시됩니다.<br>
+        예: <b style="color:var(--ink)">${nb.alias.trim()||'카리나'}|본관5층|(주)테온하우스</b> — ${nb.alias.trim()||'카리나'} 건물 본관5층을 (주)테온하우스가 쓰는 계약. 짧을수록 목록에서 읽기 쉽습니다.</div>
       ${R('건물구분',S('kind',BKIND,'선택'),1)}
       ${R('건물주소',T('addr','도로명 주소'),1)}
       ${R('',T('addr2','지번 주소'))}
@@ -1466,9 +1468,10 @@ function PRO2(){
       ${R('납부마감일',`<select onchange="nbSet('dm',this.value)" style="flex:none;width:76px">${['당월','익월'].map(o=>`<option ${nb.dm===o?'selected':''}>${o}</option>`).join('')}</select>
           <select onchange="nbSet('dd',this.value)" style="flex:none;width:90px"><option value="">선택</option>${[...DAY_OPTS,'말일'].map(o=>`<option ${nb.dd===o?'selected':''}>${o}</option>`).join('')}</select>`,1)}
       ${nb.bd&&nb.dd?`<div class="c2" style="margin:-4px 0 9px 138px">예: 8월분 청구서 → ${ruleEx(nbBill(),'2026-08')} 청구 · ${ruleEx(nbDue(),'2026-08')}까지 납부</div>`:''}
-      ${R('건물관리자',`<select onchange="nbSet('mgr',this.value)">${BMGRS.map(x=>`<option ${nb.mgr===x.n?'selected':''}>${x.n}</option>`).join('')}</select>
-`)}
-    </div>${bphHTML({id:'new',name:nb.name||'새 건물'})}</div>`);
+      ${R('건물관리자',`<select onchange="nbSet('mgr',this.value)">${BMGRS.map(x=>`<option ${nb.mgr===x.n?'selected':''}>${x.n}</option>`).join('')}</select>`)}
+      ${R('건물 사진',BPHOTO.new?`<img src="${BPHOTO.new}" alt="" style="width:36px;height:48px;object-fit:cover;border-radius:4px;flex:none">
+          <button class="btn sm" onclick="bphPick('new')">바꾸기</button><button class="btn sm" onclick="delete BPHOTO.new;render(true)">삭제</button>`
+        :`<button class="btn sm" onclick="bphPick('new')">파일 올리기</button><span class="c2" style="margin:0">한 장 · JPG·PNG · 세로로 긴 사진</span>`)}`);
   const spec=card('건물 제원',
       R('연면적',N('gross','','㎡'))+R('임대가능면적',N('area','','㎡'))
       +'<div class="c2" style="margin:0 0 8px">본관·별관처럼 동이 여럿이면 동마다 한 줄. 동이 하나면 동 이름은 비워 둡니다</div>'
@@ -1481,7 +1484,10 @@ function PRO2(){
           <span class="c2" style="margin:0">지하 자주식</span><input type="text" inputmode="numeric" value="${nb.pkDown}" onchange="nbSet('pkDown',this.value)" style="max-width:52px">
           <span class="c2" style="margin:0">기계식</span><input type="text" inputmode="numeric" value="${nb.pkMech}" onchange="nbSet('pkMech',this.value)" style="max-width:52px">`)
       +R('총 주차면수',`<span class="fv"><b>${nbPark()}면</b></span>`)
-      +R('냉난방 방식',S('hvac',BHVAC,'선택')));
+      +R('냉난방 방식',`<div style="display:flex;gap:6px 14px;flex-wrap:wrap;align-items:center">${BHVAC.map(v=>`<label class="ck"><input type="checkbox" ${nb.hvac.includes(v)?'checked':''}
+          onchange="nb.hvac=this.checked?[...nb.hvac,'${v}']:nb.hvac.filter(x=>x!=='${v}');render(true)">${v}</label>`).join('')}
+          <span class="c2" style="margin:0">기타</span><input type="text" value="${nb.hvx}" placeholder="직접 입력" onchange="nbSet('hvx',this.value)" style="max-width:140px"></div>`)
+      +'<div class="c2" style="margin:-4px 0 0 138px">여러 개 고를 수 있습니다(예: 공용부 중앙공조 + 호실 EHP)</div>');
   const owner=card('임대인 정보',
       '<div class="c2" style="margin:-4px 0 10px">공동 소유면 임대인을 모두 넣고 지분 합계를 100%로 맞춥니다</div>'
       +nb.owners.map((o,i)=>box(
@@ -1494,11 +1500,11 @@ function PRO2(){
           +R('이메일',`<input type="text" value="${o.email}" onchange="nbRow('owners',${i},'email',this.value)">`)
           +R('연락처',`<input type="text" value="${o.tel}" onchange="nbRow('owners',${i},'tel',this.value)">`))
         +R('보유지분',`<input type="text" inputmode="decimal" value="${o.share}" onchange="nbRow('owners',${i},'share',this.value)" style="max-width:70px"><span class="c2" style="margin:0">%</span>`,1))).join('')
-      +R('',`<button class="btn sm" onclick="nb.owners.push({biz:'',found:null,n:'',kind:'개인',email:'',tel:'',share:''});render(true)">+ 임대인 추가</button>
-          <span class="c2" style="margin:0 0 0 auto">지분 합계 <b style="color:var(--${sh===100?'ink':'warn'})">${sh}%</b></span>`)
+      +`<div class="c2" style="margin:-2px 0 16px;text-align:right">지분 합계 <b style="color:var(--${sh===100?'ink':'warn'})">${sh}%</b></div>`
       +R('임대료 납부 계좌',`${T('rb','은행',90)}${T('ra','계좌번호')}${T('rn','예금주',90)}`,1)
       +R('관리비 납부 계좌',`<label class="ck"><input type="checkbox" ${nb.same?'checked':''} onchange="nbSet('same',this.checked)">임대료 납부 계좌와 같음</label>`,1)
-      +(nb.same?'':R('',`${T('fb','은행',90)}${T('fa','계좌번호')}${T('fn','예금주',90)}`)));
+      +(nb.same?'':R('',`${T('fb','은행',90)}${T('fa','계좌번호')}${T('fn','예금주',90)}`)),'',
+      `<button class="btn sm" onclick="nb.owners.push({biz:'',found:null,n:'',kind:'개인',email:'',tel:'',share:''});render(true)">+ 임대인 추가</button>`);
   const bond=card('채권 정보',
       '<div class="c2" style="margin:-4px 0 10px">등기부등본 기준. 없으면 비워 둡니다</div>'
       +R('은행 · 지점',T('bb','예: 국민은행 서교동지점'))+R('연락처',T('bt'))
@@ -1513,13 +1519,13 @@ function PRO2(){
         +R('운영방식',`<span class="fv">임대인 직수취 <span class="lock">위탁사 수취 후 정산은 2차</span></span>`)
         +R('위임계약서','<span class="fv c2">등록 후 자료보관 탭에 올립니다</span>'):''));
   return `<div class="nbw">
-  <div class="ph"><h1>새로운 건물 등록</h1><span class="sid">PRO-2</span>
-    <div class="act"><button class="btn" onclick="nb=null;go('pro-1')">취소</button></div></div>
+  <div class="ph"><h1>새로운 건물 등록</h1><span class="sid">PRO-2</span></div>
   ${basic}
   ${spec}${owner}${bond}${mgmt}
   ${miss.length?`<div class="fnd wa3" style="margin-bottom:12px"><span class="h">저장할 수 없습니다</span>빠진 항목: <b>${miss.join(' · ')}</b></div>`:''}
   <div style="display:flex;gap:8px;justify-content:flex-end;align-items:center;padding:14px 0;border-top:1px solid var(--line)">
     <span class="c2" style="margin-right:auto"><b style="color:var(--warn)">*</b> 필수 · 나머지는 비워 두고 건물 상세에서 채울 수 있습니다 · 저장하면 건물 상세로 이동합니다</span>
+    <button class="btn" onclick="nb=null;go('pro-1')">취소</button>
     <button class="btn pri" onclick="nbSave()">저장</button></div>
   <div class="hint">
     건물 상세 요약 탭과 같은 카드, 같은 순서입니다. 공용시설과 주차면은 저장한 뒤 건물 상세에서 하나씩 넣습니다.<br>
@@ -1678,7 +1684,7 @@ function t요약(b){
       ${b.dong?b.dong.map((g,i)=>`<dt>${i?'':'층수'}</dt><dd><b>${g.n}</b> 지상 ${g.up}층${g.down?` · 지하 ${g.down}층`:''}</dd>`).join('')
         :`<dt>층수</dt><dd>지상 ${b.up}층 · 지하 ${b.down}층</dd>`}
       <dt>총 주차면수</dt><dd>${b.park}면<span class="lock">지상 자주식 ${b.pk.up} · 지하 자주식 ${b.pk.down} · 기계식 ${b.pk.mech}</span></dd>
-      <dt>냉난방 방식</dt><dd>${b.hvac}</dd>
+      <dt>냉난방 방식</dt><dd>${b.hvac.length?b.hvac.join(' · '):'—'}</dd>
     </dl></div></div>
     <div class="card"><div class="ct">임대인 정보
       <span class="ca"><button class="btn sm">수정</button></span></div><div class="cc"><dl class="dl">
