@@ -1504,10 +1504,8 @@ function t요약(b){
     <div class="card"><div class="ct">임대인 정보
       <span class="ca"><button class="btn sm">수정</button></span></div><div class="cc"><dl class="dl">
       ${b.owners.map((o,i)=>`<dt>${i?'':'임대인(건물주)'}</dt><dd>${o.n} <b>${o.share}%</b><span class="lock">${o.biz}</span></dd>`).join('')}
-      <dt>임대료 납부 계좌</dt><dd>${b.acct}</dd>
-      <dt>예금주</dt><dd>${b.acctName}</dd>
-      <dt>관리비 납부 계좌</dt><dd>${b.feeAcct}</dd>
-      <dt>예금주</dt><dd>${b.feeAcctName}</dd>
+      <dt>임대료 납부 계좌</dt><dd>${b.acct}<span class="lock">${b.acctName}</span></dd>
+      <dt>관리비 납부 계좌</dt><dd>${b.feeAcct}<span class="lock">${b.feeAcctName}</span></dd>
       <dt>채권 정보</dt><dd>${b.bondMax?`${b.bondBank}<span class="lock">${b.bondTel}</span>`:'<span style="color:var(--muted)">등록된 채권 정보가 없습니다</span>'}</dd>
       ${b.bondMax?`<dt>채권최고금액</dt><dd>${won(b.bondMax)}<span class="lock">${eok(b.bondMax)}</span></dd>
       <dt>실제채권금액</dt><dd>${won(b.bondNow)}<span class="lock">${eok(b.bondNow)}</span></dd>`:''}
