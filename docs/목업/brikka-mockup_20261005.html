@@ -525,7 +525,7 @@ table.nowr th,table.nowr td{white-space:nowrap}
             <div class="nd">카리나빌딩 · 8/5 마감. 미납 1건은 다음 달로 이월됐습니다.</div></div>
           <span class="ng">5일 전</span></div>
         <div class="ni" onclick="go('pro-3/b2')"><span class="bd ac">정보</span>
-          <div class="nb"><div class="nt">관리위임계약 만료 임박</div>
+          <div class="nb"><div class="nt">위탁운영계약 만료 임박</div>
             <div class="nd">뉴진스하우스 · 38일 남음</div></div>
           <span class="ng">어제</span></div>
       </div>
@@ -626,7 +626,7 @@ const BUILDINGS=[
    {loc:'지하 자주식',n:'B1-05',t:'장애인',memo:'',as:'',asu:''},{loc:'지하 자주식',n:'B2-01',t:'일반',memo:'',as:'(유)유니버셜대부',asu:'본관302호'},
    {loc:'기계식',n:'M-01',t:'일반',memo:'SUV 불가 · 높이 1.55m 이하',as:'',asu:''}],
   docs:[
-   {t:'관리위임계약서_카리나빌딩_2025.pdf',sz:'1.2 MB',c:'건물서류',by:'슈퍼관리자',at:'2025-02-24 14:20'},
+   {t:'위탁운영계약서_카리나빌딩_2025.pdf',sz:'1.2 MB',c:'건물서류',by:'슈퍼관리자',at:'2025-02-24 14:20'},
    {t:'등기부등본_20260801.pdf',sz:'340 KB',c:'건물서류',by:'슈퍼관리자',at:'2026-08-01 09:12'},
    {t:'건축물대장.pdf',sz:'2.1 MB',c:'건물서류',by:'슈퍼관리자',at:'2025-03-02 11:40'},
    {t:'2026년 화재보험증권.pdf',sz:'880 KB',c:'기타',by:'슈퍼관리자',at:'2026-01-08 16:05'}],
@@ -1390,7 +1390,7 @@ const setF1p=(k,v)=>{f1p[k]=v;render();};
 /* ═══ PRO-2 건물 등록 — 건물 상세 요약 탭과 같은 카드 · 같은 순서를 입력 칸으로 바꾼 화면.
    공용시설 · 주차면은 하나씩 늘어나는 목록이라 등록 후 상세에서 넣는다 ═══ */
 let nb=null;
-const BKIND=['오피스빌딩','근린생활시설(상가)','지식산업센터','복합상가','물류창고','기타'];   /* 건물구분 → 3.1 */
+const BKIND=['오피스빌딩','근린생활시설(상가)','지식산업센터','복합상가','물류창고','기타'];   /* 건물유형 → 3.1 */
 const BHVAC=['중앙공조','EHP(시스템에어컨)','GHP(가스 시스템에어컨)','지역난방','개별냉난방'];   /* 냉난방 방식 → 3.1. 여러 개 고를 수 있고, 목록에 없으면 기타에 직접 쓴다 */
 /* 건물관리자 — 사용자 관리(USER-3)에 등록된 관리자 중에서만 고른다. 여기서 새로 만들지 않는다 → 3.7 */
 const BMGRS=[{n:'슈퍼관리자',tel:'010-3341-2205'},{n:'김관리',tel:'010-5521-0934'},{n:'박현장',tel:'010-7716-2280'}];
@@ -1415,14 +1415,14 @@ const nbPark=()=>['pkUp','pkDown','pkMech'].reduce((a,f)=>a+(parseInt(nb[f])||0)
 function nbMissing(){const m=[];
   if(!nb.name.trim()) m.push('건물명');
   if(!nb.alias.trim()) m.push('건물 별칭'); else if(BUILDINGS.some(b=>b.alias===nb.alias.trim())) m.push('건물 별칭(이미 쓰는 별칭)');
-  if(!nb.kind) m.push('건물구분'); if(!nb.addr.trim()) m.push('건물주소');
+  if(!nb.kind) m.push('건물유형'); if(!nb.addr.trim()) m.push('건물주소');
   if(!nb.bd) m.push('청구일'); if(!nb.dd) m.push('납부마감일');
   if(nb.bd&&nb.dd&&dnum(dayRule(nbDue(),'2026-08'))<=dnum(dayRule(nbBill(),'2026-08'))) m.push('납부마감일(청구일보다 뒤여야 함)');
   if(nb.owners.some(o=>!o.biz.trim()||!o.n.trim())) m.push('임대인(사업자등록번호 · 이름)');
   if(nbShare()!==100) m.push(`지분 합계 100%(지금 ${nbShare()}%)`);
   if(!nb.rb.trim()||!nb.ra.trim()||!nb.rn.trim()) m.push('임대료 납부 계좌');
   if(!nb.same&&(!nb.fb.trim()||!nb.fa.trim()||!nb.fn.trim())) m.push('관리비 납부 계좌');
-  if(nb.mg&&(!nb.ms||!nb.me)) m.push('관리위임계약 기간');
+  if(nb.mg&&(!nb.ms||!nb.me)) m.push('위탁운영계약 기간');
   return m;}
 function nbSave(){
   nb.tried=true; if(nbMissing().length){render(true);return;}
@@ -1457,9 +1457,8 @@ function PRO2(){
   const basic=card('기본 정보',`
       ${R('건물명',T('name','예: 카리나빌딩'),1)}
       ${R('건물 별칭',T('alias','예: 카리나',160),1)}
-      <div class="c2" style="margin:-4px 0 10px 138px;white-space:normal;line-height:1.6">건물을 짧게 부르는 이름입니다. 모든 목록에서 계약은 <b style="color:var(--ink)">건물 별칭|유닛|임차인</b> 순서로 표시됩니다.<br>
-        예: <b style="color:var(--ink)">${nb.alias.trim()||'카리나'}|본관5층|(주)테온하우스</b> — ${nb.alias.trim()||'카리나'} 건물 본관5층을 (주)테온하우스가 쓰는 계약. 짧을수록 목록에서 읽기 쉽습니다.</div>
-      ${R('건물구분',S('kind',BKIND,'선택'),1)}
+      <div class="c2" style="margin:-4px 0 10px 138px;white-space:normal;line-height:1.6">건물을 짧게 부르는 이름입니다. 모든 목록에서 계약은 <b style="color:var(--ink)">건물 별칭|유닛|임차인</b> 순서로 표시됩니다.</div>
+      ${R('건물유형',S('kind',BKIND,'선택'),1)}
       ${R('건물주소',T('addr','도로명 주소'),1)}
       ${R('',T('addr2','지번 주소'))}
       ${R('건축일 · 사용승인일',D('built')+D('approved'))}
@@ -1471,7 +1470,7 @@ function PRO2(){
       ${R('건물관리자',`<select onchange="nbSet('mgr',this.value)">${BMGRS.map(x=>`<option ${nb.mgr===x.n?'selected':''}>${x.n}</option>`).join('')}</select>`)}
       ${R('건물 사진',BPHOTO.new?`<img src="${BPHOTO.new}" alt="" style="width:36px;height:48px;object-fit:cover;border-radius:4px;flex:none">
           <button class="btn sm" onclick="bphPick('new')">바꾸기</button><button class="btn sm" onclick="delete BPHOTO.new;render(true)">삭제</button>`
-        :`<button class="btn sm" onclick="bphPick('new')">파일 올리기</button><span class="c2" style="margin:0">한 장 · JPG·PNG · 세로로 긴 사진</span>`)}`);
+        :`<button class="btn sm" onclick="bphPick('new')">파일 올리기</button><span class="c2" style="margin:0">한 장 · JPG·PNG · 세로로 긴 사진(권장 900×1200px, 가로:세로 3:4)</span>`)}`);
   const spec=card('건물 제원',
       R('연면적',N('gross','','㎡'))+R('임대가능면적',N('area','','㎡'))
       +'<div class="c2" style="margin:0 0 8px">본관·별관처럼 동이 여럿이면 동마다 한 줄. 동이 하나면 동 이름은 비워 둡니다</div>'
@@ -1509,15 +1508,15 @@ function PRO2(){
       '<div class="c2" style="margin:-4px 0 10px">등기부등본 기준. 없으면 비워 둡니다</div>'
       +R('은행 · 지점',T('bb','예: 국민은행 서교동지점'))+R('연락처',T('bt'))
       +R('채권최고금액',N('bmax'))+R('실제채권금액',N('bnow')));
-  const mgmt=card('관리위임계약',
-      `<label class="ck"><input type="checkbox" ${nb.mg?'checked':''} onchange="nbSet('mg',this.checked)">관리위임계약 있음</label>
+  const mgmt=card('위탁운영계약',
+      `<label class="ck"><input type="checkbox" ${nb.mg?'checked':''} onchange="nbSet('mg',this.checked)">위탁운영계약 있음</label>
        <div class="c2" style="margin:6px 0 10px">건물주가 직접 관리하는 건물은 비워 둡니다</div>`
       +(nb.mg?R('기간',D('ms')+'<span class="c2" style="margin:0">~</span>'+D('me'),1)
         +R('관리 수수료',`<select onchange="nbSet('fk',this.value)" style="flex:none;width:84px">${['요율','정액'].map(v=>`<option ${nb.fk===v?'selected':''}>${v}</option>`).join('')}</select>
             <input type="text" inputmode="decimal" value="${nb.fv}" placeholder="${nb.fk==='요율'?'임대료의 %':'월 금액'}" onchange="nbSet('fv',this.value)" style="max-width:120px">
             <span class="c2" style="margin:0">${nb.fk==='요율'?'%':'원'}</span>`)
         +R('운영방식',`<span class="fv">임대인 직수취 <span class="lock">위탁사 수취 후 정산은 2차</span></span>`)
-        +R('위임계약서','<span class="fv c2">등록 후 자료보관 탭에 올립니다</span>'):''));
+        +R('위탁운영계약서','<span class="fv c2">등록 후 자료보관 탭에 올립니다</span>'):''));
   return `<div class="nbw">
   <div class="ph"><h1>새로운 건물 등록</h1><span class="sid">PRO-2</span></div>
   ${basic}
@@ -1536,7 +1535,7 @@ function PRO2(){
 function PRO1(){
   const q=f1p.q.trim();
   const list=BUILDINGS.filter(b=>(!q||[b.name,b.addr,b.addr2,b.owner,b.mgr].some(x=>(x||'').includes(q)))
-    &&(!f1p.kind||b.kind===f1p.kind)&&(!f1p.vac||(f1p.vac==='1'?b.vacCnt>0:b.vacCnt===0)));
+    &&(!f1p.kind||b.kind===f1p.kind));
   const rows=list.map(b=>{
     const d=dday(b.mgmtEnd);
     return `<tr onclick="go('pro-3/${b.id}')">
@@ -1556,9 +1555,7 @@ function PRO1(){
   </div>
   <div class="fbar">
     <select onchange="setF1p('kind',this.value)"><option value="">전체 건물유형</option>
-      ${[...new Set(BUILDINGS.map(b=>b.kind))].map(k=>`<option ${f1p.kind===k?'selected':''}>${k}</option>`).join('')}</select>
-    <select onchange="setF1p('vac',this.value)">
-      ${[['','공실 전체'],['1','공실 있음'],['0','공실 없음']].map(([v,t])=>`<option value="${v}" ${f1p.vac===v?'selected':''}>${t}</option>`).join('')}</select>
+      ${BKIND.map(k=>`<option ${f1p.kind===k?'selected':''}>${k}</option>`).join('')}</select>
   </div>
   <div class="tbl"><div class="tw"><table>
     <thead><tr>
@@ -1670,7 +1667,7 @@ function t요약(b){
       <dt>건물명</dt><dd>${b.name}</dd>
       <dt>건물 별칭</dt><dd><b>${b.alias}</b>
         <span class="lock">계약고유이름에 사용 — ${b.alias}|101호|임차인명</span></dd>
-      <dt>건물구분</dt><dd>${b.kind}</dd>
+      <dt>건물유형</dt><dd>${b.kind}</dd>
       <dt>건물주소</dt><dd>${b.addr}<div class="c2">${b.addr2}</div></dd>
       <dt>건축일 · 사용승인일</dt><dd>${b.built} · ${b.approved}</dd>
       <dt>청구일</dt><dd>${b.billDay}<span class="lock">예: 8월분 → ${ruleEx(b.billDay,'2026-08')}</span></dd>
@@ -1715,17 +1712,17 @@ function t요약(b){
           {t:'삭제',go:`pkDel('${b.id}',${pi})`,off:p.as?'배정된 주차면입니다. 배정을 먼저 해제하세요':''}])}</td></tr>`).join('')}</tbody>
     </table></div>`:'<div class="empty">등록된 주차면이 없습니다.</div>'}
   </div>
-  ${!b.mgmtEnd?`<div class="card"><div class="ct">관리위임계약<span class="ca"><button class="btn sm">수정</button></span></div>
-    <div class="cc"><div style="padding:6px 0;color:var(--muted)">관리위임계약이 없습니다. 건물주가 직접 관리합니다.</div></div></div>`
+  ${!b.mgmtEnd?`<div class="card"><div class="ct">위탁운영계약<span class="ca"><button class="btn sm">수정</button></span></div>
+    <div class="cc"><div style="padding:6px 0;color:var(--muted)">위탁운영계약이 없습니다. 건물주가 직접 관리합니다.</div></div></div>`
   :`<div class="card" style="${d<=90?'border-color:var(--warn)':''}">
-    <div class="ct">관리위임계약
+    <div class="ct">위탁운영계약
       <span class="sub">${b.mgmtStart} ~ ${b.mgmtEnd}</span>
       ${ddBadge(b.mgmtEnd)}
       <span class="ca"><button class="btn sm">수정</button></span></div>
     <div class="cc"><div class="two" style="gap:0 40px">
       <dl class="dl"><dt>관리 수수료</dt><dd>${b.fee}</dd>
         <dt>운영방식</dt><dd>${b.mode}<span class="lock">위탁사 수취 후 정산은 2차</span></dd></dl>
-      <dl class="dl"><dt>위임계약서</dt><dd>${b.docs.length?'<span style="color:var(--pri);cursor:pointer">관리위임계약서_카리나빌딩_2025.pdf</span>':'<span style="color:var(--muted)">미등록</span>'}</dd>
+      <dl class="dl"><dt>위탁운영계약서</dt><dd>${b.docs.length?'<span style="color:var(--pri);cursor:pointer">위탁운영계약서_카리나빌딩_2025.pdf</span>':'<span style="color:var(--muted)">미등록</span>'}</dd>
         <dt>임대인</dt><dd>${b.owners[0].n}${b.owners.length>1?` 외 ${b.owners.length-1}`:''}</dd></dl>
     </div>${d<=90?`<div class="hint" style="color:var(--warn)">만료 90일 이내입니다. 갱신하지 않으면 이 건물의 관리 권한이 소멸합니다.</div>`:''}</div>
   </div>`}`;

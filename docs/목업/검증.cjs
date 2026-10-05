@@ -521,9 +521,9 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   const dup = NB.nbMissing().some(m => /이미 쓰는 별칭/.test(m)), share = NB.nbMissing().some(m => /지분 합계 100%/.test(m));
   NB.nb.alias = '윈터'; NB.nb.owners.push({biz:'105-81-42117', n:'카리나', share:'40'}); NB.nb.dong = [{n:'본관',up:'10',down:'2'},{n:'별관',up:'3',down:''}]; NB.nb.pkUp = '5'; NB.nb.pkDown = '20';
   NB.nbSave(); const b = NB.BUILDINGS.at(-1), h = NB.PRO3(b.id);
-  r6.push(['건물 등록 — 필수 빠지면 막힘 · 별칭 중복 · 지분 100% · 저장 → 동 2개 · 주차 25면 · 관리비 계좌 = 임대료 계좌 · 상세 열림(위임계약 없음)',
+  r6.push(['건물 등록 — 필수 빠지면 막힘 · 별칭 중복 · 지분 100% · 저장 → 동 2개 · 주차 25면 · 관리비 계좌 = 임대료 계좌 · 상세 열림(위탁운영계약 없음)',
     blocked && dup && share && NB.BUILDINGS.length === 4 && b.alias === '윈터' && b.dong.length === 2 && b.park === 25
-    && b.feeAcct === '하나은행 123-456' && b.owners.length === 2 && /관리위임계약이 없습니다/.test(h)]); }
+    && b.feeAcct === '하나은행 123-456' && b.owners.length === 2 && /위탁운영계약이 없습니다/.test(h)]); }
 /* 계약 상세 주차정보 · 냉난방기 — 배정 주차면은 건물 주차면 기록과 하나 · 냉난방기 구분 없으면 저장 안 됨 */
 { const CP = new Function(stub + bare + '; seedJuly(); return {CTR3,cpkOpen,chvOpen,cx3Save,BUILDINGS,CHVAC,parksOf,CTRS,get cx3(){return cx3;}};')();
   const c = CP.CTRS.find(x => x.no === '본관8층'), b = CP.BUILDINGS.find(x => x.id === 'b1');
