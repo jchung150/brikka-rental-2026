@@ -2079,10 +2079,10 @@ function mcReport(){
 }
 function mcDo(v,mode){s11={b:s11.b,ym:v};mcOpen(mode);}
 function PAY11(){
-  const {b}=s11, bn=BUILDINGS.find(x=>x.id===b);
-  const nx=mcNext(b), NS=mcState(b,nx), ymL=v=>v.replace('-','년 ').replace(/년 0/,'년 ')+'월';
+  const {b}=s11;
+  const ymL=v=>v.replace('-','년 ').replace(/년 0/,'년 ')+'월';
   const dash='<span style="color:var(--faint)">—</span>';
-  /* 달 목록 — 최근 달이 위. 행을 누르면 마감 전 확인이 펼쳐진다 */
+  /* 달 목록 — 고른 연도의 달. 최근 달이 위 */
   const rows=MC_YMS.slice().reverse().map(v=>{const S=mcState(b,v), N=mcNum(b,v), can=S.k==='마감', on=can&&!!sel11[v];
     const set=v<'2026-08'?'확정':PROG[b].settle;
     const act=S.k==='마감'?`<span class="more" onclick="mcDo('${v}','undo')">마감 취소</span>`
@@ -2109,7 +2109,7 @@ function PAY11(){
     <select onchange="mcBld(this.value)">
       ${BUILDINGS.map(x=>`<option value="${x.id}" ${b===x.id?'selected':''}>${x.name}</option>`).join('')}
     </select>
-    <span class="c2">납부마감 ${bn.dueDay||'매월 말일'} · ${NS.k==='열림'?`<b style="color:var(--warn)">${ymL(nx)}이 마감을 기다립니다</b>`:`마감할 달 없음 · ${ymL(nx)}은 진행 중`}</span>
+    <select title="목업 자료는 2026년만 있습니다"><option selected>2026년</option></select>
   </div>
   <div class="tbl"><div class="tw"><table class="pgrid mcl">
     <thead><tr><th>청구년월</th><th class="c">정산</th><th class="n">청구서</th><th class="n">청구액</th><th class="n">수납액</th>
