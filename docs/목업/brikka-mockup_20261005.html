@@ -318,6 +318,11 @@ td.c,th.c{text-align:center}
 .cn i{color:var(--faint);font-style:normal;margin:0 1px}
 .c2{font-size:11.5px;color:var(--muted);margin-top:2px;white-space:nowrap}
 .det{color:var(--muted);font-size:12px;cursor:pointer}
+/* 표의 가장 오른쪽 「더보기」 칸 — 버튼이 아니라 링크. 못 하는 일은 흐린 글씨로 두고 이유를 title에 → 3.8 */
+.more{color:var(--pri);font-size:12px;cursor:pointer;text-decoration:underline;text-underline-offset:2px;white-space:nowrap}
+.more:hover{color:var(--pri-hov)}
+.more.off{color:var(--faint);cursor:default;text-decoration:none}
+.more + .more{margin-left:10px}
 .det:hover{color:var(--pri)}
 .cb{width:16px;height:16px;border:1.5px solid var(--line);border-radius:4px;display:inline-block;vertical-align:-3px}
 
@@ -2079,9 +2084,9 @@ function PAY11(){
   /* 달 목록 — 최근 달이 위. 행을 누르면 마감 전 확인이 펼쳐진다 */
   const rows=MC_YMS.slice().reverse().map(v=>{const S=mcState(b,v), N=mcNum(b,v), can=S.k==='마감', on=can&&!!sel11[v];
     const set=v<'2026-08'?'확정':PROG[b].settle;
-    const act=S.k==='마감'?`<button class="btn sm" onclick="mcDo('${v}','undo')">마감 취소</button>`
-      :S.k==='진행 중'?`<button class="btn sm pri" disabled title="청구서 발행 전">마감</button>`
-      :`<button class="btn sm pri" onclick="mcDo('${v}','close')">마감</button>`;
+    const act=S.k==='마감'?`<span class="more" onclick="mcDo('${v}','undo')">마감 취소</span>`
+      :S.k==='진행 중'?`<span class="more off" title="청구서 발행 전이라 마감할 수 없습니다">마감</span>`
+      :`<span class="more" onclick="mcDo('${v}','close')">마감</span>`;
     return `<tr class="${on?'on':''}">
       <td>${can?`<span class="cb ${on?'on':''}" style="cursor:pointer" onclick="mcPick('${v}',event)"></span>`:'<span class="cb dis" title="마감한 달만 보고서를 발행할 수 있습니다"></span>'}
         <b style="margin-left:8px">${ymL(v)}</b></td>
@@ -2107,7 +2112,7 @@ function PAY11(){
   </div>
   <div class="tbl"><div class="tw"><table class="pgrid mcl">
     <thead><tr><th>청구년월</th><th class="c">정산</th><th class="n">청구서</th><th class="n">청구액</th><th class="n">수납액</th>
-      <th class="n">이 달 청구분 미납</th><th class="c">마감</th><th>마감일시 · 마감자</th><th></th></tr></thead>
+      <th class="n">이 달 청구분 미납</th><th class="c">마감</th><th>마감일시 · 마감자</th><th class="c">더보기</th></tr></thead>
     <tbody>${rows}</tbody></table></div></div>
   <div class="hint">
     <b>월 마감</b>은 그 달의 장부를 잠그는 일입니다. 마감한 달의 청구·수납은 고칠 수 없고, 정정은 이번 달의 감액·추가 청구로 합니다. 확정한 정산은 마감을 취소해도 고치지 않습니다.<br>
@@ -3318,8 +3323,16 @@ function dueHTML(){
         ${R('받은 돈',m.pays.length?m.pays.map(x=>`${won(x.amt)}(${ymd(x.date)})`).join('<br>'):'없음')}
         ${R('남은 미납액',m.due?`<b style="color:var(--warn)">${won(m.due)}</b>`:'0원')}
         ${R('연체료',`<b>${won(m.fee)}</b>`)}
-        ${m.periods.length?R('계산법',`총 ${late}일 연체<div style="font-size:12px;color:var(--muted);line-height:1.8;margin-top:2px">${m.periods.map(q=>
-          `${md(q.from)} ~ ${md(q.to)} · ${q.days}일 동안 ${won(q.bal)} 밀림 → ${won(q.fee)}`).join('<br>')}</div>`):''}
+        ${m.periods.length?`<div style="margin-top:14px;border:1px solid var(--line);border-radius:var(--r);background:var(--side-hov);overflow:hidden">
+          <div style="display:flex;align-items:baseline;padding:10px 14px;border-bottom:1px solid var(--line)">
+            <b style="font-size:12.5px">계산법</b><span class="c2" style="margin:0 0 0 8px">총 ${late}일 연체 · 연체이자율 연 ${a.rate}%</span></div>
+          <table style="font-size:12px;background:none">
+            <thead><tr><th style="background:none;padding:7px 14px">기간</th><th class="n" style="background:none;padding:7px 8px">일수</th>
+              <th class="n" style="background:none;padding:7px 8px">밀린 금액</th><th class="n" style="background:none;padding:7px 14px">연체료</th></tr></thead>
+            <tbody>${m.periods.map(q=>`<tr style="cursor:default"><td style="padding:7px 14px">${md(q.from)} ~ ${md(q.to)}</td><td class="n" style="padding:7px 8px">${q.days}일</td>
+              <td class="n" style="padding:7px 8px">${won(q.bal)}</td><td class="n" style="padding:7px 14px">${won(q.fee)}</td></tr>`).join('')}
+              <tr style="cursor:default"><td colspan="3" style="padding:8px 14px;border-top:1px solid var(--line);color:var(--muted)">합계</td>
+                <td class="n" style="padding:8px 14px;border-top:1px solid var(--line)"><b>${won(m.fee)}</b></td></tr></tbody></table></div>`:''}
       </div>`;}).join('')}
     </div>
     <div class="df"><button class="btn" onclick="closeDrawer()">닫기</button>
@@ -3380,7 +3393,7 @@ function PAY2(){
       <div class="n">${a.days?`${a.days}일`:dash}</div>
       <div class="n">연 ${a.rate}%</div>
       <div class="n">${a.fee?won(a.fee):dash}</div>
-      <div class="c">${a.due||a.fee?`<button class="btn sm" onclick="event.stopPropagation();openPay('${a.k}')">수납</button>`:''}</div>
+      <div class="c">${a.due||a.fee?`<span class="more" onclick="event.stopPropagation();openPay('${a.k}')">수납</span>`:''}</div>
     </div>`+(!op?'':a.months.map(m=>`
     <div class="schr arr sub mo" onclick="openDue('${a.k}','${m.ym}')" title="누르면 이 달의 상세가 오른쪽에 열립니다">
       <div class="nm">${m.ym.replace('-','년 ')}월분 <span class="c2">청구 ${won(m.bill)}</span></div>
@@ -3388,7 +3401,7 @@ function PAY2(){
       <div class="n c2" style="margin:0">${m.days?`${m.days}일`:m.lateDone?`${m.lateDone}일 늦게 완납`:'—'}</div>
       <div></div>
       <div class="n">${m.fee?won(m.fee):'—'}</div>
-      <div class="c"><span class="det">상세</span></div>
+      <div class="c"><span class="more">상세</span></div>
     </div>`).join(''));
   }).join('');
   return `
@@ -3412,7 +3425,7 @@ function PAY2(){
      ${has?'모든 계약이 완납 상태이고 연체료도 없습니다.':'목업 자료는 카리나빌딩뿐입니다.'}</div></div>`
   :`<div class="tbl schl">
     <div class="schr arr hd"><div>계약고유이름 · 청구년월</div><div class="n">미납액</div>
-      <div class="n">연체일수</div><div class="n">연체이자율</div><div class="n">연체료(예상)</div><div></div></div>
+      <div class="n">연체일수</div><div class="n">연체이자율</div><div class="n">연체료(예상)</div><div class="c">더보기</div></div>
     ${body}
     <div class="schr arr sum"><div>합계 <span class="lock">계약 ${act.length}</span></div>
       <div class="n">${T.due?`<span style="color:var(--warn)">${won(T.due)}</span>`:'—'}</div><div></div><div></div>
@@ -3421,7 +3434,7 @@ function PAY2(){
   <div class="hint">
     미납이 있는 계약을 모았습니다. 청구액을 다 냈어도 연체료가 남았으면 미납입니다. 계약 줄을 누르면 달별 미납이 펼쳐지고, 달을 누르면 그 달의 <b>미납 상세</b>가 오른쪽에 열립니다.<br>
     다 냈어도 늦게 냈다면 연체료가 남습니다.<br>
-    현금·카드로 받았거나 보증금에서 빼면 계약 줄의 수납을 누르세요. 은행 입금은 입금 매칭에서 처리합니다.<br>
+    현금·카드로 받았거나 보증금에서 빼면 계약 줄 더보기의 <b>수납</b>을 누르세요. 은행 입금은 입금 매칭에서 처리합니다.<br>
     연체료는 수납할 때 정리합니다. 전액 받기 · 50% 감면 · 직접 입력 · 전액 감면 중에서 고릅니다.</div>`;
 }
 
