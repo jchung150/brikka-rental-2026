@@ -496,10 +496,13 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   r6.push(['청구 정정 — 두 방향 같은 칸·같은 버튼 · 사유 없으면 막힘 · 7월 전기요금 더 받기 55,000 → 8월 청구서에 「26.07월분 전기요금 정정」(세금계산서)',
     same && noWhy && r && r.n === '26.07월분 전기요금 정정' && r.doc === '세금계산서' && ln && ln.amt === 55000]); }
 /* 수납 내역 더보기 — 받을 돈이 있는 계약(비씨에이전시)만 수납 처리가 눌리고, 다 받은 계약(에스씨케이컴퍼니)은 흐림 · 원장 보기는 모두 */
-{ const MV = new Function(stub + bare + '; seedJuly(); return {PAY6,RC};')();
-  MV.RC.f = {b:'b1', ym:'2026-07', st:''}; const h = MV.PAY6();
-  r6.push(['수납 내역 더보기 — 비씨에이전시 수납 처리 눌림 · 에스씨케이컴퍼니 흐림 · 원장 보기',
-    h.includes(`openPay('b1별관3층')`) && !h.includes(`openPay('b1본관1층')`) && h.includes(`go('ctr-3/b1본관1층')`) && /class="more off"[^>]*>수납 처리/.test(h)]); }
+{ const MV = new Function(stub + bare + '; seedJuly(); return {PAY6,RC,MORE};')();
+  MV.RC.f = {b:'b1', ym:'2026-07', st:''}; MV.MORE.length = 0; const h = MV.PAY6();
+  const at = no => MV.MORE.find(m => m[0].go === `openPay('b1${no}')`);
+  const bc = at('별관3층'), sc = at('본관1층');
+  r6.push(['수납 내역 더보기 — ⋮ 드롭다운 · 수납 처리/청구서 보기/원장 보기 · 비씨에이전시 수납 처리 눌림 · 에스씨케이컴퍼니 흐림',
+    /moreOpen\(/.test(h) && bc && sc && bc.map(i => i.t).join() === '수납 처리,청구서 보기,원장 보기'
+    && !bc[0].off && !!sc[0].off && sc[2].go.includes(`go('ctr-3/b1본관1층')`)]); }
 { const DD = new Function(stub + bare + '; seedJuly(); return {PAY2,f2};')();
   DD.f2.dd = '30'; const h30 = DD.PAY2(); DD.f2.dd = '60'; const h60 = DD.PAY2();
   r6.push(['미납 관리 연체일수 필터 — 30일 이상이면 비씨에이전시(41일)만 · 60일 이상이면 없음', /별관3층/.test(h30) && !/본관B2/.test(h30) && /60일 이상 밀린 계약이 없습니다/.test(h60)]); }

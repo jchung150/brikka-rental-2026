@@ -323,6 +323,13 @@ td.c,th.c{text-align:center}
 .more:hover{color:var(--pri)}
 .more.off{color:var(--faint);cursor:default;text-decoration:none}
 .more + .more{margin-left:10px}
+.more.mtg{font-size:16px;line-height:1;padding:0 6px;letter-spacing:0}
+.mmenu{position:fixed;min-width:130px;background:var(--bg);border:1px solid var(--line);border-radius:var(--r);
+  box-shadow:0 10px 30px rgba(0,0,0,.13);z-index:60;padding:5px}
+.mmenu .mi{padding:7px 10px;border-radius:var(--r-sm);cursor:pointer;font-size:12.5px;white-space:nowrap}
+.mmenu .mi:hover{background:var(--side-hov);color:var(--pri)}
+.mmenu .mi.off{color:var(--faint);cursor:default}
+.mmenu .mi.off:hover{background:none;color:var(--faint)}
 .det:hover{color:var(--pri)}
 .cb{width:16px;height:16px;border:1.5px solid var(--line);border-radius:4px;display:inline-block;vertical-align:-3px}
 
@@ -454,7 +461,7 @@ tr.off td:not(:last-child):not(:nth-last-child(2)){opacity:.5}
 table.nowr th,table.nowr td{white-space:nowrap}
 .rcr{grid-template-columns:minmax(150px,.7fr) minmax(170px,1fr) 130px minmax(240px,1.4fr) 180px}
 .rcr > :nth-child(4){padding-left:28px}
-.ctr{grid-template-columns:minmax(260px,1fr) 150px 150px 150px 100px 150px}
+.ctr{grid-template-columns:minmax(260px,1fr) 150px 150px 150px 100px 80px}
 .ctm{grid-template-columns:minmax(200px,1fr) 150px 150px 150px 100px 80px}
 .schr.dep .nm{color:var(--muted)}
 .led{grid-template-columns:96px 92px 76px minmax(260px,1fr) 124px 124px 132px}
@@ -3020,11 +3027,34 @@ function rcvRow(x,o){
       <div class="c"><span class="bd ${PST[x.st]}">${x.st}</span></div>${o.more!==undefined?`<div class="c">${o.more}</div>`:''}</div>`+sub;
 }
 
+/* ═══ 더보기 — 표 맨 오른쪽 칸. 할 일이 하나면 링크, 둘 이상이면 ⋮ 드롭다운 → 3.8
+   할 수 없는 일은 흐린 글씨로 두고 이유는 마우스를 올리면 보인다. items: [{t, go, off}] ═══ */
+const MORE=[];
+function moreCell(items){
+  if(items.length===1){const i=items[0];
+    return i.off?`<span class="more off" title="${i.off}">${i.t}</span>`:`<span class="more" onclick="event.stopPropagation();${i.go}">${i.t}</span>`;}
+  const id=MORE.push(items)-1;
+  return `<span class="more mtg" title="더보기" onclick="event.stopPropagation();moreOpen(${id},this)">⋮</span>`;
+}
+function moreOpen(id,el){
+  moreClose(); const r=el.getBoundingClientRect(), m=document.createElement('div');
+  m.className='mmenu'; m.id='mmenu';
+  m.innerHTML=MORE[id].map((i,n)=>i.off?`<div class="mi off" title="${i.off}">${i.t}</div>`:`<div class="mi" data-n="${n}">${i.t}</div>`).join('');
+  m.style.top=(r.bottom+4)+'px'; m.style.right=(window.innerWidth-r.right)+'px';
+  m.onclick=e=>{e.stopPropagation();const n=e.target.dataset.n; if(n==null) return; moreClose(); new Function(MORE[id][n].go)();};
+  document.body.appendChild(m);
+  setTimeout(()=>{document.addEventListener('click',moreClose,{once:true});window.addEventListener('scroll',moreClose,{once:true});});
+}
+function moreClose(){const m=document.getElementById&&document.getElementById('mmenu'); if(m) m.remove();}
+
 /* ═══ PAY-6 수납 내역 — 계약 기준 조회 화면. 한 계약 × 한 달이 한 행 ═══ */
 let g6={}, g6All=false;
 const g6Open=k=>(k in g6)?g6[k]:g6All;
 const g6Tog=k=>{g6[k]=!g6Open(k);render(true);};
 const g6Set=v=>{g6All=v;g6={};render(true);};
+/* 청구서 보기 — 그 달 발행해 보낸 청구서 PDF 그대로 */
+function billView(k,ym){const c=CTRS.find(x=>ckey(x)===k);
+  alert(`청구서 PDF — ${c.ten} · ${c.no} · ${ym.replace('-','년 ')}월분\n발행해 보낸 청구서를 그대로 엽니다.`);}
 function PAY6(){
   const bn=BUILDINGS.find(x=>x.id===RC.f.b)||BUILDINGS[0];
   const has=RC.f.b===RC.b&&['2026-06','2026-07'].includes(RC.f.ym);
@@ -3036,11 +3066,11 @@ function PAY6(){
   /* 그룹 행 — 들어온 미납액도 함께 더한다 */
   const T=rows.reduce((a,x)=>{const g=rcvSum(x);return {bill:a.bill+g.bill,paid:a.paid+g.paid,due:a.due+g.due};},{bill:0,paid:0,due:0});
   const dash='<span style="color:var(--faint)">—</span>';
-  /* 더보기 — 수납 처리는 받을 돈(미납·연체료)이 있는 계약만. 원장 보기는 계약 상세 원장 탭으로 */
+  /* 더보기 — 수납 처리는 받을 돈(미납·연체료)이 있는 계약만. 청구서 보기는 그 달 발행한 청구서. 원장 보기는 계약 상세 원장 탭으로 */
   const more=x=>{const owe=arrears(x.c).due+feeUntil(x.k,TODAY_S)>0;
-    return (owe?`<span class="more" onclick="event.stopPropagation();openPay('${x.k}')">수납 처리</span>`
-      :'<span class="more off" title="받을 돈이 없습니다">수납 처리</span>')
-      +` <span class="more" onclick="event.stopPropagation();tab3c='원장';go('ctr-3/${x.k}')">원장 보기</span>`;};
+    return moreCell([{t:'수납 처리',go:`openPay('${x.k}')`,off:owe?'':'받을 돈이 없습니다'},
+      {t:'청구서 보기',go:`billView('${x.k}','${RC.f.ym}')`},
+      {t:'원장 보기',go:`tab3c='원장';go('ctr-3/${x.k}')`}]);};
   const body=rows.map(x=>rcvRow(x,{cls:'ctr',op:g6Open(x.k),tog:`g6Tog('${x.k}')`,label:cnameHTML(bn.alias,x.c.no,x.c.ten),ym:RC.f.ym,more:more(x)})).join('');
   return `
   <div class="ph"><h1>수납 내역</h1><span class="sid">PAY-6</span>
@@ -4041,6 +4071,7 @@ function CTR3(k){
 /* ═══ 라우터 ═══ */
 function render(keep){
   const y=window.scrollY||0;
+  MORE.length=0; moreClose();
   const h=(location.hash||'#/pro-1').replace(/^#\//,'');
   const [id,arg]=h.split('/');
   /* 다른 화면으로 옮겨 가면 그 화면이 속한 그룹을 펼친다. 같은 화면을 다시 그릴 때는 건드리지 않는다 */
