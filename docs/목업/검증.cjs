@@ -395,7 +395,7 @@ r6.push(['임대료·관리비 탭 — 분기 · 기산일 8월 청구 · 9월 �
   const ratioSum = R.rows.reduce((a, r) => a + r.ratio, 0);
   r6.push(['공용분 빼기 = 배율 0 — 2층 공용분 0 · 개별분은 청구 · 비율 합 1 · 1층 몫 증가 · 합계 = 고지서',
     r2.common === 0 && r2.amt > 0 && Math.abs(ratioSum - 1) < 1e-9 && after > before && R.diff === 0]); }
-/* 감액 · 과납 — 8/7 본관1층 7월 수도요금 18,000 감액. 7월분은 07.31에 완납이라 과납 18,000이 된다 → PAY-5 · 4.3.4 */
+/* 감액 · 과납 — 8/7 본관1층 7월 수도요금 18,000 감액. 7월분은 07.31에 완납이라 과납 18,000이 된다 → CTR-3 · 4.3.4 */
 { const OV = new Function(stub + bare + '; const pre=ctrPay("b1본관1층","2026-07"); seedJuly(); addCut("2026-07|본관1층|수도요금",18000,"2026-08-07","7월 수도 검침값 입력 오류"); return {pre,ctrPay,overOf,ledgerOf,CTRS,PAY1,CTR3,ISSUE,mcChecks,openRefund,ovSet,ovConfirm,cutOpen,cutSet,cutConfirm,set tab3c(v){tab3c=v;}};')();
   const k = 'b1본관1층', L = OV.ledgerOf(k), cut = L.rows.find(r => r.type === '감액');
   const post = OV.ctrPay(k, '2026-07'), item = post.it.find(i => i.n === '수도요금');
