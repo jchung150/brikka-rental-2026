@@ -367,9 +367,10 @@ tr.off td:not(:last-child):not(:nth-last-child(2)){opacity:.5}
 .card > .ct + .tw table th{border-top:1px solid var(--line)}
 
 .bpw{display:flex;gap:16px;align-items:flex-start}
-.bpw > .bpd{flex:1;min-width:0;gap:0 40px;margin:0}
-.bph{position:relative;flex:0 0 150px;aspect-ratio:3/4;border-radius:var(--r-sm);overflow:hidden;margin-top:2px;background:var(--soft)}
-@media (max-width:640px){.bpw{flex-direction:column-reverse}.bph{width:150px}}
+.bpw > .bpd{flex:1;min-width:0}
+.bpd dd{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bph{position:relative;flex:0 0 220px;aspect-ratio:3/4;border-radius:var(--r-sm);overflow:hidden;margin-top:2px;background:var(--soft)}
+@media (max-width:640px){.bpw{flex-direction:column-reverse}.bph{width:180px}}
 .bph img{width:100%;height:100%;object-fit:cover;display:block}
 .bph .bpa{position:absolute;left:0;right:0;bottom:8px;display:flex;gap:6px;justify-content:center}
 .bph .bpa .btn{background:rgba(255,255,255,.92);color:#222;border-color:transparent}
@@ -1477,19 +1478,18 @@ function t요약(b){
   const d=dday(b.mgmtEnd);
   return `
   <div class="card"><div class="ct">기본 정보
-      <span class="ca"><button class="btn sm">수정</button></span></div><div class="cc bpw"><div class="two bpd"><dl class="dl">
+      <span class="ca"><button class="btn sm">수정</button></span></div><div class="cc bpw"><dl class="dl bpd">
       <dt>건물명</dt><dd>${b.name}</dd>
       <dt>건물 별칭</dt><dd><b>${b.alias}</b>
         <span class="lock">계약고유이름에 사용 — ${b.alias}|101호|임차인명</span></dd>
       <dt>건물구분</dt><dd>${b.kind}</dd>
       <dt>건물주소</dt><dd>${b.addr}<div class="c2">${b.addr2}</div></dd>
-    </dl><dl class="dl">
       <dt>청구일 · 납부마감일</dt><dd>${b.billDay} · ${b.dueDay}
         <div class="c2">계약 등록 시 상속. 변경해도 기존 계약은 유지</div></dd>
       <dt>건물주</dt><dd>${b.owner}<span class="lock">${b.ownerBiz}</span></dd>
       <dt>건물관리자</dt><dd>${b.mgr}<span class="lock">${b.mgrTel}</span></dd>
       <dt>건물운영계좌</dt><dd>${b.acct}<div class="c2">예금주 ${b.acctName}</div></dd>
-    </dl></div>${bphHTML(b)}</div></div>
+    </dl>${bphHTML(b)}</div></div>
   <div class="two">
     <div class="card"><div class="ct">건물 제원
       <span class="ca"><button class="btn sm">수정</button></span></div><div class="cc"><dl class="dl">
