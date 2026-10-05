@@ -424,6 +424,7 @@ tr.off td:not(:last-child):not(:nth-last-child(2)){opacity:.5}
   grid-template-columns:minmax(210px,1fr) 118px 146px 110px 92px 156px 92px;
   border-bottom:1px solid var(--line-2)}
 .schr:last-child{border-bottom:0}
+.schr.iss{grid-template-columns:minmax(210px,1fr) 118px 146px 110px 92px 156px 92px 60px}
 .schr > *{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .schr .n{text-align:right;font-variant-numeric:tabular-nums} .schr .c{text-align:center}
 .schr.hd{background:var(--head);color:var(--muted);font-size:11.5px;font-weight:500;
@@ -1254,6 +1255,7 @@ function drawerHTML(){
   if(DRAWER==='fix') return fixHTML();
   if(DRAWER==='due') return dueHTML();
   if(DRAWER==='cancel') return cancelHTML();
+  if(DRAWER==='issue') return issueHTML();
   if(DRAWER==='over') return overHTML();
   if(DRAWER==='pay') return payHTML();
   if(DRAWER==='mclose') return mcHTML();
@@ -2220,8 +2222,23 @@ const pickAll=v=>{ISSUE().forEach(c=>sel1[c.k]=v&&c.st==='발행 대기');render
    대상이 아닌 항목은 화면에 올리지 않는다. 그 판단은 1단계에서 이미 끝났다. */
 /* 이번 회차에 발행한 청구서 — 계약별. 취소하면 지운다(원장에는 「청구 취소」) → PAY-1 */
 const ISS={}, ISS_LOG=[];
-let mail1=true, cx1=null;
+let mail1=true, cx1=null, ia1=null;
 function issue1(keys){keys.forEach(k=>{ISS[k]={at:TODAY_S,mail:mail1};});sel1={};render(true);}
+/* 발행 확인 — 발행 버튼(상단·더보기)을 누르면 메일을 보낼지 묻는다 */
+function issueAsk(keys){ia1={keys};DRAWER='issue';render(true);}
+function issueGo(mail){if(!ia1) return; mail1=mail; const k=ia1.keys; ia1=null; DRAWER=null; issue1(k);}
+function issueHTML(){
+  if(DRAWER!=='issue'||!ia1) return '';
+  const n=ia1.keys.length, one=n===1?CTRS.find(x=>ckey(x)===ia1.keys[0]):null, bd=one&&(BUILDINGS.find(x=>x.id===one.b)||BUILDINGS[0]);
+  return `<div class="dro"><div class="ov" onclick="closeDrawer()"></div><div class="pn">
+    <div class="dh"><div><div class="t">청구서 발행</div><div class="s">${one?cname(bd.alias,one.no,one.ten):`${n}건`} · ${SETTLE.ym.replace('-','년 ').replace(/년 0/,'년 ')}월</div></div>
+      <button class="x" onclick="closeDrawer()">✕</button></div>
+    <div class="db"><div style="white-space:normal;line-height:1.7">청구서 <b>${n}건</b>을 발행합니다.<br>임차인에게 청구서가 담긴 메일을 보내시겠습니까?</div></div>
+    <div class="df"><button class="btn" onclick="closeDrawer()">닫기</button>
+      <button class="btn" onclick="issueGo(false)">메일 없이 발행</button>
+      <button class="btn pri" onclick="issueGo(true)">메일 보내고 발행</button></div>
+  </div></div>`;
+}
 function cancelOpen(k){cx1={k,why:''};DRAWER='cancel';render(true);}
 function cancelOK(){if(!cx1||!cx1.why.trim()) return; ISS_LOG.push({k:cx1.k,ym:SETTLE.ym,why:cx1.why.trim(),at:TODAY_S});delete ISS[cx1.k];DRAWER=null;cx1=null;render(true);}
 /* 취소할 수 없는 이유 — 입금이 있거나 그 달을 마감했다 */
@@ -2320,7 +2337,7 @@ function PAY1(){
   const body=rows.map(c=>{
     const op=gOpen(c.k), on=!!sel1[c.k], can=c.st==='발행 대기';
     return `
-    <div class="schr grp" onclick="gTog('${c.k}')">
+    <div class="schr iss grp" onclick="gTog('${c.k}')">
       <div class="nm">
         ${can?`<span class="cb ${on?'on':''}" onclick="pick('${c.k}',event)"></span>`
               :'<span class="cb dis"></span>'}
@@ -2339,11 +2356,12 @@ function PAY1(){
       <div class="n c2">${won(c.sup)}</div>
       <div class="n c2">${won(c.vat)}</div>
       <div class="n"><span class="c2">VAT 포함</span><b>${won(c.sum)}</b></div>
-      <div class="c">${c.st==='발행 완료'?(()=>{const why=cancelBlock(c,PAST_CTX||SETTLE.ym);
-          return `<span class="bd ok">발행 완료</span> <button class="btn sm" style="padding:1px 8px;margin-left:4px" ${why?`disabled title="${why}"`:''} onclick="event.stopPropagation();cancelOpen('${c.k}')">취소</button>`;})()
-        :'<span class="bd mu">발행 대기</span>'}</div>
+      <div class="c">${c.st==='발행 완료'?'<span class="bd ok">발행 완료</span>':'<span class="bd mu">발행 대기</span>'}</div>
+      <div class="c">${moreCell([
+        {t:'청구서 발행',go:`issueAsk(['${c.k}'])`,off:PAST_CTX?'지난 회차입니다':!can?'이미 발행했습니다':!ok?'정산이 확정되지 않았습니다':''},
+        {t:'청구서 취소',go:`cancelOpen('${c.k}')`,off:can?'발행 전입니다':cancelBlock(c,PAST_CTX||SETTLE.ym)}])}</div>
     </div>` + (!op?'':c.lines.map(l=>`
-    <div class="schr sub">
+    <div class="schr iss sub">
       <div class="nm">${l.n}${l.via?`<span class="c2" style="color:var(--warn)">${l.via} 대납</span>`:''}</div>
       <div class="c2">${l.bill} <span style="opacity:.7">${
         isTax(l.bill)?'과세':l.bill==='계산서'?'면세':'비과세'}</span></div>
@@ -2352,16 +2370,14 @@ function PAY1(){
       <div class="n c2">${l.vat!=null?(l.vat?won(l.vat):'—'):'—'}</div>
       <div class="n">${l.amt!=null?`<b>${won(l.amt)}</b>`
         :'<span class="bd wa2">미산출</span>'}</div>
-      <div class="c"><span class="bd ${l.stc}">${l.st}</span></div>
+      <div class="c"><span class="bd ${l.stc}">${l.st}</span></div><div></div>
     </div>`).join(''));
   }).join('');
   return `
   <div class="ph"><h1>청구서 발행</h1><span class="sid">PAY-1</span>
-    <div class="act"><button class="btn" onclick="go('pay-2')">미납 조회</button>
-      <button class="btn">미리보기</button>
-      <label class="ck" style="margin:0 4px 0 6px"><input type="checkbox" ${mail1?'checked':''} ${PAST_CTX?'disabled':''} onchange="mail1=this.checked"> 임차인에게 메일 보내기</label>
+    <div class="act"><button class="btn">미리보기</button>
       <button class="btn pri" ${ok&&!PAST_CTX&&wait.length?'':'disabled'}
-        onclick="issue1(${JSON.stringify((nSel?wait.filter(c=>sel1[c.k]):wait).map(c=>c.k)).replace(/"/g,"'")})">
+        onclick="issueAsk(${JSON.stringify((nSel?wait.filter(c=>sel1[c.k]):wait).map(c=>c.k)).replace(/"/g,"'")})">
         ${nSel?`선택 ${nSel}건 발행`:`전체 ${wait.length}건 발행`}</button></div>
   </div>
   <div class="fbar">
@@ -2381,7 +2397,7 @@ function PAY1(){
     ${ymL}은 ${lk.at.replace('-','.')}에 마감했습니다(${lk.by}). 발행한 청구서를 볼 수만 있습니다.
     고치려면 월 마감에서 <b>마감 취소</b>를 먼저 하세요. <b class="lk" onclick="s11={b:'${f1.b}',ym:'${PAST_CTX}'};go('pay-11')">월 마감으로 이동 →</b></div>`
    :`<div class="fnd wa3"><span class="h">발행이 끝난 회차입니다</span>
-    ${ymL} 청구서는 이미 발행했습니다. 입금이 없는 청구서는 계약 줄의 <b>취소</b>로 취소할 수 있습니다.</div>`):''}
+    ${ymL} 청구서는 이미 발행했습니다. 입금이 없는 청구서는 더보기의 <b>청구서 취소</b>로 취소할 수 있습니다.</div>`):''}
   ${ok?'':`<div class="fnd"><span class="h">정산이 확정되지 않았습니다</span>
     ${BN(f1.b)}의 2026년 8월 정산 상태는 <b>${P.settle}</b>입니다.
     정산을 확정해야 정산 항목의 금액이 확정되고 청구서를 발행할 수 있습니다.
@@ -2398,16 +2414,16 @@ function PAY1(){
   ${!rows.length?`<div class="tbl"><div class="empty"><div class="t">발행할 청구서가 없습니다</div>
      진행중인 계약이 없거나 조건에 맞는 건이 없습니다.</div></div>`
   :`<div class="tbl schl">
-      <div class="schr hd"><div>계약고유이름 · 청구항목</div><div>발행 문서</div>
+      <div class="schr iss hd"><div>계약고유이름 · 청구항목</div><div>발행 문서</div>
         <div class="n">미납·과납액</div>
         <div class="n">공급가액</div><div class="n">부가세</div><div class="n">합계</div>
-        <div class="c">상태</div></div>
+        <div class="c">상태</div><div class="c">더보기</div></div>
       ${body}
-      <div class="schr sum"><div>합계 <span class="lock">계약 ${rows.length}</span></div>
+      <div class="schr iss sum"><div>합계 <span class="lock">계약 ${rows.length}</span></div>
         <div></div>
         <div></div>
         <div class="n">${won(supT)}</div><div class="n">${won(vatT)}</div>
-        <div class="n"><span class="c2">VAT 포함</span>${won(total)}</div><div></div></div>
+        <div class="n"><span class="c2">VAT 포함</span>${won(total)}</div><div></div><div></div></div>
     </div>`}
   <div class="hint">
     이번 회차에 발행할 청구서다. <b>계약당 1장</b>이며 고정액 항목과 정산 항목을 함께 담는다 → 2부<br>
@@ -2429,7 +2445,7 @@ function PAY1(){
     발행 문서가 <b>세금계산서</b>인 항목만 부가세가 붙는다.<br>
     금액 칸의 <b style="color:var(--warn)">미산출</b>은 이번 회차 대상인데 금액이 없다는 뜻이다.
     그대로 발행하면 그 항목이 빠진 청구서가 나간다.<br>
-    발행하면 원장에 <b>청구</b> 거래로 기록된다. <b>임차인에게 메일 보내기</b>를 체크하면 임차인 담당자에게 이메일이 발송된다.<br>
+    발행하면 원장에 <b>청구</b> 거래로 기록된다. 발행 버튼을 누르면 메일을 보낼지 묻고, <b>메일 보내고 발행</b>을 고르면 임차인 담당자에게 이메일이 발송된다. 계약 하나만 발행하려면 더보기의 <b>청구서 발행</b>을 누른다.<br>
     발행한 청구서는 고치지 않는다. 입금이 없고 마감 전이면 <b>취소</b>하고 다시 발행한다(원장에 청구 취소). 입금 뒤에는 계약 상세의 <b>감액</b>·<b>추가 청구</b>로 바로잡는다.</div>`;
 }
 

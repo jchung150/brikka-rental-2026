@@ -495,6 +495,14 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   const r = FX.ONCE.rows[0], ln = FX.ISSUE().find(c => c.no === '본관1층').lines.find(l => /정정/.test(l.n));
   r6.push(['청구 정정 — 두 방향 같은 칸·같은 버튼 · 사유 없으면 막힘 · 7월 전기요금 더 받기 55,000 → 8월 청구서에 「26.07월분 전기요금 정정」(세금계산서)',
     same && noWhy && r && r.n === '26.07월분 전기요금 정정' && r.doc === '세금계산서' && ln && ln.amt === 55000]); }
+/* 청구서 발행 — 메일 체크박스·미납 조회 없음 · 발행을 누르면 메일 여부를 묻는다 · 더보기로 한 계약만 발행 */
+{ const IA = new Function(stub + bare + '; seedJuly(); return {PAY1,issueAsk,issueGo,issueHTML,ISS,MORE,set f1b(v){f1.b=v;}};')();
+  IA.f1b = 'b2'; IA.MORE.length = 0; const h = IA.PAY1();
+  const m = IA.MORE.find(x => x[0].go === `issueAsk(['b21203호'])`);
+  IA.issueAsk(['b21203호']); const ask = IA.issueHTML(); IA.issueGo(false);
+  r6.push(['청구서 발행 — 메일 체크박스·미납 조회 없음 · 더보기 「청구서 발행」 → 메일 여부 묻기 → 메일 없이 발행',
+    !h.includes('메일 보내기') && !h.includes('미납 조회') && m && !m[0].off && !!m[1].off
+    && /메일을 보내시겠습니까/.test(ask) && IA.ISS['b21203호'] && IA.ISS['b21203호'].mail === false]); }
 /* 수납 내역 더보기 — 받을 돈이 있는 계약(비씨에이전시)만 수납 처리가 눌리고, 다 받은 계약(에스씨케이컴퍼니)은 흐림 · 원장 보기는 모두 */
 { const MV = new Function(stub + bare + '; seedJuly(); return {PAY6,RC,MORE};')();
   MV.RC.f = {b:'b1', ym:'2026-07', st:''}; MV.MORE.length = 0; const h = MV.PAY6();
