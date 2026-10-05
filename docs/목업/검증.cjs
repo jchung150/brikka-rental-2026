@@ -48,7 +48,7 @@ run('PAY-1 7월 마감 회차', "f1.ym='2026-07';PAY1()");
 run('PAY-1 6월 마감 취소 후 · 다른 건물', "delete MC.b1['2026-06'];f1.ym='2026-06';PAY1();f1.b='b2';PAY1()");
 run('PAY-13 7월 잠금', "seedJuly();RC.f.ym='2026-07';PAY13()");
 run('CTR-2 자료', "nc=null;CTR2();ncFile();ncFile();ncRow('files',0,'c','기타');CTR2()");
-run('CTR-3 감액 패널', "seedJuly();cutOpenK('b1본관1층');cutSet('id','2026-07|본관1층|전기요금');cutSet('amt','10000');drawerHTML()");
+run('CTR-3 청구 정정 패널(덜 받기 · 더 받기)', "seedJuly();fixOpen('b1본관1층');drawerHTML();extraOpen('b1본관1층');drawerHTML();fixOpen('b1본관1층');cutSet('id','2026-07|본관1층|전기요금');cutSet('amt','10000');drawerHTML()");
 run('PAY-1 발행 · 취소 패널 · 메일', "f1.b='b2';PAY1();issue1(['b21203호']);PAY1();cancelOpen('b21203호');cancelHTML();cx1.why='약정 오기';cancelOK();mail1=false;PAY1()");
 run('CTR-2 변경 일정', "nc=null;CTR2();nc.adj.push({d:'2028-11-01',rent:'3465000',mgmt:''});CTR2()");
 run('PRO-1', 'PRO1()');

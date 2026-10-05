@@ -1,5 +1,5 @@
-<!-- BRIKKA 관리자 백오피스 목업 · 2026.10.04판 · 작업 중(미완성). 정본은 docs/기능정의서 -->
-<title>BRIKKA 백오피스 · 목업 2026.10.04 (작업 중)</title>
+<!-- BRIKKA 관리자 백오피스 목업 · 2026.10.05판 · 작업 중(미완성). 정본은 docs/기능정의서 -->
+<title>BRIKKA 백오피스 · 목업 2026.10.05 (작업 중)</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap">
 <style>
 :root{
@@ -508,7 +508,7 @@ table.nowr th,table.nowr td{white-space:nowrap}
     <header class="top">
       <div class="crumb" id="crumb"></div>
       <div class="sp"></div>
-      <div class="ver" title="목업 버전 — 아직 완성본이 아니다. 기능정의서가 정본">목업 2026.10.04판 · 작업 중</div>
+      <div class="ver" title="목업 버전 — 아직 완성본이 아니다. 기능정의서가 정본">목업 2026.10.05판 · 작업 중</div>
       <div class="today" title="오늘 — 목업의 기준 시점">2026년 8월 10일(월)</div>
     </header>
     <div class="wrap" id="view"></div>
@@ -3191,6 +3191,12 @@ function cutOpen(id){cx={id,amt:0,why:''};DRAWER='cut';render(true);}
 /* 감액할 수 있는 청구 — 이 계약의 발행한 청구 중 남은 금액이 있는 것. 연체료 청구는 뺀다 */
 const cutBills=k=>BILLS.filter(i=>i.k===k&&!i.fee&&i.amt-cutOf(i.id)>0).sort((a,b)=>a.ym<b.ym?1:a.ym>b.ym?-1:b.amt-a.amt);
 function cutOpenK(k){const b=cutBills(k)[0]; if(b) cutOpen(b.id);}
+/* 청구 정정 — 한 패널에서 덜 받기(감액) / 더 받기(추가 청구)를 고른다. 기록 방식은 각각 그대로 → CTR-3 */
+function fixOpen(k){cutBills(k).length?cutOpenK(k):extraOpen(k);}
+function fixTabs(k,on){const can=cutBills(k).length;
+  return `<div style="display:flex;gap:6px;margin:-2px 0 14px">
+    <button class="btn sm ${on==='cut'?'pri':''}" ${can?'':'disabled title="줄일 청구가 없습니다"'} onclick="cutOpenK('${k}')">덜 받기 (감액)</button>
+    <button class="btn sm ${on==='add'?'pri':''}" onclick="extraOpen('${k}')">더 받기 (추가 청구)</button></div>`;}
 function cutSet(f,v){cx[f]=f==='amt'?numOf(v):v;if(f==='id') cx.amt=0;render(true);}
 function cutInfo(){const i=BILLS.find(x=>x.id===cx.id), paid=paidNet(i.id), left=i.amt-cutOf(i.id), after=left-cx.amt;
   return {i,paid,left,after,over:Math.max(0,paid-Math.max(after,0))-Math.max(0,paid-left)};}
@@ -3202,11 +3208,12 @@ function cutHTML(){
   const ok=cx.amt>0&&cx.amt<=I.left&&cx.why.trim();
   const R=(k,b)=>`<div class="fr"><span class="fk">${k}</span>${b}</div>`;
   return `<div class="dro"><div class="ov" onclick="closeDrawer()"></div><div class="pn">
-    <div class="dh"><div><div class="t">감액</div><div class="s">${cname(bd.alias,c.no,c.ten)} · ${I.i.ym.slice(2).replace('-','.')}월분 ${I.i.n}</div></div>
+    <div class="dh"><div><div class="t">청구 정정</div><div class="s">${cname(bd.alias,c.no,c.ten)}</div></div>
       <button class="x" onclick="closeDrawer()">✕</button></div>
     <div class="db">
+      ${fixTabs(I.i.k,'cut')}
       <div class="c2" style="margin:-2px 0 12px;white-space:normal">발행한 청구를 줄입니다. 오늘(${TODAY_S.slice(5).replace('-','.')}) 날짜로 원장에 <b>감액</b>이 기록되고, 원래 청구는 그대로 남습니다.
-        더 받아야 할 때는 감액이 아니라 <b>추가 청구</b>로 넣습니다.</div>
+        세금계산서는 원래 청구에 붙어 있으므로, 다음 달 청구에서 빼지 않고 원래 항목을 줄입니다.</div>
       <div class="fg"><div class="fl">청구</div>
         ${R('청구 항목',`<select onchange="cutSet('id',this.value)">${cutBills(I.i.k).map(i=>`<option value="${i.id}" ${i.id===cx.id?'selected':''}>${i.ym.slice(2).replace('-','.')}월분 ${i.n} · ${won(i.amt)}</option>`).join('')}</select>`)}
         ${R('청구액',won(I.i.amt))}${cutOf(I.i.id)?R('이미 감액',won(cutOf(I.i.id))):''}${R('낸 금액',won(I.paid))}</div>
@@ -3233,10 +3240,11 @@ function extraHTML(){
   const c=CTRS.find(x=>ckey(x)===ex.k), bd=BUILDINGS.find(x=>x.id===c.b)||BUILDINGS[0], R=(k,b)=>`<div class="fr"><span class="fk">${k}</span>${b}</div>`;
   const mine=ONCE.rows.map((r,i)=>({r,i})).filter(x=>x.r.k===ex.k);
   return `<div class="dro"><div class="ov" onclick="closeDrawer()"></div><div class="pn">
-    <div class="dh"><div><div class="t">추가 청구</div><div class="s">${cname(bd.alias,c.no,c.ten)}</div></div>
+    <div class="dh"><div><div class="t">청구 정정</div><div class="s">${cname(bd.alias,c.no,c.ten)}</div></div>
       <button class="x" onclick="closeDrawer()">✕</button></div>
     <div class="db">
-      <div class="c2" style="margin:-2px 0 12px;white-space:normal">한 번만 받는 돈을 넣습니다. <b>다음 청구서에 함께 실리고</b>, 그때 원장에 청구로 기록됩니다. 나눠 매기지 않습니다.</div>
+      ${fixTabs(ex.k,'add')}
+      <div class="c2" style="margin:-2px 0 12px;white-space:normal">덜 받은 돈이나 한 번만 받는 돈을 넣습니다. <b>다음 청구서에 함께 실리고</b>, 그때 원장에 청구로 기록됩니다. 나눠 매기지 않습니다.</div>
       <div class="fg"><div class="fl">새로 넣기</div>
         ${R('항목명',`<input type="text" value="${ex.n}" placeholder="예: 엘리베이터 사용료, 7월 전기요금 정정" onchange="extraSet('n',this.value)">`)}
         ${R('금액',`<input type="text" inputmode="numeric" value="${ex.amt?num(ex.amt):''}" placeholder="부가세 포함" oninput="kwLive(this)" onchange="extraSet('amt',this.value)" style="text-align:right"><span class="kw">${korWon(ex.amt)}</span>`)}
@@ -3912,8 +3920,7 @@ function CTR3(k){
     <span style="margin-left:auto;display:flex;gap:6px">   <!-- 돈을 다루는 버튼은 원장 탭에만 둔다 -->
       <button class="btn" onclick="openPay('${k}')">수납 처리</button>
       <button class="btn" ${overOf(k)?'':'disabled title="돌려줄 과납이 없습니다"'} onclick="openRefund('${k}')">환불</button>
-      <button class="btn" ${cutBills(k).length?'':'disabled title="줄일 청구가 없습니다"'} onclick="cutOpenK('${k}')">감액</button>
-      <button class="btn" onclick="extraOpen('${k}')">추가 청구</button>
+      <button class="btn" onclick="fixOpen('${k}')">청구 정정</button>
       <button class="btn pri" onclick="alert('원장 출력 — 선택한 기간·계정의 원장을 거래내역서 PDF로 내려받거나 임차인 담당자에게 보낸다')">원장 출력</button></span>
   </div>
   ${(()=>{
@@ -3956,7 +3963,7 @@ function CTR3(k){
     최근 거래가 위에 있고, 잔액은 그 거래 직후의 금액입니다. 매출채권(받을 돈)과 임대보증금(돌려줄 돈)의 잔액은 따로 셉니다.<br>
     원장은 고치지 않습니다. 잘못된 거래는 취소 거래를 추가해 바로잡습니다. 연체료는 수납 처리에서 받기로 한 금액만 청구로 올라옵니다.<br>
     잔액을 바꾸지 않는 안쪽 옮김(미납 이월 · 전월 과납액 배분)은 적지 않습니다. 잔액이 0보다 작으면 <b>과납</b>이며, 돌려줄 때는 위의 <b>환불</b>을 누릅니다.<br>
-    받은 돈·돌려준 돈·감액·추가 청구는 이 탭 위쪽 버튼으로 기록합니다.</div>`;
+    받은 돈·돌려준 돈·청구 정정(덜 받기 = 감액 · 더 받기 = 추가 청구)은 이 탭 위쪽 버튼으로 기록합니다.</div>`;
 }
 
 /* ═══ 라우터 ═══ */
