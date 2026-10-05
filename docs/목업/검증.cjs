@@ -524,6 +524,15 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   r6.push(['건물 등록 — 필수 빠지면 막힘 · 별칭 중복 · 지분 100% · 저장 → 동 2개 · 주차 25면 · 관리비 계좌 = 임대료 계좌 · 상세 열림(위임계약 없음)',
     blocked && dup && share && NB.BUILDINGS.length === 4 && b.alias === '윈터' && b.dong.length === 2 && b.park === 25
     && b.feeAcct === '하나은행 123-456' && b.owners.length === 2 && /관리위임계약이 없습니다/.test(h)]); }
+/* 계약 상세 주차정보 · 냉난방기 — 배정 주차면은 건물 주차면 기록과 하나 · 냉난방기 구분 없으면 저장 안 됨 */
+{ const CP = new Function(stub + bare + '; seedJuly(); return {CTR3,cpkOpen,chvOpen,cx3Save,BUILDINGS,CHVAC,parksOf,CTRS,get cx3(){return cx3;}};')();
+  const c = CP.CTRS.find(x => x.no === '본관8층'), b = CP.BUILDINGS.find(x => x.id === 'b1');
+  const h = CP.CTR3('b1본관8층'), two = CP.parksOf(c).length === 2;
+  CP.cpkOpen('b1본관8층'); const i = b.parks.findIndex(p => p.n === 'B1-04'); CP.cx3.pick[i] = true; CP.cx3Save();
+  const moved = b.parks[i].asu === '본관8층' && CP.parksOf(c).length === 3;
+  CP.chvOpen('b1본관4층'); CP.cx3Save(); const noT = !CP.CHVAC['b1본관4층']; CP.cx3.t = '건물주 것 사용'; CP.cx3Save();
+  r6.push(['계약 상세 — 주차정보에 배정 주차면 2면 · 계약에서 B1-04 배정 → 건물 주차면에도 반영 · 냉난방기 구분 없으면 저장 안 됨',
+    two && /주차정보/.test(h) && /냉난방기/.test(h) && /임차인 설치/.test(h) && moved && noT && CP.CHVAC['b1본관4층'].t === '건물주 것 사용']); }
 /* 수납 내역 더보기 — 받을 돈이 있는 계약(비씨에이전시)만 수납 처리가 눌리고, 다 받은 계약(에스씨케이컴퍼니)은 흐림 · 원장 보기는 모두 */
 { const MV = new Function(stub + bare + '; seedJuly(); return {PAY6,RC,MORE};')();
   MV.RC.f = {b:'b1', ym:'2026-07', st:''}; MV.MORE.length = 0; const h = MV.PAY6();
