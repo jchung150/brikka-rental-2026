@@ -1151,7 +1151,7 @@ function calc(m,raw){
   const sum=f=>rows.filter(f).reduce((a,r)=>a+r.amt,0);
   const bill=sum(r=>r.st==='사용중'), vc=sum(r=>r.st!=='사용중')+cut;
   const total=sup+vat;
-  return {...base,rows,bill,vac:vc,total,supply:sup,vatTotal:vat,
+  return {...base,rows,bill,vac:vc,cut,total,supply:sup,vatTotal:vat,
           diff:total-(bill+vc),rem:(k>=0?rows[k].rnd:0)};
 }
 
@@ -2196,6 +2196,9 @@ function stResult(m,R){
       <tbody>
         ${R.rows.filter(r=>r.st==='사용중').map(r=>row4(r,m)).join('')}
         ${R.rows.filter(r=>r.st!=='사용중').map(r=>row4(r,m,'vacr')).join('')}
+        ${R.cut?`<tr class="vacr"><td>일할로 줄인 몫 <span class="c2">건물주 부담</span></td>
+          ${R.charge&&isMetered(m.code)?'<td></td>':''}${m.unit?'<td></td><td></td>':''}<td></td>
+          <td class="n"><b>${won(R.cut)}</b></td><td></td></tr>`:''}
         <tr class="sumr"><td>합계</td>
           ${R.charge&&isMetered(m.code)?`<td class="n">${fx(R.sumUse)}</td>`:''}
           ${m.unit?`<td class="n">${fx(R.common)}</td>
