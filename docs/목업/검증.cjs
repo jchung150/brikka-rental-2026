@@ -665,14 +665,14 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
 { const PT = new Function(stub + bare + '; return {PRO3,vehOpen,vehSave,vehMissing,vehDel,vehOf,gpkTog,gpkSet,get vh(){return vh;},set tab3(v){tab3=v;},get fpk(){return fpk;},get VEH(){return VEH;}};')();
   PT.tab3 = '요약'; const sum = PT.PRO3('b1'); PT.tab3 = '주차'; const h0 = PT.PRO3('b1');
   const order = h0.indexOf('>유닛<') < h0.indexOf('>주차<') && h0.indexOf('>주차<') < h0.indexOf('>관리비<');
-  const closed = !/10버3291/.test(h0) && /무료 1대 초과/.test(h0) && /연락처 미확인/.test(h0) && /주차면 32 · 등록 31대/.test(h0);
+  const closed = !/10버3291/.test(h0) && /무료 1대 초과/.test(h0) && /연락처 미확인/.test(h0) && /주차면 32 · 등록 31대/.test(h0) && /\+ 차량 추가/.test(h0) && /계약고유이름 · 차량 소유자/.test(h0) && !/전체 요금부과/.test(h0);
   PT.gpkTog('b1본관801호'); const h1 = PT.PRO3('b1'); const open1 = /10버3291/.test(h1) && !/45라0809/.test(h1);
   PT.gpkSet(true); const h2 = PT.PRO3('b1'); const all = /45라0809/.test(h2) && /미확인/.test(h2);
   PT.vehOpen('b1'); Object.assign(PT.vh, {k:'b1본관801호', plate:'99거9999', own:'홍길동', tel:'010-0000-0001', fee:'무료'}); PT.vehSave();
   const overFree = PT.vehMissing().some(m => /무상 주차 3대까지/.test(m)); PT.vh.plate = '10버3291'; const dupP = PT.vehMissing().some(m => /이미 등록됨/.test(m));
   PT.vh.plate = '99거9999'; PT.vh.fee = '월정액'; PT.vehSave(); const ok = PT.vehOf('b1본관801호').length === 5;
-  PT.fpk.fee = '월정액'; const hf = PT.PRO3('b1'); PT.fpk.fee = '';
-  r6.push(['주차 탭 — 유닛·주차·관리비 순 · 처음엔 접힘 · 본관501호 무료 1대 초과 · 연락처 미확인 · 펼치면 차량 · 무료 초과로 새로 넣기 막힘 · 차량번호 중복 막힘 · 월정액 필터',
+  PT.fpk.q = '145하'; const hf = PT.PRO3('b1'); PT.fpk.q = '';
+  r6.push(['주차 탭 — 유닛·주차·관리비 순 · 처음엔 접힘 · 본관501호 무료 1대 초과 · 연락처 미확인 · 펼치면 차량 · 무료 초과로 새로 넣기 막힘 · 차량번호 중복 막힘 · 검색',
     order && !/등록 차량/.test(sum) && closed && open1 && all && overFree && dupP && ok && /145하5562/.test(hf) && !/10버3291/.test(hf)]); }
 /* 수납 내역 더보기 — 받을 돈이 있는 계약(비씨에이전시)만 수납 처리가 눌리고, 다 받은 계약(에스씨케이컴퍼니)은 흐림 · 원장 보기는 모두 */
 { const MV = new Function(stub + bare + '; seedJuly(); return {PAY6,RC,MORE};')();

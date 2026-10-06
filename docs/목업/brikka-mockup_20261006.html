@@ -1991,24 +1991,24 @@ const gpkTog=k=>{gpk[k]=!gpkOpen(k);render(true);};
 const gpkSet=v=>{gpkAll=v;gpk={};render(true);};
 function t주차(b){
   const cs=CTRS.filter(c=>c.b===b.id&&c.st==='진행중'), keys=cs.map(ckey);
-  const all=VEH.filter(v=>keys.includes(v.k)), q=fpk.q.trim(), filt=!!(fpk.k||fpk.loc||fpk.fee||q);
-  const list=all.filter(v=>(!fpk.k||v.k===fpk.k)&&(!fpk.loc||v.loc===fpk.loc)&&(!fpk.fee||v.fee===fpk.fee)&&(!q||[v.plate,v.own,v.tel,v.model].some(x=>(x||'').includes(q))));
+  const all=VEH.filter(v=>keys.includes(v.k)), q=fpk.q.trim(), filt=!!(fpk.k||fpk.loc||q);
+  const list=all.filter(v=>(!fpk.k||v.k===fpk.k)&&(!fpk.loc||v.loc===fpk.loc)&&(!q||[v.plate,v.own,v.tel,v.model].some(x=>(x||'').includes(q))));
   const nFree=all.filter(v=>v.fee==='무료').length, left=b.park-all.length;
   const S=(f,opts,lab)=>`<select onchange="setFpk('${f}',this.value)"><option value="">${lab}</option>${opts.map(([v,t])=>`<option value="${v}" ${fpk[f]===v?'selected':''}>${t}</option>`).join('')}</select>`;
   /* 필터가 없으면 차량이 없어도 무상 주차가 있는 계약을 보인다(빈 자리를 알 수 있게) */
   const groups=cs.map(c=>({c,k:ckey(c),vs:list.filter(v=>v.k===ckey(c))})).filter(g=>g.vs.length||(!filt&&CPARK[g.k]));
   const anyOp=groups.some(g=>gpkOpen(g.k)), miss='<span style="color:var(--warn)">미확인</span>';
   return `
-  <div class="card"><div class="ct">등록 차량
+  <div class="card"><div class="ct">주차
     <span class="sub">주차면 ${b.park} · 등록 ${all.length}대 · ${left>=0?`남은 자리 ${left}`:`<b style="color:var(--warn)">${-left}대 초과</b>`} · 무료 ${nFree} · 월정액 ${all.length-nFree}</span>
-    <span class="ca"><button class="btn sm" onclick="vehOpen('${b.id}')">추가</button></span></div>
+    <span class="ca"><button class="btn pri sm" onclick="vehOpen('${b.id}')">+ 차량 추가</button></span></div>
     <div class="fbar" style="padding:0 16px 10px;margin:0">
-      ${S('k',cs.map(c=>[ckey(c),cname(b.alias,c.no,c.ten)]),'전체 계약')}${S('loc',VEH_LOC.map(v=>[v,v]),'전체 주차구분')}${S('fee',VEH_FEE.map(v=>[v,v]),'전체 요금부과')}
-      <input type="text" value="${fpk.q}" placeholder="차량번호 · 소유자 · 연락처" onchange="setFpk('q',this.value)" style="max-width:200px">
+      <input type="text" value="${fpk.q}" placeholder="차량번호 · 소유자 · 연락처 검색" onchange="setFpk('q',this.value)" style="min-width:240px">
+      ${S('k',cs.map(c=>[ckey(c),cname(b.alias,c.no,c.ten)]),'전체 계약')}${S('loc',VEH_LOC.map(v=>[v,v]),'전체 주차구분')}
       ${groups.length?`<span style="margin-left:auto"><button class="btn sm" onclick="gpkSet(${anyOp?'false':'true'})">${anyOp?'전체 접기':'전체 펼치기'}</button></span>`:''}
     </div>
     ${groups.length?`<div class="tw"><table>
-      <thead><tr><th>계약 · 차량 소유자</th><th>차량번호</th><th>연락처</th><th>차종</th><th>주차구분</th><th>요금부과</th><th class="c">더보기</th></tr></thead>
+      <thead><tr><th>계약고유이름 · 차량 소유자</th><th>차량번호</th><th>연락처</th><th>차종</th><th>주차구분</th><th>요금부과</th><th class="c">더보기</th></tr></thead>
       <tbody>${groups.map(g=>{const cp=CPARK[g.k]||{}, vs=vehOf(g.k), fr=vs.filter(v=>v.fee==='무료').length, mo=vs.length-fr, over=cp.free!=null?fr-cp.free:0, op=gpkOpen(g.k);
         return `<tr class="grp" style="background:var(--soft);cursor:pointer" onclick="gpkTog('${g.k}')"><td colspan="7">
           <span class="tg ${op?'op':''}" style="display:inline-flex;width:20px;color:var(--muted);vertical-align:-4px;transition:transform .15s;${op?'transform:rotate(90deg)':''}">${ic('chev',16)}</span>${cnameHTML(b.alias,g.c.no,g.c.ten)}
