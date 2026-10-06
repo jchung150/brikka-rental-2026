@@ -1275,6 +1275,7 @@ function drawerHTML(){
   if(DRAWER==='cancel') return cancelHTML();
   if(DRAWER==='issue') return issueHTML();
   if(DRAWER==='veh') return vehHTML();
+  if(DRAWER==='vdet') return vdHTML();
   if(DRAWER==='prc') return prcHTML();
   if(DRAWER==='term') return termHTML();
   if(DRAWER==='unit') return unHTML();
@@ -1740,6 +1741,27 @@ function vehSave(){vh.tried=true; if(vehMissing().length){render(true);return;}
   else VEH.push({id:vehSeq++,...val});
   DRAWER=null;vh=null;render(true);}
 function vehDel(id){const v=VEH.find(x=>x.id===id); if(!v) return; VEH=VEH.filter(x=>x.id!==id); render(true);}
+/* 차량 상세 — 차량 줄을 누르거나 더보기 「상세」. 보기 전용, 아래에 수정 · 삭제 */
+let vd=null;
+function vdOpen(bid,id){vd={bid,id};DRAWER='vdet';render(true);}
+function vdHTML(){
+  if(DRAWER!=='vdet'||!vd) return '';
+  const b=BUILDINGS.find(x=>x.id===vd.bid), v=VEH.find(x=>x.id===vd.id); if(!v) return '';
+  const c=ctrOfK(v.k), cp=CPARK[v.k]||{}, miss='<span style="color:var(--warn)">미확인</span>';
+  const R=(k,val)=>`<div class="fr"><span class="fk">${k}</span><span class="fv">${val}</span></div>`;
+  return `<div class="dro"><div class="ov" onclick="closeDrawer()"></div><div class="pn">
+    <div class="dh"><div><div class="t">${v.plate}</div><div class="s">${b.name} · 차량 상세</div></div>
+      <button class="x" onclick="closeDrawer()">✕</button></div>
+    <div class="db">
+      <div class="fg"><div class="fl">차량</div>${R('차량번호',v.plate)}${R('차종',v.model||'—')}${R('주차구분',v.loc)}
+        ${R('요금부과',v.fee==='월정액'?`<span class="bd wa2">월정액</span>${cp.fee?` <span class="c2">월 ${won(cp.fee)}</span>`:''}`:'<span class="bd mu">무료</span>')}</div>
+      <div class="fg"><div class="fl">비상 연락</div>${R('차량 소유자',v.own||miss)}${R('연락처',v.tel||miss)}</div>
+      <div class="fg"><div class="fl">계약</div>${R('계약고유이름',c?`<span class="plk" onclick="closeDrawer();tab3c='요약';go('ctr-3/${v.k}')">${cnameHTML(b.alias,c.no,c.ten)}</span>`:'—')}
+        ${R('이 계약 차량',`${vehOf(v.k).length}대 · 무상 ${vehOf(v.k).filter(x=>x.fee==='무료').length}대 + 유상 ${vehOf(v.k).filter(x=>x.fee==='월정액').length}대${cp.free!=null?` <span class="c2">(무상 한도 ${cp.free}대)</span>`:''}`)}</div>
+    </div>
+    <div class="df"><button class="btn pri" onclick="vehOpen('${b.id}',${v.id})">수정</button><button class="btn" onclick="closeDrawer();vehDel(${v.id})">삭제</button></div>
+  </div></div>`;
+}
 function vehHTML(){
   if(DRAWER!=='veh'||!vh) return '';
   const b=BUILDINGS.find(x=>x.id===vh.bid), miss=vh.tried?vehMissing():[], inp='border:1px solid var(--line);border-radius:var(--r-sm);padding:7px 9px;font:inherit';
@@ -2003,7 +2025,7 @@ function t주차(b){
     <span class="sub">주차면 ${b.park} · 등록 ${all.length}대 · ${left>=0?`남은 자리 ${left}`:`<b style="color:var(--warn)">${-left}대 초과</b>`} · 무료 ${nFree} · 월정액 ${all.length-nFree}</span>
     <span class="ca"><button class="btn pri sm" onclick="vehOpen('${b.id}')">+ 차량 추가</button></span></div>
     <div class="fbar" style="padding:0 16px 10px;margin:0">
-      <input type="text" value="${fpk.q}" placeholder="차량번호 · 소유자 · 연락처 검색" onchange="setFpk('q',this.value)" style="min-width:240px">
+      <input class="fq" type="text" value="${fpk.q}" placeholder="차량번호 · 소유자 · 연락처 검색" onchange="setFpk('q',this.value)" style="width:260px">
       ${S('k',cs.map(c=>[ckey(c),cname(b.alias,c.no,c.ten)]),'전체 계약')}${S('loc',VEH_LOC.map(v=>[v,v]),'전체 주차구분')}
       ${groups.length?`<span style="margin-left:auto"><button class="btn sm" onclick="gpkSet(${anyOp?'false':'true'})">${anyOp?'전체 접기':'전체 펼치기'}</button></span>`:''}
     </div>
@@ -2012,11 +2034,11 @@ function t주차(b){
       <tbody>${groups.map(g=>{const cp=CPARK[g.k]||{}, vs=vehOf(g.k), fr=vs.filter(v=>v.fee==='무료').length, mo=vs.length-fr, over=cp.free!=null?fr-cp.free:0, op=gpkOpen(g.k);
         return `<tr class="grp" style="background:var(--soft);cursor:pointer" onclick="gpkTog('${g.k}')"><td colspan="7">
           <span class="tg ${op?'op':''}" style="display:inline-flex;width:20px;color:var(--muted);vertical-align:-4px;transition:transform .15s;${op?'transform:rotate(90deg)':''}">${ic('chev',16)}</span>${cnameHTML(b.alias,g.c.no,g.c.ten)}
-          <span class="c2" style="margin:0 0 0 8px">${vs.length}대 · 무료 ${fr}${cp.free!=null?` / 무상 ${cp.free}대`:''} · 월정액 ${mo}${mo&&cp.fee?` (월 ${won(mo*cp.fee)})`:''}</span>
+          <span class="c2" style="margin:0 0 0 8px">${vs.length}대 · 무상 ${fr}대 + 유상 ${mo}대</span>
           ${over>0?`<span class="bd wa" style="margin-left:8px">무료 ${over}대 초과</span>`:''}${vs.some(v=>!v.own||!v.tel)?'<span class="bd wa2" style="margin-left:6px">연락처 미확인</span>':''}</td></tr>`
-        +(!op?'':g.vs.length?g.vs.map(v=>`<tr><td class="c1" style="font-weight:500;padding-left:44px">${v.own||miss}</td><td>${v.plate}</td><td style="white-space:nowrap">${v.tel||miss}</td><td>${v.model||'—'}</td>
+        +(!op?'':g.vs.length?g.vs.map(v=>`<tr style="cursor:pointer" onclick="vdOpen('${b.id}',${v.id})"><td class="c1" style="font-weight:500;padding-left:44px">${v.own||miss}</td><td>${v.plate}</td><td style="white-space:nowrap">${v.tel||miss}</td><td>${v.model||'—'}</td>
           <td>${v.loc}</td><td>${v.fee==='월정액'?'<span class="bd wa2">월정액</span>':'<span class="bd mu">무료</span>'}</td>
-          <td class="c">${moreCell([{t:'수정',go:`vehOpen('${b.id}',${v.id})`},{t:'삭제',go:`vehDel(${v.id})`}])}</td></tr>`).join('')
+          <td class="c">${moreCell([{t:'상세',go:`vdOpen('${b.id}',${v.id})`},{t:'수정',go:`vehOpen('${b.id}',${v.id})`},{t:'삭제',go:`vehDel(${v.id})`}])}</td></tr>`).join('')
           :`<tr><td colspan="7" class="c2" style="padding-left:44px">등록된 차량이 없습니다</td></tr>`);}).join('')}</tbody>
     </table></div>`:`<div class="empty">${all.length?'조건에 맞는 차량이 없습니다':'등록된 차량이 없습니다'}</div>`}
   </div>
