@@ -47,7 +47,7 @@ run('PAY-10 6월 · 마감 취소 후', "delete MC.b1['2026-06'];f10ym='2026-06'
 run('PAY-1 7월 마감 회차', "f1.ym='2026-07';PAY1()");
 run('PAY-1 6월 마감 취소 후 · 다른 건물', "delete MC.b1['2026-06'];f1.ym='2026-06';PAY1();f1.b='b2';PAY1()");
 run('PAY-13 7월 잠금', "seedJuly();RC.f.ym='2026-07';PAY13()");
-run('CTR-2 자료', "nc=null;CTR2();ncFile();ncFile();ncRow('files',0,'c','기타');CTR2()");
+run('CTR-2 자료', "nc=null;CTR2();upOpen('b1',true);Object.assign(up.files[0],{t:'임대차계약서.pdf',sz:'1 MB',ttl:'임대차계약서',c:'계약서'});upHTML();upSave();CTR2()");
 run('CTR-3 청구 정정 패널(덜 받기 · 더 받기)', "seedJuly();fixOpen('b1본관1층');drawerHTML();extraOpen('b1본관1층');drawerHTML();fixOpen('b1본관1층');cutSet('id','2026-07|본관1층|전기요금');cutSet('amt','10000');drawerHTML()");
 run('PAY-1 발행 · 취소 패널 · 메일', "f1.b='b2';PAY1();issue1(['b21203호']);PAY1();cancelOpen('b21203호');cancelHTML();cx1.why='약정 오기';cancelOK();mail1=false;PAY1()");
 run('CTR-2 변경 일정', "nc=null;CTR2();nc.adj.push({d:'2028-11-01',rent:'3465000',mgmt:''});CTR2()");
@@ -630,6 +630,16 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   UP.up.files[0].c = '시설관련'; const cats = /보증금관련/.test(UP.upHTML()); UP.upSave(); UP.tab3 = '자료보관'; const t = UP.PRO3('b1');
   r6.push(['파일 업로드 — 처음부터 파일·제목·카테고리 칸이 보임 · 파일 없으면 막힘 · 카테고리 빠지면 막힘 · 건물용 카테고리만(보증금관련 없음) · 파일 찾기 · 귀속 대상 건물 · 한 번에 한 건 · 올리면 목록 맨 위에 제목으로',
     none && noCat && /건물 · 카리나빌딩/.test(h) && b.docs.length === n0 + 1 && b.docs[0].ttl === '승강기 점검표 2026' && !/파일 추가/.test(h) && t.includes('승강기 점검표 2026') && !cats && /파일 찾기/.test(h)]); }
+/* 관련 계약 — 건물 자료보관에서 계약을 고르면 귀속 대상이 계약 · 카테고리는 계약용 · 목록에 관련 계약 · 계약 등록에서는 같은 패널로 한 건씩 */
+{ const RC2 = new Function(stub + bare + '; return {upOpen,upCtr,upSave,upHTML,BUILDINGS,PRO3,CTR2,get up(){return up;},get nc(){return nc;},set tab3(v){tab3=v;}};')();
+  const b = RC2.BUILDINGS[0];
+  RC2.upOpen('b1'); RC2.up.files[0].c = '건물서류'; RC2.upCtr('b1본관8층'); const reset = RC2.up.files[0].c === ''; const h = RC2.upHTML();
+  Object.assign(RC2.up.files[0], {t:'원상복구_합의서.pdf', sz:'300 KB', ttl:'원상복구 합의서', c:'계약서'}); RC2.upSave();
+  RC2.tab3 = '자료보관'; const t = RC2.PRO3('b1');
+  RC2.CTR2(); RC2.upOpen('b1', true); const hn = RC2.upHTML(); Object.assign(RC2.up.files[0], {t:'사업자등록증.pdf', sz:'200 KB', ttl:'사업자등록증', c:'사업자등록증·신분증'}); RC2.upSave();
+  r6.push(['관련 계약 — 계약 고르면 귀속 대상 계약 · 카테고리 계약용(건물서류 지워짐) · 목록에 관련 계약 · 계약 등록은 귀속 대상 고정 · 한 건씩 붙음',
+    reset && /계약 · 카리나\|본관8층/.test(h) && /보증금관련/.test(h) && b.docs[0].k === 'b1본관8층' && /관련 계약/.test(t)
+    && /지금 등록 중인 계약/.test(hn) && !/관련 계약/.test(hn) && RC2.nc.files.length === 1 && RC2.nc.files[0].t === '사업자등록증']); }
 /* 수납 내역 더보기 — 받을 돈이 있는 계약(비씨에이전시)만 수납 처리가 눌리고, 다 받은 계약(에스씨케이컴퍼니)은 흐림 · 원장 보기는 모두 */
 { const MV = new Function(stub + bare + '; seedJuly(); return {PAY6,RC,MORE};')();
   MV.RC.f = {b:'b1', ym:'2026-07', st:''}; MV.MORE.length = 0; const h = MV.PAY6();

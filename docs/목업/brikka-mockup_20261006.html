@@ -1934,7 +1934,9 @@ function t유닛(b){
 let selD={}, dc=null;
 const docExt=t=>(t.split('.').pop()||'').toUpperCase();
 const docTitle=t=>t.replace(/\.[^.]+$/,'').replace(/_/g,' ');
-const dTitle=d=>d.ttl||docTitle(d.t);   /* 올릴 때 정한 제목. 없으면 파일 이름 */
+const dTitle=d=>d.ttl||docTitle(d.t);
+/* 관련 계약 — 건물 자료보관에서 계약을 골라 올린 문서. 귀속 대상은 그 계약이고 계약 상세 자료보관에도 같은 문서가 보인다 */
+const docCtr=(b,d)=>{const c=d.k&&CTRS.find(x=>ckey(x)===d.k);return c?cnameHTML(b.alias,c.no,c.ten):'<span style="color:var(--faint)">—</span>';};   /* 올릴 때 정한 제목. 없으면 파일 이름 */
 function dPickRow(i,e){if(e)e.stopPropagation();selD[i]=!selD[i];render(true);}
 function dPickAll(b,v){selD={};if(v)b.docs.forEach((_,i)=>selD[i]=true);render(true);}
 function docOpen(bid,i){dc={bid,mode:'view',i};DRAWER='doc';render(true);}
@@ -1965,7 +1967,7 @@ function docHTML(){
       <button class="x" onclick="closeDrawer()">✕</button></div>
     <div class="db">
       <div class="fg"><div class="fl">문서 정보</div>
-        ${R('제목',dTitle(d))}${R('카테고리',`<span class="bd mu">${d.c}</span>`)}${R('귀속 대상',`건물 · ${b.name}`)}
+        ${R('제목',dTitle(d))}${R('카테고리',`<span class="bd mu">${d.c}</span>`)}${R('귀속 대상',d.k?`계약 · ${docCtr(b,d)}`:`건물 · ${b.name}`)}
         ${R('파일',`${d.t} <span class="c2">${ext} · ${d.sz}</span>`)}
         ${R('업로드한 사람',d.by)}${R('등록일시',d.at.replace(/-/g,'.'))}${R('메모',d.m||'—')}</div>
     </div>
@@ -1978,15 +1980,19 @@ function docHTML(){
 let up=null;
 const fileSz=n=>n>=1048576?(n/1048576).toFixed(1)+' MB':Math.max(1,Math.round(n/1024))+' KB';
 /* 한 번에 파일 하나. 처음부터 파일 · 제목 · 카테고리 · 메모 칸을 다 보여 준다 */
-const upSlot=()=>({t:'',sz:'',ttl:'',c:'',m:''});
-function upOpen(bid){up={bid,files:[upSlot()],tried:false};DRAWER='upl';render(true);}
+const upSlot=()=>({t:'',sz:'',ttl:'',c:'',m:'',k:''});
+/* nc — 계약 등록 화면에서 연 경우. 귀속 대상이 등록 중인 계약으로 정해져 있다 */
+function upOpen(bid,fromNc){up={bid,nc:!!fromNc,files:[upSlot()],tried:false};DRAWER='upl';render(true);}
+/* 관련 계약 — 건물 자료보관에서 올릴 때만 고른다. 고르면 귀속 대상이 그 계약이 되고 카테고리도 계약용으로 바뀐다 */
+function upCtr(k){const f=up.files[0]; f.k=k; if(f.c&&!DOC_CAT_OF[k?'계약':'건물'].includes(f.c)) f.c=''; render(true);}
 function upSet(i,file){const f=up.files[i]; f.t=file.name; f.sz=fileSz(file.size); if(!f.ttl.trim()) f.ttl=docTitle(file.name); render(true);}
 function upPick(i){const el=document.createElement('input');el.type='file';el.onchange=()=>{if(el.files[0]) upSet(i,el.files[0]);};el.click();}
 function upMissing(){const m=[], n=up.files.length>1;
   up.files.forEach((f,i)=>{const p=n?`${i+1}번 `:''; if(!f.t) m.push(p+'파일'); if(!f.ttl.trim()) m.push(p+'제목'); if(!f.c) m.push(p+'카테고리');});return m;}
 function upSave(){up.tried=true; if(upMissing().length){render(true);return;}
   const b=BUILDINGS.find(x=>x.id===up.bid), now=`${TODAY_S} ${new Date().toTimeString().slice(0,5)}`;
-  [...up.files].reverse().forEach(f=>b.docs.unshift({t:f.t,ttl:f.ttl.trim(),sz:f.sz,c:f.c,m:f.m.trim(),by:'슈퍼관리자',at:now}));
+  if(up.nc) up.files.forEach(f=>nc.files.push({file:f.t,t:f.ttl.trim(),c:f.c,m:f.m.trim()}));
+  else [...up.files].reverse().forEach(f=>b.docs.unshift({t:f.t,ttl:f.ttl.trim(),sz:f.sz,c:f.c,m:f.m.trim(),k:f.k||'',by:'슈퍼관리자',at:now}));
   selD={}; DRAWER=null; up=null; render(true);}
 function upHTML(){
   if(DRAWER!=='upl'||!up) return '';
@@ -1998,13 +2004,16 @@ function upHTML(){
           <button class="btn sm" style="margin-left:auto" onclick="up.files.splice(${i},1);render(true)">빼기</button></div>`:''}
         ${R('파일',`<button class="btn sm" onclick="upPick(${i})">파일 찾기</button>${f.t?`<span class="fv">${f.t} <span class="c2">${f.sz}</span></span>`:'<span class="c2" style="margin:0">선택된 파일 없음</span>'}`,1)}
         ${R('제목',`<input type="text" value="${f.ttl}" placeholder="파일을 고르면 파일 이름으로 채워집니다" oninput="up.files[${i}].ttl=this.value" style="${inp};width:100%">`,1)}
-        ${R('카테고리',`<select onchange="up.files[${i}].c=this.value;render(true)" style="${inp}"><option value="">선택</option>${DOC_CAT_OF.건물.map(c=>`<option ${f.c===c?'selected':''}>${c}</option>`).join('')}</select>`,1)}
+        ${R('카테고리',`<select onchange="up.files[${i}].c=this.value;render(true)" style="${inp}"><option value="">선택</option>${DOC_CAT_OF[up.nc||f.k?'계약':'건물'].map(c=>`<option ${f.c===c?'selected':''}>${c}</option>`).join('')}</select>`,1)}
         ${R('메모',`<input type="text" value="${f.m}" oninput="up.files[${i}].m=this.value" style="${inp};width:100%">`)}`;
   return `<div class="dro"><div class="ov" onclick="closeDrawer()"></div><div class="pn">
     <div class="dh"><div><div class="t">파일 업로드</div><div class="s">${b.name}</div></div>
       <button class="x" onclick="closeDrawer()">✕</button></div>
     <div class="db">
-      ${R('귀속 대상',`<span class="fv">건물 · ${b.name}</span>`)}
+      ${up.nc?R('귀속 대상','<span class="fv">계약 · 지금 등록 중인 계약</span>')
+        :(()=>{const f=up.files[0], cs=CTRS.filter(c=>c.b===b.id).sort((x,y)=>dnum(y.base)-dnum(x.base)), cur=f.k&&CTRS.find(c=>ckey(c)===f.k);
+          return R('관련 계약',`<select onchange="upCtr(this.value)" style="${inp};max-width:100%"><option value="">없음 — 건물 문서</option>${cs.map(c=>`<option value="${ckey(c)}" ${f.k===ckey(c)?'selected':''}>${cname(b.alias,c.no,c.ten)} (${c.st})</option>`).join('')}</select>`)
+            +R('귀속 대상',`<span class="fv">${cur?`계약 · ${cname(b.alias,cur.no,cur.ten)}`:`건물 · ${b.name}`}</span>`);})()}
       ${up.files.map((f,i)=>many?`<div style="border:1px solid var(--line);border-radius:var(--r-sm);padding:10px 12px 2px;margin-bottom:10px">${slot(f,i)}</div>`:slot(f,i)).join('')}
       ${miss.length?`<div class="fnd wa3" style="margin:0"><span class="h">올릴 수 없습니다</span>빠진 항목: <b>${miss.join(' · ')}</b></div>`:''}
     </div>
@@ -2018,11 +2027,11 @@ function t자료(b){
       <button class="btn pri sm" onclick="upOpen('${b.id}')">+ 파일 업로드</button></span></div>
     ${!b.docs.length?`<div class="empty"><div class="t">등록된 자료가 없습니다</div>계약서·등기부등본 등을 업로드할 수 있습니다.</div>`:`<div class="tw"><table>
       <thead><tr><th class="c" style="width:44px"><span class="cb ${all?'on':''}" style="cursor:pointer" onclick="dPickAll(BUILDINGS.find(x=>x.id==='${b.id}'),${all?'false':'true'})"></span></th>
-        <th>제목 <span class="so">⇅</span></th><th>카테고리</th><th>업로드한 사람</th><th>등록일시 <span class="so">⇅</span></th><th class="c">더보기</th></tr></thead>
+        <th>제목 <span class="so">⇅</span></th><th>카테고리</th><th>관련 계약</th><th>업로드한 사람</th><th>등록일시 <span class="so">⇅</span></th><th class="c">더보기</th></tr></thead>
       <tbody>${b.docs.map((d,i)=>`<tr class="${selD[i]?'on':''}">
         <td class="c"><span class="cb ${selD[i]?'on':''}" style="cursor:pointer" onclick="dPickRow(${i},event)"></span></td>
         <td><div class="c1">${dTitle(d)}</div><div class="c2">${docExt(d.t)} · ${d.sz}</div></td>
-        <td><span class="bd mu">${d.c}</span></td><td>${d.by}</td>
+        <td><span class="bd mu">${d.c}</span></td><td>${docCtr(b,d)}</td><td>${d.by}</td>
         <td><div class="c1" style="font-weight:400">${d.at.split(' ')[0]}</div><div class="c2">${d.at.split(' ')[1]}</div></td>
         <td class="c">${moreCell([{t:'상세',go:`docOpen('${b.id}',${i})`},{t:'내려받기',go:`docDown('${b.id}',${i})`},{t:'삭제',go:`docDelOpen('${b.id}',[${i}])`}])}</td></tr>`).join('')}</tbody>
     </table></div>`}</div>`;
@@ -4223,9 +4232,6 @@ const DOC_CAT=['계약서','사업자등록증·신분증','보증금관련','�
 /* 귀속 대상마다 고를 수 있는 카테고리 — 문서 보관함 필터는 10종 전부 → 3.1 · DOC-3 */
 const DOC_CAT_OF={건물:['건물서류','계약서','시설관련','보고서','기타'],
   계약:['계약서','사업자등록증·신분증','보증금관련','청구납부관련','요청수리내역','임차인커뮤니케이션','기타']};
-/* 목업 — 파일 선택 대신 예시 파일을 차례로 붙인다. 파일 이름으로 카테고리를 짐작해 채운다 */
-const NC_SAMPLE=[['임대차계약서_본관302호.pdf','임대차계약서','계약서'],['사업자등록증.pdf','사업자등록증','사업자등록증·신분증'],['보증금_입금확인.jpg','보증금 입금 확인','보증금관련']];
-function ncFile(){const x=NC_SAMPLE[nc.files.length%NC_SAMPLE.length];nc.files.push({file:x[0],t:x[1],c:x[2],m:''});render(true);}
 function ncRow(list,i,f,v){nc[list][i][f]=v;render(true);}
 function CTR2(){
   if(!nc) ncInit();
@@ -4309,15 +4315,12 @@ function CTR2(){
           <div class="c2" style="margin:-4px 0 8px 114px">비워 두면 그 항목은 그대로입니다</div></div>`;}).join('')
       +`<button class="btn sm" onclick="nc.adj.push({d:'',rent:'',mgmt:''});render(true)">+ 일정 추가</button>`)
     +card('자료보관',
-      '<div class="c2" style="margin:-4px 0 10px">파일마다 제목과 카테고리를 정합니다. 계약 상세의 자료보관 탭과 문서 보관함에서 찾을 수 있습니다</div>'
-      +nc.files.map((f,i)=>`<div style="border:1px solid var(--line);border-radius:var(--r-sm);padding:10px 12px 2px;margin-bottom:10px">
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:9px;font-size:12.5px"><b>${f.file}</b>
-            <button class="btn sm" style="margin-left:auto" onclick="nc.files.splice(${i},1);render(true)">삭제</button></div>
-          ${R('제목',`<input type="text" value="${f.t}" onchange="ncRow('files',${i},'t',this.value)">`)}
-          ${R('카테고리',`<select onchange="ncRow('files',${i},'c',this.value)">${DOC_CAT_OF.계약.map(c=>`<option ${f.c===c?'selected':''}>${c}</option>`).join('')}</select>`)}
-          ${R('메모',`<input type="text" value="${f.m}" placeholder="메모" onchange="ncRow('files',${i},'m',this.value)">`)}</div>`).join('')
-      +`<div onclick="ncFile()" style="border:1.5px dashed var(--line);border-radius:var(--r-sm);padding:16px;text-align:center;color:var(--muted);font-size:12.5px;margin-top:10px;cursor:pointer">
-        파일을 끌어다 놓거나 눌러서 고르세요 <span class="c2">(목업: 누르면 예시 파일이 추가됩니다)</span></div>`)
+      (nc.files.length?`<div class="tw" style="border:1px solid var(--line);border-radius:var(--r-sm);margin-bottom:10px"><table>
+        <thead><tr><th>제목</th><th>카테고리</th><th class="c">더보기</th></tr></thead>
+        <tbody>${nc.files.map((f,i)=>`<tr><td><div class="c1">${f.t}</div><div class="c2">${f.file}</div></td><td><span class="bd mu">${f.c}</span></td>
+          <td class="c"><span class="more" onclick="nc.files.splice(${i},1);render(true)">삭제</span></td></tr>`).join('')}</tbody></table></div>`
+        :'<div class="c2" style="margin:-4px 0 10px">계약서·사업자등록증 등을 한 번에 하나씩 올립니다. 계약 상세의 자료보관 탭과 문서 보관함에서 찾을 수 있습니다</div>')
+      +`<button class="btn sm" onclick="upOpen(nc.b,true)">+ 파일 업로드</button>`)
     +card('메모',`<textarea rows="3" placeholder="이 계약에 대해 남길 말" style="width:100%;border:1px solid var(--line);border-radius:var(--r-sm);padding:8px;font:inherit;font-size:12.5px"
         onchange="nc.memo=this.value">${nc.memo}</textarea>`);
   return `
