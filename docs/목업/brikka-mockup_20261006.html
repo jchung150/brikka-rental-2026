@@ -1286,6 +1286,7 @@ function drawerHTML(){
   if(DRAWER==='term') return termHTML();
   if(DRAWER==='unit') return unHTML();
   if(DRAWER==='udet') return udHTML();
+  if(DRAWER==='cidet') return cdHTML();
   if(DRAWER==='bop') return bopHTML();
   if(DRAWER==='c3x') return cx3HTML();
   if(DRAWER==='over') return overHTML();
@@ -1950,6 +1951,38 @@ function t자료(b){
     </table></div></div>`;
 }
 
+/* ═══ 청구항목 상세 — 관리비 탭의 더보기 「상세」. 설정을 한눈에 보고, 최근 3개월 고지서 금액을 본다. 고치려면 「수정」 → PRO-3 ═══ */
+let cd=null;
+function cdOpen(code){cd={code};DRAWER='cidet';render(true);}
+function cdHTML(){
+  if(DRAWER!=='cidet'||!cd) return '';
+  const b=BUILDINGS[0], m=M(cd.code), c=b.charge.find(x=>codeOf(x.it)===cd.code)||{}, st=resolve(cd.code), bill=c.bill||m.bill;
+  const R=(k,v)=>`<div class="fr"><span class="fk">${k}</span><span class="fv">${v}</span></div>`;
+  const mt=METER[cd.code]||[];
+  const months=['2026-06','2026-07','2026-08'].map(ym=>{const B=(BILL_M[ym]||{})[cd.code]; return [ym,B&&B.on?(B.supply||0)+(B.vat||0):null];});
+  return `<div class="dro"><div class="ov" onclick="closeDrawer()"></div><div class="pn">
+    <div class="dh"><div><div class="t">${c.it||m.name}</div><div class="s">${b.name} · 청구항목 상세</div></div>
+      <button class="x" onclick="closeDrawer()">✕</button></div>
+    <div class="db">
+      <div class="fg"><div class="fl">설정</div>
+        ${R('사용 여부',c.use?'<span class="bd ok">사용</span>':'<span class="bd mu">미사용</span>')}
+        ${R('배분 우선순위',`<b>${prioOf(c.it||m.name)}</b>`)}
+        ${R('발행 문서',`${bill||'—'} <span class="c2">${isTax(bill)?'과세':bill==='계산서'?'면세':'비과세'}</span>`)}
+        ${R('반복주기',c.fixed?'매월':(c.cycle||m.cycle||'—'))}
+        ${R('배분 기준',c.fixed?'계약 약정액':(c.basis||'—')+(c.ref?` <span class="c2">${c.ref} 검침값 참조</span>`:''))}
+        ${R('근거 문서',c.doc||`${st.by||m.src||''} ${st.doc||m.doc||''}`.trim()||'—')}</div>
+      ${c.fixed?`<div class="fg"><div class="fl">금액</div><div class="c2" style="margin:0;white-space:normal">계약마다 정한 약정액을 그대로 청구합니다. 계약 상세 › 임대료·관리비에서 봅니다</div></div>`
+      :`${m.unit&&!c.ref?`<div class="fg"><div class="fl">계량기 보유 유닛 · ${mt.length}개</div>
+          <div style="display:flex;flex-wrap:wrap;gap:5px">${mt.length?mt.map(n=>`<span class="tag">${n}</span>`).join(''):'<span class="c2" style="margin:0">없음</span>'}</div></div>`:''}
+        <div class="fg"><div class="fl">최근 고지서 금액</div>
+          <div class="tw" style="border:1px solid var(--line);border-radius:var(--r-sm)"><table>
+            <thead><tr><th>청구년월</th><th class="n">고지서 금액</th></tr></thead>
+            <tbody>${months.map(([ym,v])=>`<tr><td>${ym.replace('-','년 ').replace(/년 0/,'년 ')}월</td><td class="n">${v==null?'<span style="color:var(--faint)">—</span>':won(v)}</td></tr>`).join('')}</tbody>
+          </table></div></div>`}
+    </div>
+    <div class="df"><button class="btn pri" onclick="closeDrawer();openCS('${cd.code}')">수정</button></div>
+  </div></div>`;
+}
 function t청구(b){
   if(!b.charge.length) return `<div class="tbl"><div class="empty"><div class="t">등록된 관리비 항목이 없습니다</div>건물에서 부과할 항목을 추가하세요.</div></div>`;
   return `
@@ -1971,7 +2004,7 @@ function t청구(b){
         <td>${c.fixed?'<span style="color:var(--muted)">계약 약정액</span>':(c.basis||'—')}${c.ref?`<div class="c2">${c.ref} 검침값 참조</div>`:''}</td>
         <td>${!c.meter?'—':c.meter==='없음'?'<span style="color:var(--faint)">없음</span>':`<b>${c.meter}</b>`}</td>
         <td>${c.doc||`${st.by||m.src||''} ${st.doc||m.doc||''}`.trim()||'—'}</td>
-        <td class="c"><span class="more" onclick="openCS(codeOf('${c.it}'))">수정</span></td></tr>`}).join('')}</tbody>
+        <td class="c">${moreCell([{t:'상세',go:`cdOpen(codeOf('${c.it}'))`},{t:'수정',go:`openCS(codeOf('${c.it}'))`}])}</td></tr>`}).join('')}</tbody>
     </table></div>
   </div>
 `;
