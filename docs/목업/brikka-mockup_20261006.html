@@ -1934,8 +1934,7 @@ function t유닛(b){
 let selD={}, dc=null;
 const docExt=t=>(t.split('.').pop()||'').toUpperCase();
 const docTitle=t=>t.replace(/\.[^.]+$/,'').replace(/_/g,' ');
-const dTitle=d=>d.ttl||docTitle(d.t);
-const docPv=d=>d.pv!=null?d.pv:DOC_PRIV.includes(d.c);   /* 따로 정하지 않았으면 카테고리 기본값 */   /* 올릴 때 정한 제목. 없으면 파일 이름 */
+const dTitle=d=>d.ttl||docTitle(d.t);   /* 올릴 때 정한 제목. 없으면 파일 이름 */
 function dPickRow(i,e){if(e)e.stopPropagation();selD[i]=!selD[i];render(true);}
 function dPickAll(b,v){selD={};if(v)b.docs.forEach((_,i)=>selD[i]=true);render(true);}
 function docOpen(bid,i){dc={bid,mode:'view',i};DRAWER='doc';render(true);}
@@ -1966,7 +1965,7 @@ function docHTML(){
       <button class="x" onclick="closeDrawer()">✕</button></div>
     <div class="db">
       <div class="fg"><div class="fl">문서 정보</div>
-        ${R('제목',dTitle(d))}${R('카테고리',`<span class="bd mu">${d.c}</span>`)}${R('귀속 대상',`건물 · ${b.name}`)}${R('공개',docPv(d)?'비공개 <span class="c2">내려받은 사람과 시각을 기록</span>':'관리자 모두')}
+        ${R('제목',dTitle(d))}${R('카테고리',`<span class="bd mu">${d.c}</span>`)}${R('귀속 대상',`건물 · ${b.name}`)}
         ${R('파일',`${d.t} <span class="c2">${ext} · ${d.sz}</span>`)}
         ${R('업로드한 사람',d.by)}${R('등록일시',d.at.replace(/-/g,'.'))}${R('메모',d.m||'—')}</div>
     </div>
@@ -1975,18 +1974,17 @@ function docHTML(){
   </div></div>`;
 }
 /* ═══ 파일 업로드 — 자료보관 탭의 「+ 파일 업로드」. 귀속 대상은 이 건물로 정해져 있다(DOC-3의 탭 경로) → PRO-3 · DOC-3
-   여러 파일을 한 번에 올리고, 파일마다 제목 · 카테고리 · 메모를 정한다. 제목은 파일 이름으로 미리 채운다 ═══ */
+   여러 파일을 「파일 찾기」로 한 번에 고르고, 파일마다 제목 · 카테고리 · 메모를 정한다. 제목은 파일 이름으로 미리 채운다 ═══ */
 let up=null;
 const fileSz=n=>n>=1048576?(n/1048576).toFixed(1)+' MB':Math.max(1,Math.round(n/1024))+' KB';
 function upOpen(bid){up={bid,files:[],tried:false};DRAWER='upl';render(true);}
-function upAdd(list){[...list].forEach(f=>up.files.push({t:f.name,sz:fileSz(f.size),ttl:docTitle(f.name),c:'',m:'',pv:false}));render(true);}
+function upAdd(list){[...list].forEach(f=>up.files.push({t:f.name,sz:fileSz(f.size),ttl:docTitle(f.name),c:'',m:''}));render(true);}
 function upPick(){const i=document.createElement('input');i.type='file';i.multiple=true;i.onchange=()=>upAdd(i.files);i.click();}
-function upDrop(e){e.preventDefault();upAdd(e.dataTransfer.files);}
 function upMissing(){const m=[];if(!up.files.length) m.push('파일');
   up.files.forEach((f,i)=>{if(!f.ttl.trim()) m.push(`${i+1}번 제목`); if(!f.c) m.push(`${i+1}번 카테고리`);});return m;}
 function upSave(){up.tried=true; if(upMissing().length){render(true);return;}
   const b=BUILDINGS.find(x=>x.id===up.bid), now=`${TODAY_S} ${new Date().toTimeString().slice(0,5)}`;
-  [...up.files].reverse().forEach(f=>b.docs.unshift({t:f.t,ttl:f.ttl.trim(),sz:f.sz,c:f.c,m:f.m.trim(),pv:!!f.pv,by:'슈퍼관리자',at:now}));
+  [...up.files].reverse().forEach(f=>b.docs.unshift({t:f.t,ttl:f.ttl.trim(),sz:f.sz,c:f.c,m:f.m.trim(),by:'슈퍼관리자',at:now}));
   selD={}; DRAWER=null; up=null; render(true);}
 function upHTML(){
   if(DRAWER!=='upl'||!up) return '';
@@ -1998,15 +1996,12 @@ function upHTML(){
       <button class="x" onclick="closeDrawer()">✕</button></div>
     <div class="db">
       ${R('귀속 대상',`<span class="fv">건물 · ${b.name}</span>`)}
-      <div onclick="upPick()" ondragover="event.preventDefault()" ondrop="upDrop(event)"
-        style="border:1.5px dashed var(--line);border-radius:var(--r-sm);padding:22px 12px;text-align:center;color:var(--muted);font-size:12.5px;margin:6px 0 14px;cursor:pointer">
-        파일을 끌어다 놓거나 눌러서 고르세요<div class="c2" style="margin:4px 0 0">여러 개를 한 번에 올릴 수 있습니다</div></div>
+      ${R('파일',`<button class="btn sm" onclick="upPick()">파일 찾기</button><span class="c2" style="margin:0">여러 개를 한 번에 고를 수 있습니다</span>`,1)}
       ${up.files.map((f,i)=>`<div style="border:1px solid var(--line);border-radius:var(--r-sm);padding:10px 12px 2px;margin-bottom:10px">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:9px;font-size:12.5px"><b>${f.t}</b><span class="c2" style="margin:0">${f.sz}</span>
           <button class="btn sm" style="margin-left:auto" onclick="up.files.splice(${i},1);render(true)">빼기</button></div>
         ${R('제목',`<input type="text" value="${f.ttl}" oninput="up.files[${i}].ttl=this.value" style="${inp};width:100%">`,1)}
-        ${R('카테고리',`<select onchange="up.files[${i}].c=this.value;up.files[${i}].pv=DOC_PRIV.includes(this.value);render(true)" style="${inp}"><option value="">선택</option>${DOC_CAT_OF.건물.map(c=>`<option ${f.c===c?'selected':''}>${c}</option>`).join('')}</select>`,1)}
-        ${R('비공개',`<label class="ck"><input type="checkbox" ${f.pv?'checked':''} onchange="up.files[${i}].pv=this.checked">내려받은 사람과 시각을 기록</label>`)}
+        ${R('카테고리',`<select onchange="up.files[${i}].c=this.value;render(true)" style="${inp}"><option value="">선택</option>${DOC_CAT_OF.건물.map(c=>`<option ${f.c===c?'selected':''}>${c}</option>`).join('')}</select>`,1)}
         ${R('메모',`<input type="text" value="${f.m}" oninput="up.files[${i}].m=this.value" style="${inp};width:100%">`)}</div>`).join('')}
       ${miss.length?`<div class="fnd wa3" style="margin:0"><span class="h">올릴 수 없습니다</span>빠진 항목: <b>${miss.join(' · ')}</b></div>`:''}
     </div>
@@ -2023,7 +2018,7 @@ function t자료(b){
         <th>제목 <span class="so">⇅</span></th><th>카테고리</th><th>업로드한 사람</th><th>등록일시 <span class="so">⇅</span></th><th class="c">더보기</th></tr></thead>
       <tbody>${b.docs.map((d,i)=>`<tr class="${selD[i]?'on':''}">
         <td class="c"><span class="cb ${selD[i]?'on':''}" style="cursor:pointer" onclick="dPickRow(${i},event)"></span></td>
-        <td><div class="c1">${dTitle(d)}${docPv(d)?' <span class="lock">비공개</span>':''}</div><div class="c2">${docExt(d.t)} · ${d.sz}</div></td>
+        <td><div class="c1">${dTitle(d)}</div><div class="c2">${docExt(d.t)} · ${d.sz}</div></td>
         <td><span class="bd mu">${d.c}</span></td><td>${d.by}</td>
         <td><div class="c1" style="font-weight:400">${d.at.split(' ')[0]}</div><div class="c2">${d.at.split(' ')[1]}</div></td>
         <td class="c">${moreCell([{t:'상세',go:`docOpen('${b.id}',${i})`},{t:'내려받기',go:`docDown('${b.id}',${i})`},{t:'삭제',go:`docDelOpen('${b.id}',[${i}])`}])}</td></tr>`).join('')}</tbody>
@@ -4225,8 +4220,6 @@ const DOC_CAT=['계약서','사업자등록증·신분증','보증금관련','�
 /* 귀속 대상마다 고를 수 있는 카테고리 — 문서 보관함 필터는 10종 전부 → 3.1 · DOC-3 */
 const DOC_CAT_OF={건물:['건물서류','계약서','시설관련','보고서','기타'],
   계약:['계약서','사업자등록증·신분증','보증금관련','청구납부관련','요청수리내역','임차인커뮤니케이션','기타']};
-/* 기본 비공개 카테고리 — 내려받은 사람·시각을 기록한다. 올릴 때 바꿀 수 있다 → 11 */
-const DOC_PRIV=['계약서','사업자등록증·신분증','건물서류'];
 /* 목업 — 파일 선택 대신 예시 파일을 차례로 붙인다. 파일 이름으로 카테고리를 짐작해 채운다 */
 const NC_SAMPLE=[['임대차계약서_본관302호.pdf','임대차계약서','계약서'],['사업자등록증.pdf','사업자등록증','사업자등록증·신분증'],['보증금_입금확인.jpg','보증금 입금 확인','보증금관련']];
 function ncFile(){const x=NC_SAMPLE[nc.files.length%NC_SAMPLE.length];nc.files.push({file:x[0],t:x[1],c:x[2],m:''});render(true);}
