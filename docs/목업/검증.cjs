@@ -574,6 +574,15 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   r6.push(['계약 해지 — 해지일 8/20: 전기요금 08.10~08.20 11일 고지 전 · 수도요금 08.08~08.20 · 사유 없으면 안 됨 · 예상 180,000원은 「전기요금 퇴거 예상분 (08.10~08.20)」 추가 청구',
     noWhy && e && e.from === '2026-08-10' && e.days === 11 && w && w.from === '2026-08-08' && /아직 고지되지 않은 기간/.test(h)
     && row && row.n === '전기요금 퇴거 예상분 (08.10~08.20)' && row.amt === 180000 && TM.TERMS['b1본관5층'].out === '2026-08-20']); }
+/* 유닛 등록 — 필수 빠지면 막힘 · 번호 중복 막힘 · 전용면적 > 임대면적 막힘 · 지하층 · 카드에 생김 */
+{ const UN = new Function(stub + bare + '; return {unOpen,unSave,unMissing,unHTML,BUILDINGS,PRO3,get un(){return un;},set tab3(v){tab3=v;}};')();
+  const b = UN.BUILDINGS[0], n0 = b.units.length;
+  UN.unOpen('b1'); UN.unSave(); const blocked = b.units.length === n0 && UN.unMissing().includes('유닛고유번호');
+  Object.assign(UN.un, {no:'본관8층', fl:'8', use:'사무실', area:'330'}); const dup = UN.unMissing().some(x => /이미 있음/.test(x));
+  Object.assign(UN.un, {no:'별관B1', dong:'별관', fk:'지하', fl:'1', area:'120', net:'130'}); const big = UN.unMissing().some(x => /임대면적보다/.test(x));
+  UN.un.net = '96'; const h = UN.unHTML(); UN.unSave(); const u = b.units.at(-1); UN.tab3 = '유닛'; const t = UN.PRO3('b1');
+  r6.push(['유닛 등록 — 필수 빠지면 막힘 · 번호 중복 · 전용면적 > 임대면적 막힘 · 별관 지하 1층 등록 · 전용률 80.0% · 유닛 탭 카드에 생김',
+    blocked && dup && big && /80\.0%/.test(h) && b.units.length === n0 + 1 && u.no === '별관B1' && u.fl === -1 && u.st === '공실' && t.includes('별관B1')]); }
 /* 수납 내역 더보기 — 받을 돈이 있는 계약(비씨에이전시)만 수납 처리가 눌리고, 다 받은 계약(에스씨케이컴퍼니)은 흐림 · 원장 보기는 모두 */
 { const MV = new Function(stub + bare + '; seedJuly(); return {PAY6,RC,MORE};')();
   MV.RC.f = {b:'b1', ym:'2026-07', st:''}; MV.MORE.length = 0; const h = MV.PAY6();
