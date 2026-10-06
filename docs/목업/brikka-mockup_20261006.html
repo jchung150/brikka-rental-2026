@@ -357,6 +357,7 @@ td.c,th.c{text-align:center}
 .tgl{width:36px;height:20px;border-radius:99px;background:var(--line);position:relative;cursor:pointer;border:0;padding:0;vertical-align:middle;transition:background .15s}
 .tgl::after{content:'';position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.2);transition:left .15s}
 .tgl.on{background:var(--pri)}.tgl.on::after{left:18px}
+.tgl[disabled]{opacity:.4;cursor:not-allowed}
 tr.off td:not(:last-child):not(:nth-last-child(2)){opacity:.5}
 .locked button,.locked select,.locked input,.locked label{pointer-events:none;opacity:.45}
 .tabs .cnt{background:var(--neutral-bg);color:var(--neutral);font-size:11px;padding:1px 7px;border-radius:99px;font-weight:500}
@@ -1285,6 +1286,7 @@ function drawerHTML(){
   if(DRAWER==='udet') return udHTML();
   if(DRAWER==='cidet') return cdHTML();
   if(DRAWER==='set') return spHTML();
+  if(DRAWER==='bed') return beHTML();
   if(DRAWER==='doc') return docHTML();
   if(DRAWER==='upl') return upHTML();
   if(DRAWER==='bop') return bopHTML();
@@ -1778,34 +1780,26 @@ function t설정(b){
       :'<div class="c2" style="margin:0">지정된 건물관리자가 없습니다. 슈퍼관리자만 이 건물을 봅니다</div>',edit('mgr'));
   const rule=card('청구 규칙',`<dl class="dl"><dt>청구일</dt><dd>${b.billDay}<span class="lock">예: 8월분 → ${ruleEx(b.billDay,'2026-08')}</span></dd>
       <dt>납부마감일</dt><dd>${b.dueDay}<span class="lock">예: 8월분 → ${ruleEx(b.dueDay,'2026-08')}</span></dd></dl>`,edit('rule'));
-  const mgmt=!b.mgmtEnd?card('위탁운영계약','<div style="padding:6px 0;color:var(--muted)">위탁운영계약이 없습니다. 건물주가 직접 관리합니다.</div>','<button class="btn sm">수정</button>')
+  const mgmt=!b.mgmtEnd?card('위탁운영계약','<div style="padding:6px 0;color:var(--muted)">위탁운영계약이 없습니다. 건물주가 직접 관리합니다.</div>',`<button class="btn sm" title="슈퍼관리자만" onclick="beOpen('${b.id}','mgmt')">수정</button>`)
     :`<div class="card" style="${d<=90?'border-color:var(--warn)':''}">
-    <div class="ct">위탁운영계약 ${ddBadge(b.mgmtEnd)}<span class="ca"><button class="btn sm">수정</button></span></div>
-    <div class="cc"><dl class="dl"><dt>기간</dt><dd>${b.mgmtStart} ~ ${b.mgmtEnd}</dd>
+    <div class="ct">위탁운영계약<span class="ca"><button class="btn sm" title="슈퍼관리자만" onclick="beOpen('${b.id}','mgmt')">수정</button></span></div>
+    <div class="cc"><dl class="dl"><dt>기간</dt><dd>${b.mgmtStart} ~ ${b.mgmtEnd}<span class="lock">${dday(b.mgmtEnd)>=0?`${num(dday(b.mgmtEnd))}일 남음`:'만료됨'}</span></dd>
         <dt>관리 수수료</dt><dd>${b.fee}</dd>
         <dt>운영방식</dt><dd>${b.mode}<span class="lock">위탁사 수취 후 정산은 2차</span></dd>
         <dt>위탁운영계약서</dt><dd>${b.docs.some(x=>/위탁운영계약서/.test(x.t))?'<span style="color:var(--pri);cursor:pointer">위탁운영계약서_카리나빌딩_2025.pdf</span>':'<span style="color:var(--muted)">자료보관에 없음</span>'}</dd>
         <dt>임대인</dt><dd>${b.owners[0].n}${b.owners.length>1?` 외 ${b.owners.length-1}`:''}</dd></dl>
       ${d<=90?`<div class="hint" style="color:var(--warn)">만료 90일 이내입니다. 갱신하지 않으면 이 건물의 관리 권한이 소멸합니다.</div>`:''}</div>
   </div>`;
-  /* 운영 상태 — 지금 상태를 맨 위에 크게, 아래에 「멈추기」와 「지우기」를 나란히. 되돌릴 수 있는지를 딱지로 구분한다 */
-  const nU=b.units.length||b.unitCnt||0, nC=CTRS.filter(c=>c.b===b.id).length;
-  const tile=(name,tag,tagc,desc,btn,foot)=>`<div style="border:1px solid var(--line);border-radius:var(--r-sm);padding:12px 14px;display:flex;flex-direction:column;gap:8px">
-      <div style="display:flex;align-items:center;gap:8px"><b style="font-size:13px">${name}</b><span class="bd ${tagc}">${tag}</span></div>
-      <div class="c2" style="margin:0;white-space:normal;line-height:1.6;flex:1">${desc}</div>
-      <div style="display:flex;align-items:center;gap:8px">${btn}${foot?`<span class="c2" style="margin:0;white-space:normal">${foot}</span>`:''}</div></div>`;
-  const opc=card('운영 상태',`<div style="display:flex;align-items:center;gap:10px;margin:0 0 14px">
-        ${op==='운영중'?'<span class="bd ok" style="font-size:12.5px;padding:3px 10px">운영중</span>':'<span class="bd mu" style="font-size:12.5px;padding:3px 10px">비운영중</span>'}
-        <span class="c2" style="margin:0">${o?`${o.at.replace(/-/g,'.')}부터 · ${o.why}`:'정상 운영 중입니다'}</span></div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-      ${tile(op==='운영중'?'운영 중지':'운영 재개','되돌릴 수 있음','mu',
-        op==='운영중'?'대수선 공사 등으로 운영을 멈춥니다. 청구서 발행 · 계약 등록 · 관리비 정산이 막히고 수납 · 미납 · 환불 · 월 마감은 계속합니다.':'멈췄던 건물을 다시 운영합니다. 청구서 발행 · 계약 등록 · 관리비 정산이 다시 열립니다.',
-        `<button class="btn sm" title="슈퍼관리자만" onclick="bopOpen('${b.id}')">${op==='운영중'?'운영 중지':'운영 재개'}</button>`,
-        op==='운영중'&&nC?'진행중·준비중 계약이 있으면 멈출 수 없습니다':'')}
-      ${tile('건물 삭제','되돌릴 수 없음','da','잘못 등록한 건물을 지웁니다. 유닛도 계약도 없는 건물만 지울 수 있습니다.',
-        `<button class="btn sm" ${canDel?'title="슈퍼관리자만"':'disabled'} onclick="spOpen('${b.id}','del')">건물 삭제</button>`,
-        canDel?'':`유닛 ${nU}개${nC?` · 계약 ${nC}건`:''}이 있어 지울 수 없습니다`)}
-      </div>`);
+  /* 운영 상태 — 항목마다 설명 한 줄과 토글. 토글을 누르면 패널이 열리고 거기서 확정한다(사유 · 확인) */
+  const nC=CTRS.filter(c=>c.b===b.id&&(c.st==='진행중'||c.st==='준비중')).length;
+  const trow=(name,desc,on,dis,why,act)=>`<div style="display:flex;align-items:flex-start;gap:14px;padding:12px 0;border-top:1px solid var(--line-2)">
+      <div style="flex:1;min-width:0"><div style="font-weight:600;font-size:13px">${name}</div>
+        <div class="c2" style="margin:3px 0 0;white-space:normal;line-height:1.6">${desc}</div></div>
+      <button class="tgl ${on?'on':''}" ${dis?`disabled title="${why}"`:'title="슈퍼관리자만"'} onclick="${act}" aria-label="${name}"></button></div>`;
+  const opc=card('운영 상태',
+      trow('운영 중지','건물 운영을 멈춥니다. 청구서 발행 · 계약 등록 · 관리비 정산이 막히고 수납 · 미납 · 환불 · 월 마감은 계속합니다. 단, 진행중·준비중 계약이 있으면 멈출 수 없습니다.',
+        op==='비운영중',op==='운영중'&&nC>0,'진행중·준비중 계약이 있어 멈출 수 없습니다',`bopOpen('${b.id}')`)
+      +trow('건물 삭제','건물을 삭제합니다. 유닛도 계약도 없는 건물만 삭제할 수 있습니다.',false,!canDel,'유닛이나 계약이 있는 건물은 삭제할 수 없습니다',`spOpen('${b.id}','del')`));
   /* 변경 이력 — 최근 5건만. 전체는 이력 목록(REC-1)을 이 건물로 걸러서 연다 */
   const log=card('변경 이력',(BLOG[b.id]||[]).length?`<div class="tw" style="border:1px solid var(--line);border-radius:var(--r-sm)"><table>
       <thead><tr><th>일시</th><th>구분</th><th>내용</th><th>바꾼 사람</th></tr></thead>
@@ -1814,14 +1808,93 @@ function t설정(b){
       :'<div class="c2" style="margin:0">기록된 변경이 없습니다</div>',
       `<span class="more" onclick="go('rec-1')">전체 이력 보기 →</span>`);
   /* 자주 보는 것이 위 — 건물관리자 | 위탁운영계약 · 청구 규칙 | 운영 상태 · 변경 이력(한 줄 전체) */
-  const two=(x,y)=>`<div class="two" style="align-items:start">${x}${y}</div>`;
+  const two=(x,y)=>`<div class="two">${x}${y}</div>`;   /* 나란한 카드는 높이를 맞춘다 */
   return two(mgr,mgmt)+two(rule,opc)+log;
 }
+/* ═══ 건물 정보 수정 — 요약 탭 카드마다 「수정」 → 오른쪽 패널. 카드 단위로 고친다 → PRO-3 · 3.8 ═══ */
+let be=null;
+function beOpen(id,card){const b=BUILDINGS.find(x=>x.id===id);
+  const f=card==='basic'?{name:b.name,alias:b.alias,kind:b.kind,addr:b.addr,addr2:b.addr2||'',built:b.built,approved:b.approved}
+    :card==='spec'?{gross:String(b.gross||''),area:String(b.area||''),dong:(b.dong||[{n:'',up:b.up,down:b.down}]).map(g=>({n:g.n,up:String(g.up),down:String(g.down)})),
+        up:String(b.pk.up),down:String(b.pk.down),mech:String(b.pk.mech),hvac:b.hvac.filter(v=>BHVAC.includes(v)),hvx:b.hvac.filter(v=>!BHVAC.includes(v)).join(', ')}
+    :card==='owner'?{owners:b.owners.map(o=>({...o,share:String(o.share)})),acct:b.acct,an:b.acctName,same:b.feeAcct===b.acct&&b.feeAcctName===b.acctName,fa:b.feeAcct,fn:b.feeAcctName}
+    :card==='bond'?{bb:b.bondBank||'',bt:b.bondTel||'',max:String(b.bondMax||''),now:String(b.bondNow||'')}
+    :card==='fac'?{n:''}
+    :{ms:b.mgmtStart||'',me:b.mgmtEnd||'',fee:b.fee==='—'?'':b.fee||''};
+  be={id,card,f,tried:false};DRAWER='bed';render(true);}
+function beMissing(){const b=BUILDINGS.find(x=>x.id===be.id), f=be.f, m=[];
+  if(be.card==='basic'){if(!f.name.trim()) m.push('건물명'); if(!f.alias.trim()) m.push('건물 별칭');
+    else if(BUILDINGS.some(x=>x.id!==b.id&&x.alias===f.alias.trim())) m.push('건물 별칭(이미 쓰는 별칭)'); if(!f.addr.trim()) m.push('건물주소');}
+  if(be.card==='owner'){if(f.owners.some(o=>!o.n.trim()||!o.biz.trim())) m.push('임대인(이름 · 사업자등록번호)');
+    const sh=f.owners.reduce((a,o)=>a+(parseFloat(o.share)||0),0); if(sh!==100) m.push(`지분 합계 100%(지금 ${sh}%)`);
+    if(!f.acct.trim()||!f.an.trim()) m.push('임대료 납부 계좌'); if(!f.same&&(!f.fa.trim()||!f.fn.trim())) m.push('관리비 납부 계좌');}
+  if(be.card==='fac'&&!f.n.trim()) m.push('공용시설 이름');
+  if(be.card==='mgmt'&&(!f.ms||!f.me)) m.push('기간');
+  return m;}
+function beSave(){be.tried=true; if(beMissing().length){render(true);return;}
+  const b=BUILDINGS.find(x=>x.id===be.id), f=be.f;
+  if(be.card==='basic') Object.assign(b,{name:f.name.trim(),alias:f.alias.trim(),kind:f.kind,addr:f.addr.trim(),addr2:f.addr2.trim(),built:f.built,approved:f.approved});
+  if(be.card==='spec'){const dong=f.dong.map(g=>({n:g.n.trim(),up:parseInt(g.up)||0,down:parseInt(g.down)||0}));
+    Object.assign(b,{gross:numOf(f.gross),area:numOf(f.area),dong:dong.length>1||dong[0].n?dong:undefined,up:Math.max(...dong.map(g=>g.up)),down:Math.max(...dong.map(g=>g.down)),
+      pk:{up:parseInt(f.up)||0,down:parseInt(f.down)||0,mech:parseInt(f.mech)||0},hvac:[...f.hvac,...f.hvx.split(',').map(v=>v.trim()).filter(Boolean)]});
+    b.park=b.pk.up+b.pk.down+b.pk.mech;}
+  if(be.card==='owner'){b.owners=f.owners.map(o=>({n:o.n.trim(),biz:o.biz.trim(),share:parseFloat(o.share)||0}));b.owner=b.owners[0].n;b.ownerBiz=b.owners[0].biz;
+    b.acct=f.acct.trim();b.acctName=f.an.trim();b.feeAcct=f.same?b.acct:f.fa.trim();b.feeAcctName=f.same?b.acctName:f.fn.trim();}
+  if(be.card==='bond') Object.assign(b,{bondBank:f.bb.trim(),bondTel:f.bt.trim(),bondMax:numOf(f.max),bondNow:numOf(f.now)});
+  if(be.card==='fac') b.fac.push(f.n.trim());
+  if(be.card==='mgmt'){Object.assign(b,{mgmtStart:f.ms,mgmtEnd:f.me,fee:f.fee.trim()||'—'}); blog(b.id,'위탁운영계약',`${f.ms} ~ ${f.me}`);}
+  DRAWER=null;be=null;render(true);}
+function beHTML(){
+  if(DRAWER!=='bed'||!be) return '';
+  const b=BUILDINGS.find(x=>x.id===be.id), f=be.f, miss=be.tried?beMissing():[];
+  const inp='border:1px solid var(--line);border-radius:var(--r-sm);padding:7px 9px;font:inherit';
+  const R=(k,body)=>`<div class="fr"><span class="fk">${k}</span>${body}</div>`;
+  const T=(k,ph,w)=>`<input type="text" value="${f[k]==null?'':f[k]}" placeholder="${ph||''}" oninput="be.f.${k}=this.value" style="${inp};${w?`max-width:${w}px`:'width:100%'}">`;
+  const D=k=>`<input type="date" value="${f[k]||''}" oninput="be.f.${k}=this.value" style="${inp}">`;
+  const TITLE={basic:'기본 정보',spec:'건물 제원',owner:'임대인 정보',bond:'채권 정보',fac:'공용시설 추가',mgmt:'위탁운영계약'}[be.card];
+  let body='';
+  if(be.card==='basic') body=R('건물명',T('name'))+R('건물 별칭',T('alias','',160))+R('건물유형',`<select onchange="be.f.kind=this.value" style="${inp}">${BKIND.map(v=>`<option ${f.kind===v?'selected':''}>${v}</option>`).join('')}</select>`)
+    +R('건물주소',T('addr'))+R('',T('addr2','지번 주소'))+R('건축일',D('built'))+R('사용승인일',D('approved'));
+  if(be.card==='spec') body=R('연면적',T('gross','㎡',120))+R('임대가능면적',T('area','㎡',120))
+    +f.dong.map((g,i)=>R(i?'':'층수',`<input type="text" value="${g.n}" placeholder="동 이름" oninput="be.f.dong[${i}].n=this.value" style="${inp};max-width:80px">
+        <span class="c2" style="margin:0">지상</span><input type="text" value="${g.up}" oninput="be.f.dong[${i}].up=this.value" style="${inp};max-width:50px">
+        <span class="c2" style="margin:0">지하</span><input type="text" value="${g.down}" oninput="be.f.dong[${i}].down=this.value" style="${inp};max-width:50px">
+        ${i?`<button class="btn sm" onclick="be.f.dong.splice(${i},1);render(true)">삭제</button>`:''}`)).join('')
+    +R('',`<button class="btn sm" onclick="be.f.dong.push({n:'',up:'',down:''});render(true)">+ 동 추가</button>`)
+    +R('주차면수',`<span class="c2" style="margin:0">지상 자주식</span><input type="text" value="${f.up}" oninput="be.f.up=this.value" style="${inp};max-width:50px">
+        <span class="c2" style="margin:0">지하 자주식</span><input type="text" value="${f.down}" oninput="be.f.down=this.value" style="${inp};max-width:50px">
+        <span class="c2" style="margin:0">기계식</span><input type="text" value="${f.mech}" oninput="be.f.mech=this.value" style="${inp};max-width:50px">`)
+    +R('냉난방 방식',`<div style="display:flex;flex-wrap:wrap;gap:6px 12px">${BHVAC.map(v=>`<label class="ck"><input type="checkbox" ${f.hvac.includes(v)?'checked':''}
+        onchange="be.f.hvac=this.checked?[...be.f.hvac,'${v}']:be.f.hvac.filter(x=>x!=='${v}')">${v}</label>`).join('')}</div>`)+R('기타',T('hvx','직접 입력'));
+  if(be.card==='owner') body=f.owners.map((o,i)=>`<div style="border:1px solid var(--line);border-radius:var(--r-sm);padding:10px 12px 2px;margin-bottom:10px">
+      ${R('이름 · 상호',`<input type="text" value="${o.n}" oninput="be.f.owners[${i}].n=this.value" style="${inp};width:100%">`)}
+      ${R('사업자등록번호',`<input type="text" value="${o.biz}" oninput="be.f.owners[${i}].biz=this.value" style="${inp};width:100%">`)}
+      ${R('보유지분',`<input type="text" value="${o.share}" oninput="be.f.owners[${i}].share=this.value" style="${inp};max-width:70px"><span class="c2" style="margin:0">%</span>
+        ${f.owners.length>1?`<button class="btn sm" style="margin-left:auto" onclick="be.f.owners.splice(${i},1);render(true)">삭제</button>`:''}`)}</div>`).join('')
+    +`<button class="btn sm" style="margin-bottom:14px" onclick="be.f.owners.push({n:'',biz:'',share:''});render(true)">+ 임대인 추가</button>`
+    +R('임대료 납부 계좌',T('acct','은행 계좌번호'))+R('예금주',T('an','',160))
+    +R('관리비 납부 계좌',`<label class="ck"><input type="checkbox" ${f.same?'checked':''} onchange="be.f.same=this.checked;render(true)">임대료 납부 계좌와 같음</label>`)
+    +(f.same?'':R('',T('fa','은행 계좌번호'))+R('예금주',T('fn','',160)));
+  if(be.card==='bond') body=R('은행 · 지점',T('bb'))+R('연락처',T('bt','',160))+R('채권최고금액',T('max','원',160))+R('실제채권금액',T('now','원',160))
+    +'<div class="c2" style="margin:0">등기부등본 기준. 등기 변동 시 고칩니다</div>';
+  if(be.card==='fac') body=R('공용시설',T('n','예: 회의실'))+`<div class="c2" style="margin:0">지우려면 공용시설 태그의 ✕를 누릅니다</div>`;
+  if(be.card==='mgmt') body=R('시작일',D('ms'))+R('종료일',D('me'))+R('관리 수수료',T('fee','예: 임대료의 5%'))
+    +R('운영방식','<span class="fv">임대인 직수취 <span class="lock">위탁사 수취 후 정산은 2차</span></span>')
+    +'<div class="c2" style="margin:0">위탁운영계약서는 자료보관 탭에 올립니다</div>';
+  return `<div class="dro"><div class="ov" onclick="closeDrawer()"></div><div class="pn">
+    <div class="dh"><div><div class="t">${TITLE}</div><div class="s">${b.name}</div></div>
+      <button class="x" onclick="closeDrawer()">✕</button></div>
+    <div class="db">${body}
+      ${miss.length?`<div class="fnd wa3" style="margin:10px 0 0"><span class="h">저장할 수 없습니다</span>빠진 항목: <b>${miss.join(' · ')}</b></div>`:''}</div>
+    <div class="df"><button class="btn pri" onclick="beSave()">${be.card==='fac'?'추가':'저장'}</button></div>
+  </div></div>`;
+}
+function facDel(id,n){const b=BUILDINGS.find(x=>x.id===id); b.fac=b.fac.filter(x=>x!==n); render(true);}
 function t요약(b){
   const d=dday(b.mgmtEnd);
   return `
   <div class="card"><div class="ct">기본 정보
-      <span class="ca"><button class="btn sm">수정</button></span></div><div class="cc bpw"><dl class="dl bpd">
+      <span class="ca"><button class="btn sm" onclick="beOpen('${b.id}','basic')">수정</button></span></div><div class="cc bpw"><dl class="dl bpd">
       <dt>건물명</dt><dd>${b.name}</dd>
       <dt>건물 별칭</dt><dd><b>${b.alias}</b>
         <span class="lock">계약고유이름에 사용 — ${b.alias}|101호|임차인명</span></dd>
@@ -1829,9 +1902,9 @@ function t요약(b){
       <dt>건물주소</dt><dd>${b.addr}<div class="c2">${b.addr2}</div></dd>
       <dt>건축일 · 사용승인일</dt><dd>${b.built} · ${b.approved}</dd>
     </dl>${bphHTML(b)}</div></div>
-  <div class="two" style="align-items:start">
+  <div class="two">
     <div class="card"><div class="ct">건물 제원
-      <span class="ca"><button class="btn sm">수정</button></span></div><div class="cc"><dl class="dl">
+      <span class="ca"><button class="btn sm" onclick="beOpen('${b.id}','spec')">수정</button></span></div><div class="cc"><dl class="dl">
       <dt>연면적</dt><dd>${m2(b.gross)}</dd>
       <dt>임대가능면적</dt><dd>${m2(b.area)}</dd>
       ${b.dong?b.dong.map((g,i)=>`<dt>${i?'':'층수'}</dt><dd><b>${g.n}</b> 지상 ${g.up}층${g.down?` · 지하 ${g.down}층`:''}</dd>`).join('')
@@ -1840,24 +1913,24 @@ function t요약(b){
       <dt>냉난방 방식</dt><dd>${b.hvac.length?b.hvac.join(' · '):'—'}</dd>
     </dl></div></div>
     <div class="card"><div class="ct">임대인 정보
-      <span class="ca"><button class="btn sm">수정</button></span></div><div class="cc"><dl class="dl">
+      <span class="ca"><button class="btn sm" onclick="beOpen('${b.id}','owner')">수정</button></span></div><div class="cc"><dl class="dl">
       ${b.owners.map((o,i)=>`<dt>${i?'':'임대인(건물주)'}</dt><dd>${o.n} <b>${o.share}%</b><span class="lock">${o.biz}</span></dd>`).join('')}
       <dt>임대료 납부 계좌</dt><dd>${b.acct}<span class="lock">${b.acctName}</span></dd>
       <dt>관리비 납부 계좌</dt><dd>${b.feeAcct}<span class="lock">${b.feeAcctName}</span></dd>
     </dl></div></div>
   </div>
-  <div class="two" style="align-items:start">
+  <div class="two">
     <div class="card"><div class="ct">채권 정보
-      <span class="ca"><button class="btn sm">수정</button></span></div><div class="cc">
+      <span class="ca"><button class="btn sm" onclick="beOpen('${b.id}','bond')">수정</button></span></div><div class="cc">
       ${b.bondMax?`<dl class="dl">
         <dt>은행 · 지점</dt><dd>${b.bondBank}<span class="lock">${b.bondTel}</span></dd>
         <dt>채권최고금액</dt><dd>${won(b.bondMax)}<span class="lock">${eok(b.bondMax)}</span></dd>
         <dt>실제채권금액</dt><dd>${won(b.bondNow)}<span class="lock">${eok(b.bondNow)}</span></dd>
       </dl>`:'<div style="padding:12px 0;color:var(--muted)">등록된 채권 정보가 없습니다.</div>'}
       <div class="hint">등기부등본 기준. 등기 변동 시 담당자가 직접 갱신한다.</div></div></div>
-    <div class="card"><div class="ct">공용시설<span class="ca"><button class="btn sm">추가</button></span></div>
+    <div class="card"><div class="ct">공용시설<span class="ca"><button class="btn sm" onclick="beOpen('${b.id}','fac')">추가</button></span></div>
       <div class="cc" style="padding-top:12px">
-      ${b.fac.map(f=>`<span class="tag">${f}<span class="x">✕</span></span>`).join('')||'<span style="color:var(--muted)">등록된 공용시설이 없습니다.</span>'}
+      ${b.fac.map(f=>`<span class="tag">${f}<span class="x" style="cursor:pointer" onclick="facDel('${b.id}','${f}')">✕</span></span>`).join('')||'<span style="color:var(--muted)">등록된 공용시설이 없습니다.</span>'}
     </div></div>
   </div>
   <div class="card"><div class="ct">주차장

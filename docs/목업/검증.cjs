@@ -657,10 +657,21 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   ST.sp.dm = '익월'; ST.sp.dd = '5일'; ST.spSave(); const chg = b.dueDay === '익월 5일' && ST.BLOG.b1[0].what === '청구 규칙';
   const snap = ST.dueStr('2026-07') === '2026-07-31' && ST.dueStr('2026-09') === '2026-10-05';
   ST.spOpen('b1', 'del'); const hd = ST.spHTML(); ST.spSave(); const notDel = ST.BUILDINGS.some(x => x.id === 'b1');
-  r6.push(['설정 탭 — 요약에서 위탁운영계약·청구일·운영 중지 빠짐 · 카드 4개(건물관리자·위탁운영계약·청구 규칙·운영 상태 안에 운영 중지와 건물 삭제)+변경 이력 · 관리자는 패널 체크박스 · 마감일이 청구일보다 앞이면 저장 안 됨 · 바꾸면 이력 · 발행한 7월분 마감일은 그대로(7/31), 9월분부터 새 규칙(10/5) · 운영 상태에 되돌릴 수 있음/없음 · 이력 전체 보기 · 유닛 있는 건물은 삭제 패널에서 막힘',
+  r6.push(['설정 탭 — 요약에서 위탁운영계약·청구일·운영 중지 빠짐 · 카드 4개(건물관리자·위탁운영계약·청구 규칙·운영 상태 안에 운영 중지와 건물 삭제)+변경 이력 · 관리자는 패널 체크박스 · 마감일이 청구일보다 앞이면 저장 안 됨 · 바꾸면 이력 · 발행한 7월분 마감일은 그대로(7/31), 9월분부터 새 규칙(10/5) · 운영 상태는 설명과 토글 · 이력 전체 보기 · 유닛 있는 건물은 삭제 패널에서 막힘',
     !/위탁운영계약/.test(sum) && !/운영 중지/.test(sum) && !/납부마감일/.test(sum)
     && ['건물관리자','위탁운영계약','청구 규칙','운영 상태','운영 중지','건물 삭제','변경 이력'].every(t => h.includes(t)) && !/관리자 추가/.test(h)
-    && /type="checkbox"/.test(hp) && mg && kept && chg && snap && /되돌릴 수 없음/.test(h) && /전체 이력 보기/.test(h) && /지울 수 없는 건물입니다/.test(hd) && notDel]); }
+    && /type="checkbox"/.test(hp) && mg && kept && chg && snap && /class="tgl/.test(h) && /단, 진행중·준비중 계약이 있으면 멈출 수 없습니다/.test(h) && /전체 이력 보기/.test(h) && /지울 수 없는 건물입니다/.test(hd) && notDel]); }
+/* 요약 탭 카드 수정 — 기본 정보·건물 제원·임대인 정보·채권 정보·공용시설 추가·위탁운영계약이 패널로 열리고 저장됨 */
+{ const BE = new Function(stub + bare + '; return {beOpen,beSave,beHTML,beMissing,facDel,BUILDINGS,get be(){return be;}};')();
+  const b = BE.BUILDINGS[0];
+  BE.beOpen('b1', 'basic'); BE.be.f.alias = '뉴진스'; BE.beSave(); const dup = BE.beMissing().some(m => /이미 쓰는 별칭/.test(m)); BE.be.f.alias = '카리나'; BE.be.f.addr2 = '지번 바꿈'; BE.beSave();
+  BE.beOpen('b1', 'spec'); BE.be.f.mech = '6'; BE.beSave(); const pk = b.park === 26;
+  BE.beOpen('b1', 'owner'); BE.be.f.owners[0].share = '50'; BE.beSave(); const sh = BE.beMissing().some(m => /지분 합계/.test(m)); BE.be.f.owners[1].share = '50'; BE.beSave();
+  BE.beOpen('b1', 'bond'); BE.be.f.now = '1000000000'; BE.beSave();
+  BE.beOpen('b1', 'fac'); BE.be.f.n = '라운지'; BE.beSave(); const fac = b.fac.includes('라운지'); BE.facDel('b1', '라운지');
+  BE.beOpen('b1', 'mgmt'); BE.be.f.me = '2028-02-29'; BE.beSave();
+  r6.push(['요약 카드 수정 — 별칭 중복 막힘 · 지번 저장 · 기계식 6 → 총 26면 · 지분 100% 아니면 막힘 · 채권 10억 · 공용시설 추가·삭제 · 위탁운영계약 종료일',
+    dup && b.addr2 === '지번 바꿈' && pk && sh && b.owners[0].share === 50 && b.bondNow === 1e9 && fac && !b.fac.includes('라운지') && b.mgmtEnd === '2028-02-29']); }
 /* 수납 내역 더보기 — 받을 돈이 있는 계약(비씨에이전시)만 수납 처리가 눌리고, 다 받은 계약(에스씨케이컴퍼니)은 흐림 · 원장 보기는 모두 */
 { const MV = new Function(stub + bare + '; seedJuly(); return {PAY6,RC,MORE};')();
   MV.RC.f = {b:'b1', ym:'2026-07', st:''}; MV.MORE.length = 0; const h = MV.PAY6();
