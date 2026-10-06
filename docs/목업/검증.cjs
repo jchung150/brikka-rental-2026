@@ -583,6 +583,17 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   UN.un.net = '96'; const h = UN.unHTML(); UN.unSave(); const u = b.units.at(-1); UN.tab3 = '유닛'; const t = UN.PRO3('b1');
   r6.push(['유닛 등록 — 필수 빠지면 막힘 · 번호 중복 · 전용면적 > 임대면적 막힘 · 별관 지하 1층 등록 · 전용률 80.0% · 유닛 탭 카드에 생김',
     blocked && dup && big && /80\.0%/.test(h) && b.units.length === n0 + 1 && u.no === '별관B1' && u.fl === -1 && u.st === '공실' && t.includes('별관B1')]); }
+/* 유닛 상세 패널 — 계약 있던 유닛은 삭제·번호 변경 막힘 · 새 유닛은 수정 후 사유 넣고 삭제 */
+{ const UD = new Function(stub + bare + '; return {udOpen,udEdit,udSave,udDel,udHTML,unOpen,unSave,BUILDINGS,get ud(){return ud;},get un(){return un;}};')();
+  const b = UD.BUILDINGS[0];
+  UD.udOpen('b1', '본관8층'); const h1 = UD.udHTML(); UD.udEdit(); const h2 = UD.udHTML();
+  UD.unOpen('b1'); Object.assign(UD.un, {no:'본관9층', fl:'9', use:'사무실', area:'200'}); UD.unSave();
+  UD.udOpen('b1', '본관9층'); UD.udEdit(); UD.ud.f.no = '본관8층'; UD.udSave(); const dup = UD.ud.edit && b.units.some(u => u.no === '본관9층');
+  UD.ud.f.no = '본관10층'; UD.ud.f.area = '210'; UD.udSave(); const ed = b.units.find(u => u.no === '본관10층');
+  UD.ud.del = true; UD.udDel(); const kept = b.units.some(u => u.no === '본관10층'); UD.ud.why = '잘못 등록'; UD.udDel();
+  r6.push(['유닛 상세 패널 — 본관8층(계약 있음) 삭제 잠김 · 번호 잠김 · 계약 이력 링크 · 새 유닛 번호 중복 막힘 · 수정 · 사유 없으면 삭제 안 됨 · 삭제',
+    /계약이 있었던 유닛은 삭제할 수 없습니다/.test(h1) && /ctr-3\/b1본관8층/.test(h1) && /계약이 있었던 유닛은 바꿀 수 없음/.test(h2)
+    && dup && ed && ed.area === 210 && kept && !b.units.some(u => u.no === '본관10층')]); }
 /* 수납 내역 더보기 — 받을 돈이 있는 계약(비씨에이전시)만 수납 처리가 눌리고, 다 받은 계약(에스씨케이컴퍼니)은 흐림 · 원장 보기는 모두 */
 { const MV = new Function(stub + bare + '; seedJuly(); return {PAY6,RC,MORE};')();
   MV.RC.f = {b:'b1', ym:'2026-07', st:''}; MV.MORE.length = 0; const h = MV.PAY6();

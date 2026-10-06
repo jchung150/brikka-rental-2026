@@ -1285,6 +1285,7 @@ function drawerHTML(){
   if(DRAWER==='prc') return prcHTML();
   if(DRAWER==='term') return termHTML();
   if(DRAWER==='unit') return unHTML();
+  if(DRAWER==='udet') return udHTML();
   if(DRAWER==='bop') return bopHTML();
   if(DRAWER==='c3x') return cx3HTML();
   if(DRAWER==='over') return overHTML();
@@ -1784,7 +1785,7 @@ function t요약(b){
 const UNIT_USE=['사무실','근린생활','창고','기타'];
 let un=null;
 function unOpen(bid){const b=BUILDINGS.find(x=>x.id===bid);
-  un={bid,dong:b.dong?b.dong[0].n:'',fk:'지상',fl:'',no:'',use:'',area:'',net:'',dep:'',rent:'',st:'공실',photo:'',memo:'',tried:false};
+  un={bid,dong:b.dong?b.dong[0].n:'',fk:'지상',fl:'',no:'',use:'',area:'',net:'',st:'공실',memo:'',tried:false};
   DRAWER='unit';render(true);}
 function unSet(f,v){un[f]=v;render(true);}
 function unMissing(){const b=BUILDINGS.find(x=>x.id===un.bid), m=[];
@@ -1794,8 +1795,7 @@ function unMissing(){const b=BUILDINGS.find(x=>x.id===un.bid), m=[];
   return m;}
 function unSave(){un.tried=true; if(unMissing().length){render(true);return;}
   const b=BUILDINGS.find(x=>x.id===un.bid), area=parseFloat(un.area), net=parseFloat(un.net)||0;
-  b.units.push({no:un.no.trim(),st:un.st,ten:'',fl:(un.fk==='지하'?-1:1)*parseInt(un.fl),area,net:net||Math.round(area*0.62*10)/10,use:un.use,dong:un.dong,
-    dep:numOf(un.dep),rent:numOf(un.rent),memo:un.memo.trim()});
+  b.units.push({no:un.no.trim(),st:un.st,ten:'',fl:(un.fk==='지하'?-1:1)*parseInt(un.fl),area,net:net||Math.round(area*0.62*10)/10,use:un.use,dong:un.dong,memo:un.memo.trim()});
   b.unitCnt=b.units.length; b.vacCnt=b.units.filter(u=>u.st==='공실').length;
   DRAWER=null;un=null;render(true);}
 function unHTML(){
@@ -1819,20 +1819,82 @@ function unHTML(){
         ${R('유닛용도',S('use',UNIT_USE,'선택'),1)}
         ${R('임대면적',T('area','계약면적',110)+'<span class="c2" style="margin:0">㎡</span>',1)}
         ${R('전용면적',T('net','',110)+`<span class="c2" style="margin:0">㎡${area>0&&net>0?` · 전용률 <b style="color:var(--ink)">${(net/area*100).toFixed(1)}%</b>`:''}</span>`)}
-        ${R('기본 보증금',T('dep','원',140))}
-        ${R('기본 월세',T('rent','원 (부가세 포함)',140))}
-        <div class="c2" style="margin:-4px 0 0;white-space:normal">기본 보증금·월세는 참고값입니다. 청구 금액은 계약에서 정합니다</div></div>
+</div>
       <div class="fg"><div class="fl">상태 · 기타</div>
         ${R('유닛상태',S('st',['공실','비운영중']))}
         <div class="c2" style="margin:-4px 0 9px;white-space:normal">비운영중은 건물주 직접 사용이나 공사 중일 때만 고릅니다(슈퍼관리자). 계약을 등록하면 사용중으로 바뀝니다</div>
-        ${R('유닛 사진',un.photo?`<span class="fv">${un.photo} <button class="btn sm" onclick="unSet('photo','')">삭제</button></span>`
-          :`<button class="btn sm" onclick="unSet('photo','유닛사진.jpg')">파일 올리기</button><span class="c2" style="margin:0">한 장 · JPG·PNG</span>`)}
         ${R('메모',T('memo'))}
         <div class="c2" style="margin:0;white-space:normal">계량기 설정은 등록한 뒤 유닛 상세에서 합니다</div></div>
       ${miss.length?`<div class="fnd wa3" style="margin:0"><span class="h">저장할 수 없습니다</span>빠진 항목: <b>${miss.join(' · ')}</b></div>`:''}
     </div>
     <div class="df"><button class="btn" onclick="closeDrawer()">닫기</button>
       <button class="btn pri" onclick="unSave()">등록</button></div>
+  </div></div>`;
+}
+/* ═══ 유닛 상세 — 유닛 카드를 누르면 오른쪽 패널. 보기 · 수정 · 삭제를 한 패널에서 → PRO-4
+   계약이 한 번이라도 있었던 유닛은 삭제하지 않는다(원장·이력이 이 유닛을 가리킨다)
+   계약이 있었던 유닛은 유닛고유번호를 바꾸지 않는다(계약고유이름에 들어 있다) ═══ */
+let ud=null;
+const unitCtrs=(bid,no)=>CTRS.filter(c=>c.b===bid&&c.no===no);
+function udOpen(bid,no){ud={bid,no,edit:false,del:false,why:''};DRAWER='udet';render(true);}
+function udEdit(){const u=BUILDINGS.find(x=>x.id===ud.bid).units.find(x=>x.no===ud.no);
+  Object.assign(ud,{edit:true,del:false,f:{no:u.no,dong:u.dong||'',fk:u.fl<0?'지하':'지상',fl:String(Math.abs(u.fl)),use:u.use,area:String(u.area),net:String(u.net),st:u.st,memo:u.memo||''}});render(true);}
+function udMissing(){const b=BUILDINGS.find(x=>x.id===ud.bid), f=ud.f, m=[];
+  if(!f.no.trim()) m.push('유닛고유번호'); else if(f.no.trim()!==ud.no&&b.units.some(u=>u.no===f.no.trim())) m.push('유닛고유번호(이 건물에 이미 있음)');
+  if(!f.fl) m.push('층'); if(!(parseFloat(f.area)>0)) m.push('임대면적');
+  if(parseFloat(f.net)>parseFloat(f.area)) m.push('전용면적(임대면적보다 클 수 없음)');
+  return m;}
+function udSave(){if(udMissing().length){ud.tried=true;render(true);return;}
+  const b=BUILDINGS.find(x=>x.id===ud.bid), u=b.units.find(x=>x.no===ud.no), f=ud.f;
+  /* 사용중은 계약에서 정해진다 — 공실·비운영중만 바꾼다 */
+  Object.assign(u,{no:f.no.trim(),dong:f.dong,fl:(f.fk==='지하'?-1:1)*parseInt(f.fl),use:f.use,area:parseFloat(f.area),net:parseFloat(f.net)||0,memo:f.memo.trim(),
+    st:u.st==='사용중'?u.st:f.st});
+  ud.no=u.no; ud.edit=false; ud.tried=false; render(true);}
+function udDel(){if(!ud.why.trim()) return; const b=BUILDINGS.find(x=>x.id===ud.bid);
+  b.units=b.units.filter(u=>u.no!==ud.no); b.unitCnt=b.units.length; b.vacCnt=b.units.filter(u=>u.st==='공실').length;
+  DRAWER=null;ud=null;render(true);}
+function udHTML(){
+  if(DRAWER!=='udet'||!ud) return '';
+  const b=BUILDINGS.find(x=>x.id===ud.bid), u=b.units.find(x=>x.no===ud.no); if(!u) return '';
+  const cs=unitCtrs(b.id,u.no), had=cs.length>0, flL=fl=>fl>0?fl+'층':'지하 '+Math.abs(fl)+'층';
+  const inp='border:1px solid var(--line);border-radius:var(--r-sm);padding:7px 9px;font:inherit';
+  const R=(k,body)=>`<div class="fr"><span class="fk">${k}</span>${body}</div>`, V=(k,v)=>R(k,`<span class="fv">${v}</span>`);
+  const meters=['elec','water','gas'].filter(c=>b.id==='b1'&&BILL[c]&&BILL[c].on).map(c=>[M(c).name,(METER[c]||[]).includes(u.no)?'있음':'없음']);
+  let body,foot;
+  if(ud.edit){const f=ud.f, miss=ud.tried?udMissing():[];
+    const T=(k,w)=>`<input type="text" value="${f[k]}" oninput="ud.f.${k}=this.value" onchange="render(true)" style="${inp};${w?`max-width:${w}px`:'width:100%'}">`;
+    const S=(k,opts,dis)=>`<select ${dis?'disabled':''} onchange="ud.f.${k}=this.value;render(true)" style="${inp}">${opts.map(o=>`<option ${f[k]===o?'selected':''}>${o}</option>`).join('')}</select>`;
+    body=`<div class="fg"><div class="fl">유닛 정보</div>
+      ${b.dong?R('동',S('dong',b.dong.map(g=>g.n))):''}
+      ${R('층',S('fk',['지상','지하'])+`<input type="text" inputmode="numeric" value="${f.fl}" oninput="ud.f.fl=this.value" style="${inp};max-width:60px"><span class="c2" style="margin:0">층</span>`)}
+      ${R('유닛고유번호',had?`<span class="fv">${u.no} <span class="lock">계약이 있었던 유닛은 바꿀 수 없음</span></span>`:T('no',160))}
+      ${R('유닛용도',S('use',UNIT_USE))}
+      ${R('임대면적',T('area',110)+'<span class="c2" style="margin:0">㎡</span>')}
+      ${R('전용면적',T('net',110)+'<span class="c2" style="margin:0">㎡</span>')}
+      ${R('유닛상태',u.st==='사용중'?`<span class="fv">사용중 <span class="lock">계약으로 정해짐</span></span>`:S('st',['공실','비운영중']))}
+      ${R('메모',T('memo'))}</div>
+      ${miss.length?`<div class="fnd wa3" style="margin:0"><span class="h">저장할 수 없습니다</span>빠진 항목: <b>${miss.join(' · ')}</b></div>`:''}`;
+    foot=`<button class="btn" onclick="ud.edit=false;ud.tried=false;render(true)">취소</button><button class="btn pri" onclick="udSave()">저장</button>`;}
+  else{
+    body=`<div class="fg"><div class="fl">유닛 정보</div>
+      ${V('유닛상태',stb(u.st))}${b.dong&&u.dong?V('동',u.dong):''}${V('층',flL(u.fl))}${V('유닛용도',u.use)}
+      ${V('임대면적',m2(u.area))}${V('전용면적',u.net?`${m2(u.net)} <span class="c2">전용률 ${(u.net/u.area*100).toFixed(1)}%</span>`:'—')}
+      ${V('유닛주소',`${b.addr} ${u.no}`)}${V('메모',u.memo||'—')}</div>
+      ${meters.length?`<div class="fg"><div class="fl">검침 설정</div>${meters.map(([n,v])=>V(n,`계량기 ${v}`)).join('')}</div>`:''}
+      <div class="fg"><div class="fl">계약 이력</div>
+        ${had?cs.map(c=>`<div class="fr"><span class="fv"><span class="plk" onclick="closeDrawer();tab3c='요약';go('ctr-3/${ckey(c)}')">${cnameHTML(b.alias,c.no,c.ten)}</span>
+          <span class="c2">${stb(c.st)} ${c.base.replace(/-/g,'.')} ~ ${ctrEnd(c).replace(/-/g,'.')}</span></span></div>`).join('')
+        :'<div class="c2" style="margin:0">계약이 없습니다</div>'}</div>
+      ${ud.del?`<div class="fg"><div class="fl">삭제 사유 (필수)</div>
+        <input type="text" value="${ud.why}" oninput="ud.why=this.value;document.getElementById('udok').disabled=!this.value.trim()" style="${inp};width:100%"></div>`:''}`;
+    foot=ud.del?`<button class="btn" onclick="ud.del=false;render(true)">취소</button><button class="btn pri" id="udok" disabled onclick="udDel()">삭제</button>`
+      :`<button class="btn" ${had?'disabled title="계약이 있었던 유닛은 삭제할 수 없습니다"':''} onclick="ud.del=true;render(true)">삭제</button>
+        <button class="btn" onclick="closeDrawer()">닫기</button><button class="btn pri" onclick="udEdit()">수정</button>`;}
+  return `<div class="dro"><div class="ov" onclick="closeDrawer()"></div><div class="pn">
+    <div class="dh"><div><div class="t">${u.no}</div><div class="s">${b.name} · 유닛 상세</div></div>
+      <button class="x" onclick="closeDrawer()">✕</button></div>
+    <div class="db">${body}</div>
+    <div class="df">${foot}</div>
   </div></div>`;
 }
 function t유닛(b){
@@ -1844,8 +1906,8 @@ function t유닛(b){
     <span class="sub">전체 ${b.units.length} · 사용중 ${c.사용중} · 공실 ${c.공실} · 비운영중 ${c.비운영중}</span>
     <span class="ca"><button class="btn pri sm" onclick="unOpen('${b.id}')">+ 유닛 등록</button></span></div>
     <div class="cc" style="padding-top:12px"><div class="units">
-    ${b.units.map(u=>{const cur=CTRS.find(x=>x.b===b.id&&x.no===u.no&&x.st==='진행중')||CTRS.find(x=>x.b===b.id&&x.no===u.no&&x.st==='준비중');
-      return `<div class="unit" onclick="${cur?`tab3c='요약';go('ctr-3/${ckey(cur)}')`:`alert('PRO-4 유닛 상세 — 같은 탭 안에서 전환됩니다. 아직 미구현.')`}">
+    ${b.units.map(u=>{
+      return `<div class="unit" onclick="udOpen('${b.id}','${u.no}')">
       <div class="uh"><span class="un">${u.no}</span>${stb(u.st)}</div>
       <div class="r"><span>${u.use}</span><b>${u.fl>0?u.fl+'층':'지하 '+Math.abs(u.fl)+'층'}</b></div>
       <div class="r"><span>임대면적</span><b>${m2(u.area)}</b></div>
@@ -1854,7 +1916,7 @@ function t유닛(b){
         <span>임차인</span><b>${u.ten||'<span style="color:var(--faint)">없음</span>'}</b></div>
     </div>`;}).join('')}</div></div>
   </div>
-  <div class="hint">계약이 있는 유닛을 누르면 계약 상세로, 계약이 없는 유닛(공실 · 비운영중)을 누르면 유닛 상세로 갑니다.<br>
+  <div class="hint">유닛을 누르면 오른쪽에 유닛 상세가 열립니다. 거기서 고치거나 지우고, 계약 이력에서 계약 상세로 갈 수 있습니다.<br>
     목업의 용도·전용면적은 예시값입니다.</div>`;
 }
 
