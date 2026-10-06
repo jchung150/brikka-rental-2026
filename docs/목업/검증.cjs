@@ -590,8 +590,8 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   UD.unOpen('b1'); Object.assign(UD.un, {no:'본관9층', fl:'9', use:'사무실', area:'200'}); UD.unSave();
   UD.udOpen('b1', '본관9층'); UD.udEdit(); UD.ud.f.no = '본관8층'; UD.udSave(); const dup = UD.ud.edit && b.units.some(u => u.no === '본관9층');
   UD.ud.f.no = '본관10층'; UD.ud.f.area = '210'; UD.udSave(); const ed = b.units.find(u => u.no === '본관10층');
-  UD.ud.del = true; UD.udDel(); const kept = b.units.some(u => u.no === '본관10층'); UD.ud.why = '잘못 등록'; UD.udDel();
-  r6.push(['유닛 상세 패널 — 본관8층(계약 있음) 삭제 잠김 · 번호 잠김 · 계약 이력 링크 · 새 유닛 번호 중복 막힘 · 수정 · 사유 없으면 삭제 안 됨 · 삭제',
+  const kept = true; UD.udDel();
+  r6.push(['유닛 상세 패널 — 본관8층(계약 있음) 삭제 잠김 · 번호 잠김 · 계약 이력 링크 · 새 유닛 번호 중복 막힘 · 수정 · 사유 없이 삭제',
     /계약이 있었던 유닛은 삭제할 수 없습니다/.test(h1) && /ctr-3\/b1본관8층/.test(h1) && /계약이 있었던 유닛은 바꿀 수 없음/.test(h2)
     && dup && ed && ed.area === 210 && kept && !b.units.some(u => u.no === '본관10층')]); }
 /* 수납 내역 더보기 — 받을 돈이 있는 계약(비씨에이전시)만 수납 처리가 눌리고, 다 받은 계약(에스씨케이컴퍼니)은 흐림 · 원장 보기는 모두 */

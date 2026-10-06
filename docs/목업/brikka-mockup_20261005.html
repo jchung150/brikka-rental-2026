@@ -1850,7 +1850,7 @@ function udSave(){if(udMissing().length){ud.tried=true;render(true);return;}
   Object.assign(u,{no:f.no.trim(),dong:f.dong,fl:(f.fk==='지하'?-1:1)*parseInt(f.fl),use:f.use,area:parseFloat(f.area),net:parseFloat(f.net)||0,memo:f.memo.trim(),
     st:u.st==='사용중'?u.st:f.st});
   ud.no=u.no; ud.edit=false; ud.tried=false; render(true);}
-function udDel(){if(!ud.why.trim()) return; const b=BUILDINGS.find(x=>x.id===ud.bid);
+function udDel(){const b=BUILDINGS.find(x=>x.id===ud.bid);
   b.units=b.units.filter(u=>u.no!==ud.no); b.unitCnt=b.units.length; b.vacCnt=b.units.filter(u=>u.st==='공실').length;
   DRAWER=null;ud=null;render(true);}
 function udHTML(){
@@ -1885,10 +1885,8 @@ function udHTML(){
         ${had?cs.map(c=>`<div class="fr"><span class="fv"><span class="plk" onclick="closeDrawer();tab3c='요약';go('ctr-3/${ckey(c)}')">${cnameHTML(b.alias,c.no,c.ten)}</span>
           <span class="c2">${stb(c.st)} ${c.base.replace(/-/g,'.')} ~ ${ctrEnd(c).replace(/-/g,'.')}</span></span></div>`).join('')
         :'<div class="c2" style="margin:0">계약이 없습니다</div>'}</div>
-      ${ud.del?`<div class="fg"><div class="fl">삭제 사유 (필수)</div>
-        <input type="text" value="${ud.why}" oninput="ud.why=this.value;document.getElementById('udok').disabled=!this.value.trim()" style="${inp};width:100%"></div>`:''}`;
-    foot=ud.del?`<button class="btn" onclick="ud.del=false;render(true)">취소</button><button class="btn pri" id="udok" disabled onclick="udDel()">삭제</button>`
-      :`<button class="btn" ${had?'disabled title="계약이 있었던 유닛은 삭제할 수 없습니다"':''} onclick="ud.del=true;render(true)">삭제</button>
+`;
+    foot=`<button class="btn" ${had?'disabled title="계약이 있었던 유닛은 삭제할 수 없습니다"':'title="슈퍼관리자만"'} onclick="udDel()">삭제</button>
         <button class="btn" onclick="closeDrawer()">닫기</button><button class="btn pri" onclick="udEdit()">수정</button>`;}
   return `<div class="dro"><div class="ov" onclick="closeDrawer()"></div><div class="pn">
     <div class="dh"><div><div class="t">${u.no}</div><div class="s">${b.name} · 유닛 상세</div></div>
@@ -1898,13 +1896,13 @@ function udHTML(){
   </div></div>`;
 }
 function t유닛(b){
-  if(!b.units.length) return `<div class="card"><div class="ct">유닛<span class="ca"><button class="btn pri sm" onclick="unOpen('${b.id}')">+ 유닛 등록</button></span></div>
+  if(!b.units.length) return `<div class="card"><div class="ct">유닛<span class="ca"><button class="btn pri sm" title="슈퍼관리자만" onclick="unOpen('${b.id}')">+ 유닛 등록</button></span></div>
     <div class="empty"><div class="t">등록된 유닛이 없습니다</div>유닛을 등록하면 여기에 표시됩니다.</div></div>`;
   const c={사용중:0,공실:0,비운영중:0};b.units.forEach(u=>c[u.st]++);
   return `
   <div class="card"><div class="ct">유닛
     <span class="sub">전체 ${b.units.length} · 사용중 ${c.사용중} · 공실 ${c.공실} · 비운영중 ${c.비운영중}</span>
-    <span class="ca"><button class="btn pri sm" onclick="unOpen('${b.id}')">+ 유닛 등록</button></span></div>
+    <span class="ca"><button class="btn pri sm" title="슈퍼관리자만" onclick="unOpen('${b.id}')">+ 유닛 등록</button></span></div>
     <div class="cc" style="padding-top:12px"><div class="units">
     ${b.units.map(u=>{
       return `<div class="unit" onclick="udOpen('${b.id}','${u.no}')">
