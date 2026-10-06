@@ -514,13 +514,13 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   r6.push(['주차면 — 배정된 면 삭제 막힘 · 배정 변경 · 해제 후 삭제 · 이름 없으면 추가 안 됨 · 기계식 추가',
     kept && asg && del && noName && b.parks.at(-1).n === 'M-02' && b.parks.at(-1).loc === '기계식']); }
 /* 건물 등록 — 빠진 필수 항목은 막힘 · 지분 합계 100% · 별칭 중복 막힘 · 저장하면 목록에 생기고 상세가 열림 */
-{ const NB = new Function(stub + bare + '; return {PRO2,PRO3,nbSave,nbMissing,BUILDINGS,get nb(){return nb;}};')();
+{ const NB = new Function(stub + bare + '; return {PRO2,PRO3,nbSave,nbMissing,BUILDINGS,get nb(){return nb;},set tab3(v){tab3=v;}};')();
   NB.PRO2(); NB.nbSave(); const blocked = NB.BUILDINGS.length === 3 && NB.nbMissing().includes('건물명');
   Object.assign(NB.nb, {name:'윈터타워', alias:'카리나', kind:'오피스빌딩', addr:'서울특별시 마포구 독막로 1', bm:'전월', bd:'25일', dm:'당월', dd:'1일', rb:'하나은행', ra:'123-456', rn:'윈터'});
   Object.assign(NB.nb.owners[0], {biz:'214-07-63390', n:'윈터', share:'60'});
   const dup = NB.nbMissing().some(m => /이미 쓰는 별칭/.test(m)), share = NB.nbMissing().some(m => /지분 합계 100%/.test(m));
   NB.nb.alias = '윈터'; NB.nb.owners.push({biz:'105-81-42117', n:'카리나', share:'40'}); NB.nb.dong = [{n:'본관',up:'10',down:'2'},{n:'별관',up:'3',down:''}]; NB.nb.pkUp = '5'; NB.nb.pkDown = '20';
-  NB.nbSave(); const b = NB.BUILDINGS.at(-1), h = NB.PRO3(b.id);
+  NB.nbSave(); const b = NB.BUILDINGS.at(-1); NB.tab3 = '설정'; const h = NB.PRO3(b.id);
   r6.push(['건물 등록 — 필수 빠지면 막힘 · 별칭 중복 · 지분 100% · 저장 → 동 2개 · 주차 25면 · 관리비 계좌 = 임대료 계좌 · 상세 열림(위탁운영계약 없음)',
     blocked && dup && share && NB.BUILDINGS.length === 4 && b.alias === '윈터' && b.dong.length === 2 && b.park === 25
     && b.feeAcct === '하나은행 123-456' && b.owners.length === 2 && /위탁운영계약이 없습니다/.test(h)]); }
@@ -645,10 +645,20 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   const b = AU.BUILDINGS[0];
   AU.upOpen('b1', false, 'b1본관8층'); const hu = AU.upHTML(); Object.assign(AU.up.files[0], {t:'합의서.pdf', sz:'100 KB', ttl:'합의서', c:'계약서'}); AU.upSave();
   AU.tab3c = '자료보관'; const hc = AU.CTR3('b1본관8층');
-  AU.MORE.length = 0; AU.PRO1(); const dm = AU.MORE.find(x => x[0].go.includes("pro-3/b1")); const lock = dm && dm[2].t === '삭제' && !!dm[2].off;
+  AU.MORE.length = 0; AU.PRO1(); const dm = AU.MORE.find(x => x[0].go.includes("pro-3/b1")); const lock = dm && dm[1].t === '설정';
   const nb = {id:'bx', name:'빈 건물', charge:[], units:[]}; const ec = AU.t청구(nb);
-  r6.push(['감사 반영 — 계약 상세 자료보관에 그 계약 문서(합의서) · 귀속 대상 계약 · 건물 목록 더보기 삭제 잠김 · 빈 관리비 탭에 「+ 청구 항목 추가」',
+  r6.push(['감사 반영 — 계약 상세 자료보관에 그 계약 문서(합의서) · 귀속 대상 계약 · 건물 목록 더보기 상세·설정 · 빈 관리비 탭에 「+ 청구 항목 추가」',
     /계약 · 카리나\|본관8층/.test(hu) && !/관련 계약/.test(hu) && hc.includes('합의서') && !hc.includes('등기부등본') && lock && /청구 항목 추가/.test(ec)]); }
+/* 설정 탭 — 운영 상태 · 건물관리자(추가·빼기) · 청구 규칙(마감일이 청구일보다 앞이면 저장 안 됨) · 위탁운영계약 · 변경 이력 · 건물 삭제(유닛·계약 있으면 잠김) */
+{ const ST = new Function(stub + bare + '; return {PRO3,mgrAdd,mgrDel,srEdit,srSave,BUILDINGS,BLOG,get sr(){return sr;},set tab3(v){tab3=v;}};')();
+  const b = ST.BUILDINGS[0]; ST.tab3 = '요약'; const sum = ST.PRO3('b1'); ST.tab3 = '설정'; const h = ST.PRO3('b1');
+  ST.mgrAdd('b1', '이담당'); const add = b.mgrs.includes('이담당'); ST.mgrDel('b1', '김관리'); const del = !b.mgrs.includes('김관리');
+  ST.srEdit('b1'); ST.sr.dm = '당월'; ST.sr.dd = '10일'; ST.srSave(); const kept = b.dueDay === '당월 말일';
+  ST.sr.dm = '익월'; ST.sr.dd = '5일'; ST.srSave(); const chg = b.dueDay === '익월 5일' && ST.BLOG.b1[0].what === '청구 규칙';
+  r6.push(['설정 탭 — 요약에서 위탁운영계약·청구일·운영 중지 빠짐 · 설정에 운영 상태·건물관리자·청구 규칙·위탁운영계약·변경 이력·건물 삭제(잠김) · 관리자 추가·빼기 · 마감일이 청구일보다 앞이면 저장 안 됨 · 바꾸면 이력',
+    !/위탁운영계약/.test(sum) && !/운영 중지/.test(sum) && !/납부마감일/.test(sum)
+    && ['운영 상태','건물관리자','청구 규칙','위탁운영계약','변경 이력','건물 삭제'].every(t => h.includes(t)) && /disabled title="유닛이나 계약이 있는 건물은 삭제할 수 없습니다"/.test(h)
+    && add && del && kept && chg]); }
 /* 수납 내역 더보기 — 받을 돈이 있는 계약(비씨에이전시)만 수납 처리가 눌리고, 다 받은 계약(에스씨케이컴퍼니)은 흐림 · 원장 보기는 모두 */
 { const MV = new Function(stub + bare + '; seedJuly(); return {PAY6,RC,MORE};')();
   MV.RC.f = {b:'b1', ym:'2026-07', st:''}; MV.MORE.length = 0; const h = MV.PAY6();
