@@ -628,10 +628,14 @@ const BUILDINGS=[
    {loc:'지하 자주식',n:'B1-05',t:'장애인',memo:'',as:'',asu:''},{loc:'지하 자주식',n:'B2-01',t:'일반',memo:'',as:'(유)유니버셜대부',asu:'본관302호'},
    {loc:'기계식',n:'M-01',t:'일반',memo:'SUV 불가 · 높이 1.55m 이하',as:'',asu:''}],
   docs:[
-   {t:'위탁운영계약서_카리나빌딩_2025.pdf',sz:'1.2 MB',c:'건물서류',by:'슈퍼관리자',at:'2025-02-24 14:20'},
-   {t:'등기부등본_20260801.pdf',sz:'340 KB',c:'건물서류',by:'슈퍼관리자',at:'2026-08-01 09:12'},
-   {t:'건축물대장.pdf',sz:'2.1 MB',c:'건물서류',by:'슈퍼관리자',at:'2025-03-02 11:40'},
-   {t:'2026년 화재보험증권.pdf',sz:'880 KB',c:'기타',by:'슈퍼관리자',at:'2026-01-08 16:05'}],
+   /* 계약서 3건은 관련 계약을 골라 올린 예시(목업 설명용 가짜 문서) — 계약 상세의 자료보관에도 같은 문서가 보인다 */
+   {t:'임대차계약서_본관801호_아이씨비.pdf',ttl:'임대차계약서 본관801호 (주)아이씨비',sz:'2.4 MB',c:'계약서',k:'b1본관801호',m:'2024.03 원본 스캔. 본관701호와 한 장으로 체결',by:'김관리',at:'2024-02-26 15:30'},
+   {t:'임대차계약서_본관302호_유니버셜대부.pdf',ttl:'임대차계약서 본관302호 (유)유니버셜대부',sz:'1.8 MB',c:'계약서',k:'b1본관302호',m:'본관301호 수도요금 대납 특약 포함',by:'박현장',at:'2024-10-28 10:05'},
+   {t:'임대차계약서_별관301호_비씨에이전시.pdf',ttl:'임대차계약서 별관301호 (주)비씨에이전시',sz:'1.5 MB',c:'계약서',k:'b1별관301호',m:'2024.12 체결본. 연체이자율 연 12% 특약',by:'김관리',at:'2024-11-27 17:20'},
+   {t:'위탁운영계약서_카리나빌딩_2025.pdf',sz:'1.2 MB',c:'건물서류',m:'2025.03 ~ 2027.02. 수수료 임대료의 5%',by:'슈퍼관리자',at:'2025-02-24 14:20'},
+   {t:'등기부등본_20260801.pdf',sz:'340 KB',c:'건물서류',m:'8월 발급분. 근저당 국민은행 18억',by:'슈퍼관리자',at:'2026-08-01 09:12'},
+   {t:'건축물대장.pdf',sz:'2.1 MB',c:'건물서류',m:'본관·별관 포함. 주차 24면',by:'슈퍼관리자',at:'2025-03-02 11:40'},
+   {t:'2026년 화재보험증권.pdf',sz:'880 KB',c:'기타',m:'2027.01.07 만기. 갱신 때 새 증권으로 바꿔 올림',by:'슈퍼관리자',at:'2026-01-08 16:05'}],
   charge:[
    {it:'임대료',use:1,bill:'세금계산서',cycle:'매월',meter:'',mtr:'',basis:'',doc:'임대차계약서',fixed:true},
    {it:'고정관리비',use:1,bill:'세금계산서',cycle:'매월',meter:'',mtr:'',basis:'',doc:'임대차계약서',fixed:true},
@@ -1791,6 +1795,7 @@ function t요약(b){
       <dt>건물주소</dt><dd>${b.addr}<div class="c2">${b.addr2}</div></dd>
       <dt>건축일 · 사용승인일</dt><dd>${b.built} · ${b.approved}</dd>
     </dl>${bphHTML(b)}</div></div>
+  <div class="two" style="align-items:start">
     <div class="card"><div class="ct">건물 제원
       <span class="ca"><button class="btn sm">수정</button></span></div><div class="cc"><dl class="dl">
       <dt>연면적</dt><dd>${m2(b.gross)}</dd>
@@ -1806,6 +1811,8 @@ function t요약(b){
       <dt>임대료 납부 계좌</dt><dd>${b.acct}<span class="lock">${b.acctName}</span></dd>
       <dt>관리비 납부 계좌</dt><dd>${b.feeAcct}<span class="lock">${b.feeAcctName}</span></dd>
     </dl></div></div>
+  </div>
+  <div class="two" style="align-items:start">
     <div class="card"><div class="ct">채권 정보
       <span class="ca"><button class="btn sm">수정</button></span></div><div class="cc">
       ${b.bondMax?`<dl class="dl">
@@ -1818,6 +1825,7 @@ function t요약(b){
       <div class="cc" style="padding-top:12px">
       ${b.fac.map(f=>`<span class="tag">${f}<span class="x">✕</span></span>`).join('')||'<span style="color:var(--muted)">등록된 공용시설이 없습니다.</span>'}
     </div></div>
+  </div>
   <div class="card"><div class="ct">주차장
     <span class="ca"><button class="btn sm" onclick="pkOpen('${b.id}',-1,'edit')">주차면 추가</button></span></div>
     ${b.parks.length?`<div class="tw"><table>
