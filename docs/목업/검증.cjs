@@ -564,6 +564,16 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   PR.prcOpen('elec', '본관7층'); PR.prc.amt = '0'; PR.prc.why = '퇴거 때 추정액으로 받음'; PR.prcApply();
   const R2 = PR.calc(m), r2 = R2.rows.find(r => r.no === '본관7층');
   r6.push(['일할 계산 — 금액을 직접 0원으로 고치면 그대로 · 사유 남음 · 검증 일치', r2.amt === 0 && r2.pro.why === '퇴거 때 추정액으로 받음' && R2.diff === 0]); }
+/* 계약 해지 — 해지일 8/20이면 전기요금 08.10~08.20(11일)이 고지 전 · 예상 금액은 추가 청구로 · 사유 없으면 안 됨 */
+{ const TM = new Function(stub + bare + '; seedJuly(); return {termOpen,termSave,unbilled,TERMS,ONCE,CTRS,termHTML,get tm(){return tm;}};')();
+  const c = TM.CTRS.find(x => x.no === '본관5층');
+  TM.termOpen('b1본관5층'); TM.tm.out = '2026-08-20'; TM.termSave(); const noWhy = !TM.TERMS['b1본관5층'];
+  const U = TM.unbilled(c, '2026-08-20'), e = U.find(u => u.code === 'elec'), w = U.find(u => u.code === 'water');
+  TM.tm.why = '이전'; TM.tm.est.elec = '180000'; const h = TM.termHTML(); TM.termSave();
+  const row = TM.ONCE.rows.find(r => r.k === 'b1본관5층');
+  r6.push(['계약 해지 — 해지일 8/20: 전기요금 08.10~08.20 11일 고지 전 · 수도요금 08.08~08.20 · 사유 없으면 안 됨 · 예상 180,000원은 「전기요금 퇴거 예상분 (08.10~08.20)」 추가 청구',
+    noWhy && e && e.from === '2026-08-10' && e.days === 11 && w && w.from === '2026-08-08' && /아직 고지되지 않은 기간/.test(h)
+    && row && row.n === '전기요금 퇴거 예상분 (08.10~08.20)' && row.amt === 180000 && TM.TERMS['b1본관5층'].out === '2026-08-20']); }
 /* 수납 내역 더보기 — 받을 돈이 있는 계약(비씨에이전시)만 수납 처리가 눌리고, 다 받은 계약(에스씨케이컴퍼니)은 흐림 · 원장 보기는 모두 */
 { const MV = new Function(stub + bare + '; seedJuly(); return {PAY6,RC,MORE};')();
   MV.RC.f = {b:'b1', ym:'2026-07', st:''}; MV.MORE.length = 0; const h = MV.PAY6();
