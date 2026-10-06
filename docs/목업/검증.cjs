@@ -650,16 +650,17 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   r6.push(['감사 반영 — 계약 상세 자료보관에 그 계약 문서(합의서) · 귀속 대상 계약 · 건물 목록 더보기 상세·설정 · 빈 관리비 탭에 「+ 청구 항목 추가」',
     /계약 · 카리나\|본관801호/.test(hu) && !/관련 계약/.test(hu) && hc.includes('합의서') && !hc.includes('등기부등본') && lock && /청구 항목 추가/.test(ec)]); }
 /* 설정 탭 — 건물관리자·청구 규칙·건물 삭제는 오른쪽 패널 · 운영 상태 카드에 운영 중지와 건물 삭제 · 마감일이 청구일보다 앞이면 저장 안 됨 · 바꾸면 이력 */
-{ const ST = new Function(stub + bare + '; return {PRO3,spOpen,spSave,spHTML,BUILDINGS,BLOG,get sp(){return sp;},set tab3(v){tab3=v;}};')();
+{ const ST = new Function(stub + bare + '; return {PRO3,spOpen,spSave,spHTML,BUILDINGS,BLOG,dueStr,get sp(){return sp;},set tab3(v){tab3=v;}};')();
   const b = ST.BUILDINGS[0]; ST.tab3 = '요약'; const sum = ST.PRO3('b1'); ST.tab3 = '설정'; const h = ST.PRO3('b1');
   ST.spOpen('b1', 'mgr'); const hp = ST.spHTML(); ST.sp.pick = ['박현장', '이담당']; ST.spSave(); const mg = b.mgrs.join() === '박현장,이담당' && /김관리 빼기/.test(ST.BLOG.b1[0].det);
   ST.spOpen('b1', 'rule'); ST.sp.dm = '당월'; ST.sp.dd = '10일'; ST.spSave(); const kept = b.dueDay === '당월 말일';
   ST.sp.dm = '익월'; ST.sp.dd = '5일'; ST.spSave(); const chg = b.dueDay === '익월 5일' && ST.BLOG.b1[0].what === '청구 규칙';
+  const snap = ST.dueStr('2026-07') === '2026-07-31' && ST.dueStr('2026-09') === '2026-10-05';
   ST.spOpen('b1', 'del'); const hd = ST.spHTML(); ST.spSave(); const notDel = ST.BUILDINGS.some(x => x.id === 'b1');
-  r6.push(['설정 탭 — 요약에서 위탁운영계약·청구일·운영 중지 빠짐 · 카드 4개(건물관리자·위탁운영계약·청구 규칙·운영 상태 안에 운영 중지와 건물 삭제)+변경 이력 · 관리자는 패널 체크박스 · 마감일이 청구일보다 앞이면 저장 안 됨 · 바꾸면 이력 · 유닛 있는 건물은 삭제 패널에서 막힘',
+  r6.push(['설정 탭 — 요약에서 위탁운영계약·청구일·운영 중지 빠짐 · 카드 4개(건물관리자·위탁운영계약·청구 규칙·운영 상태 안에 운영 중지와 건물 삭제)+변경 이력 · 관리자는 패널 체크박스 · 마감일이 청구일보다 앞이면 저장 안 됨 · 바꾸면 이력 · 발행한 7월분 마감일은 그대로(7/31), 9월분부터 새 규칙(10/5) · 운영 상태에 되돌릴 수 있음/없음 · 이력 전체 보기 · 유닛 있는 건물은 삭제 패널에서 막힘',
     !/위탁운영계약/.test(sum) && !/운영 중지/.test(sum) && !/납부마감일/.test(sum)
     && ['건물관리자','위탁운영계약','청구 규칙','운영 상태','운영 중지','건물 삭제','변경 이력'].every(t => h.includes(t)) && !/관리자 추가/.test(h)
-    && /type="checkbox"/.test(hp) && mg && kept && chg && /지울 수 없는 건물입니다/.test(hd) && notDel]); }
+    && /type="checkbox"/.test(hp) && mg && kept && chg && snap && /되돌릴 수 없음/.test(h) && /전체 이력 보기/.test(h) && /지울 수 없는 건물입니다/.test(hd) && notDel]); }
 /* 수납 내역 더보기 — 받을 돈이 있는 계약(비씨에이전시)만 수납 처리가 눌리고, 다 받은 계약(에스씨케이컴퍼니)은 흐림 · 원장 보기는 모두 */
 { const MV = new Function(stub + bare + '; seedJuly(); return {PAY6,RC,MORE};')();
   MV.RC.f = {b:'b1', ym:'2026-07', st:''}; MV.MORE.length = 0; const h = MV.PAY6();

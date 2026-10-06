@@ -1759,7 +1759,7 @@ function spHTML(){
       <div class="fg"><div class="fl">납부마감일</div><div style="display:flex;gap:6px">${sel('dm',['당월','익월'])}${sel('dd',[...days,'말일'])}</div></div>
       ${sp.bd&&sp.dd?`<div class="c2" style="margin:-6px 0 12px">예: 8월분 청구서 → ${ruleEx(`${sp.bm} ${sp.bd}`,'2026-08')} 청구 · ${ruleEx(`${sp.dm} ${sp.dd}`,'2026-08')}까지 납부</div>`:''}
       ${dis&&sp.bd&&sp.dd?'<div class="fnd wa3" style="margin:0 0 12px"><span class="h">납부마감일은 청구일보다 뒤여야 합니다</span></div>':''}
-      <div class="c2" style="white-space:normal">청구일은 앞으로 등록하는 계약부터 바뀝니다. 납부마감일은 이 건물의 모든 계약에 바로 적용됩니다.</div>`;}
+      <div class="c2" style="white-space:normal">바꾸면 이 건물의 모든 계약에 적용됩니다. 이미 발행한 청구서의 날짜는 바뀌지 않습니다. 운영 방식이 크게 바뀌면 건물을 새로 등록하는 것도 방법입니다.</div>`;}
   else {t='건물 삭제'; ok='건물 삭제'; dis=!bCanDel(b);
     body=dis?`<div class="fnd wa3" style="margin:0"><span class="h">지울 수 없는 건물입니다</span>유닛이나 계약이 있습니다. 운영을 멈추려면 <b>운영 중지</b>를 쓰세요.</div>`
       :`<div style="font-size:12.5px;line-height:1.7;white-space:normal">유닛도 계약도 없는 건물입니다. 지우면 건물 목록에서 사라지고 되돌릴 수 없습니다.</div>`;}
@@ -1788,19 +1788,31 @@ function t설정(b){
         <dt>임대인</dt><dd>${b.owners[0].n}${b.owners.length>1?` 외 ${b.owners.length-1}`:''}</dd></dl>
       ${d<=90?`<div class="hint" style="color:var(--warn)">만료 90일 이내입니다. 갱신하지 않으면 이 건물의 관리 권한이 소멸합니다.</div>`:''}</div>
   </div>`;
-  /* 운영 상태와 건물 삭제는 한 카드 — 멈추기(되돌릴 수 있음)와 지우기(되돌릴 수 없음)를 나란히 보여 차이를 알게 한다 */
-  const row=(name,desc,btn)=>`<div style="display:flex;align-items:center;gap:12px;padding:11px 0;border-top:1px solid var(--line-2)">
-      <div style="flex:1;min-width:0"><div style="font-weight:500;font-size:12.5px">${name}</div><div class="c2" style="margin:2px 0 0;white-space:normal">${desc}</div></div>${btn}</div>`;
-  const opc=card('운영 상태',`<dl class="dl" style="margin-bottom:6px"><dt>지금</dt><dd>${op==='운영중'?'<span class="bd ok">운영중</span>':'<span class="bd mu">비운영중</span>'}${o?`<span class="lock">${o.at.replace(/-/g,'.')} · ${o.why}</span>`:''}</dd></dl>
-      ${row(op==='운영중'?'운영 중지':'운영 재개',op==='운영중'?'대수선 공사 등으로 건물 운영을 멈춥니다. 청구서 발행 · 계약 등록 · 관리비 정산이 막히고, 수납 · 미납 관리 · 환불 · 월 마감은 계속합니다. 진행중·준비중 계약이 있으면 멈출 수 없습니다. 다시 운영할 수 있습니다.':'멈췄던 건물을 다시 운영합니다.',
-        `<button class="btn sm" title="슈퍼관리자만" onclick="bopOpen('${b.id}')">${op==='운영중'?'운영 중지':'운영 재개'}</button>`)}
-      ${row('건물 삭제','잘못 등록한 건물을 지웁니다. 유닛도 계약도 없는 건물만 지울 수 있고, 되돌릴 수 없습니다.',
-        `<button class="btn sm" ${canDel?'title="슈퍼관리자만"':'disabled title="유닛이나 계약이 있는 건물은 삭제할 수 없습니다"'} onclick="spOpen('${b.id}','del')">건물 삭제</button>`)}`);
+  /* 운영 상태 — 지금 상태를 맨 위에 크게, 아래에 「멈추기」와 「지우기」를 나란히. 되돌릴 수 있는지를 딱지로 구분한다 */
+  const nU=b.units.length||b.unitCnt||0, nC=CTRS.filter(c=>c.b===b.id).length;
+  const tile=(name,tag,tagc,desc,btn,foot)=>`<div style="border:1px solid var(--line);border-radius:var(--r-sm);padding:12px 14px;display:flex;flex-direction:column;gap:8px">
+      <div style="display:flex;align-items:center;gap:8px"><b style="font-size:13px">${name}</b><span class="bd ${tagc}">${tag}</span></div>
+      <div class="c2" style="margin:0;white-space:normal;line-height:1.6;flex:1">${desc}</div>
+      <div style="display:flex;align-items:center;gap:8px">${btn}${foot?`<span class="c2" style="margin:0;white-space:normal">${foot}</span>`:''}</div></div>`;
+  const opc=card('운영 상태',`<div style="display:flex;align-items:center;gap:10px;margin:0 0 14px">
+        ${op==='운영중'?'<span class="bd ok" style="font-size:12.5px;padding:3px 10px">운영중</span>':'<span class="bd mu" style="font-size:12.5px;padding:3px 10px">비운영중</span>'}
+        <span class="c2" style="margin:0">${o?`${o.at.replace(/-/g,'.')}부터 · ${o.why}`:'정상 운영 중입니다'}</span></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      ${tile(op==='운영중'?'운영 중지':'운영 재개','되돌릴 수 있음','mu',
+        op==='운영중'?'대수선 공사 등으로 운영을 멈춥니다. 청구서 발행 · 계약 등록 · 관리비 정산이 막히고 수납 · 미납 · 환불 · 월 마감은 계속합니다.':'멈췄던 건물을 다시 운영합니다. 청구서 발행 · 계약 등록 · 관리비 정산이 다시 열립니다.',
+        `<button class="btn sm" title="슈퍼관리자만" onclick="bopOpen('${b.id}')">${op==='운영중'?'운영 중지':'운영 재개'}</button>`,
+        op==='운영중'&&nC?'진행중·준비중 계약이 있으면 멈출 수 없습니다':'')}
+      ${tile('건물 삭제','되돌릴 수 없음','da','잘못 등록한 건물을 지웁니다. 유닛도 계약도 없는 건물만 지울 수 있습니다.',
+        `<button class="btn sm" ${canDel?'title="슈퍼관리자만"':'disabled'} onclick="spOpen('${b.id}','del')">건물 삭제</button>`,
+        canDel?'':`유닛 ${nU}개${nC?` · 계약 ${nC}건`:''}이 있어 지울 수 없습니다`)}
+      </div>`);
+  /* 변경 이력 — 최근 5건만. 전체는 이력 목록(REC-1)을 이 건물로 걸러서 연다 */
   const log=card('변경 이력',(BLOG[b.id]||[]).length?`<div class="tw" style="border:1px solid var(--line);border-radius:var(--r-sm)"><table>
       <thead><tr><th>일시</th><th>구분</th><th>내용</th><th>바꾼 사람</th></tr></thead>
-      <tbody>${BLOG[b.id].map(x=>`<tr><td style="white-space:nowrap">${x.at.replace(/-/g,'.')}</td><td><span class="bd mu">${x.what}</span></td>
+      <tbody>${BLOG[b.id].slice(0,5).map(x=>`<tr><td style="white-space:nowrap">${x.at.replace(/-/g,'.')}</td><td><span class="bd mu">${x.what}</span></td>
         <td>${x.det}${x.why?`<div class="c2">${x.why}</div>`:''}</td><td>${x.by}</td></tr>`).join('')}</tbody></table></div>`
-      :'<div class="c2" style="margin:0">기록된 변경이 없습니다</div>');
+      :'<div class="c2" style="margin:0">기록된 변경이 없습니다</div>',
+      `<span class="more" onclick="go('rec-1')">전체 이력 보기 →</span>`);
   /* 자주 보는 것이 위 — 건물관리자 | 위탁운영계약 · 청구 규칙 | 운영 상태 · 변경 이력(한 줄 전체) */
   const two=(x,y)=>`<div class="two" style="align-items:start">${x}${y}</div>`;
   return two(mgr,mgmt)+two(rule,opc)+log;
@@ -2904,7 +2916,7 @@ const pickAll=v=>{ISSUE().forEach(c=>sel1[c.k]=v&&c.st==='발행 대기');render
 /* 이번 회차에 발행한 청구서 — 계약별. 취소하면 지운다(원장에는 「청구 취소」) → PAY-1 */
 const ISS={}, ISS_LOG=[];
 let mail1=true, cx1=null, ia1=null;
-function issue1(keys){keys.forEach(k=>{ISS[k]={at:TODAY_S,mail:mail1};});sel1={};render(true);}
+function issue1(keys){if(f1.b==='b1') snapDates(SETTLE.ym); keys.forEach(k=>{ISS[k]={at:TODAY_S,mail:mail1};});sel1={};render(true);}
 /* 발행 확인 — 발행 버튼(상단·더보기)을 누르면 메일을 보낼지 묻는다 */
 function issueAsk(keys){ia1={keys};DRAWER='issue';render(true);}
 function issueGo(mail){if(!ia1) return; mail1=mail; const k=ia1.keys; ia1=null; DRAWER=null; issue1(k);}
@@ -3252,8 +3264,13 @@ const TODAY_S='2026-08-10';   /* 오늘 — 7월 청구서는 7/19 발행 · 7/3
 const dnum=d=>{const [y,m,dd]=d.slice(0,10).split('-').map(Number);return Date.UTC(y,m-1,dd)/864e5;};
 const eom=ym=>{const [y,m]=ym.split('-').map(Number);const d=new Date(Date.UTC(y,m,0));return d.toISOString().slice(0,10);};
 /* 카리나빌딩의 납부마감일 · 청구일 — 건물 규칙(3.5)에서 구한다. 목업의 수납 자료는 카리나빌딩뿐이다 */
-const dueStr=ym=>dayRule(BUILDINGS[0].dueDay,ym);
-const billOn=ym=>dayRule(BUILDINGS[0].billDay,ym);
+/* 발행한 청구서는 그때의 청구일 · 납부마감일을 박아 둔다. 건물 규칙을 나중에 바꿔도 다시 계산하지 않는다 → 3.5
+   6·7월분은 발행이 끝났다. 8월분은 청구서를 처음 발행할 때 박는다(issue1) */
+const ISSUED_DATES={};
+const snapDates=ym=>{if(!ISSUED_DATES[ym]) ISSUED_DATES[ym]={bill:dayRule(BUILDINGS[0].billDay,ym),due:dayRule(BUILDINGS[0].dueDay,ym)};};
+['2026-06','2026-07'].forEach(snapDates);
+const dueStr=ym=>(ISSUED_DATES[ym]||{}).due||dayRule(BUILDINGS[0].dueDay,ym);
+const billOn=ym=>(ISSUED_DATES[ym]||{}).bill||dayRule(BUILDINGS[0].billDay,ym);
 const BILLS=[];
 /* 원장에 기록된 수납 배분 — 청구 건별 누적액 */
 const PAID={};
@@ -4381,7 +4398,7 @@ function CTR2(){
     card('임대료 · 관리비','<div class="c2" style="margin:-4px 0 10px">부가세를 포함한 금액을 넣고, 오른쪽에서 반복 주기를 고릅니다(보통 매월)</div>'
       +R('임대료',N('rent','금액 (부가세 포함)')+`<select title="반복 주기" onchange="ncSet('rentCy',this.value)" style="flex:none;width:84px">${ITEM_CYCLES.map(o=>`<option ${nc.rentCy===o?'selected':''}>${o}</option>`).join('')}</select>`,1)
       +R('고정관리비',N('mgmt','받지 않으면 0')+`<select title="반복 주기" onchange="ncSet('mgmtCy',this.value)" style="flex:none;width:84px">${ITEM_CYCLES.map(o=>`<option ${nc.mgmtCy===o?'selected':''}>${o}</option>`).join('')}</select>`,1)
-      +R('청구일 · 마감일',`<span class="fv">${bd.billDay} · ${bd.dueDay} <span class="c2">건물 기본값</span></span>`))
+      +R('청구일 · 마감일',`<span class="fv">${bd.billDay} · ${bd.dueDay} <span class="c2">건물 설정</span></span>`))
     +card('렌트프리 · 기산일',(()=>{
       const from=ncFrom(), rfTo=nc.rf==='있음'?nc.rfEnd:'', rfDays=rfTo&&nc.start?dnum(rfTo)-dnum(nc.start)+1:0;
       return R('렌트프리',`<label class="ck"><input type="radio" name="rf" ${nc.rf==='있음'?'checked':''} onchange="ncSet('rf','있음')">있음</label>
