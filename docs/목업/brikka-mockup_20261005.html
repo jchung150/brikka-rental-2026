@@ -1139,12 +1139,10 @@ function calc(m,raw){
     o.cutS=o.fix?es-o.supply:es*(1-f); o.cutV=o.fix?ev-o.vat:ev*(1-f);
     return o;});
   const cutS=Math.floor(rows.reduce((a,r)=>a+(r.pro?r.cutS:0),0)), cutV=Math.floor(rows.reduce((a,r)=>a+(r.pro?r.cutV:0),0));
-  /* 남는 원 단위 — 일할이 없으면 부담 비율이 가장 큰 계약에 붙여 고지서 금액에 맞춘다(4.1.8).
-     일할이 하나라도 있으면 임차인에게 억지로 맞추지 않고 건물주(공실·미청구분)가 가져간다 → 4.1.9 */
-  const anyPro=rows.some(r=>r.pro);
+  /* 남는 원 단위 — 일할이 있어도 없어도 부담 비율이 가장 큰 계약에 붙여 고지서 금액에 맞춘다 → 4.1.8
+     금액을 직접 고친 계약은 그 금액을 지키므로 고르지 않는다 */
   const rs=sup-rows.reduce((a,r)=>a+r.supply,0)-cutS, rv=vat-rows.reduce((a,r)=>a+r.vat,0)-cutV;
-  let k=-1;
-  if(!anyPro){let best=-1;rows.forEach((r,i)=>{if(r.ratio>best){best=r.ratio;k=i;}});}
+  let k=-1,best=-1; rows.forEach((r,i)=>{if(!r.fix&&r.ratio>best){best=r.ratio;k=i;}});
   if(k>=0){rows[k].supply+=rs; rows[k].vat+=rv; rows[k].rnd=rs+rv;}
   rows.forEach(r=>{r.amt=r.supply+r.vat; if(r.pro) r.orig=r.full;});
   const cut=cutS+cutV+(k<0?rs+rv:0);
