@@ -616,7 +616,7 @@ const BUILDINGS=[
  {id:'b1',name:'카리나빌딩',alias:'카리나',kind:'오피스빌딩',
   addr:'서울특별시 마포구 양화로 156',addr2:'서울 마포구 동교동 156-12',
   owner:'카리나',ownerBiz:'105-81-42117',owners:[{n:'카리나',biz:'105-81-42117',share:60},{n:'윈터',biz:'214-07-63390',share:40}],built:'2009-04-10',approved:'2009-11-20',mgrs:['김관리','박현장'],
-  area:4820.5,gross:6240.8,up:8,down:2,dong:[{n:'본관',up:8,down:2},{n:'별관',up:3,down:0}],park:24,pk:{up:4,down:16,mech:4},hvac:['EHP(시스템에어컨)'],
+  area:4820.5,gross:6240.8,up:8,down:2,dong:[{n:'본관',up:8,down:2},{n:'별관',up:3,down:0}],park:32,pk:{up:5,down:0,mech:27},hvac:['EHP(시스템에어컨)'],
   unitCnt:14,vacCnt:0,opCnt:0,vac:0,
   acct:'국민은행 812-01-0455-118',acctName:'카리나',feeAcct:'국민은행 812-01-0455-118',feeAcctName:'카리나',
   mgmtStart:'2025-03-01',mgmtEnd:'2027-02-28',fee:'임대료의 5%',mode:'임대인 직수취',
@@ -1681,20 +1681,42 @@ function bphHTML(b){
 }
 /* ═══ 등록 차량 — 주차는 자리 번호가 아니라 차량으로 관리한다. 비상시 차 주인에게 바로 연락해야 하기 때문이다 → PRO-3 주차 탭 · CTR-3
    차량마다 계약 · 차량 소유자 · 차량번호 · 연락처 · 차종 · 주차구분 · 요금부과(무료 / 월정액).
-   무료로 등록할 수 있는 대수는 그 계약의 무상 주차 대수까지다. 넘는 차량은 월정액 → 주차비 정산. 목업 예시값(가짜 이름 · 번호) ═══ */
+   무료로 등록할 수 있는 대수는 그 계약의 무상 주차 대수까지다. 넘는 차량은 월정액 → 주차비 정산.
+   카리나빌딩 실제 명부(대표 제공). 모르는 칸은 비워 두었다(소유자 · 연락처 미확인). 무료가 무상 대수를 넘은 계약은 그대로 두고 화면에서 초과로 보인다 ═══ */
 const VEH_LOC=['지상','지하','기계식'], VEH_FEE=['무료','월정액'];
 let VEH=[
- {id:1,k:'b1본관801호',own:'이한결',plate:'10가3291',tel:'010-1234-1001',model:'BMW 520 (2020)',loc:'기계식',fee:'무료'},
- {id:2,k:'b1본관801호',own:'김도윤',plate:'17나1733',tel:'010-1234-1002',model:'벤츠 B200',loc:'기계식',fee:'무료'},
- {id:3,k:'b1본관801호',own:'홍서진',plate:'22다6946',tel:'010-1234-1003',model:'그랜저 IG',loc:'기계식',fee:'무료'},
- {id:4,k:'b1본관801호',own:'강민재',plate:'145라5562',tel:'010-1234-1004',model:'K5',loc:'기계식',fee:'월정액'},
- {id:5,k:'b1본관701호',own:'이수아',plate:'201마2537',tel:'010-1234-1005',model:'GV80',loc:'지상',fee:'무료'},
- {id:6,k:'b1본관701호',own:'박지호',plate:'249바5397',tel:'010-1234-1006',model:'벤츠 E240',loc:'기계식',fee:'무료'},
- {id:7,k:'b1본관701호',own:'윤하준',plate:'59사0389',tel:'010-1234-1007',model:'말리부 (2017)',loc:'기계식',fee:'월정액'},
- {id:8,k:'b1본관401호',own:'정예린',plate:'38아7712',tel:'010-1234-1008',model:'아이오닉 5',loc:'지하',fee:'무료'},
- {id:9,k:'b1본관302호',own:'최우진',plate:'64자2048',tel:'010-1234-1009',model:'쏘렌토',loc:'지하',fee:'무료'},
- {id:10,k:'b1본관302호',own:'한소율',plate:'71차8830',tel:'010-1234-1010',model:'캐스퍼',loc:'지하',fee:'월정액'}];
-let vehSeq=11;
+ {id:1,k:'b1본관801호',own:'이한용',plate:'10버3291',tel:'010-4745-7585',model:'BMW 520 (2020)',loc:'기계식',fee:'무료'},
+ {id:2,k:'b1본관801호',own:'김동철',plate:'17노1733',tel:'010-9703-9794',model:'벤츠 B200',loc:'기계식',fee:'무료'},
+ {id:3,k:'b1본관801호',own:'홍희석',plate:'22구6946',tel:'010-3797-6065',model:'그랜저 IG',loc:'기계식',fee:'무료'},
+ {id:4,k:'b1본관801호',own:'강진철',plate:'145하5562',tel:'010-5256-4742',model:'K5',loc:'기계식',fee:'월정액'},
+ {id:5,k:'b1본관701호',own:'이양',plate:'201호2537',tel:'010-5758-8377',model:'GV80',loc:'지상',fee:'무료'},
+ {id:6,k:'b1본관701호',own:'미니클럽맨',plate:'26너4908',tel:'010-2344-9444',model:'미니 클럽맨',loc:'기계식',fee:'무료'},
+ {id:7,k:'b1본관701호',own:'박기성',plate:'249라5397',tel:'010-9964-1518',model:'벤츠 E240',loc:'기계식',fee:'무료'},
+ {id:8,k:'b1본관701호',own:'윤종찬',plate:'59루0389',tel:'010-9733-3121',model:'말리부 (2017)',loc:'기계식',fee:'월정액'},
+ {id:9,k:'b1본관701호',own:'장택준',plate:'129주2644',tel:'010-2344-9444',model:'XM3 (2020)',loc:'기계식',fee:'월정액'},
+ {id:10,k:'b1본관501호',own:'',plate:'202호8010',tel:'',model:'뉴그랜저',loc:'아난티',fee:'무료'},
+ {id:11,k:'b1본관501호',own:'서재호',plate:'110마3360',tel:'010-3731-5894',model:'뉴그랜저',loc:'기계식',fee:'무료'},
+ {id:12,k:'b1본관501호',own:'서재호',plate:'06부5330',tel:'010-3731-5894',model:'그랜저',loc:'기계식',fee:'무료'},
+ {id:13,k:'b1본관501호',own:'',plate:'186주3524',tel:'',model:'K5',loc:'기계식',fee:'무료'},
+ {id:14,k:'b1본관401호',own:'박경준',plate:'262거6414',tel:'010-7423-0203',model:'K5',loc:'기계식',fee:'무료'},
+ {id:15,k:'b1본관401호',own:'조지한',plate:'281우2016',tel:'010-2721-6301',model:'BMW 320D',loc:'기계식',fee:'무료'},
+ {id:16,k:'b1본관401호',own:'권은비',plate:'312누8229',tel:'010-9268-9806',model:'쏘나타',loc:'기계식',fee:'무료'},
+ {id:17,k:'b1본관401호',own:'정진영',plate:'152우2955',tel:'010-3163-7368',model:'쏘나타',loc:'기계식',fee:'월정액'},
+ {id:18,k:'b1본관302호',own:'김대훈',plate:'367보6077',tel:'010-3374-6987',model:'벤츠',loc:'지상',fee:'무료'},
+ {id:19,k:'b1본관302호',own:'이인수',plate:'46머9331',tel:'010-4223-6176',model:'모닝',loc:'기계식',fee:'무료'},
+ {id:20,k:'b1본관302호',own:'조지형',plate:'191호2286',tel:'010-6314-9558',model:'K5',loc:'기계식',fee:'무료'},
+ {id:21,k:'b1본관302호',own:'조지형',plate:'343수5611',tel:'010-6314-9558',model:'그랜저',loc:'기계식',fee:'월정액'},
+ {id:22,k:'b1본관201호',own:'이성수',plate:'39두0204',tel:'010-4065-3147',model:'K5',loc:'기계식',fee:'무료'},
+ {id:23,k:'b1본관201호',own:'업무용',plate:'223허6665',tel:'',model:'아반떼',loc:'기계식',fee:'무료'},
+ {id:24,k:'b1본관101호',own:'표정우',plate:'45라0809',tel:'010-9168-1556',model:'아반떼',loc:'기계식',fee:'무료'},
+ {id:25,k:'b1본관B201호',own:'루비뮤직',plate:'07고0921',tel:'010-3781-9387',model:'벤츠',loc:'기계식',fee:'무료'},
+ {id:26,k:'b1본관B201호',own:'루비뮤직',plate:'56주0241',tel:'010-3781-9387',model:'골프',loc:'기계식',fee:'무료'},
+ {id:27,k:'b1본관B201호',own:'루비뮤직',plate:'66루0880',tel:'010-5018-0880',model:'쉐보레 크루즈',loc:'기계식',fee:'월정액'},
+ {id:28,k:'b1별관401호',own:'업무용',plate:'190허9624',tel:'',model:'K5',loc:'기계식',fee:'무료'},
+ {id:29,k:'b1별관301호',own:'홍순철',plate:'217호8012',tel:'010-2711-2290',model:'제네시스 G80',loc:'지상',fee:'무료'},
+ {id:30,k:'b1별관301호',own:'김수경',plate:'50부9436',tel:'010-9471-5979',model:'쏘나타',loc:'기계식',fee:'무료'},
+ {id:31,k:'b1별관201호',own:'',plate:'68보8329',tel:'010-3600-3593',model:'아우디 A5',loc:'기계식',fee:'무료'}];
+let vehSeq=32;
 const vehOf=k=>VEH.filter(v=>v.k===k);
 const ctrOfK=k=>CTRS.find(c=>ckey(c)===k);
 let vh=null;
@@ -1961,34 +1983,45 @@ function t요약(b){
 `;
 }
 
-/* ═══ 주차 탭 — 등록 차량을 계약별로 묶어 본다(층 · 임차인별 명부와 같은 모양) → PRO-3 ═══ */
-let fpk={k:'',loc:'',fee:'',q:''};
+/* ═══ 주차 탭 — 등록 차량을 계약별로 묶어 본다(층 · 임차인별 명부와 같은 모양). 묶음은 접고 편다(수납 내역과 같다) → PRO-3 ═══ */
+let fpk={k:'',loc:'',fee:'',q:''}, gpk={}, gpkAll=false;
 const setFpk=(k,v)=>{fpk[k]=v;render(true);};
+const gpkOpen=k=>(k in gpk)?gpk[k]:gpkAll;
+const gpkTog=k=>{gpk[k]=!gpkOpen(k);render(true);};
+const gpkSet=v=>{gpkAll=v;gpk={};render(true);};
 function t주차(b){
   const cs=CTRS.filter(c=>c.b===b.id&&c.st==='진행중'), keys=cs.map(ckey);
-  const all=VEH.filter(v=>keys.includes(v.k)), q=fpk.q.trim();
+  const all=VEH.filter(v=>keys.includes(v.k)), q=fpk.q.trim(), filt=!!(fpk.k||fpk.loc||fpk.fee||q);
   const list=all.filter(v=>(!fpk.k||v.k===fpk.k)&&(!fpk.loc||v.loc===fpk.loc)&&(!fpk.fee||v.fee===fpk.fee)&&(!q||[v.plate,v.own,v.tel,v.model].some(x=>(x||'').includes(q))));
-  const nFree=all.filter(v=>v.fee==='무료').length;
+  const nFree=all.filter(v=>v.fee==='무료').length, left=b.park-all.length;
   const S=(f,opts,lab)=>`<select onchange="setFpk('${f}',this.value)"><option value="">${lab}</option>${opts.map(([v,t])=>`<option value="${v}" ${fpk[f]===v?'selected':''}>${t}</option>`).join('')}</select>`;
-  const groups=cs.map(c=>({c,k:ckey(c),vs:list.filter(v=>v.k===ckey(c))})).filter(g=>g.vs.length);
+  /* 필터가 없으면 차량이 없어도 무상 주차가 있는 계약을 보인다(빈 자리를 알 수 있게) */
+  const groups=cs.map(c=>({c,k:ckey(c),vs:list.filter(v=>v.k===ckey(c))})).filter(g=>g.vs.length||(!filt&&CPARK[g.k]));
+  const anyOp=groups.some(g=>gpkOpen(g.k)), miss='<span style="color:var(--warn)">미확인</span>';
   return `
   <div class="card"><div class="ct">등록 차량
-    <span class="sub">주차면 ${b.park} · 등록 ${all.length}대 · 남은 자리 ${Math.max(0,b.park-all.length)} · 무료 ${nFree} · 월정액 ${all.length-nFree}</span>
+    <span class="sub">주차면 ${b.park} · 등록 ${all.length}대 · ${left>=0?`남은 자리 ${left}`:`<b style="color:var(--warn)">${-left}대 초과</b>`} · 무료 ${nFree} · 월정액 ${all.length-nFree}</span>
     <span class="ca"><button class="btn sm" onclick="vehOpen('${b.id}')">추가</button></span></div>
     <div class="fbar" style="padding:0 16px 10px;margin:0">
       ${S('k',cs.map(c=>[ckey(c),cname(b.alias,c.no,c.ten)]),'전체 계약')}${S('loc',VEH_LOC.map(v=>[v,v]),'전체 주차구분')}${S('fee',VEH_FEE.map(v=>[v,v]),'전체 요금부과')}
       <input type="text" value="${fpk.q}" placeholder="차량번호 · 소유자 · 연락처" onchange="setFpk('q',this.value)" style="max-width:200px">
+      ${groups.length?`<span style="margin-left:auto"><button class="btn sm" onclick="gpkSet(${anyOp?'false':'true'})">${anyOp?'전체 접기':'전체 펼치기'}</button></span>`:''}
     </div>
     ${groups.length?`<div class="tw"><table>
-      <thead><tr><th>차량 소유자</th><th>차량번호</th><th>연락처</th><th>차종</th><th>주차구분</th><th>요금부과</th><th class="c">더보기</th></tr></thead>
-      <tbody>${groups.map(g=>{const cp=CPARK[g.k]||{}, vs=vehOf(g.k), fr=vs.filter(v=>v.fee==='무료').length, mo=vs.length-fr;
-        return `<tr style="background:var(--soft)"><td colspan="7"><span class="plk" onclick="tab3c='요약';go('ctr-3/${g.k}')">${cnameHTML(b.alias,g.c.no,g.c.ten)}</span>
-          <span class="c2" style="margin:0 0 0 8px">${vs.length}대 · 무료 ${fr}${cp.free!=null?` / 무상 ${cp.free}대`:''} · 월정액 ${mo}${mo&&cp.fee?` (월 ${won(mo*cp.fee)})`:''}</span></td></tr>`
-        +g.vs.map(v=>`<tr><td class="c1" style="font-weight:500">${v.own}</td><td>${v.plate}</td><td style="white-space:nowrap">${v.tel}</td><td>${v.model||'—'}</td>
+      <thead><tr><th>계약 · 차량 소유자</th><th>차량번호</th><th>연락처</th><th>차종</th><th>주차구분</th><th>요금부과</th><th class="c">더보기</th></tr></thead>
+      <tbody>${groups.map(g=>{const cp=CPARK[g.k]||{}, vs=vehOf(g.k), fr=vs.filter(v=>v.fee==='무료').length, mo=vs.length-fr, over=cp.free!=null?fr-cp.free:0, op=gpkOpen(g.k);
+        return `<tr class="grp" style="background:var(--soft);cursor:pointer" onclick="gpkTog('${g.k}')"><td colspan="7">
+          <span class="tg ${op?'op':''}" style="display:inline-flex;width:20px;color:var(--muted);vertical-align:-4px;transition:transform .15s;${op?'transform:rotate(90deg)':''}">${ic('chev',16)}</span>${cnameHTML(b.alias,g.c.no,g.c.ten)}
+          <span class="c2" style="margin:0 0 0 8px">${vs.length}대 · 무료 ${fr}${cp.free!=null?` / 무상 ${cp.free}대`:''} · 월정액 ${mo}${mo&&cp.fee?` (월 ${won(mo*cp.fee)})`:''}</span>
+          ${over>0?`<span class="bd wa" style="margin-left:8px">무료 ${over}대 초과</span>`:''}${vs.some(v=>!v.own||!v.tel)?'<span class="bd wa2" style="margin-left:6px">연락처 미확인</span>':''}</td></tr>`
+        +(!op?'':g.vs.length?g.vs.map(v=>`<tr><td class="c1" style="font-weight:500;padding-left:44px">${v.own||miss}</td><td>${v.plate}</td><td style="white-space:nowrap">${v.tel||miss}</td><td>${v.model||'—'}</td>
           <td>${v.loc}</td><td>${v.fee==='월정액'?'<span class="bd wa2">월정액</span>':'<span class="bd mu">무료</span>'}</td>
-          <td class="c">${moreCell([{t:'수정',go:`vehOpen('${b.id}',${v.id})`},{t:'삭제',go:`vehDel(${v.id})`}])}</td></tr>`).join('');}).join('')}</tbody>
+          <td class="c">${moreCell([{t:'수정',go:`vehOpen('${b.id}',${v.id})`},{t:'삭제',go:`vehDel(${v.id})`}])}</td></tr>`).join('')
+          :`<tr><td colspan="7" class="c2" style="padding-left:44px">등록된 차량이 없습니다</td></tr>`);}).join('')}</tbody>
     </table></div>`:`<div class="empty">${all.length?'조건에 맞는 차량이 없습니다':'등록된 차량이 없습니다'}</div>`}
-  </div>`;
+  </div>
+  <div class="hint">계약을 누르면 그 계약의 차량이 펼쳐집니다. 무료 차량이 계약의 무상 주차 대수를 넘으면 <b>무료 ○대 초과</b>로 표시합니다. 넘는 차량은 월정액으로 바꿔 주차비를 받습니다.<br>
+    비상시 연락해야 하므로 소유자 · 연락처가 비어 있는 차량은 <b>미확인</b>으로 표시합니다.</div>`;
 }
 
 /* 유닛 탭 — 카드 한 장이 유닛 하나. 누르면 오른쪽에 유닛 상세 패널(PRO-4) */
@@ -4760,7 +4793,8 @@ function CTR3month(c,k){
 }
 /* CTR-3 요약 탭 — 계약·임대 정보. 잔액은 원장에서 */
 /* 계약의 주차 약정 · 냉난방기 구분 — 목업 예시값. 등록 차량은 건물 주차 탭과 같은 기록(VEH) → CTR-3 · PRO-3 */
-const CPARK={'b1본관801호':{free:3,fee:110000},'b1본관701호':{free:2,fee:110000},'b1본관401호':{free:1,fee:110000},'b1본관302호':{free:1,fee:110000}};
+/* 무상 주차 대수 — 명부의 「층(배정대수)」. 초과 단가는 예시값 */
+const CPARK=Object.fromEntries([['본관801호',3],['본관701호',3],['본관601호',3],['본관501호',3],['본관401호',3],['본관302호',3],['본관201호',3],['본관101호',3],['본관B201호',3],['별관401호',2],['별관301호',2],['별관201호',2]].map(([n,f])=>['b1'+n,{free:f,fee:110000}]));
 const HVAC_OWN=['임차인 설치','전 임차인 것 이어받음','건물주 것 사용'];
 const CHVAC={'b1본관801호':{t:'임차인 설치',m:'시스템에어컨 4대 · 2024.03 설치'},'b1본관101호':{t:'건물주 것 사용',m:''},'b1별관301호':{t:'전 임차인 것 이어받음',m:'벽걸이 2대'}};
 let cx3=null;
