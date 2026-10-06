@@ -672,6 +672,14 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   BE.beOpen('b1', 'mgmt'); BE.be.f.me = '2028-02-29'; BE.beSave();
   r6.push(['요약 카드 수정 — 별칭 중복 막힘 · 지번 저장 · 기계식 6 → 총 26면 · 지분 100% 아니면 막힘 · 채권 10억 · 공용시설 추가·삭제 · 위탁운영계약 종료일',
     dup && b.addr2 === '지번 바꿈' && pk && sh && b.owners[0].share === 50 && b.bondNow === 1e9 && fac && !b.fac.includes('라운지') && b.mgmtEnd === '2028-02-29']); }
+/* 주차 탭 — 유닛과 관리비 사이 · 요약에서 주차장 빠짐 · 요약 숫자 · 빈 자리 필터 · 계약별 무상 대비 초과 · 배정 바꾸면 이력 */
+{ const PT = new Function(stub + bare + '; return {PRO3,pkOpen,pkSave,BUILDINGS,PLOG,setFpk,get pk(){return pk;},set tab3(v){tab3=v;},get fpk(){return fpk;}};')();
+  PT.tab3 = '요약'; const sum = PT.PRO3('b1'); PT.tab3 = '주차'; const h = PT.PRO3('b1');
+  const order = h.indexOf('>유닛<') < h.indexOf('>주차<') && h.indexOf('>주차<') < h.indexOf('>관리비<');
+  PT.fpk.as = '빈 자리'; const hv = PT.PRO3('b1'); PT.fpk.as = '';
+  PT.pkOpen('b1', 3, 'assign'); PT.pk.k = '본관101호'; PT.pkSave(); const lg = /본관101호/.test(PT.PLOG.b1[0].det);
+  r6.push(['주차 탭 — 탭 순서 유닛 · 주차 · 관리비 · 요약에 주차장 없음 · 등록·배정·빈 자리 숫자 · 빈 자리 필터 · 계약별 배정 현황 · 배정 바꾸면 이력',
+    order && !/<div class="ct">주차장/.test(sum) && /빈 자리/.test(h) && /계약별 배정 현황/.test(h) && /배정 변경 이력/.test(h) && !/카리나\|본관801호/.test(hv.split('계약별 배정 현황')[0].split('<tbody>')[1]||'') && lg]); }
 /* 수납 내역 더보기 — 받을 돈이 있는 계약(비씨에이전시)만 수납 처리가 눌리고, 다 받은 계약(에스씨케이컴퍼니)은 흐림 · 원장 보기는 모두 */
 { const MV = new Function(stub + bare + '; seedJuly(); return {PAY6,RC,MORE};')();
   MV.RC.f = {b:'b1', ym:'2026-07', st:''}; MV.MORE.length = 0; const h = MV.PAY6();

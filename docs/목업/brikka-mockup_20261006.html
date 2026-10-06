@@ -1640,8 +1640,8 @@ function bopHTML(){
 }
 function PRO3(id){
   const b=BUILDINGS.find(x=>x.id===id)||BUILDINGS[0];
-  const T=['요약','유닛','관리비','자료보관','설정'];
-  const body={'요약':t요약,'유닛':t유닛,'관리비':t청구,'자료보관':t자료,'설정':t설정}[tab3](b);
+  const T=['요약','유닛','주차','관리비','자료보관','설정'];
+  const body={'요약':t요약,'유닛':t유닛,'주차':t주차,'관리비':t청구,'자료보관':t자료,'설정':t설정}[tab3](b);
   return `
   <div class="ph">
     <div class="bsw">
@@ -1690,12 +1690,17 @@ const PK_LOC=['지상 자주식','지하 자주식','기계식'], PK_TYPE=['일�
 function pkOpen(bid,i,mode){const b=BUILDINGS.find(x=>x.id===bid), p=i>=0?b.parks[i]:null;
   pk={bid,i,mode,n:p?p.n:'',loc:p?p.loc:'지하 자주식',t:p?p.t:'일반',memo:p?p.memo:'',k:p&&p.as?(CTRS.find(c=>c.b===bid&&c.no===p.asu&&c.st==='진행중')||{}).no||'':''};
   DRAWER='park';render(true);}
-function pkDel(bid,i){const b=BUILDINGS.find(x=>x.id===bid); if(b.parks[i].as) return; b.parks.splice(i,1);render(true);}
+/* 배정 변경 이력 — 목업 예시값과 이 화면 · 계약 상세에서 바꾼 것 */
+const PLOG={b1:[{at:'2026-08-03 11:20',by:'김관리',n:'B1-03',det:'카리나|본관401호|(주)케이큐엔터테이먼트 배정'},
+  {at:'2026-07-15 16:02',by:'박현장',n:'B1-04',det:'배정 해제'},{at:'2026-07-01 09:30',by:'김관리',n:'B2-01',det:'카리나|본관302호|(유)유니버셜대부 배정'}]};
+const plog=(id,n,det)=>{(PLOG[id]=PLOG[id]||[]).unshift({at:`${TODAY_S} ${new Date().toTimeString().slice(0,5)}`,by:'슈퍼관리자',n,det});};
+function pkDel(bid,i){const b=BUILDINGS.find(x=>x.id===bid); if(b.parks[i].as) return; plog(bid,b.parks[i].n,'주차면 삭제'); b.parks.splice(i,1);render(true);}
 function pkSave(){const b=BUILDINGS.find(x=>x.id===pk.bid);
   if(pk.mode==='assign'){const c=CTRS.find(c=>c.b===pk.bid&&c.no===pk.k&&c.st==='진행중'), p=b.parks[pk.i];
+    if((c?c.no:'')!==p.asu) plog(b.id,p.n,c?`${cname(b.alias,c.no,c.ten)} 배정`:'배정 해제');
     p.as=c?c.ten:''; p.asu=c?c.no:'';}
   else{if(!pk.n.trim()) return; const v={n:pk.n.trim(),loc:pk.loc,t:pk.t,memo:pk.memo.trim()};
-    if(pk.i<0) b.parks.push({...v,as:'',asu:''}); else Object.assign(b.parks[pk.i],v);}
+    if(pk.i<0){b.parks.push({...v,as:'',asu:''}); plog(b.id,v.n,'주차면 추가');} else Object.assign(b.parks[pk.i],v);}
   DRAWER=null;pk=null;render(true);}
 function pkHTML(){
   if(DRAWER!=='park'||!pk) return '';
@@ -1934,18 +1939,60 @@ function t요약(b){
       ${b.fac.map(f=>`<span class="tag">${f}<span class="x" style="cursor:pointer" onclick="facDel('${b.id}','${f}')">✕</span></span>`).join('')||'<span style="color:var(--muted)">등록된 공용시설이 없습니다.</span>'}
     </div></div>
   </div>
-  <div class="card"><div class="ct">주차장
-    <span class="ca"><button class="btn sm" onclick="pkOpen('${b.id}',-1,'edit')">추가</button></span></div>
-    ${b.parks.length?`<div class="tw"><table>
+`;
+}
+
+/* ═══ 주차 탭 — 자주 바뀌는 자리 배정을 따로 관리한다 → PRO-3
+   요약 숫자 · 주차면 목록(필터) · 계약별 배정 현황(무상 대수와 비교) · 배정 변경 이력. 방문 차량 입출차는 2차 ═══ */
+let fpk={loc:'',t:'',as:'',q:''};
+const setFpk=(k,v)=>{fpk[k]=v;render(true);};
+function t주차(b){
+  const P=b.parks, nAs=P.filter(p=>p.as).length;
+  const byLoc=PK_LOC.map(l=>[l,P.filter(p=>p.loc===l).length,P.filter(p=>p.loc===l&&p.as).length]);
+  const q=fpk.q.trim();
+  const rows=P.map((p,pi)=>({p,pi})).filter(({p})=>(!fpk.loc||p.loc===fpk.loc)&&(!fpk.t||p.t===fpk.t)
+    &&(!fpk.as||(fpk.as==='배정'?!!p.as:!p.as))&&(!q||[p.n,p.as,p.asu,p.memo].some(x=>(x||'').includes(q))));
+  const stat=(k,v,sub)=>`<div style="flex:1;min-width:110px;border:1px solid var(--line);border-radius:var(--r-sm);padding:10px 14px">
+      <div class="c2" style="margin:0">${k}</div><div style="font-size:18px;font-weight:700;margin-top:2px">${v}</div>${sub?`<div class="c2" style="margin:2px 0 0">${sub}</div>`:''}</div>`;
+  const cs=CTRS.filter(c=>c.b===b.id&&c.st==='진행중').map(c=>{const k=ckey(c), mine=P.filter(p=>p.as===c.ten&&p.asu===c.no), cp=CPARK[k];
+      return {c,k,mine,free:cp?cp.free:null,fee:cp?cp.fee:0};}).filter(x=>x.mine.length||x.free);
+  const S=(f,opts,all)=>`<select onchange="setFpk('${f}',this.value)"><option value="">${all}</option>${opts.map(v=>`<option ${fpk[f]===v?'selected':''}>${v}</option>`).join('')}</select>`;
+  return `
+  <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px">
+    ${stat('등록 주차면',`${P.length}면`,`건물 제원 총 ${b.park}면`)}
+    ${stat('배정',`${nAs}면`)}${stat('빈 자리',`${P.length-nAs}면`)}
+    ${byLoc.map(([l,n,a])=>stat(l,`${n}면`,`배정 ${a} · 빈 자리 ${n-a}`)).join('')}
+  </div>
+  <div class="card"><div class="ct">주차면<span class="ca"><button class="btn sm" onclick="pkOpen('${b.id}',-1,'edit')">추가</button></span></div>
+    <div class="fbar" style="padding:0 16px 10px;margin:0">
+      ${S('loc',PK_LOC,'전체 위치')}${S('t',PK_TYPE,'전체 유형')}${S('as',['배정','빈 자리'],'전체 배정')}
+      <input type="text" value="${fpk.q}" placeholder="주차면 · 임차인 · 유닛 검색" onchange="setFpk('q',this.value)" style="max-width:200px">
+    </div>
+    ${rows.length?`<div class="tw"><table>
       <thead><tr><th>주차면</th><th>위치</th><th>유형</th><th>메모</th><th>배정 현황</th><th class="c">더보기</th></tr></thead>
-      <tbody>${b.parks.map((p,pi)=>`<tr><td class="c1">${p.n}</td><td>${p.loc}</td><td>${p.t}</td><td style="color:var(--muted)">${p.memo||'—'}</td>
+      <tbody>${rows.map(({p,pi})=>`<tr><td class="c1">${p.n}</td><td>${p.loc}</td><td>${p.t}</td><td style="color:var(--muted)">${p.memo||'—'}</td>
         <td>${p.as?(c=>c?`<span class="plk" onclick="tab3c='요약';go('ctr-3/${ckey(c)}')">${cnameHTML(b.alias,p.asu,p.as)}</span>`:cnameHTML(b.alias,p.asu,p.as))
-          (CTRS.find(c=>c.b===b.id&&c.no===p.asu&&c.st==='진행중')):'<span class="bd mu">미배정</span>'}</td>
+          (CTRS.find(c=>c.b===b.id&&c.no===p.asu&&c.st==='진행중')):'<span class="bd mu">빈 자리</span>'}</td>
         <td class="c">${moreCell([{t:'배정 변경',go:`pkOpen('${b.id}',${pi},'assign')`},{t:'수정',go:`pkOpen('${b.id}',${pi},'edit')`},
           {t:'삭제',go:`pkDel('${b.id}',${pi})`,off:p.as?'배정된 주차면입니다. 배정을 먼저 해제하세요':''}])}</td></tr>`).join('')}</tbody>
-    </table></div>`:'<div class="empty">등록된 주차면이 없습니다.</div>'}
+    </table></div>`:`<div class="empty">${P.length?'조건에 맞는 주차면이 없습니다':'등록된 주차면이 없습니다'}</div>`}
   </div>
-`;
+  <div class="two">
+    <div class="card"><div class="ct">계약별 배정 현황</div>
+      ${cs.length?`<div class="tw"><table>
+        <thead><tr><th>계약</th><th class="n">무상</th><th class="n">배정</th><th class="n">초과</th></tr></thead>
+        <tbody>${cs.map(x=>{const over=x.free!=null?x.mine.length-x.free:0;return `<tr>
+          <td><span class="plk" onclick="tab3c='요약';go('ctr-3/${x.k}')">${cnameHTML(b.alias,x.c.no,x.c.ten)}</span><div class="c2">${x.mine.map(p=>p.n).join(' · ')||'배정 없음'}</div></td>
+          <td class="n">${x.free!=null?`${x.free}대`:'—'}</td><td class="n">${x.mine.length}면</td>
+          <td class="n">${over>0?`<b style="color:var(--warn)">${over}면</b>${x.fee?`<div class="c2">월 ${won(over*x.fee)}</div>`:''}`:'—'}</td></tr>`;}).join('')}</tbody></table></div>
+        <div class="hint">무상 대수보다 많이 배정한 계약은 초과분을 주차비로 정산합니다 → 관리비 정산(주차비)</div>`
+      :'<div class="empty">주차면을 배정한 계약이 없습니다</div>'}</div>
+    <div class="card"><div class="ct">배정 변경 이력</div>
+      ${(PLOG[b.id]||[]).length?`<div class="tw"><table>
+        <thead><tr><th>일시</th><th>주차면</th><th>내용</th><th>바꾼 사람</th></tr></thead>
+        <tbody>${PLOG[b.id].slice(0,8).map(x=>`<tr><td style="white-space:nowrap">${x.at.replace(/-/g,'.')}</td><td class="c1">${x.n}</td><td>${x.det}</td><td>${x.by}</td></tr>`).join('')}</tbody></table></div>`
+      :'<div class="empty">기록된 변경이 없습니다</div>'}</div>
+  </div>`;
 }
 
 /* 유닛 탭 — 카드 한 장이 유닛 하나. 누르면 오른쪽에 유닛 상세 패널(PRO-4) */
@@ -4728,7 +4775,7 @@ function chvOpen(k){const H=CHVAC[k]||{};cx3={k,mode:'hvac',t:H.t||'',m:H.m||''}
 function cx3Save(){const c=CTRS.find(x=>ckey(x)===cx3.k);
   if(cx3.mode==='park'){const b=BUILDINGS.find(x=>x.id===c.b);
     b.parks.forEach((p,i)=>{const mine=p.as===c.ten&&p.asu===c.no;
-      if(cx3.pick[i]&&!mine&&!p.as){p.as=c.ten;p.asu=c.no;} else if(!cx3.pick[i]&&mine){p.as='';p.asu='';}});
+      if(cx3.pick[i]&&!mine&&!p.as){p.as=c.ten;p.asu=c.no;plog(b.id,p.n,`${cname(b.alias,c.no,c.ten)} 배정`);} else if(!cx3.pick[i]&&mine){p.as='';p.asu='';plog(b.id,p.n,'배정 해제');}});
     CPARK[cx3.k]={free:parseInt(cx3.free)||0,fee:numOf(cx3.fee)};}
   else{if(!cx3.t) return; CHVAC[cx3.k]={t:cx3.t,m:cx3.m.trim()};}
   DRAWER=null;cx3=null;render(true);}
@@ -4745,7 +4792,7 @@ function cx3HTML(){
         :'<div class="c2">이 건물에 등록된 주차면이 없습니다. 건물 상세의 주차장에서 먼저 넣으세요</div>'}</div>
       <div class="fg"><div class="fl">무상 주차 대수</div><input type="text" inputmode="numeric" value="${cx3.free}" oninput="cx3.free=this.value" style="${inp};width:80px"> 대</div>
       <div class="fg"><div class="fl">초과 1대당 월 단가 (부가세 포함)</div><input type="text" inputmode="numeric" value="${cx3.fee?numOf(cx3.fee).toLocaleString('ko-KR'):''}" oninput="cx3.fee=this.value" style="${inp};width:140px"> 원</div>
-      <div class="c2" style="white-space:normal">건물 상세 주차장 카드의 배정 현황과 같은 기록입니다. 여기서 바꾸면 건물 상세에도 그대로 보입니다.</div>`
+      <div class="c2" style="white-space:normal">건물 상세 주차 탭의 배정 현황과 같은 기록입니다. 여기서 바꾸면 건물 상세에도 그대로 보입니다.</div>`
     :`<div class="fg"><div class="fl">냉난방기 구분 (필수)</div>
         ${HVAC_OWN.map(v=>`<label class="ck" style="display:flex;margin-bottom:7px"><input type="radio" name="hv" ${cx3.t===v?'checked':''} onchange="cx3.t='${v}';document.getElementById('c3ok').disabled=false">${v}</label>`).join('')}</div>
       <div class="fg"><div class="fl">메모</div><input type="text" value="${cx3.m}" placeholder="예: 시스템에어컨 4대 · 2024.03 설치" oninput="cx3.m=this.value" style="${inp};width:100%"></div>
