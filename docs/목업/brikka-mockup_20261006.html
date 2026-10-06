@@ -1697,10 +1697,6 @@ let VEH=[
 let vehSeq=11;
 const vehOf=k=>VEH.filter(v=>v.k===k);
 const ctrOfK=k=>CTRS.find(c=>ckey(c)===k);
-/* 변경 이력 — 목업 예시값과 주차 탭 · 계약 상세에서 바꾼 것 */
-const PLOG={b1:[{at:'2026-08-03 11:20',by:'김관리',n:'38아7712',det:'카리나|본관401호|(주)케이큐엔터테이먼트 · 등록'},
-  {at:'2026-07-15 16:02',by:'박현장',n:'59사0389',det:'요금부과 무료 → 월정액'},{at:'2026-07-01 09:30',by:'김관리',n:'71차8830',det:'카리나|본관302호|(유)유니버셜대부 · 등록'}]};
-const plog=(id,n,det)=>{(PLOG[id]=PLOG[id]||[]).unshift({at:`${TODAY_S} ${new Date().toTimeString().slice(0,5)}`,by:'슈퍼관리자',n,det});};
 let vh=null;
 /* fixK — 계약 상세에서 열면 그 계약으로 정해져 있다 */
 function vehOpen(bid,id,fixK){const v=id?VEH.find(x=>x.id===id):null;
@@ -1718,10 +1714,10 @@ function vehSave(){vh.tried=true; if(vehMissing().length){render(true);return;}
   if(vh.id){const v=VEH.find(x=>x.id===vh.id), ch=[];
     if(v.k!==val.k) ch.push(`계약 → ${cname(b.alias,c.no,c.ten)}`); if(v.fee!==val.fee) ch.push(`요금부과 ${v.fee} → ${val.fee}`); if(v.loc!==val.loc) ch.push(`주차구분 ${v.loc} → ${val.loc}`);
     if(v.tel!==val.tel||v.own!==val.own||v.model!==val.model) ch.push('소유자 정보 수정');
-    Object.assign(v,val); if(ch.length) plog(b.id,val.plate,ch.join(' · '));}
-  else{VEH.push({id:vehSeq++,...val}); plog(b.id,val.plate,`${cname(b.alias,c.no,c.ten)} · 등록`);}
+    Object.assign(v,val);}
+  else VEH.push({id:vehSeq++,...val});
   DRAWER=null;vh=null;render(true);}
-function vehDel(id){const v=VEH.find(x=>x.id===id); if(!v) return; const c=ctrOfK(v.k); VEH=VEH.filter(x=>x.id!==id); if(c) plog(c.b,v.plate,'등록 해제'); render(true);}
+function vehDel(id){const v=VEH.find(x=>x.id===id); if(!v) return; VEH=VEH.filter(x=>x.id!==id); render(true);}
 function vehHTML(){
   if(DRAWER!=='veh'||!vh) return '';
   const b=BUILDINGS.find(x=>x.id===vh.bid), miss=vh.tried?vehMissing():[], inp='border:1px solid var(--line);border-radius:var(--r-sm);padding:7px 9px;font:inherit';
@@ -1992,12 +1988,7 @@ function t주차(b){
           <td>${v.loc}</td><td>${v.fee==='월정액'?'<span class="bd wa2">월정액</span>':'<span class="bd mu">무료</span>'}</td>
           <td class="c">${moreCell([{t:'수정',go:`vehOpen('${b.id}',${v.id})`},{t:'삭제',go:`vehDel(${v.id})`}])}</td></tr>`).join('');}).join('')}</tbody>
     </table></div>`:`<div class="empty">${all.length?'조건에 맞는 차량이 없습니다':'등록된 차량이 없습니다'}</div>`}
-  </div>
-  <div class="card"><div class="ct">변경 이력</div>
-    ${(PLOG[b.id]||[]).length?`<div class="tw"><table>
-      <thead><tr><th>일시</th><th>차량번호</th><th>내용</th><th>바꾼 사람</th></tr></thead>
-      <tbody>${PLOG[b.id].slice(0,8).map(x=>`<tr><td style="white-space:nowrap">${x.at.replace(/-/g,'.')}</td><td class="c1">${x.n}</td><td>${x.det}</td><td>${x.by}</td></tr>`).join('')}</tbody></table></div>`
-    :'<div class="empty">기록된 변경이 없습니다</div>'}</div>`;
+  </div>`;
 }
 
 /* 유닛 탭 — 카드 한 장이 유닛 하나. 누르면 오른쪽에 유닛 상세 패널(PRO-4) */
