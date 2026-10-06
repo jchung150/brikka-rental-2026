@@ -2165,9 +2165,9 @@ function prcHTML(){
         ${V(m.name,won(prc.base))}
         ${V('계산값',`${won(v)} <span class="c2">몫 × ${ad} ÷ ${pd}, 원 미만 버림</span>`)}
         <div class="fr"><span class="fk">조정 ${m.name}</span><input type="text" inputmode="numeric" value="${prc.amt===''?num(v):num(numOf(prc.amt))}"
-          onchange="prcSet('amt',this.value)" style="text-align:right;max-width:140px"><span class="c2" style="margin:0">원 · 직접 고칠 수 있음</span></div>
+          onchange="prcSet('amt',this.value)" style="text-align:right;max-width:140px"><span class="c2" style="margin:0">원</span></div>
         <div class="fr"><span class="fk">사유</span><input type="text" value="${prc.why}" placeholder="${prcWhy()}" oninput="prc.why=this.value"></div>
-        <div class="c2" style="margin:0;white-space:normal">줄어든 <b>${won(Math.max(0,prc.base-fin))}</b>은 공실·미청구분(건물주 부담)으로 갑니다. 고지서 합계는 그대로 맞습니다.</div></div>
+</div>
       ${bad?'<div class="fnd wa3" style="margin:0"><span class="h">적용 기간을 확인하세요</span>적용 기간은 고지서 사용 기간 안이어야 합니다.</div>':''}
       ${over?'<div class="fnd wa3" style="margin:8px 0 0"><span class="h">원래 금액보다 클 수 없습니다</span></div>':''}
     </div>
@@ -2196,7 +2196,7 @@ function stResult(m,R){
       <tbody>
         ${R.rows.filter(r=>r.st==='사용중').map(r=>row4(r,m)).join('')}
         ${R.rows.filter(r=>r.st!=='사용중').map(r=>row4(r,m,'vacr')).join('')}
-        ${R.cut?`<tr class="vacr"><td>일할로 줄인 몫 <span class="c2">건물주 부담</span></td>
+        ${R.cut?`<tr class="vacr"><td>건물주 부담</td>
           ${R.charge&&isMetered(m.code)?'<td></td>':''}${m.unit?'<td></td><td></td>':''}<td></td>
           <td class="n"><b>${won(R.cut)}</b></td><td></td></tr>`:''}
         <tr class="sumr"><td>합계</td>

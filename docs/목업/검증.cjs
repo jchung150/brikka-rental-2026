@@ -558,7 +558,7 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   const rk = R1.rows.find(r => r.rnd), line = PR.ISSUE().find(c => c.no === '본관8층').lines.find(l => l.n === '전기요금');
   const ex = Math.floor(25914.55 * 9 / 31) + Math.floor(2591.45 * 9 / 31);
   r6.push(['일할 계산 — 7/10~8/9 = 31일 · 8/1~8/9 = 9일 · 본관8층 공급가액·부가세 몫 × 9 ÷ 31 각각 버림 · 일할이 있으면 남는 원 단위는 임차인에 붙이지 않고 공실분으로 · 검증 일치 · 청구서 반영 · 예시 28,506원 → 8,275원',
-    pd === 31 && got === want && r1.amt === want && !rk && R1.diff === 0 && /일할로 줄인 몫/.test(h10)
+    pd === 31 && got === want && r1.amt === want && !rk && R1.diff === 0 && /<td>건물주 부담<\/td>/.test(h10)
     && R1.bill + R1.rows.filter(r => r.st !== '사용중').reduce((x, r) => x + r.amt, 0) + R1.cut === R1.total
     && R1.bill + R1.vac === R1.total && line.amt === want && ex === 8275]);
   PR.prcOpen('elec', '본관7층'); PR.prc.amt = '0'; PR.prc.why = '퇴거 때 추정액으로 받음'; PR.prcApply();
