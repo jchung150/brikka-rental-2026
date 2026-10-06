@@ -1757,7 +1757,7 @@ function vdHTML(){
         ${R('요금부과',v.fee==='월정액'?`<span class="bd wa2">월정액</span>${cp.fee?` <span class="c2">월 ${won(cp.fee)}</span>`:''}`:'<span class="bd mu">무료</span>')}</div>
       <div class="fg"><div class="fl">비상 연락</div>${R('차량 소유자',v.own||miss)}${R('연락처',v.tel||miss)}</div>
       <div class="fg"><div class="fl">계약</div>${R('계약고유이름',c?`<span class="plk" onclick="closeDrawer();tab3c='요약';go('ctr-3/${v.k}')">${cnameHTML(b.alias,c.no,c.ten)}</span>`:'—')}
-        ${R('이 계약 차량',`${vehOf(v.k).length}대 · 무상 ${vehOf(v.k).filter(x=>x.fee==='무료').length}대 + 유상 ${vehOf(v.k).filter(x=>x.fee==='월정액').length}대${cp.free!=null?` <span class="c2">(무상 한도 ${cp.free}대)</span>`:''}`)}</div>
+        ${R('이 계약 차량',`총 ${vehOf(v.k).length}대 · 무료 ${vehOf(v.k).filter(x=>x.fee==='무료').length}대 + 월정액 ${vehOf(v.k).filter(x=>x.fee==='월정액').length}대${cp.free!=null?` <span class="c2">(무상 한도 ${cp.free}대)</span>`:''}`)}</div>
     </div>
     <div class="df"><button class="btn pri" onclick="vehOpen('${b.id}',${v.id})">수정</button><button class="btn" onclick="closeDrawer();vehDel(${v.id})">삭제</button></div>
   </div></div>`;
@@ -2034,7 +2034,7 @@ function t주차(b){
       <tbody>${groups.map(g=>{const cp=CPARK[g.k]||{}, vs=vehOf(g.k), fr=vs.filter(v=>v.fee==='무료').length, mo=vs.length-fr, over=cp.free!=null?fr-cp.free:0, op=gpkOpen(g.k);
         return `<tr class="grp" style="background:var(--soft);cursor:pointer" onclick="gpkTog('${g.k}')"><td colspan="7">
           <span class="tg ${op?'op':''}" style="display:inline-flex;width:20px;color:var(--muted);vertical-align:-4px;transition:transform .15s;${op?'transform:rotate(90deg)':''}">${ic('chev',16)}</span>${cnameHTML(b.alias,g.c.no,g.c.ten)}
-          <span class="c2" style="margin:0 0 0 8px">${vs.length}대 · 무상 ${fr}대 + 유상 ${mo}대</span>
+          <span class="c2" style="margin:0 0 0 8px">총 ${vs.length}대 · 무료 ${fr}대 + 월정액 ${mo}대</span>
           ${over>0?`<span class="bd wa" style="margin-left:8px">무료 ${over}대 초과</span>`:''}${vs.some(v=>!v.own||!v.tel)?'<span class="bd wa2" style="margin-left:6px">연락처 미확인</span>':''}</td></tr>`
         +(!op?'':g.vs.length?g.vs.map(v=>`<tr style="cursor:pointer" onclick="vdOpen('${b.id}',${v.id})"><td class="c1" style="font-weight:500;padding-left:44px">${v.own||miss}</td><td>${v.plate}</td><td style="white-space:nowrap">${v.tel||miss}</td><td>${v.model||'—'}</td>
           <td>${v.loc}</td><td>${v.fee==='월정액'?'<span class="bd wa2">월정액</span>':'<span class="bd mu">무료</span>'}</td>
