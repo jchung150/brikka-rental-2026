@@ -309,6 +309,8 @@ th .so{color:var(--faint);margin-left:3px;font-size:10px}
 td{padding:11px 14px;border-bottom:1px solid var(--line-2);vertical-align:middle}
 tbody tr{cursor:pointer}
 tbody tr:hover{background:var(--side-hov)}
+tbody tr.fixr{background:var(--soft)}
+tbody tr.fixr:hover{background:var(--side-hov)}
 tbody tr:last-child td{border-bottom:0}
 td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
 td.c,th.c{text-align:center}
@@ -621,8 +623,8 @@ const BUILDINGS=[
   fac:['회의실','옥상정원','샤워실','무인택배함'],
   units:[],   /* 카리나빌딩 유닛은 정산 자료(UNITS_B1)에서 만든다 — 계약·검침과 같은 번호 */
   parks:[
-   {loc:'지하 자주식',n:'B1-01',t:'일반',memo:'',as:'(주)아이씨비',asu:'본관8층'},{loc:'지하 자주식',n:'B1-02',t:'일반',memo:'',as:'(주)아이씨비',asu:'본관8층'},
-   {loc:'지하 자주식',n:'B1-03',t:'일반',memo:'',as:'(주)케이큐엔터테이먼트',asu:'본관4층'},{loc:'지하 자주식',n:'B1-04',t:'소형',memo:'경차 전용',as:'',asu:''},
+   {loc:'지하 자주식',n:'B1-01',t:'일반',memo:'',as:'(주)아이씨비',asu:'본관801호'},{loc:'지하 자주식',n:'B1-02',t:'일반',memo:'',as:'(주)아이씨비',asu:'본관801호'},
+   {loc:'지하 자주식',n:'B1-03',t:'일반',memo:'',as:'(주)케이큐엔터테이먼트',asu:'본관401호'},{loc:'지하 자주식',n:'B1-04',t:'소형',memo:'경차 전용',as:'',asu:''},
    {loc:'지하 자주식',n:'B1-05',t:'장애인',memo:'',as:'',asu:''},{loc:'지하 자주식',n:'B2-01',t:'일반',memo:'',as:'(유)유니버셜대부',asu:'본관302호'},
    {loc:'기계식',n:'M-01',t:'일반',memo:'SUV 불가 · 높이 1.55m 이하',as:'',asu:''}],
   docs:[
@@ -634,7 +636,7 @@ const BUILDINGS=[
    {it:'임대료',use:1,bill:'세금계산서',cycle:'매월',meter:'',mtr:'',basis:'',doc:'임대차계약서',fixed:true},
    {it:'고정관리비',use:1,bill:'세금계산서',cycle:'매월',meter:'',mtr:'',basis:'',doc:'임대차계약서',fixed:true},
    {it:'전기요금',use:1,cycle:'매월',bill:'세금계산서',meter:'13개 유닛',mtr:'청구함',rest:'전체 유닛',basis:'사용량',doc:'한국전력 고지서'},
-   {it:'수도요금',use:1,cycle:'매월',bill:'계산서',meter:'본관1층',mtr:'청구함',rest:'전체 유닛',basis:'사용량+임대면적',doc:'상수도사업본부 고지서'},
+   {it:'수도요금',use:1,cycle:'매월',bill:'계산서',meter:'본관101호',mtr:'청구함',rest:'전체 유닛',basis:'사용량+임대면적',doc:'상수도사업본부 고지서'},
    {it:'전력기금',use:1,cycle:'매월',bill:'일반내역서',meter:'없음',mtr:'—',rest:'전체 유닛',basis:'사용량',ref:'전기요금',doc:'한국전력 고지서'},
    {it:'TV수신료',use:1,cycle:'매월',bill:'일반내역서',meter:'없음',mtr:'—',rest:'전체 유닛',basis:'사용량',ref:'전기요금',doc:'한국전력 고지서'},
    {it:'가스요금',use:0,bill:'',meter:'',mtr:'',rest:'',basis:''},
@@ -675,27 +677,27 @@ BUILDINGS.forEach(b=>{b.mgr=b.mgrs[0]||'';});   /* 목록 검색용 — 첫 건�
 /* 카리나빌딩 — 본관 11 · 별관 3 유닛. 임차인명은 실제 입주사다.
    임대면적은 실측값이 아니다. */
 const UNITS_B1=[
- {no:'본관8층',  st:'사용중', ten:'(주)아이씨비',          ar:330.0},
- {no:'본관7층',  st:'사용중', ten:'(주)아이씨비',          ar:330.0},
- {no:'본관6층',  st:'사용중', ten:'유한회사아마데우스',     ar:330.0},
- {no:'본관5층',  st:'사용중', ten:'㈜케이더블유인터내셔널',   ar:330.0},
- {no:'본관4층',  st:'사용중', ten:'(주)케이큐엔터테이먼트',  ar:330.0},
+ {no:'본관801호',  st:'사용중', ten:'(주)아이씨비',          ar:330.0},
+ {no:'본관701호',  st:'사용중', ten:'(주)아이씨비',          ar:330.0},
+ {no:'본관601호',  st:'사용중', ten:'유한회사아마데우스',     ar:330.0},
+ {no:'본관501호',  st:'사용중', ten:'㈜케이더블유인터내셔널',   ar:330.0},
+ {no:'본관401호',  st:'사용중', ten:'(주)케이큐엔터테이먼트',  ar:330.0},
  {no:'본관301호',st:'사용중', ten:'(유)고우컴퍼니',         ar:165.0},
  {no:'본관302호',st:'사용중', ten:'(유)유니버셜대부',        ar:165.0},
- {no:'본관2층',  st:'사용중', ten:'(주)좋은생각사람들',      ar:330.0},
- {no:'본관1층',  st:'사용중', ten:'(주)에스씨케이컴퍼니',    ar:280.0},
- {no:'본관B1',   st:'비운영중', ten:'',                  ar:320.0},
- {no:'본관B2',   st:'사용중', ten:'주식회사루비뮤직',         ar:320.0},
- {no:'별관4층',  st:'사용중', ten:'(주)좋은생각사람들',      ar:95.0},
- {no:'별관3층',  st:'사용중', ten:'(주)비씨에이전시',        ar:95.0},
- {no:'별관2층',  st:'사용중', ten:'㈜케이더블유인터내셔널',   ar:95.0},
+ {no:'본관201호',  st:'사용중', ten:'(주)좋은생각사람들',      ar:330.0},
+ {no:'본관101호',  st:'사용중', ten:'(주)에스씨케이컴퍼니',    ar:280.0},
+ {no:'본관B101호',   st:'비운영중', ten:'',                  ar:320.0},
+ {no:'본관B201호',   st:'사용중', ten:'주식회사루비뮤직',         ar:320.0},
+ {no:'별관401호',  st:'사용중', ten:'(주)좋은생각사람들',      ar:95.0},
+ {no:'별관301호',  st:'사용중', ten:'(주)비씨에이전시',        ar:95.0},
+ {no:'별관201호',  st:'사용중', ten:'㈜케이더블유인터내셔널',   ar:95.0},
 ];
 /* 건물 상세 유닛 탭 — 층은 유닛 번호에서, 용도는 예시값. 전용면적은 임대면적의 62%(예시) */
 BUILDINGS[0].units=UNITS_B1.map(u=>{
-  const b=u.no.match(/B(\d+)$/), m=u.no.match(/(\d+)(층|호)$/);
+  const b=u.no.match(/B(\d)\d\d호$/), m=u.no.match(/(\d+)(층|호)$/);
   const fl=b?-(+b[1]):m?(m[2]==='호'?Math.floor(+m[1]/100):+m[1]):0;
   return {no:u.no,st:u.st,ten:u.ten,fl,area:u.ar,net:Math.round(u.ar*0.62*10)/10,
-    use:u.st==='비운영중'?'기타':u.no==='본관1층'?'근린생활':'사무실'};
+    use:u.st==='비운영중'?'기타':u.no==='본관101호'?'근린생활':'사무실'};
 });
 /* 청구항목 — 기준표 3.3. fixed는 고정액(계약 약정액), 나머지는 정산 항목이다.
    pr은 기본 배분 우선순위다. 건물 관리 › 관리비 탭(PRO-3)에서 건물별로 덮어쓴다 → prioOf */
@@ -716,27 +718,27 @@ const codeOf=name=>{const m=MASTER.find(x=>x.name===name);return m?m.code:'elec'
 /* 이번 회차 입력값 — 기본은 전기·수도 2종 */
 let BILL={
  elec:{on:true,date:'2026-08-09',from:'2026-07-10',to:'2026-08-09',use:37703,supply:7719702,vat:771970,
-   /* 2026-08 검침 — 대표 제공. 본관6층·본관B1은 달 중간에 계량기를 교체했다.
+   /* 2026-08 검침 — 대표 제공. 본관601호·본관B101호은 달 중간에 계량기를 교체했다.
       직전 값은 교체 전 계량기 것이라, 대표가 준 사용량(6층 85 · B1 464)에 맞춰 「당월 − 사용량」으로 둔다 */
-   read:{'본관8층':[165836,169004], '본관7층':[142559,150366], '본관6층':[83398,83483],
-         '본관5층':[100085,102485], '본관4층':[165837,169976], '본관302호':[211027,213666],
-         '본관2층':[198908,200939], '본관1층':[1774.40,2106.50], '본관B1':[14078,14542],
-         '본관B2':[77125,77533],    '별관4층':[83798,84193],   '별관3층':[83808,84627],
-         '별관2층':[65851,66627]},
+   read:{'본관801호':[165836,169004], '본관701호':[142559,150366], '본관601호':[83398,83483],
+         '본관501호':[100085,102485], '본관401호':[165837,169976], '본관302호':[211027,213666],
+         '본관201호':[198908,200939], '본관101호':[1774.40,2106.50], '본관B101호':[14078,14542],
+         '본관B201호':[77125,77533],    '별관401호':[83798,84193],   '별관301호':[83808,84627],
+         '별관201호':[65851,66627]},
    readDate:'2026-08-09', adj:{}},
  water:{on:true,date:'2026-08-07',from:'2026-06-08',to:'2026-08-07',use:1386,supply:4788240,vat:0,
-   /* 본관1층만 계량기. 8월 청구서의 수도 합계 4,788,240원과 일치한다 */
-   read:{'본관1층':[1240,1532]},readDate:'2026-08-07',adj:{}},
+   /* 본관101호만 계량기. 8월 청구서의 수도 합계 4,788,240원과 일치한다 */
+   read:{'본관101호':[1240,1532]},readDate:'2026-08-07',adj:{}},
  fund:{on:true,date:'2026-08-09',use:null,supply:208430,vat:0,read:null,adj:{}},
  tv:{on:true,date:'2026-08-09',use:null,supply:5000,vat:0,read:null,adj:{}},
  gas:{on:false,date:'2026-08-09',use:1840,supply:2208000,vat:220800,
-   read:{'본관1층':[4820,null],'본관B2':[1150,null],'별관2층':[2340,null]},
+   read:{'본관101호':[4820,null],'본관B201호':[1150,null],'별관201호':[2340,null]},
    readDate:'2026-08-06', adj:{}},   /* 카리나빌딩은 가스를 청구하지 않는다 — 실제 청구서에 열이 없다 */
  rent:{on:false,fixed:true}, mgmt:{on:false,fixed:true},   /* 고정액 — 정산하지 않는다 */
  traffic:{on:false,date:'',use:null,supply:0,vat:0,read:null,adj:{}},
  septic:{on:false,date:'',use:null,supply:0,vat:0,read:null,adj:{}},
  parking:{on:true,date:'2026-08-10',use:null,supply:0,vat:22100,read:null,adj:{},
-   direct:{'본관8층':71000,'본관4층':100000,'본관302호':50000}},   /* 공급가액. 부가세는 자동 */
+   direct:{'본관801호':71000,'본관401호':100000,'본관302호':50000}},   /* 공급가액. 부가세는 자동 */
 };
 /* ── 지난 회차 입력값 — 6·7월 고지서와 검침. 8월을 기준으로 한 달씩 거슬러 만든 예시값이다 ──
    그 달 당월 검침값 = 다음 달 직전 검침값. 유닛마다 사용량이 조금씩 다르다.
@@ -749,18 +751,18 @@ function billBefore(nx,ym,day){
   /* 전기 — 유닛별 사용량을 달리하고, 고지서 총사용량·공급가액은 유닛 합계 비율로 */
   let su=0,sn=0;
   Object.keys(nx.elec.read).forEach((no,i)=>{const [p,c]=nx.elec.read[no];
-    /* 계량기 지침은 정수다. 본관1층만 소수 둘째 자리까지 나온다 */
+    /* 계량기 지침은 정수다. 본관101호만 소수 둘째 자리까지 나온다 */
     const u=Number.isInteger(p)&&Number.isInteger(c)?Math.round((c-p)*v[i]):r2((c-p)*v[i]);
     su+=c-p; sn+=u; o.elec.read[no]=[r2(p-u),p];});
   const k=sn/su;
   o.elec.use=Math.round(nx.elec.use*k); o.elec.supply=Math.round(nx.elec.supply*k); o.elec.vat=Math.round(o.elec.supply*0.1);
   o.elec.date=d(day); o.elec.readDate=d(day);
-  const [wp,wc]=nx.water.read['본관1층'], wu=Math.round((wc-wp)*v[7]);
-  o.water.read['본관1층']=[wp-wu,wp]; o.water.use=Math.round(nx.water.use*wu/(wc-wp));
+  const [wp,wc]=nx.water.read['본관101호'], wu=Math.round((wc-wp)*v[7]);
+  o.water.read['본관101호']=[wp-wu,wp]; o.water.use=Math.round(nx.water.use*wu/(wc-wp));
   o.water.supply=Math.round(nx.water.supply*wu/(wc-wp)); o.water.date=d('07'); o.water.readDate=d('07');
   o.fund.supply=Math.round(o.elec.supply*nx.fund.supply/nx.elec.supply); o.fund.date=d(day);
   o.tv.date=d(day); o.parking.date=d('10');
-  if(ym==='2026-06') o.parking.direct={'본관8층':71000,'본관4층':100000};
+  if(ym==='2026-06') o.parking.direct={'본관801호':71000,'본관401호':100000};
   Object.values(o).forEach(b=>{if(b&&b.adj) b.adj={};});
   return o;
 }
@@ -811,9 +813,9 @@ function curItem(step){
 /* 계량기 보유 유닛 (유닛 × 청구항목) — PRO-3 관리비 탭 / PRO-4 검침 설정 */
 const ALL_U=UNITS_B1.map(u=>u.no);
 /* 계기배율 — 계량기가 실사용량을 그대로 재지 않는 경우의 환산 계수.
-   본관1층 에스씨케이컴퍼니는 1/30 계량기라 지침에 30을 곱해야 실사용량이 된다.
+   본관101호 에스씨케이컴퍼니는 1/30 계량기라 지침에 30을 곱해야 실사용량이 된다.
    계량기의 고정 속성이므로 회차마다 입력하지 않는다 → PRO-3 계량기 설정 */
-const CTMUL={elec:{'본관1층':30}};
+const CTMUL={elec:{'본관101호':30}};
 /* 계량기 공유 — 두 유닛이 한 공간을 쓰며 계량기가 하나뿐인 경우.
    본관301호는 본관302호 계량기를 통해 전기를 쓴다. 301호 사용분은 302호 지침에 이미 포함된다.
    따라서 301호는 「계량기 없음」이 아니라 「공유」이며, 사용량 기준에서 배분 몫 0이 정상이다. */
@@ -830,8 +832,8 @@ function setCT(code,no,v){
 const METER={
  /* 본관301호 고우컴퍼니는 전월·당월 지침이 모두 없다 — 계량기 미보유로 본다 */
  elec: ALL_U.filter(n=>n!=='본관301호'),
- water:['본관1층'],
- gas:  ['본관1층','본관B2','별관2층'],
+ water:['본관101호'],
+ gas:  ['본관101호','본관B201호','별관201호'],
  fund: [], tv: [], traffic: [], septic: [], parking: [],
 };
 /* 건물별 항목 설정 — 정본은 PRO-3 관리비 탭 */
@@ -1179,9 +1181,10 @@ function csHTML(){
       <div class="s">카리나빌딩${cs.editing?' · 수정':''}</div></div>
       <button class="x" onclick="closeDrawer()">✕</button></div>
     <div class="db">
+      ${cs.fixed?'<div class="prev" style="margin:0 0 14px"><div class="pt">계약서 약정 항목</div>임대료·고정관리비는 금액·반복주기·근거 문서·배분 방식이 계약서로 정해집니다. 이 건물에서는 <b>발행 문서</b>와 <b>배분 우선순위</b>만 바꿉니다. 금액은 계약 상세 › 임대료·관리비에서 바꿉니다.</div>':''}
       <div class="fg"><div class="fl">항목</div>
         <div class="fr"><span class="fk">청구항목</span>
-          <select onchange="csSet('item',this.value)">
+          <select onchange="csSet('item',this.value)" ${cs.fixed?'disabled':''}>
             ${MASTER.map(x=>`<option value="${x.code}" ${!cs.neu&&x.code===cs.item?'selected':''}
               ${used.includes(x.name)&&x.code!==cs.item?'disabled':''}>${x.name}${
               used.includes(x.name)&&x.code!==cs.item?' (사용 중)':''}</option>`).join('')}
@@ -1732,18 +1735,18 @@ function t설정(b){
   const card=(t,body,act,st)=>`<div class="card"${st?` style="${st}"`:''}><div class="ct">${t}${act?`<span class="ca">${act}</span>`:''}</div><div class="cc">${body}</div></div>`;
   const editing=sr&&sr.id===b.id, sel=(f,opts)=>`<select onchange="sr.${f}=this.value;render(true)" style="${inp}">${opts.map(v=>`<option ${sr[f]===v?'selected':''}>${v}</option>`).join('')}</select>`;
   const days=Array.from({length:28},(_,i)=>`${i+1}일`), srBad=editing&&sr.bd&&sr.dd&&dnum(dayRule(`${sr.dm} ${sr.dd}`,'2026-08'))<=dnum(dayRule(`${sr.bm} ${sr.bd}`,'2026-08'));
-  return card('운영 상태',`<dl class="dl">
+  const C=[card('운영 상태',`<dl class="dl">
       <dt>상태</dt><dd>${op==='운영중'?'<span class="bd ok">운영중</span>':'<span class="bd mu">비운영중</span>'}${o?`<span class="lock">${o.at.replace(/-/g,'.')} · ${o.why}</span>`:''}</dd></dl>
       <div class="hint">비운영중이면 청구서 발행 · 계약 등록 · 관리비 정산을 할 수 없습니다. 수납 · 미납 관리 · 환불 · 월 마감은 계속할 수 있습니다. 진행중·준비중 계약이 있으면 바꿀 수 없습니다.</div>`,
-      `<button class="btn sm" title="슈퍼관리자만" onclick="bopOpen('${b.id}')">${op==='운영중'?'운영 중지':'운영 재개'}</button>`)
-  +card('건물관리자',`${b.mgrs.length?`<div class="tw" style="border:1px solid var(--line);border-radius:var(--r-sm)"><table>
+      `<button class="btn sm" title="슈퍼관리자만" onclick="bopOpen('${b.id}')">${op==='운영중'?'운영 중지':'운영 재개'}</button>`),
+  card('건물관리자',`${b.mgrs.length?`<div class="tw" style="border:1px solid var(--line);border-radius:var(--r-sm)"><table>
         <thead><tr><th>이름</th><th>연락처</th><th class="c">더보기</th></tr></thead>
         <tbody>${b.mgrs.map(n=>`<tr><td class="c1" style="font-weight:500">${n}</td><td>${mgrTel(n)}</td>
           <td class="c"><span class="more" onclick="mgrDel('${b.id}','${n}')">빼기</span></td></tr>`).join('')}</tbody></table></div>`
         :'<div class="c2" style="margin:0">지정된 건물관리자가 없습니다. 슈퍼관리자만 이 건물을 봅니다</div>'}
       <div class="hint">사용자 관리에 등록된 관리자 중에서 고릅니다. 여기서 고른 관리자에게 이 건물이 담당 건물로 배정됩니다. 슈퍼관리자는 모든 건물을 봅니다.</div>`,
-      (()=>{const rest=BMGRS.filter(x=>!b.mgrs.includes(x.n)); return rest.length?`<select title="슈퍼관리자만" onchange="mgrAdd('${b.id}',this.value)" style="${inp}"><option value="">+ 관리자 추가</option>${rest.map(x=>`<option>${x.n}</option>`).join('')}</select>`:'';})())
-  +card('청구 규칙',editing?`<div class="fr"><span class="fk">청구일</span>${sel('bm',['전월','당월'])}${sel('bd',days)}</div>
+      (()=>{const rest=BMGRS.filter(x=>!b.mgrs.includes(x.n)); return rest.length?`<select title="슈퍼관리자만" onchange="mgrAdd('${b.id}',this.value)" style="${inp}"><option value="">+ 관리자 추가</option>${rest.map(x=>`<option>${x.n}</option>`).join('')}</select>`:'';})()),
+  card('청구 규칙',editing?`<div class="fr"><span class="fk">청구일</span>${sel('bm',['전월','당월'])}${sel('bd',days)}</div>
         <div class="fr"><span class="fk">납부마감일</span>${sel('dm',['당월','익월'])}${sel('dd',[...days,'말일'])}</div>
         ${sr.bd&&sr.dd?`<div class="c2" style="margin:-4px 0 9px 114px">예: 8월분 청구서 → ${ruleEx(`${sr.bm} ${sr.bd}`,'2026-08')} 청구 · ${ruleEx(`${sr.dm} ${sr.dd}`,'2026-08')}까지 납부</div>`:''}
         ${srBad?'<div class="fnd wa3" style="margin:0 0 10px"><span class="h">납부마감일은 청구일보다 뒤여야 합니다</span></div>':''}
@@ -1751,8 +1754,8 @@ function t설정(b){
       :`<dl class="dl"><dt>청구일</dt><dd>${b.billDay}<span class="lock">예: 8월분 → ${ruleEx(b.billDay,'2026-08')}</span></dd>
         <dt>납부마감일</dt><dd>${b.dueDay}<span class="lock">예: 8월분 → ${ruleEx(b.dueDay,'2026-08')}</span></dd></dl>
         <div class="hint">청구일은 앞으로 등록하는 계약부터 바뀝니다. 납부마감일은 이 건물의 모든 계약에 바로 적용됩니다.</div>`,
-      editing?'':`<button class="btn sm" title="슈퍼관리자만" onclick="srEdit('${b.id}')">수정</button>`)
-  +(!b.mgmtEnd?card('위탁운영계약','<div style="padding:6px 0;color:var(--muted)">위탁운영계약이 없습니다. 건물주가 직접 관리합니다.</div>','<button class="btn sm">수정</button>')
+      editing?'':`<button class="btn sm" title="슈퍼관리자만" onclick="srEdit('${b.id}')">수정</button>`),
+  (!b.mgmtEnd?card('위탁운영계약','<div style="padding:6px 0;color:var(--muted)">위탁운영계약이 없습니다. 건물주가 직접 관리합니다.</div>','<button class="btn sm">수정</button>')
     :`<div class="card" style="${d<=90?'border-color:var(--warn)':''}">
     <div class="ct">위탁운영계약
       <span class="sub">${b.mgmtStart} ~ ${b.mgmtEnd}</span>
@@ -1764,15 +1767,17 @@ function t설정(b){
       <dl class="dl"><dt>위탁운영계약서</dt><dd>${b.docs.some(x=>/위탁운영계약서/.test(x.t))?'<span style="color:var(--pri);cursor:pointer">위탁운영계약서_카리나빌딩_2025.pdf</span>':'<span style="color:var(--muted)">자료보관에 없음</span>'}</dd>
         <dt>임대인</dt><dd>${b.owners[0].n}${b.owners.length>1?` 외 ${b.owners.length-1}`:''}</dd></dl>
     </div>${d<=90?`<div class="hint" style="color:var(--warn)">만료 90일 이내입니다. 갱신하지 않으면 이 건물의 관리 권한이 소멸합니다.</div>`:''}</div>
-  </div>`)
-  +card('변경 이력',(BLOG[b.id]||[]).length?`<div class="tw" style="border:1px solid var(--line);border-radius:var(--r-sm)"><table>
+  </div>`),
+  card('변경 이력',(BLOG[b.id]||[]).length?`<div class="tw" style="border:1px solid var(--line);border-radius:var(--r-sm)"><table>
       <thead><tr><th>일시</th><th>구분</th><th>내용</th><th>바꾼 사람</th></tr></thead>
       <tbody>${BLOG[b.id].map(x=>`<tr><td style="white-space:nowrap">${x.at.replace(/-/g,'.')}</td><td><span class="bd mu">${x.what}</span></td>
         <td>${x.det}${x.why?`<div class="c2">${x.why}</div>`:''}</td><td>${x.by}</td></tr>`).join('')}</tbody></table></div>`
-      :'<div class="c2" style="margin:0">기록된 변경이 없습니다</div>')
-  +card('건물 삭제',`<div style="font-size:12.5px;line-height:1.7">${canDel?'유닛도 계약도 없는 건물입니다. 지우면 되돌릴 수 없습니다.'
+      :'<div class="c2" style="margin:0">기록된 변경이 없습니다</div>'),
+  card('건물 삭제',`<div style="font-size:12.5px;line-height:1.7">${canDel?'유닛도 계약도 없는 건물입니다. 지우면 되돌릴 수 없습니다.'
       :'유닛이나 계약이 있는 건물은 지울 수 없습니다. 운영을 멈추려면 위의 <b>운영 중지</b>를 쓰세요.'}</div>`,
-      `<button class="btn sm" ${canDel?'title="슈퍼관리자만"':'disabled title="유닛이나 계약이 있는 건물은 삭제할 수 없습니다"'} onclick="bDel('${b.id}');go('pro-1')">건물 삭제</button>`);
+      `<button class="btn sm" ${canDel?'title="슈퍼관리자만"':'disabled title="유닛이나 계약이 있는 건물은 삭제할 수 없습니다"'} onclick="bDel('${b.id}');go('pro-1')">건물 삭제</button>`)];
+  /* 두 칸씩 나란히 — 내용이 짧은 카드가 많다 */
+  return [0,2,4].map(n=>`<div class="two" style="align-items:start">${C[n]}${C[n+1]}</div>`).join('');
 }
 function t요약(b){
   const d=dday(b.mgmtEnd);
@@ -1867,7 +1872,7 @@ function unHTML(){
       <div class="fg"><div class="fl">위치</div>
         ${b.dong?R('동',S('dong',b.dong.map(g=>g.n)),1):''}
         ${R('층',S('fk',['지상','지하'])+`<input type="text" inputmode="numeric" value="${un.fl}" onchange="unSet('fl',this.value)" style="${inp};max-width:60px"><span class="c2" style="margin:0">층</span>`,1)}
-        ${R('유닛고유번호',T('no',b.dong?`예: ${un.dong||'본관'}5층`:'예: 302호'),1)}
+        ${R('유닛고유번호',T('no',b.dong?`예: ${un.dong||'본관'}501호`:'예: 501호'),1)}
         <div class="c2" style="margin:-4px 0 0;white-space:normal">계약 목록에 <b style="color:var(--ink)">${b.alias}|${un.no.trim()||'유닛고유번호'}|임차인</b>으로 표시됩니다. 이 건물 안에서 겹칠 수 없습니다</div></div>
       <div class="fg"><div class="fl">유닛 정보</div>
         ${R('유닛용도',S('use',UNIT_USE,'선택'),1)}
@@ -2142,7 +2147,7 @@ function t청구(b){
         <th class="c">더보기</th></tr></thead>
       <tbody>${[...b.charge].sort((x,y)=>prioOf(x.it)-prioOf(y.it)).map(c=>{const m=M(codeOf(c.it)), st=resolve(codeOf(c.it));
         /* 임대료·고정관리비는 금액·주기·배분 방식이 계약서 약정이다 — 줄 색을 달리한다. 발행 문서·우선순위는 수정에서 바꾼다 */
-        return `<tr style="${c.fixed?'background:var(--soft);':''}${c.use?'':'opacity:.55'}">
+        return `<tr class="${c.fixed?'fixr':''}" style="${c.use?'':'opacity:.55'}">
         <td class="c"><b>${prioOf(c.it)}</b></td>
         <td class="c1">${c.it}</td>
         <td>${c.use?'<span class="bd ok">사용</span>':'<span class="bd mu">미사용</span>'}</td>
@@ -2802,38 +2807,38 @@ const CITEM={
 };
 /* 계약 — 임차인명과 임대료·고정관리비는 2026-08 실제 청구서 기준(VAT 포함 ÷ 1.1). 기산일은 예시값이다.
    rate는 연체이자율(연 %)이다. 계약마다 다르며 없으면 8%다 → CTR-2
-   계약은 유닛마다 따로 둔다. (주)아이씨비 본관7·8층은 계약서가 한 장이지만 한 층만 해지할 수 있어야 하므로
+   계약은 유닛마다 따로 둔다. (주)아이씨비 본관701호·본관801호는 계약서가 한 장이지만 한 층만 해지할 수 있어야 하므로
    계약 2건이다. 실제 청구서는 한 장이다 → 임차인 「청구서 합쳐 보내기」 PAY-1 · USER-7
-   본관B1은 건물주가 직접 쓰는 공간이라 비운영중이다. 산출 금액은 건축주가 부담한다 → 3.2 */
+   본관B101호은 건물주가 직접 쓰는 공간이라 비운영중이다. 산출 금액은 건축주가 부담한다 → 3.2 */
 /* 계약 식별 — 기존 계약은 건물+유닛. 같은 유닛에 다음 계약을 미리 등록하면 시작일을 붙여 구분한다 */
 const ckey=c=>c.key||c.b+c.no;
 const CTRS=[
- {b:'b1',no:'본관8층',ten:'(주)아이씨비',st:'진행중',base:'2024-03-01',
+ {b:'b1',no:'본관801호',ten:'(주)아이씨비',st:'진행중',base:'2024-03-01',
   it:[['임대료',8900000],['고정관리비',2650000],['전기요금'],['전력기금'],['TV수신료'],['수도요금'],['정화조청소비'],['교통유발부담금'],['주차비']]},
- {b:'b1',no:'본관7층',ten:'(주)아이씨비',st:'진행중',base:'2024-03-01',
+ {b:'b1',no:'본관701호',ten:'(주)아이씨비',st:'진행중',base:'2024-03-01',
   it:[['임대료',8900000],['고정관리비',2650000],['전기요금'],['전력기금'],['TV수신료'],['수도요금'],['정화조청소비'],['교통유발부담금']]},
- {b:'b1',no:'본관6층',ten:'유한회사아마데우스',st:'진행중',base:'2025-01-15',
+ {b:'b1',no:'본관601호',ten:'유한회사아마데우스',st:'진행중',base:'2025-01-15',
   it:[['임대료',9300000],['고정관리비',2800000],['전기요금'],['전력기금'],['TV수신료'],['수도요금'],['정화조청소비'],['교통유발부담금']]},
- {b:'b1',no:'본관5층',ten:'㈜케이더블유인터내셔널',st:'진행중',base:'2024-07-01',
+ {b:'b1',no:'본관501호',ten:'㈜케이더블유인터내셔널',st:'진행중',base:'2024-07-01',
   it:[['임대료',9681000],['고정관리비',2700000],['전기요금'],['전력기금'],['TV수신료'],['수도요금'],['정화조청소비'],['교통유발부담금']]},
- {b:'b1',no:'본관4층',ten:'(주)케이큐엔터테이먼트',st:'진행중',base:'2023-09-01',
+ {b:'b1',no:'본관401호',ten:'(주)케이큐엔터테이먼트',st:'진행중',base:'2023-09-01',
   it:[['임대료',10700000],['고정관리비',3130000],['전기요금'],['전력기금'],['TV수신료'],['수도요금'],['정화조청소비'],['교통유발부담금'],['주차비']]},
  /* 301호는 302호와 실질 주인이 같다. 임대료만 청구하고 관리비·정산액은 302호가 부담한다 */
  {b:'b1',no:'본관301호',ten:'(유)고우컴퍼니',st:'진행중',base:'2025-05-01',payTo:'본관302호',
   it:[['임대료',360000],['고정관리비',0]]},
  {b:'b1',no:'본관302호',ten:'(유)유니버셜대부',st:'진행중',base:'2024-11-01',
   it:[['임대료',9240000],['고정관리비',2250000],['전기요금'],['전력기금'],['TV수신료'],['수도요금'],['정화조청소비'],['교통유발부담금'],['주차비']]},
- {b:'b1',no:'본관2층',ten:'(주)좋은생각사람들',st:'진행중',base:'2024-03-01',
+ {b:'b1',no:'본관201호',ten:'(주)좋은생각사람들',st:'진행중',base:'2024-03-01',
   it:[['임대료',9000000],['고정관리비',3075000],['전기요금'],['전력기금'],['TV수신료'],['수도요금'],['정화조청소비'],['교통유발부담금']]},
- {b:'b1',no:'본관1층',ten:'(주)에스씨케이컴퍼니',st:'진행중',base:'2025-08-01',
+ {b:'b1',no:'본관101호',ten:'(주)에스씨케이컴퍼니',st:'진행중',base:'2025-08-01',
   it:[['임대료',12000000],['고정관리비',2000000],['전기요금'],['전력기금'],['TV수신료'],['수도요금'],['정화조청소비'],['교통유발부담금']]},
- {b:'b1',no:'본관B2',ten:'주식회사루비뮤직',st:'진행중',base:'2026-01-01',
+ {b:'b1',no:'본관B201호',ten:'주식회사루비뮤직',st:'진행중',base:'2026-01-01',
   it:[['임대료',1500000],['고정관리비',430000],['전기요금'],['전력기금'],['TV수신료'],['수도요금'],['정화조청소비'],['교통유발부담금']]},
- {b:'b1',no:'별관4층',ten:'(주)좋은생각사람들',st:'진행중',base:'2025-10-01',
+ {b:'b1',no:'별관401호',ten:'(주)좋은생각사람들',st:'진행중',base:'2025-10-01',
   it:[['임대료',2800000],['고정관리비',600000],['전기요금'],['전력기금'],['TV수신료'],['수도요금'],['정화조청소비'],['교통유발부담금']]},
- {b:'b1',no:'별관3층',ten:'(주)비씨에이전시',st:'진행중',base:'2024-12-01',rate:12,
+ {b:'b1',no:'별관301호',ten:'(주)비씨에이전시',st:'진행중',base:'2024-12-01',rate:12,
   it:[['임대료',3150000],['고정관리비',1220000],['전기요금'],['전력기금'],['TV수신료'],['수도요금'],['정화조청소비'],['교통유발부담금']]},
- {b:'b1',no:'별관2층',ten:'㈜케이더블유인터내셔널',st:'진행중',base:'2025-04-01',
+ {b:'b1',no:'별관201호',ten:'㈜케이더블유인터내셔널',st:'진행중',base:'2025-04-01',
   it:[['임대료',3700000],['고정관리비',500000],['전기요금'],['전력기금'],['TV수신료'],['수도요금'],['정화조청소비'],['교통유발부담금']]},
  {b:'b2',no:'1203호',ten:'(주)세움파트너스',st:'진행중',base:'2025-02-01',
   it:[['임대료',7800000],['고정관리비',1450000],['전기요금'],['수도요금']]},
@@ -4589,9 +4594,9 @@ function CTR3month(c,k){
 }
 /* CTR-3 요약 탭 — 계약·임대 정보. 잔액은 원장에서 */
 /* 계약의 주차 약정 · 냉난방기 구분 — 목업 예시값. 배정 주차면은 건물의 주차면 기록(b.parks)을 그대로 읽는다 → CTR-3 · PRO-3 */
-const CPARK={'b1본관8층':{free:2,fee:110000},'b1본관4층':{free:1,fee:110000},'b1본관302호':{free:1,fee:110000}};
+const CPARK={'b1본관801호':{free:2,fee:110000},'b1본관401호':{free:1,fee:110000},'b1본관302호':{free:1,fee:110000}};
 const HVAC_OWN=['임차인 설치','전 임차인 것 이어받음','건물주 것 사용'];
-const CHVAC={'b1본관8층':{t:'임차인 설치',m:'시스템에어컨 4대 · 2024.03 설치'},'b1본관1층':{t:'건물주 것 사용',m:''},'b1별관3층':{t:'전 임차인 것 이어받음',m:'벽걸이 2대'}};
+const CHVAC={'b1본관801호':{t:'임차인 설치',m:'시스템에어컨 4대 · 2024.03 설치'},'b1본관101호':{t:'건물주 것 사용',m:''},'b1별관301호':{t:'전 임차인 것 이어받음',m:'벽걸이 2대'}};
 const parksOf=c=>{const b=BUILDINGS.find(x=>x.id===c.b); return b?b.parks.filter(p=>p.as===c.ten&&p.asu===c.no):[];};
 let cx3=null;
 function cpkOpen(k){const c=CTRS.find(x=>ckey(x)===k), b=BUILDINGS.find(x=>x.id===c.b), P=CPARK[k]||{};
