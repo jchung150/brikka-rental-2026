@@ -1780,8 +1780,9 @@ function t설정(b){
   card('건물 삭제',`<div style="font-size:12.5px;line-height:1.7">${canDel?'유닛도 계약도 없는 건물입니다. 지우면 되돌릴 수 없습니다.'
       :'유닛이나 계약이 있는 건물은 지울 수 없습니다. 운영을 멈추려면 위의 <b>운영 중지</b>를 쓰세요.'}</div>`,
       `<button class="btn sm" ${canDel?'title="슈퍼관리자만"':'disabled title="유닛이나 계약이 있는 건물은 삭제할 수 없습니다"'} onclick="bDel('${b.id}');go('pro-1')">건물 삭제</button>`)];
-  /* 두 칸씩 나란히 — 내용이 짧은 카드가 많다 */
-  return [0,2,4].map(n=>`<div class="two" style="align-items:start">${C[n]}${C[n+1]}</div>`).join('');
+  /* 두 칸씩 나란히 — 자주 보는 것이 위, 거의 쓰지 않는 것(운영 중지 · 삭제)이 맨 아래
+     C: 0 운영 상태 · 1 건물관리자 · 2 청구 규칙 · 3 위탁운영계약 · 4 변경 이력 · 5 건물 삭제 */
+  return [[1,3],[2,4],[0,5]].map(([x,y])=>`<div class="two" style="align-items:start">${C[x]}${C[y]}</div>`).join('');
 }
 function t요약(b){
   const d=dday(b.mgmtEnd);
