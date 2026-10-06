@@ -630,15 +630,15 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   UP.up.files[0].c = '시설관련'; const cats = /보증금관련/.test(UP.upHTML()); UP.upSave(); UP.tab3 = '자료보관'; const t = UP.PRO3('b1');
   r6.push(['파일 업로드 — 처음부터 파일·제목·카테고리 칸이 보임 · 파일 없으면 막힘 · 카테고리 빠지면 막힘 · 건물용 카테고리만(보증금관련 없음) · 파일 찾기 · 귀속 대상 건물 · 한 번에 한 건 · 올리면 목록 맨 위에 제목으로',
     none && noCat && /건물 · 카리나빌딩/.test(h) && b.docs.length === n0 + 1 && b.docs[0].ttl === '승강기 점검표 2026' && !/파일 추가/.test(h) && t.includes('승강기 점검표 2026') && !cats && /파일 찾기/.test(h)]); }
-/* 관련 계약 — 건물 자료보관에서 계약을 고르면 귀속 대상이 계약 · 카테고리는 계약용 · 목록에 관련 계약 · 계약 등록에서는 같은 패널로 한 건씩 */
+/* 관련 계약 — 건물 자료보관에서 계약을 고르면 귀속 대상이 계약 · 카테고리는 계약용 · 목록 제목 아래 「계약 · 본관801호 …」(관련 계약 칸 없음) · 계약 등록에서는 같은 패널로 한 건씩 */
 { const RC2 = new Function(stub + bare + '; return {upOpen,upCtr,upSave,upHTML,BUILDINGS,PRO3,CTR2,get up(){return up;},get nc(){return nc;},set tab3(v){tab3=v;}};')();
   const b = RC2.BUILDINGS[0];
   RC2.upOpen('b1'); RC2.up.files[0].c = '건물서류'; RC2.upCtr('b1본관801호'); const reset = RC2.up.files[0].c === ''; const h = RC2.upHTML();
   Object.assign(RC2.up.files[0], {t:'원상복구_합의서.pdf', sz:'300 KB', ttl:'원상복구 합의서', c:'계약서'}); RC2.upSave();
   RC2.tab3 = '자료보관'; const t = RC2.PRO3('b1');
   RC2.CTR2(); RC2.upOpen('b1', true); const hn = RC2.upHTML(); Object.assign(RC2.up.files[0], {t:'사업자등록증.pdf', sz:'200 KB', ttl:'사업자등록증', c:'사업자등록증·신분증'}); RC2.upSave();
-  r6.push(['관련 계약 — 계약 고르면 귀속 대상 계약 · 카테고리 계약용(건물서류 지워짐) · 목록에 관련 계약 · 계약 등록은 귀속 대상 고정 · 한 건씩 붙음',
-    reset && /계약 · 카리나\|본관801호/.test(h) && /보증금관련/.test(h) && b.docs[0].k === 'b1본관801호' && /관련 계약/.test(t)
+  r6.push(['관련 계약 — 계약 고르면 귀속 대상 계약 · 카테고리 계약용(건물서류 지워짐) · 목록 제목 아래 「계약 · 본관801호 …」(관련 계약 칸 없음) · 계약 등록은 귀속 대상 고정 · 한 건씩 붙음',
+    reset && /계약 · 카리나\|본관801호/.test(h) && /보증금관련/.test(h) && b.docs[0].k === 'b1본관801호' && /계약 · 본관801호 \(주\)아이씨비 · PDF/.test(t) && !/<th>관련 계약<\/th>/.test(t)
     && /지금 등록 중인 계약/.test(hn) && !/관련 계약/.test(hn) && RC2.nc.files.length === 1 && RC2.nc.files[0].t === '사업자등록증']); }
 /* 감사 반영 — 계약 상세 자료보관 탭(관련 계약 문서) · 건물 목록 더보기(삭제는 유닛·계약 있으면 잠김) · 빈 관리비 탭에도 추가 버튼 */
 { const AU = new Function(stub + bare + '; return {upOpen,upSave,upHTML,CTR3,PRO1,BUILDINGS,MORE,bDel,t청구,get up(){return up;},set tab3c(v){tab3c=v;}};')();

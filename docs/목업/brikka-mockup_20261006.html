@@ -2005,6 +2005,8 @@ const docExt=t=>(t.split('.').pop()||'').toUpperCase();
 const docTitle=t=>t.replace(/\.[^.]+$/,'').replace(/_/g,' ');
 const dTitle=d=>d.ttl||docTitle(d.t);
 /* 관련 계약 — 건물 자료보관에서 계약을 골라 올린 문서. 귀속 대상은 그 계약이고 계약 상세 자료보관에도 같은 문서가 보인다 */
+/* 목록 제목 아래 옅은 줄 — 관련 계약이 있는 문서만 */
+const docCtrTx=d=>{const c=d.k&&CTRS.find(x=>ckey(x)===d.k);return c?`${c.no} ${c.ten}`:'';};
 const docCtr=(b,d)=>{const c=d.k&&CTRS.find(x=>ckey(x)===d.k);return c?cnameHTML(b.alias,c.no,c.ten):'<span style="color:var(--faint)">—</span>';};   /* 올릴 때 정한 제목. 없으면 파일 이름 */
 function dPickRow(i,e){if(e)e.stopPropagation();selD[i]=!selD[i];render(true);}
 function dPickAll(b,v){selD={};if(v)b.docs.forEach((_,i)=>selD[i]=true);render(true);}
@@ -2098,11 +2100,11 @@ function t자료(b,ck){
       <button class="btn pri sm" onclick="upOpen('${b.id}',false${ck?`,'${ck}'`:''})">+ 파일 업로드</button></span></div>
     ${!ids.length?`<div class="empty"><div class="t">등록된 자료가 없습니다</div>${ck?'계약서·사업자등록증':'계약서·등기부등본'} 등을 업로드할 수 있습니다.</div>`:`<div class="tw"><table>
       <thead><tr><th class="c" style="width:44px"><span class="cb ${all?'on':''}" style="cursor:pointer" onclick="dPickIds(${JSON.stringify(ids)},${all?'false':'true'})"></span></th>
-        <th>제목 <span class="so">⇅</span></th><th>카테고리</th>${ck?'':'<th>관련 계약</th>'}<th>업로드한 사람</th><th>등록일시 <span class="so">⇅</span></th><th class="c">더보기</th></tr></thead>
+        <th>제목 <span class="so">⇅</span></th><th>카테고리</th><th>업로드한 사람</th><th>등록일시 <span class="so">⇅</span></th><th class="c">더보기</th></tr></thead>
       <tbody>${ids.map(i=>{const d=b.docs[i];return `<tr class="${selD[i]?'on':''}">
         <td class="c"><span class="cb ${selD[i]?'on':''}" style="cursor:pointer" onclick="dPickRow(${i},event)"></span></td>
-        <td><div class="c1">${dTitle(d)}</div><div class="c2">${docExt(d.t)} · ${d.sz}</div></td>
-        <td><span class="bd mu">${d.c}</span></td>${ck?'':`<td>${docCtr(b,d)}</td>`}<td>${d.by}</td>
+        <td><div class="c1">${dTitle(d)}</div><div class="c2">${!ck&&d.k?`계약 · ${docCtrTx(d)} · `:''}${docExt(d.t)} · ${d.sz}</div></td>
+        <td><span class="bd mu">${d.c}</span></td><td>${d.by}</td>
         <td><div class="c1" style="font-weight:400">${d.at.split(' ')[0]}</div><div class="c2">${d.at.split(' ')[1]}</div></td>
         <td class="c">${moreCell([{t:'상세',go:`docOpen('${b.id}',${i})`},{t:'내려받기',go:`docDown('${b.id}',${i})`},{t:'삭제',go:`docDelOpen('${b.id}',[${i}])`}])}</td></tr>`;}).join('')}</tbody>
     </table></div>`}</div>`;
