@@ -1403,13 +1403,13 @@ function toggleFold(){FOLD=!FOLD;LS.set('brikka.fold',FOLD);paintFold();closeNot
 function paintFold(){$('#app').classList.toggle('fold',FOLD);}
 
 /* ═══ PRO-1 ═══ */
-let f1p={q:'',kind:'',vac:''};
+let f1p={q:'',kind:'',vac:'',mgr:''};
 const setF1p=(k,v)=>{f1p[k]=v;render();};
 /* ═══ PRO-2 건물 등록 — 건물 상세 요약 탭과 같은 카드 · 같은 순서를 입력 칸으로 바꾼 화면.
    공용시설 · 주차면은 하나씩 늘어나는 목록이라 등록 후 상세에서 넣는다 ═══ */
 let nb=null;
 const BKIND=['오피스빌딩','근린생활시설(상가)','지식산업센터','복합상가','물류창고','기타'];   /* 건물유형 → 3.1 */
-const BHVAC=['중앙공조','EHP(시스템에어컨)','GHP(가스 시스템에어컨)','지역난방','개별냉난방'];   /* 냉난방 방식 → 3.1. 여러 개 고를 수 있고, 목록에 없으면 기타에 직접 쓴다 */
+const BHVAC=['중앙공조','EHP(시스템에어컨)','GHP(가스 시스템에어컨)','지역난방','개별냉난방','기타'];   /* 냉난방 방식 → 3.1. 여러 개 고를 수 있다 */
 /* 건물관리자 — 사용자 관리(USER-3)에 등록된 관리자 중에서만 고른다. 여기서 새로 만들지 않는다 → 3.7 */
 /* 슈퍼관리자는 모든 건물을 보므로 건물관리자로 고르지 않는다. 한 건물에 여러 명, 한 사람이 여러 건물 */
 const BMGRS=[{n:'김관리',tel:'010-5521-0934'},{n:'박현장',tel:'010-7716-2280'},{n:'이담당',tel:'010-2290-4471'}];
@@ -1417,7 +1417,7 @@ const mgrTel=n=>(BMGRS.find(x=>x.n===n)||{}).tel||'';
 const DAY_OPTS=[...Array.from({length:28},(_,i)=>`${i+1}일`)];
 function nbInit(){
   nb={name:'',alias:'',kind:'',addr:'',addr2:'',built:'',approved:'',bm:'당월',bd:'',dm:'당월',dd:'',mgrs:[],
-      gross:'',area:'',dong:[{n:'',up:'',down:''}],pkUp:'',pkDown:'',pkMech:'',hvac:[],hvx:'',
+      gross:'',area:'',dong:[{n:'',up:'',down:''}],pkUp:'',pkDown:'',pkMech:'',hvac:[],
       owners:[{biz:'',found:null,n:'',kind:'개인',email:'',tel:'',share:'100'}],
       rb:'',ra:'',rn:'',same:true,fb:'',fa:'',fn:'',
       bb:'',bt:'',bmax:'',bnow:'',mg:false,ms:'',me:'',fk:'요율',fv:'',tried:false};
@@ -1454,7 +1454,7 @@ function nbSave(){
     owner:own[0].n,ownerBiz:own[0].biz,owners:own,built:nb.built||'—',approved:nb.approved||'—',mgrs:[...nb.mgrs],mgr:nb.mgrs[0]||'',
     area:numOf(nb.area),gross:numOf(nb.gross),up:Math.max(...dong.map(g=>g.up)),down:Math.max(...dong.map(g=>g.down)),
     dong:dong.length>1||dong[0].n?dong:undefined,pk:{up:parseInt(nb.pkUp)||0,down:parseInt(nb.pkDown)||0,mech:parseInt(nb.pkMech)||0},park:nbPark(),
-    hvac:[...nb.hvac,...(nb.hvx.trim()?[nb.hvx.trim()]:[])],unitCnt:0,vacCnt:0,opCnt:0,vac:0,
+    hvac:[...nb.hvac],unitCnt:0,vacCnt:0,opCnt:0,vac:0,
     acct,acctName:nb.rn.trim(),feeAcct:nb.same?acct:`${nb.fb.trim()} ${nb.fa.trim()}`,feeAcctName:nb.same?nb.rn.trim():nb.fn.trim(),
     mgmtStart:nb.mg?nb.ms:'',mgmtEnd:nb.mg?nb.me:'',fee:nb.mg&&nb.fv?(nb.fk==='요율'?`임대료의 ${nb.fv}%`:`월 ${numOf(nb.fv).toLocaleString('ko-KR')}원`):'—',mode:'임대인 직수취',
     bondBank:[nb.bb.trim()].filter(Boolean).join(' '),bondTel:nb.bt.trim(),bondMax:numOf(nb.bmax),bondNow:numOf(nb.bnow),
@@ -1498,8 +1498,7 @@ function PRO2(){
           <span class="c2" style="margin:0">기계식</span><input type="text" inputmode="numeric" value="${nb.pkMech}" onchange="nbSet('pkMech',this.value)" style="max-width:52px">`)
       +R('총 주차면수',`<span class="fv"><b>${nbPark()}면</b></span>`)
       +R('냉난방 방식',`<div style="display:flex;gap:6px 14px;flex-wrap:wrap;align-items:center">${BHVAC.map(v=>`<label class="ck"><input type="checkbox" ${nb.hvac.includes(v)?'checked':''}
-          onchange="nb.hvac=this.checked?[...nb.hvac,'${v}']:nb.hvac.filter(x=>x!=='${v}');render(true)">${v}</label>`).join('')}
-          <span class="c2" style="margin:0">기타</span><input type="text" value="${nb.hvx}" placeholder="직접 입력" onchange="nbSet('hvx',this.value)" style="max-width:140px"></div>`)
+          onchange="nb.hvac=this.checked?[...nb.hvac,'${v}']:nb.hvac.filter(x=>x!=='${v}');render(true)">${v}</label>`).join('')}</div>`)
       +'<div class="c2" style="margin:-4px 0 0 138px">여러 개 고를 수 있습니다(예: 공용부 중앙공조 + 호실 EHP)</div>');
   const owner=card('임대인 정보',
       '<div class="c2" style="margin:-4px 0 10px">공동 소유면 임대인을 모두 넣고 지분 합계를 100%로 맞춥니다</div>'
@@ -1563,7 +1562,7 @@ function bDel(id){const i=BUILDINGS.findIndex(b=>b.id===id); if(i<0||BUILDINGS[i
 function PRO1(){
   const q=f1p.q.trim();
   const list=BUILDINGS.filter(b=>(!q||[b.name,b.addr,b.addr2,b.owner,b.mgr].some(x=>(x||'').includes(q)))
-    &&(!f1p.kind||b.kind===f1p.kind));
+    &&(!f1p.kind||b.kind===f1p.kind)&&(!f1p.mgr||(f1p.mgr==='-'?!b.mgrs.length:b.mgrs.includes(f1p.mgr))));
   const rows=list.map(b=>{
     const d=dday(b.mgmtEnd);
     return `<tr onclick="go('pro-3/${b.id}')">
@@ -1584,6 +1583,8 @@ function PRO1(){
   <div class="fbar">
     <select onchange="setF1p('kind',this.value)"><option value="">전체 건물유형</option>
       ${BKIND.map(k=>`<option ${f1p.kind===k?'selected':''}>${k}</option>`).join('')}</select>
+    <select onchange="setF1p('mgr',this.value)"><option value="">전체 건물관리자</option>
+      ${BMGRS.map(x=>`<option ${f1p.mgr===x.n?'selected':''}>${x.n}</option>`).join('')}<option value="-" ${f1p.mgr==='-'?'selected':''}>지정 안 됨</option></select>
   </div>
   <div class="tbl"><div class="tw"><table>
     <thead><tr>
@@ -1663,8 +1664,6 @@ function PRO3(id){
     ${BOP[b.id].at.replace(/-/g,'.')} · ${BOP[b.id].why}. 청구서 발행 · 계약 등록 · 관리비 정산을 할 수 없습니다. 수납 · 미납 관리 · 환불 · 월 마감은 계속할 수 있습니다.</div>`:''}
   <div class="tabs">
     ${T.map(t=>`<button class="${t===tab3?'on':''}" onclick="setTab('${t}')">${t}</button>`).join('')}
-    <button disabled>요청 <span class="cnt">2차</span></button>
-    <button disabled>메시지 이력 <span class="cnt">2차</span></button>
   </div>${body}`;
 }
 
@@ -1816,7 +1815,7 @@ let be=null;
 function beOpen(id,card){const b=BUILDINGS.find(x=>x.id===id);
   const f=card==='basic'?{name:b.name,alias:b.alias,kind:b.kind,addr:b.addr,addr2:b.addr2||'',built:b.built,approved:b.approved}
     :card==='spec'?{gross:String(b.gross||''),area:String(b.area||''),dong:(b.dong||[{n:'',up:b.up,down:b.down}]).map(g=>({n:g.n,up:String(g.up),down:String(g.down)})),
-        up:String(b.pk.up),down:String(b.pk.down),mech:String(b.pk.mech),hvac:b.hvac.filter(v=>BHVAC.includes(v)),hvx:b.hvac.filter(v=>!BHVAC.includes(v)).join(', ')}
+        up:String(b.pk.up),down:String(b.pk.down),mech:String(b.pk.mech),hvac:b.hvac.map(v=>BHVAC.includes(v)?v:'기타').filter((v,i,a)=>a.indexOf(v)===i)}
     :card==='owner'?{owners:b.owners.map(o=>({...o,share:String(o.share)})),acct:b.acct,an:b.acctName,same:b.feeAcct===b.acct&&b.feeAcctName===b.acctName,fa:b.feeAcct,fn:b.feeAcctName}
     :card==='bond'?{bb:b.bondBank||'',bt:b.bondTel||'',max:String(b.bondMax||''),now:String(b.bondNow||'')}
     :card==='fac'?{n:''}
@@ -1836,7 +1835,7 @@ function beSave(){be.tried=true; if(beMissing().length){render(true);return;}
   if(be.card==='basic') Object.assign(b,{name:f.name.trim(),alias:f.alias.trim(),kind:f.kind,addr:f.addr.trim(),addr2:f.addr2.trim(),built:f.built,approved:f.approved});
   if(be.card==='spec'){const dong=f.dong.map(g=>({n:g.n.trim(),up:parseInt(g.up)||0,down:parseInt(g.down)||0}));
     Object.assign(b,{gross:numOf(f.gross),area:numOf(f.area),dong:dong.length>1||dong[0].n?dong:undefined,up:Math.max(...dong.map(g=>g.up)),down:Math.max(...dong.map(g=>g.down)),
-      pk:{up:parseInt(f.up)||0,down:parseInt(f.down)||0,mech:parseInt(f.mech)||0},hvac:[...f.hvac,...f.hvx.split(',').map(v=>v.trim()).filter(Boolean)]});
+      pk:{up:parseInt(f.up)||0,down:parseInt(f.down)||0,mech:parseInt(f.mech)||0},hvac:[...f.hvac]});
     b.park=b.pk.up+b.pk.down+b.pk.mech;}
   if(be.card==='owner'){b.owners=f.owners.map(o=>({n:o.n.trim(),biz:o.biz.trim(),share:parseFloat(o.share)||0}));b.owner=b.owners[0].n;b.ownerBiz=b.owners[0].biz;
     b.acct=f.acct.trim();b.acctName=f.an.trim();b.feeAcct=f.same?b.acct:f.fa.trim();b.feeAcctName=f.same?b.acctName:f.fn.trim();}
@@ -1855,17 +1854,19 @@ function beHTML(){
   let body='';
   if(be.card==='basic') body=R('건물명',T('name'))+R('건물 별칭',T('alias','',160))+R('건물유형',`<select onchange="be.f.kind=this.value" style="${inp}">${BKIND.map(v=>`<option ${f.kind===v?'selected':''}>${v}</option>`).join('')}</select>`)
     +R('건물주소',T('addr'))+R('',T('addr2','지번 주소'))+R('건축일',D('built'))+R('사용승인일',D('approved'));
-  if(be.card==='spec') body=R('연면적',T('gross','㎡',120))+R('임대가능면적',T('area','㎡',120))
-    +f.dong.map((g,i)=>R(i?'':'층수',`<input type="text" value="${g.n}" placeholder="동 이름" oninput="be.f.dong[${i}].n=this.value" style="${inp};max-width:80px">
-        <span class="c2" style="margin:0">지상</span><input type="text" value="${g.up}" oninput="be.f.dong[${i}].up=this.value" style="${inp};max-width:50px">
-        <span class="c2" style="margin:0">지하</span><input type="text" value="${g.down}" oninput="be.f.dong[${i}].down=this.value" style="${inp};max-width:50px">
-        ${i?`<button class="btn sm" onclick="be.f.dong.splice(${i},1);render(true)">삭제</button>`:''}`)).join('')
+  /* 좁은 패널에서 옆으로 넘치지 않게 — 칸을 작게, 한 줄에 하나씩 */
+  const sm=`${inp};width:52px;padding:6px 7px;flex:none`, U=t=>`<span class="c2" style="margin:0;flex:none">${t}</span>`;
+  if(be.card==='spec') body=R('연면적',T('gross','',120)+U('㎡'))+R('임대가능면적',T('area','',120)+U('㎡'))
+    +f.dong.map((g,i)=>R(i?'':'층수',`<input type="text" value="${g.n}" placeholder="동" oninput="be.f.dong[${i}].n=this.value" style="${sm};width:58px">
+        ${U('지상')}<input type="text" value="${g.up}" oninput="be.f.dong[${i}].up=this.value" style="${sm}">
+        ${U('지하')}<input type="text" value="${g.down}" oninput="be.f.dong[${i}].down=this.value" style="${sm}">
+        ${i?`<span class="more" title="이 동 빼기" onclick="be.f.dong.splice(${i},1);render(true)">✕</span>`:''}`)).join('')
     +R('',`<button class="btn sm" onclick="be.f.dong.push({n:'',up:'',down:''});render(true)">+ 동 추가</button>`)
-    +R('주차면수',`<span class="c2" style="margin:0">지상 자주식</span><input type="text" value="${f.up}" oninput="be.f.up=this.value" style="${inp};max-width:50px">
-        <span class="c2" style="margin:0">지하 자주식</span><input type="text" value="${f.down}" oninput="be.f.down=this.value" style="${inp};max-width:50px">
-        <span class="c2" style="margin:0">기계식</span><input type="text" value="${f.mech}" oninput="be.f.mech=this.value" style="${inp};max-width:50px">`)
+    +R('지상 자주식',`<input type="text" value="${f.up}" oninput="be.f.up=this.value" style="${sm}">${U('면')}`)
+    +R('지하 자주식',`<input type="text" value="${f.down}" oninput="be.f.down=this.value" style="${sm}">${U('면')}`)
+    +R('기계식',`<input type="text" value="${f.mech}" oninput="be.f.mech=this.value" style="${sm}">${U('면')}`)
     +R('냉난방 방식',`<div style="display:flex;flex-wrap:wrap;gap:6px 12px">${BHVAC.map(v=>`<label class="ck"><input type="checkbox" ${f.hvac.includes(v)?'checked':''}
-        onchange="be.f.hvac=this.checked?[...be.f.hvac,'${v}']:be.f.hvac.filter(x=>x!=='${v}')">${v}</label>`).join('')}</div>`)+R('기타',T('hvx','직접 입력'));
+        onchange="be.f.hvac=this.checked?[...be.f.hvac,'${v}']:be.f.hvac.filter(x=>x!=='${v}')">${v}</label>`).join('')}</div>`);
   if(be.card==='owner') body=f.owners.map((o,i)=>`<div style="border:1px solid var(--line);border-radius:var(--r-sm);padding:10px 12px 2px;margin-bottom:10px">
       ${R('이름 · 상호',`<input type="text" value="${o.n}" oninput="be.f.owners[${i}].n=this.value" style="${inp};width:100%">`)}
       ${R('사업자등록번호',`<input type="text" value="${o.biz}" oninput="be.f.owners[${i}].biz=this.value" style="${inp};width:100%">`)}
@@ -1934,7 +1935,7 @@ function t요약(b){
     </div></div>
   </div>
   <div class="card"><div class="ct">주차장
-    <span class="ca"><button class="btn sm" onclick="pkOpen('${b.id}',-1,'edit')">주차면 추가</button></span></div>
+    <span class="ca"><button class="btn sm" onclick="pkOpen('${b.id}',-1,'edit')">추가</button></span></div>
     ${b.parks.length?`<div class="tw"><table>
       <thead><tr><th>주차면</th><th>위치</th><th>유형</th><th>메모</th><th>배정 현황</th><th class="c">더보기</th></tr></thead>
       <tbody>${b.parks.map((p,pi)=>`<tr><td class="c1">${p.n}</td><td>${p.loc}</td><td>${p.t}</td><td style="color:var(--muted)">${p.memo||'—'}</td>
