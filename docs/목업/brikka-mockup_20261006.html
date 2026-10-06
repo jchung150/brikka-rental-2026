@@ -1994,7 +1994,7 @@ function t청구(b){
     <span class="ca"><button class="btn pri sm" onclick="openCS()">+ 청구 항목 추가</button></span></div>
     <div class="tw"><table>
       <thead><tr><th class="c">배분 우선순위</th><th>청구항목</th><th>사용여부</th><th>발행 문서</th><th>반복주기</th>
-        <th>배분 기준</th><th>계량기 보유 유닛</th><th>근거 문서</th>
+        <th>배분 기준</th><th>근거 문서</th>
         <th class="c">더보기</th></tr></thead>
       <tbody>${[...b.charge].sort((x,y)=>prioOf(x.it)-prioOf(y.it)).map(c=>{const m=M(codeOf(c.it)), st=resolve(codeOf(c.it));
         /* 임대료·고정관리비는 금액·주기·배분 방식이 계약서 약정이다 — 줄 색을 달리한다. 발행 문서·우선순위는 수정에서 바꾼다 */
@@ -2006,7 +2006,6 @@ function t청구(b){
           isTax(c.bill||m.bill)?'과세':(c.bill||m.bill)==='계산서'?'면세':'비과세'}</span></td>
         <td>${c.fixed?'매월':(c.cycle||m.cycle||'—')}</td>
         <td>${c.fixed?'<span style="color:var(--muted)">계약 약정액</span>':(c.basis||'—')}${c.ref?`<div class="c2">${c.ref} 검침값 참조</div>`:''}</td>
-        <td>${!c.meter?'—':c.meter==='없음'?'<span style="color:var(--faint)">없음</span>':`<b>${c.meter}</b>`}</td>
         <td>${c.doc||`${st.by||m.src||''} ${st.doc||m.doc||''}`.trim()||'—'}</td>
         <td class="c">${moreCell([{t:'상세',go:`cdOpen(codeOf('${c.it}'))`},{t:'수정',go:`openCS(codeOf('${c.it}'))`},
           {t:'삭제',go:`ciDel(codeOf('${c.it}'))`,off:c.fixed?'계약서 약정 항목은 건물에서 빼지 않습니다':''}])}</td></tr>`}).join('')}</tbody>
