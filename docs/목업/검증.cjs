@@ -594,6 +594,15 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   r6.push(['유닛 상세 패널 — 본관8층(계약 있음) 삭제 잠김 · 번호 잠김 · 계약 이력 링크 · 새 유닛 번호 중복 막힘 · 수정 · 사유 없이 삭제',
     /계약이 있었던 유닛은 삭제할 수 없습니다/.test(h1) && /ctr-3\/b1본관8층/.test(h1) && /계약이 있었던 유닛은 바꿀 수 없음/.test(h2)
     && dup && ed && ed.area === 210 && kept && !b.units.some(u => u.no === '본관10층')]); }
+/* 계량기 — 유닛 등록 때 체크 · 유닛 상세에서 떼기 · 다시 달기 · 같은 기록(METER) */
+{ const MT = new Function(stub + bare + '; return {unOpen,unSave,udOpen,udEdit,udSave,udHTML,unHTML,meterItems,METER,BUILDINGS,get ud(){return ud;},get un(){return un;}};')();
+  const b = MT.BUILDINGS[0], its = MT.meterItems(b);
+  MT.unOpen('b1'); const h = MT.unHTML(); Object.assign(MT.un, {no:'본관9층', fl:'9', use:'사무실', area:'200'}); MT.un.mt.elec = true; MT.unSave();
+  const on1 = MT.METER.elec.includes('본관9층') && !MT.METER.water.includes('본관9층');
+  MT.udOpen('b1', '본관6층'); MT.udEdit(); MT.ud.mt.elec = false; MT.udSave(); const off = !MT.METER.elec.includes('본관6층');
+  MT.udOpen('b1', '본관6층'); MT.udEdit(); MT.ud.mt.elec = true; MT.udSave(); const back = MT.METER.elec.includes('본관6층');
+  r6.push(['계량기 — 카리나빌딩 계량기 항목은 전기요금·수도요금 · 등록 때 전기만 체크 · 본관6층 계량기 떼기 · 다시 달기',
+    its.join() === 'elec,water' && /계량기 있음/.test(h) && on1 && off && back]); }
 /* 수납 내역 더보기 — 받을 돈이 있는 계약(비씨에이전시)만 수납 처리가 눌리고, 다 받은 계약(에스씨케이컴퍼니)은 흐림 · 원장 보기는 모두 */
 { const MV = new Function(stub + bare + '; seedJuly(); return {PAY6,RC,MORE};')();
   MV.RC.f = {b:'b1', ym:'2026-07', st:''}; MV.MORE.length = 0; const h = MV.PAY6();

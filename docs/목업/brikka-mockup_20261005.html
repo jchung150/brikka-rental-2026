@@ -1783,9 +1783,13 @@ function t요약(b){
 /* ═══ 유닛 등록 — 건물 상세 유닛 탭의 오른쪽 패널. 주차면 추가와 같은 방식 → PRO-3
    계량기 설정은 등록 후 유닛 상세(PRO-4)에서 한다. 목업은 정산 자료(UNITS_B1)에 넣지 않는다 ═══ */
 const UNIT_USE=['사무실','근린생활','창고','기타'];
+/* 계량기를 쓰는 항목 — 이 건물에서 사용 중이고 배분 기준이 계량기를 요구하는 항목. 목업의 계량기 기록(METER)은 카리나빌딩 것이다 → 4.1.3-1 */
+const meterItems=b=>b.id!=='b1'?[]:b.charge.filter(c=>c.use&&needMeter(c.basis)&&!c.ref).map(c=>codeOf(c.it));   /* 다른 항목 검침값을 쓰는 항목(전력기금·TV수신료)은 계량기가 따로 없다 */
+function setMeters(no,on){Object.keys(on).forEach(code=>{const L=METER[code]||(METER[code]=[]), i=L.indexOf(no);
+  if(on[code]&&i<0) L.push(no); if(!on[code]&&i>=0) L.splice(i,1); SAVED[code]=null;});}
 let un=null;
 function unOpen(bid){const b=BUILDINGS.find(x=>x.id===bid);
-  un={bid,dong:b.dong?b.dong[0].n:'',fk:'지상',fl:'',no:'',use:'',area:'',net:'',st:'공실',memo:'',tried:false};
+  un={bid,dong:b.dong?b.dong[0].n:'',fk:'지상',fl:'',no:'',use:'',area:'',net:'',st:'공실',memo:'',mt:{},tried:false};
   DRAWER='unit';render(true);}
 function unSet(f,v){un[f]=v;render(true);}
 function unMissing(){const b=BUILDINGS.find(x=>x.id===un.bid), m=[];
@@ -1796,6 +1800,7 @@ function unMissing(){const b=BUILDINGS.find(x=>x.id===un.bid), m=[];
 function unSave(){un.tried=true; if(unMissing().length){render(true);return;}
   const b=BUILDINGS.find(x=>x.id===un.bid), area=parseFloat(un.area), net=parseFloat(un.net)||0;
   b.units.push({no:un.no.trim(),st:un.st,ten:'',fl:(un.fk==='지하'?-1:1)*parseInt(un.fl),area,net:net||Math.round(area*0.62*10)/10,use:un.use,dong:un.dong,memo:un.memo.trim()});
+  setMeters(un.no.trim(),Object.fromEntries(meterItems(b).map(c=>[c,!!un.mt[c]])));
   b.unitCnt=b.units.length; b.vacCnt=b.units.filter(u=>u.st==='공실').length;
   DRAWER=null;un=null;render(true);}
 function unHTML(){
@@ -1823,8 +1828,10 @@ function unHTML(){
       <div class="fg"><div class="fl">상태 · 기타</div>
         ${R('유닛상태',S('st',['공실','비운영중']))}
         <div class="c2" style="margin:-4px 0 9px;white-space:normal">비운영중은 건물주 직접 사용이나 공사 중일 때만 고릅니다(슈퍼관리자). 계약을 등록하면 사용중으로 바뀝니다</div>
-        ${R('메모',T('memo'))}
-        <div class="c2" style="margin:0;white-space:normal">계량기 설정은 등록한 뒤 유닛 상세에서 합니다</div></div>
+        ${R('메모',T('memo'))}</div>
+      ${meterItems(b).length?`<div class="fg"><div class="fl">계량기</div>
+        ${meterItems(b).map(c=>R(M(c).name,`<label class="ck"><input type="checkbox" ${un.mt[c]?'checked':''} onchange="un.mt['${c}']=this.checked">계량기 있음</label>`)).join('')}
+        <div class="c2" style="margin:0;white-space:normal">사용량으로 나누는 항목만 보입니다. 나중에 계량기를 달거나 떼면 유닛 상세에서 바꿉니다</div></div>`:''}
       ${miss.length?`<div class="fnd wa3" style="margin:0"><span class="h">저장할 수 없습니다</span>빠진 항목: <b>${miss.join(' · ')}</b></div>`:''}
     </div>
     <div class="df"><button class="btn" onclick="closeDrawer()">닫기</button>
@@ -1838,7 +1845,8 @@ let ud=null;
 const unitCtrs=(bid,no)=>CTRS.filter(c=>c.b===bid&&c.no===no);
 function udOpen(bid,no){ud={bid,no,edit:false,del:false,why:''};DRAWER='udet';render(true);}
 function udEdit(){const u=BUILDINGS.find(x=>x.id===ud.bid).units.find(x=>x.no===ud.no);
-  Object.assign(ud,{edit:true,del:false,f:{no:u.no,dong:u.dong||'',fk:u.fl<0?'지하':'지상',fl:String(Math.abs(u.fl)),use:u.use,area:String(u.area),net:String(u.net),st:u.st,memo:u.memo||''}});render(true);}
+  const b0=BUILDINGS.find(x=>x.id===ud.bid);
+  Object.assign(ud,{edit:true,del:false,mt:Object.fromEntries(meterItems(b0).map(c=>[c,(METER[c]||[]).includes(u.no)])),f:{no:u.no,dong:u.dong||'',fk:u.fl<0?'지하':'지상',fl:String(Math.abs(u.fl)),use:u.use,area:String(u.area),net:String(u.net),st:u.st,memo:u.memo||''}});render(true);}
 function udMissing(){const b=BUILDINGS.find(x=>x.id===ud.bid), f=ud.f, m=[];
   if(!f.no.trim()) m.push('유닛고유번호'); else if(f.no.trim()!==ud.no&&b.units.some(u=>u.no===f.no.trim())) m.push('유닛고유번호(이 건물에 이미 있음)');
   if(!f.fl) m.push('층'); if(!(parseFloat(f.area)>0)) m.push('임대면적');
@@ -1849,6 +1857,8 @@ function udSave(){if(udMissing().length){ud.tried=true;render(true);return;}
   /* 사용중은 계약에서 정해진다 — 공실·비운영중만 바꾼다 */
   Object.assign(u,{no:f.no.trim(),dong:f.dong,fl:(f.fk==='지하'?-1:1)*parseInt(f.fl),use:f.use,area:parseFloat(f.area),net:parseFloat(f.net)||0,memo:f.memo.trim(),
     st:u.st==='사용중'?u.st:f.st});
+  if(u.no!==ud.no) Object.keys(METER).forEach(c=>{const i=METER[c].indexOf(ud.no); if(i>=0) METER[c][i]=u.no;});
+  setMeters(u.no,ud.mt);
   ud.no=u.no; ud.edit=false; ud.tried=false; render(true);}
 function udDel(){const b=BUILDINGS.find(x=>x.id===ud.bid);
   b.units=b.units.filter(u=>u.no!==ud.no); b.unitCnt=b.units.length; b.vacCnt=b.units.filter(u=>u.st==='공실').length;
@@ -1859,7 +1869,7 @@ function udHTML(){
   const cs=unitCtrs(b.id,u.no), had=cs.length>0, flL=fl=>fl>0?fl+'층':'지하 '+Math.abs(fl)+'층';
   const inp='border:1px solid var(--line);border-radius:var(--r-sm);padding:7px 9px;font:inherit';
   const R=(k,body)=>`<div class="fr"><span class="fk">${k}</span>${body}</div>`, V=(k,v)=>R(k,`<span class="fv">${v}</span>`);
-  const meters=['elec','water','gas'].filter(c=>b.id==='b1'&&BILL[c]&&BILL[c].on).map(c=>[M(c).name,(METER[c]||[]).includes(u.no)?'있음':'없음']);
+  const meters=meterItems(b).map(c=>[M(c).name,(METER[c]||[]).includes(u.no)?'있음':'없음']);
   let body,foot;
   if(ud.edit){const f=ud.f, miss=ud.tried?udMissing():[];
     const T=(k,w)=>`<input type="text" value="${f[k]}" oninput="ud.f.${k}=this.value" onchange="render(true)" style="${inp};${w?`max-width:${w}px`:'width:100%'}">`;
@@ -1873,6 +1883,9 @@ function udHTML(){
       ${R('전용면적',T('net',110)+'<span class="c2" style="margin:0">㎡</span>')}
       ${R('유닛상태',u.st==='사용중'?`<span class="fv">사용중 <span class="lock">계약으로 정해짐</span></span>`:S('st',['공실','비운영중']))}
       ${R('메모',T('memo'))}</div>
+      ${meterItems(b).length?`<div class="fg"><div class="fl">계량기</div>
+        ${meterItems(b).map(c=>R(M(c).name,`<label class="ck"><input type="checkbox" ${ud.mt[c]?'checked':''} onchange="ud.mt['${c}']=this.checked">계량기 있음</label>`)).join('')}
+        <div class="c2" style="margin:0;white-space:normal">계량기를 새로 달거나 고장으로 떼면 바꿉니다. 아직 확정하지 않은 관리비 정산에 바로 반영됩니다</div></div>`:''}
       ${miss.length?`<div class="fnd wa3" style="margin:0"><span class="h">저장할 수 없습니다</span>빠진 항목: <b>${miss.join(' · ')}</b></div>`:''}`;
     foot=`<button class="btn" onclick="ud.edit=false;ud.tried=false;render(true)">취소</button><button class="btn pri" onclick="udSave()">저장</button>`;}
   else{
@@ -1880,7 +1893,7 @@ function udHTML(){
       ${V('유닛상태',stb(u.st))}${b.dong&&u.dong?V('동',u.dong):''}${V('층',flL(u.fl))}${V('유닛용도',u.use)}
       ${V('임대면적',m2(u.area))}${V('전용면적',u.net?`${m2(u.net)} <span class="c2">전용률 ${(u.net/u.area*100).toFixed(1)}%</span>`:'—')}
       ${V('유닛주소',`${b.addr} ${u.no}`)}${V('메모',u.memo||'—')}</div>
-      ${meters.length?`<div class="fg"><div class="fl">검침 설정</div>${meters.map(([n,v])=>V(n,`계량기 ${v}`)).join('')}</div>`:''}
+      ${meters.length?`<div class="fg"><div class="fl">계량기</div>${meters.map(([n,v])=>V(n,`계량기 ${v}`)).join('')}</div>`:''}
       <div class="fg"><div class="fl">계약 이력</div>
         ${had?cs.map(c=>`<div class="fr"><span class="fv"><span class="plk" onclick="closeDrawer();tab3c='요약';go('ctr-3/${ckey(c)}')">${cnameHTML(b.alias,c.no,c.ten)}</span>
           <span class="c2">${stb(c.st)} ${c.base.replace(/-/g,'.')} ~ ${ctrEnd(c).replace(/-/g,'.')}</span></span></div>`).join('')
