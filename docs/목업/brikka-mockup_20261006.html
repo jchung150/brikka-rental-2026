@@ -701,14 +701,14 @@ BUILDINGS[0].units=UNITS_B1.map(u=>{
 const MASTER=[
  {code:'rent', name:'임대료',        bill:'세금계산서', unit:null, cycle:'매월',   tax:true,  src:'', doc:'임대차계약서', fixed:true, pr:1},
  {code:'mgmt', name:'고정관리비',     bill:'세금계산서', unit:null, cycle:'매월',   tax:true,  src:'', doc:'임대차계약서', fixed:true, pr:2},
- {code:'elec', name:'전기요금',      bill:'세금계산서', unit:'kWh', cycle:'매월',   tax:true,  src:'한국전력', doc:'고지서', pr:4},
- {code:'water',name:'수도요금',      bill:'계산서', unit:'톤',  cycle:'격월',   tax:false, src:'상수도사업본부', doc:'고지서', pr:13},
- {code:'fund', name:'전력기금',      bill:'일반내역서', unit:null, cycle:'매월', tax:false, src:'한국전력', doc:'고지서', pr:16},
- {code:'tv',   name:'TV수신료',      bill:'일반내역서', unit:null, cycle:'매월', tax:false, src:'한국전력', doc:'고지서', pr:17},
- {code:'gas',  name:'가스요금',      bill:'세금계산서', unit:'㎥',  cycle:'매월',   tax:true,  src:'도시가스', doc:'고지서', pr:12},
- {code:'traffic',name:'교통유발부담금',bill:'계산서', unit:null, cycle:'연1회', tax:false, src:'구청', doc:'고지서', pr:14},
- {code:'septic',name:'정화조청소비',  bill:'계산서', unit:null, cycle:'반기',   tax:false, src:'청소업체', doc:'내역서', pr:15},
- {code:'parking',name:'주차비',      bill:'세금계산서', unit:null, cycle:'매월',   tax:true,  src:'경비실', doc:'내역서', pr:3},
+ {code:'elec', name:'전기요금',      bill:'세금계산서', unit:'kWh', cycle:'매월',   tax:true,  src:'한국전력', doc:'고지서', pr:3},
+ {code:'water',name:'수도요금',      bill:'계산서', unit:'톤',  cycle:'격월',   tax:false, src:'상수도사업본부', doc:'고지서', pr:6},
+ {code:'fund', name:'전력기금',      bill:'일반내역서', unit:null, cycle:'매월', tax:false, src:'한국전력', doc:'고지서', pr:4},
+ {code:'tv',   name:'TV수신료',      bill:'일반내역서', unit:null, cycle:'매월', tax:false, src:'한국전력', doc:'고지서', pr:5},
+ {code:'gas',  name:'가스요금',      bill:'세금계산서', unit:'㎥',  cycle:'매월',   tax:true,  src:'도시가스', doc:'고지서', pr:7},
+ {code:'traffic',name:'교통유발부담금',bill:'계산서', unit:null, cycle:'연1회', tax:false, src:'구청', doc:'고지서', pr:9},
+ {code:'septic',name:'정화조청소비',  bill:'계산서', unit:null, cycle:'반기',   tax:false, src:'청소업체', doc:'내역서', pr:10},
+ {code:'parking',name:'주차비',      bill:'세금계산서', unit:null, cycle:'매월',   tax:true,  src:'경비실', doc:'내역서', pr:8},
 ];
 const M=c=>MASTER.find(x=>x.code===c);
 const codeOf=name=>{const m=MASTER.find(x=>x.name===name);return m?m.code:'elec';};
@@ -1953,6 +1953,9 @@ function t자료(b){
 
 /* ═══ 청구항목 상세 — 관리비 탭의 더보기 「상세」. 설정을 한눈에 보고, 최근 3개월 고지서 금액을 본다. 고치려면 「수정」 → PRO-3 ═══ */
 let cd=null;
+/* 청구항목 삭제 — 이 건물 목록에서 빼고, 확정 전 정산에서도 뺀다. 이미 발행한 청구·원장은 항목 이름으로 남는다. 임대료·고정관리비는 빼지 않는다 */
+function ciDel(code){const b=BUILDINGS[0], c=b.charge.find(x=>codeOf(x.it)===code); if(!c||c.fixed) return;
+  b.charge=b.charge.filter(x=>x!==c); if(BILL[code]) BILL[code].on=false; DRAWER=null; cd=null; render(true);}
 function cdOpen(code){cd={code};DRAWER='cidet';render(true);}
 function cdHTML(){
   if(DRAWER!=='cidet'||!cd) return '';
@@ -1980,7 +1983,8 @@ function cdHTML(){
             <tbody>${months.map(([ym,v])=>`<tr><td>${ym.replace('-','년 ').replace(/년 0/,'년 ')}월</td><td class="n">${v==null?'<span style="color:var(--faint)">—</span>':won(v)}</td></tr>`).join('')}</tbody>
           </table></div></div>`}
     </div>
-    <div class="df"><button class="btn pri" onclick="closeDrawer();openCS('${cd.code}')">수정</button></div>
+    <div class="df"><button class="btn pri" onclick="closeDrawer();openCS('${cd.code}')">수정</button>
+      <button class="btn" ${c.fixed?'disabled title="계약서 약정 항목은 건물에서 빼지 않습니다"':''} onclick="ciDel('${cd.code}')">삭제</button></div>
   </div></div>`;
 }
 function t청구(b){
@@ -2004,7 +2008,8 @@ function t청구(b){
         <td>${c.fixed?'<span style="color:var(--muted)">계약 약정액</span>':(c.basis||'—')}${c.ref?`<div class="c2">${c.ref} 검침값 참조</div>`:''}</td>
         <td>${!c.meter?'—':c.meter==='없음'?'<span style="color:var(--faint)">없음</span>':`<b>${c.meter}</b>`}</td>
         <td>${c.doc||`${st.by||m.src||''} ${st.doc||m.doc||''}`.trim()||'—'}</td>
-        <td class="c">${moreCell([{t:'상세',go:`cdOpen(codeOf('${c.it}'))`},{t:'수정',go:`openCS(codeOf('${c.it}'))`}])}</td></tr>`}).join('')}</tbody>
+        <td class="c">${moreCell([{t:'상세',go:`cdOpen(codeOf('${c.it}'))`},{t:'수정',go:`openCS(codeOf('${c.it}'))`},
+          {t:'삭제',go:`ciDel(codeOf('${c.it}'))`,off:c.fixed?'계약서 약정 항목은 건물에서 빼지 않습니다':''}])}</td></tr>`}).join('')}</tbody>
     </table></div>
   </div>
 `;

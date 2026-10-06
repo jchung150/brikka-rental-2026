@@ -483,7 +483,7 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
 /* 전월 과납액은 우선순위가 낮은 항목부터 — 에스씨케이컴퍼니 13,200,000 입금이 임대료에 그대로 들어간다 */
 { const PR = new Function(stub + bare + '; seedJuly(); return {RC};')();
   const d7 = PR.RC.dec[7].done;
-  r6.push(['전월 과납액은 TV수신료 1,507 · 전력기금 16,493부터 채움 → 13,200,000 입금은 임대료 한 줄',
+  r6.push(['전월 과납액은 우선순위가 가장 낮은 수도요금(6)에 18,000을 채움 → 13,200,000 입금은 임대료 한 줄',
     d7.lines.length === 1 && d7.lines[0].n === '임대료' && d7.lines[0].pay === 13200000]); }
 /* 청구 정정 — 덜 받기·더 받기가 같은 칸(청구 항목 · 금액 · 사유)과 같은 버튼(정정 확정) · 더 받기도 사유 필수 · 지난 청구를 더 받으면 「…월분 ○○ 정정」 */
 { const FX = new Function(stub + bare + '; seedJuly(); return {fixOpen,fxSet,fxConfirm,fixHTML,ONCE,ISSUE,get fz(){return fz;}};')();
@@ -604,11 +604,14 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   r6.push(['계량기 — 계량기 항목은 전기요금·수도요금·가스요금(카리나빌딩은 가스를 청구하지 않아도 표시) · 등록 때 전기만 체크 · 본관6층 계량기 떼기 · 다시 달기',
     its.join() === 'elec,water,gas' && /계량기 있음/.test(h) && on1 && off && back]); }
 /* 청구항목 상세 — 관리비 탭 더보기 ⋮(상세·수정) · 전기요금 상세에 계량기 보유 유닛과 최근 3개월 고지서 금액 · 임대료는 약정액 안내 */
-{ const CD = new Function(stub + bare + '; return {cdOpen,cdHTML,PRO3,MORE,set tab3(v){tab3=v;}};')();
+{ const CD = new Function(stub + bare + '; return {cdOpen,cdHTML,ciDel,PRO3,MORE,BUILDINGS,BILL,set tab3(v){tab3=v;}};')();
   CD.tab3 = '관리비'; CD.MORE.length = 0; CD.PRO3('b1'); const dd = CD.MORE.some(x => x[0].t === '상세' && x[1].t === '수정');
   CD.cdOpen('elec'); const h = CD.cdHTML(); CD.cdOpen('rent'); const r = CD.cdHTML();
-  r6.push(['청구항목 상세 — 더보기 ⋮ 상세·수정 · 전기요금 계량기 보유 유닛 · 최근 고지서 금액 3개월 · 8월 8,491,672원 · 임대료는 약정액 안내',
-    dd && /계량기 보유 유닛/.test(h) && /최근 고지서 금액/.test(h) && /8,491,672/.test(h) && /약정액/.test(r) && !/최근 고지서 금액/.test(r)]); }
+  CD.MORE.length = 0; CD.PRO3('b1'); const dm = CD.MORE.find(x => x[0].go.includes("'임대료'")), dl = dm && dm[2].t === '삭제' && !!dm[2].off;
+  CD.ciDel('rent'); const keepRent = CD.BUILDINGS[0].charge.some(c => c.it === '임대료');
+  CD.ciDel('septic'); const gone = !CD.BUILDINGS[0].charge.some(c => c.it === '정화조청소비') && CD.BILL.septic.on === false;
+  r6.push(['청구항목 상세 — 더보기 ⋮ 상세·수정·삭제(임대료 잠김) · 정화조청소비 삭제 · 전기요금 계량기 보유 유닛 · 최근 고지서 금액 3개월 · 8월 8,491,672원 · 임대료는 약정액 안내',
+    dd && dl && keepRent && gone && /계량기 보유 유닛/.test(h) && /최근 고지서 금액/.test(h) && /8,491,672/.test(h) && /약정액/.test(r) && !/최근 고지서 금액/.test(r)]); }
 /* 수납 내역 더보기 — 받을 돈이 있는 계약(비씨에이전시)만 수납 처리가 눌리고, 다 받은 계약(에스씨케이컴퍼니)은 흐림 · 원장 보기는 모두 */
 { const MV = new Function(stub + bare + '; seedJuly(); return {PAY6,RC,MORE};')();
   MV.RC.f = {b:'b1', ym:'2026-07', st:''}; MV.MORE.length = 0; const h = MV.PAY6();
