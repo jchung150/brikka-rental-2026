@@ -2195,8 +2195,8 @@ function stResult(m,R){
         <th class="n">부담 비율</th><th class="n">청구 금액</th><th class="c">더보기</th></tr></thead>
       <tbody>
         ${R.rows.filter(r=>r.st==='사용중').map(r=>row4(r,m)).join('')}
-        ${R.rows.filter(r=>r.st!=='사용중').map(r=>row4(r,m,'vacr')).join('')}
-        ${R.cut?`<tr class="vacr"><td>건물주 부담</td>
+        ${R.rows.filter(r=>r.st!=='사용중').map(r=>row4(r,m)).join('')}
+        ${R.cut?`<tr><td>건물주 부담</td>
           ${R.charge&&isMetered(m.code)?'<td></td>':''}${m.unit?'<td></td><td></td>':''}<td></td>
           <td class="n"><b>${won(R.cut)}</b></td><td></td></tr>`:''}
         <tr class="sumr"><td>합계</td>
