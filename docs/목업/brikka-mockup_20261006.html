@@ -1977,35 +1977,39 @@ function docHTML(){
    여러 파일을 「파일 찾기」로 한 번에 고르고, 파일마다 제목 · 카테고리 · 메모를 정한다. 제목은 파일 이름으로 미리 채운다 ═══ */
 let up=null;
 const fileSz=n=>n>=1048576?(n/1048576).toFixed(1)+' MB':Math.max(1,Math.round(n/1024))+' KB';
-function upOpen(bid){up={bid,files:[],tried:false};DRAWER='upl';render(true);}
-function upAdd(list){[...list].forEach(f=>up.files.push({t:f.name,sz:fileSz(f.size),ttl:docTitle(f.name),c:'',m:''}));render(true);}
-function upPick(){const i=document.createElement('input');i.type='file';i.multiple=true;i.onchange=()=>upAdd(i.files);i.click();}
-function upMissing(){const m=[];if(!up.files.length) m.push('파일');
-  up.files.forEach((f,i)=>{if(!f.ttl.trim()) m.push(`${i+1}번 제목`); if(!f.c) m.push(`${i+1}번 카테고리`);});return m;}
+/* 처음부터 파일 한 칸(파일 · 제목 · 카테고리 · 메모)을 다 보여 준다. 여러 개는 「+ 파일 추가」로 칸을 늘린다 */
+const upSlot=()=>({t:'',sz:'',ttl:'',c:'',m:''});
+function upOpen(bid){up={bid,files:[upSlot()],tried:false};DRAWER='upl';render(true);}
+function upSet(i,file){const f=up.files[i]; f.t=file.name; f.sz=fileSz(file.size); if(!f.ttl.trim()) f.ttl=docTitle(file.name); render(true);}
+function upPick(i){const el=document.createElement('input');el.type='file';el.onchange=()=>{if(el.files[0]) upSet(i,el.files[0]);};el.click();}
+function upMissing(){const m=[], n=up.files.length>1;
+  up.files.forEach((f,i)=>{const p=n?`${i+1}번 `:''; if(!f.t) m.push(p+'파일'); if(!f.ttl.trim()) m.push(p+'제목'); if(!f.c) m.push(p+'카테고리');});return m;}
 function upSave(){up.tried=true; if(upMissing().length){render(true);return;}
   const b=BUILDINGS.find(x=>x.id===up.bid), now=`${TODAY_S} ${new Date().toTimeString().slice(0,5)}`;
   [...up.files].reverse().forEach(f=>b.docs.unshift({t:f.t,ttl:f.ttl.trim(),sz:f.sz,c:f.c,m:f.m.trim(),by:'슈퍼관리자',at:now}));
   selD={}; DRAWER=null; up=null; render(true);}
 function upHTML(){
   if(DRAWER!=='upl'||!up) return '';
-  const b=BUILDINGS.find(x=>x.id===up.bid), miss=up.tried?upMissing():[];
+  const b=BUILDINGS.find(x=>x.id===up.bid), miss=up.tried?upMissing():[], many=up.files.length>1;
   const inp='border:1px solid var(--line);border-radius:var(--r-sm);padding:7px 9px;font:inherit';
   const R=(k,body,req)=>`<div class="fr"><span class="fk">${k}${req?' <b style="color:var(--warn)">*</b>':''}</span>${body}</div>`;
+  const slot=(f,i)=>`
+        ${many?`<div style="display:flex;align-items:center;margin-bottom:6px"><b style="font-size:12px">${i+1}번 파일</b>
+          <button class="btn sm" style="margin-left:auto" onclick="up.files.splice(${i},1);render(true)">빼기</button></div>`:''}
+        ${R('파일',`<button class="btn sm" onclick="upPick(${i})">파일 찾기</button>${f.t?`<span class="fv">${f.t} <span class="c2">${f.sz}</span></span>`:'<span class="c2" style="margin:0">선택된 파일 없음</span>'}`,1)}
+        ${R('제목',`<input type="text" value="${f.ttl}" placeholder="파일을 고르면 파일 이름으로 채워집니다" oninput="up.files[${i}].ttl=this.value" style="${inp};width:100%">`,1)}
+        ${R('카테고리',`<select onchange="up.files[${i}].c=this.value;render(true)" style="${inp}"><option value="">선택</option>${DOC_CAT_OF.건물.map(c=>`<option ${f.c===c?'selected':''}>${c}</option>`).join('')}</select>`,1)}
+        ${R('메모',`<input type="text" value="${f.m}" oninput="up.files[${i}].m=this.value" style="${inp};width:100%">`)}`;
   return `<div class="dro"><div class="ov" onclick="closeDrawer()"></div><div class="pn">
     <div class="dh"><div><div class="t">파일 업로드</div><div class="s">${b.name}</div></div>
       <button class="x" onclick="closeDrawer()">✕</button></div>
     <div class="db">
       ${R('귀속 대상',`<span class="fv">건물 · ${b.name}</span>`)}
-      ${R('파일',`<button class="btn sm" onclick="upPick()">파일 찾기</button><span class="c2" style="margin:0">여러 개를 한 번에 고를 수 있습니다</span>`,1)}
-      ${up.files.map((f,i)=>`<div style="border:1px solid var(--line);border-radius:var(--r-sm);padding:10px 12px 2px;margin-bottom:10px">
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:9px;font-size:12.5px"><b>${f.t}</b><span class="c2" style="margin:0">${f.sz}</span>
-          <button class="btn sm" style="margin-left:auto" onclick="up.files.splice(${i},1);render(true)">빼기</button></div>
-        ${R('제목',`<input type="text" value="${f.ttl}" oninput="up.files[${i}].ttl=this.value" style="${inp};width:100%">`,1)}
-        ${R('카테고리',`<select onchange="up.files[${i}].c=this.value;render(true)" style="${inp}"><option value="">선택</option>${DOC_CAT_OF.건물.map(c=>`<option ${f.c===c?'selected':''}>${c}</option>`).join('')}</select>`,1)}
-        ${R('메모',`<input type="text" value="${f.m}" oninput="up.files[${i}].m=this.value" style="${inp};width:100%">`)}</div>`).join('')}
+      ${up.files.map((f,i)=>many?`<div style="border:1px solid var(--line);border-radius:var(--r-sm);padding:10px 12px 2px;margin-bottom:10px">${slot(f,i)}</div>`:slot(f,i)).join('')}
+      <button class="btn sm" style="margin:2px 0 12px" onclick="up.files.push(upSlot());render(true)">+ 파일 추가</button>
       ${miss.length?`<div class="fnd wa3" style="margin:0"><span class="h">올릴 수 없습니다</span>빠진 항목: <b>${miss.join(' · ')}</b></div>`:''}
     </div>
-    <div class="df"><button class="btn pri" onclick="upSave()">올리기${up.files.length?` ${up.files.length}건`:''}</button></div>
+    <div class="df"><button class="btn pri" onclick="upSave()">올리기${many?` ${up.files.length}건`:''}</button></div>
   </div></div>`;
 }
 function t자료(b){
