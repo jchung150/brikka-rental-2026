@@ -592,7 +592,7 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   UD.ud.f.no = '본관10층'; UD.ud.f.area = '210'; UD.udSave(); const ed = b.units.find(u => u.no === '본관10층');
   const kept = true; UD.udDel();
   r6.push(['유닛 상세 패널 — 본관8층(계약 있음) 삭제 잠김 · 번호 잠김 · 계약 이력 링크 · 새 유닛 번호 중복 막힘 · 수정 · 사유 없이 삭제',
-    /계약이 있었던 유닛은 삭제할 수 없습니다/.test(h1) && /ctr-3\/b1본관8층/.test(h1) && /계약이 있었던 유닛은 바꿀 수 없음/.test(h2)
+    /계약이 있었던 유닛은 삭제할 수 없습니다/.test(h1) && /ctr-3\/b1본관8층/.test(h1) && /<th>계약기간<\/th>/.test(h1) && /계약이 있었던 유닛은 바꿀 수 없음/.test(h2)
     && dup && ed && ed.area === 210 && kept && !b.units.some(u => u.no === '본관10층')]); }
 /* 계량기 — 유닛 등록 때 체크 · 유닛 상세에서 떼기 · 다시 달기 · 같은 기록(METER) */
 { const MT = new Function(stub + bare + '; return {unOpen,unSave,udOpen,udEdit,udSave,udHTML,unHTML,meterItems,METER,BUILDINGS,get ud(){return ud;},get un(){return un;}};')();

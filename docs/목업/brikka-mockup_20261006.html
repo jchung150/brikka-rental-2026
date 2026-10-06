@@ -1210,9 +1210,9 @@ function csHTML(){
           같은 문서끼리 묶여 계약당 1장으로 발행됩니다.</div>
         <div class="fr"><span class="fk">반복 주기</span>
           <select onchange="csSet('cycle',this.value)" ${cs.fixed?'disabled':''}>
-            ${(cs.fixed?['계약마다']:CYCLES).map(c=>`<option value="${c}" ${cs.cycle===c?'selected':''}>${c}</option>`).join('')}
+            ${(cs.fixed?['매월']:CYCLES).map(c=>`<option value="${c}" ${cs.cycle===c?'selected':''}>${c}</option>`).join('')}
           </select></div>
-        ${cs.fixed?'<div class="hint" style="margin:-3px 0 0 114px">계약마다 정합니다(계약 상세 › 임대료·관리비).</div>':''}
+        ${cs.fixed?'<div class="hint" style="margin:-3px 0 0 114px">매월이 기본입니다. 다른 주기는 계약 상세 › 임대료·관리비에서 계약마다 바꿉니다.</div>':''}
         <div class="fr"><span class="fk">배분 우선순위</span>
           <input class="inp w" type="number" min="1" max="99" step="1" value="${cs.pr}"
             onchange="csSet('pr',Math.max(1,Math.min(99,parseInt(this.value)||99)))"></div>
@@ -1898,12 +1898,15 @@ function udHTML(){
       ${V('유닛주소',`${b.addr} ${u.no}`)}${V('메모',u.memo||'—')}</div>
       ${meters.length?`<div class="fg"><div class="fl">계량기</div>${meters.map(([n,v])=>V(n,`계량기 ${v}`)).join('')}</div>`:''}
       <div class="fg"><div class="fl">계약 이력</div>
-        ${had?cs.map(c=>`<div class="fr"><span class="fv"><span class="plk" onclick="closeDrawer();tab3c='요약';go('ctr-3/${ckey(c)}')">${cnameHTML(b.alias,c.no,c.ten)}</span>
-          <span class="c2">${stb(c.st)} ${c.base.replace(/-/g,'.')} ~ ${ctrEnd(c).replace(/-/g,'.')}</span></span></div>`).join('')
+        ${had?`<div class="tw" style="border:1px solid var(--line);border-radius:var(--r-sm)"><table>
+          <thead><tr><th>임차인</th><th class="c">계약상태</th><th>계약기간</th></tr></thead>
+          <tbody>${cs.map(c=>`<tr class="plk" onclick="closeDrawer();tab3c='요약';go('ctr-3/${ckey(c)}')">
+            <td class="c1" style="font-weight:500">${c.ten}</td><td class="c">${stb(c.st)}</td>
+            <td style="white-space:nowrap">${c.base.replace(/-/g,'.')} ~ ${ctrEnd(c).replace(/-/g,'.')}</td></tr>`).join('')}</tbody></table></div>`
         :'<div class="c2" style="margin:0">계약이 없습니다</div>'}</div>
 `;
-    foot=`<button class="btn" ${had?'disabled title="계약이 있었던 유닛은 삭제할 수 없습니다"':'title="슈퍼관리자만"'} onclick="udDel()">삭제</button>
-<button class="btn pri" onclick="udEdit()">수정</button>`;}
+    foot=`<button class="btn pri" onclick="udEdit()">수정</button>
+      <button class="btn" ${had?'disabled title="계약이 있었던 유닛은 삭제할 수 없습니다"':'title="슈퍼관리자만"'} onclick="udDel()">삭제</button>`;}
   return `<div class="dro"><div class="ov" onclick="closeDrawer()"></div><div class="pn">
     <div class="dh"><div><div class="t">${u.no}</div><div class="s">${b.name} · 유닛 상세</div></div>
       <button class="x" onclick="closeDrawer()">✕</button></div>
@@ -1951,24 +1954,24 @@ function t청구(b){
   if(!b.charge.length) return `<div class="tbl"><div class="empty"><div class="t">등록된 관리비 항목이 없습니다</div>건물에서 부과할 항목을 추가하세요.</div></div>`;
   return `
   <div class="card"><div class="ct">관리비
-    <span class="sub">배분 우선순위 — 입금이 모자랄 때 먼저 채우는 순서</span>
-    <span class="ca"><button class="btn pri sm" onclick="openCS()">+ 항목 추가</button></span></div>
+    <span class="ca"><button class="btn pri sm" onclick="openCS()">+ 청구 항목 추가</button></span></div>
     <div class="tw"><table>
       <thead><tr><th class="c">배분 우선순위</th><th>청구항목</th><th>사용여부</th><th>발행 문서</th><th>반복주기</th>
         <th>배분 기준</th><th>계량기 보유 유닛</th><th>근거 문서</th>
-        <th class="c" style="width:70px"></th></tr></thead>
-      <tbody>${[...b.charge].sort((x,y)=>(y.use-x.use)||(prioOf(x.it)-prioOf(y.it))).map(c=>{const m=M(codeOf(c.it)), st=resolve(codeOf(c.it));
-        return `<tr style="${c.use?'':'opacity:.55'}">
+        <th class="c">더보기</th></tr></thead>
+      <tbody>${[...b.charge].sort((x,y)=>prioOf(x.it)-prioOf(y.it)).map(c=>{const m=M(codeOf(c.it)), st=resolve(codeOf(c.it));
+        /* 임대료·고정관리비는 금액·주기·배분 방식이 계약서 약정이다 — 줄 색을 달리한다. 발행 문서·우선순위는 수정에서 바꾼다 */
+        return `<tr style="${c.fixed?'background:var(--soft);':''}${c.use?'':'opacity:.55'}">
         <td class="c"><b>${prioOf(c.it)}</b></td>
         <td class="c1">${c.it}</td>
         <td>${c.use?'<span class="bd ok">사용</span>':'<span class="bd mu">미사용</span>'}</td>
         <td style="white-space:nowrap">${c.bill||m.bill||'—'} <span class="c2" style="margin:0 0 0 4px">${
           isTax(c.bill||m.bill)?'과세':(c.bill||m.bill)==='계산서'?'면세':'비과세'}</span></td>
-        <td>${c.fixed?'<span style="color:var(--muted)">계약마다</span>':(c.cycle||m.cycle||'—')}</td>
+        <td>${c.fixed?'매월':(c.cycle||m.cycle||'—')}</td>
         <td>${c.fixed?'<span style="color:var(--muted)">계약 약정액</span>':(c.basis||'—')}${c.ref?`<div class="c2">${c.ref} 검침값 참조</div>`:''}</td>
         <td>${!c.meter?'—':c.meter==='없음'?'<span style="color:var(--faint)">없음</span>':`<b>${c.meter}</b>`}</td>
         <td>${c.doc||`${st.by||m.src||''} ${st.doc||m.doc||''}`.trim()||'—'}</td>
-        <td class="c"><span class="det" onclick="openCS(codeOf('${c.it}'))">수정</span></td></tr>`}).join('')}</tbody>
+        <td class="c"><span class="more" onclick="openCS(codeOf('${c.it}'))">수정</span></td></tr>`}).join('')}</tbody>
     </table></div>
   </div>
 `;
