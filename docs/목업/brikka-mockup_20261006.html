@@ -453,10 +453,10 @@ tr.off td:not(:last-child):not(:nth-last-child(2)){opacity:.5}
 .schr.sub .nm{padding-left:32px}
 .schr.sum{background:var(--head);font-weight:600}
 .schr .cb{margin-right:7px;vertical-align:-3px;cursor:pointer}
-.schr .cb.on,.mcl .cb.on{background:var(--pri);border-color:var(--pri);position:relative}
-.schr .cb.on::after,.mcl .cb.on::after{content:'';position:absolute;left:4px;top:1px;width:4px;height:8px;
+.cb.on{background:var(--pri);border-color:var(--pri);position:relative}
+.cb.on::after{content:'';position:absolute;left:4px;top:1px;width:4px;height:8px;
   border:solid #fff;border-width:0 2px 2px 0;transform:rotate(45deg)}
-.schr .cb.dis,.mcl .cb.dis{opacity:.3}
+.cb.dis{opacity:.3}
 .mw{display:grid;grid-template-columns:370px minmax(0,1fr);gap:18px;align-items:start}
 @media(max-width:1080px){.mw{grid-template-columns:1fr}}
 .mq{border:1px solid var(--line);border-radius:var(--r);background:var(--bg);overflow:hidden;position:sticky;top:12px}
