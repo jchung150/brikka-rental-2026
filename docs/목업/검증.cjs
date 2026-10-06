@@ -503,16 +503,6 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   r6.push(['청구서 발행 — 메일 체크박스·미납 조회 없음 · 더보기 「청구서 발행」 → 메일 여부 묻기 → 메일 없이 발행',
     !h.includes('메일 보내기') && !h.includes('미납 조회') && m && !m[0].off && !!m[1].off
     && /메일을 보내시겠습니까/.test(ask) && IA.ISS['b21203호'] && IA.ISS['b21203호'].mail === false]); }
-/* 주차면 — 배정 변경(해제 → 다른 계약) · 배정된 주차면은 삭제 안 됨 · 추가는 이름 필수 */
-{ const PK = new Function(stub + bare + '; seedJuly(); return {BUILDINGS,pkOpen,pkSave,pkDel,pkHTML,get pk(){return pk;}};')();
-  const b = PK.BUILDINGS.find(x => x.id === 'b1'), n0 = b.parks.length;
-  PK.pkDel('b1', 0); const kept = b.parks.length === n0;
-  PK.pkOpen('b1', 3, 'assign'); PK.pk.k = '본관101호'; PK.pkSave(); const asg = b.parks[3].asu === '본관101호' && b.parks[3].as === '(주)에스씨케이컴퍼니';
-  PK.pkOpen('b1', 3, 'assign'); PK.pk.k = ''; PK.pkSave(); PK.pkDel('b1', 3); const del = b.parks.length === n0 - 1;
-  PK.pkOpen('b1', -1, 'edit'); PK.pkSave(); const noName = b.parks.length === n0 - 1;
-  PK.pkOpen('b1', -1, 'edit'); PK.pk.n = 'M-02'; PK.pk.loc = '기계식'; PK.pkSave();
-  r6.push(['주차면 — 배정된 면 삭제 막힘 · 배정 변경 · 해제 후 삭제 · 이름 없으면 추가 안 됨 · 기계식 추가',
-    kept && asg && del && noName && b.parks.at(-1).n === 'M-02' && b.parks.at(-1).loc === '기계식']); }
 /* 건물 등록 — 빠진 필수 항목은 막힘 · 지분 합계 100% · 별칭 중복 막힘 · 저장하면 목록에 생기고 상세가 열림 */
 { const NB = new Function(stub + bare + '; return {PRO2,PRO3,nbSave,nbMissing,BUILDINGS,get nb(){return nb;},set tab3(v){tab3=v;}};')();
   NB.PRO2(); NB.nbSave(); const blocked = NB.BUILDINGS.length === 3 && NB.nbMissing().includes('건물명');
@@ -524,15 +514,14 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   r6.push(['건물 등록 — 필수 빠지면 막힘 · 별칭 중복 · 지분 100% · 저장 → 동 2개 · 주차 25면 · 관리비 계좌 = 임대료 계좌 · 상세 열림(위탁운영계약 없음)',
     blocked && dup && share && NB.BUILDINGS.length === 4 && b.alias === '윈터' && b.dong.length === 2 && b.park === 25
     && b.feeAcct === '하나은행 123-456' && b.owners.length === 2 && /위탁운영계약이 없습니다/.test(h)]); }
-/* 계약 상세 주차정보 · 냉난방기 — 배정 주차면은 건물 주차면 기록과 하나 · 냉난방기 구분 없으면 저장 안 됨 */
-{ const CP = new Function(stub + bare + '; seedJuly(); return {CTR3,cpkOpen,chvOpen,cx3Save,BUILDINGS,CHVAC,parksOf,CTRS,get cx3(){return cx3;}};')();
-  const c = CP.CTRS.find(x => x.no === '본관801호'), b = CP.BUILDINGS.find(x => x.id === 'b1');
-  const h = CP.CTR3('b1본관801호'), two = CP.parksOf(c).length === 2;
-  CP.cpkOpen('b1본관801호'); const i = b.parks.findIndex(p => p.n === 'B1-04'); CP.cx3.pick[i] = true; CP.cx3Save();
-  const moved = b.parks[i].asu === '본관801호' && CP.parksOf(c).length === 3;
+/* 계약 상세 주차정보 · 냉난방기 — 등록 차량은 건물 주차 탭과 같은 기록 · 계약 상세에서 차량 추가 · 냉난방기 구분 없으면 저장 안 됨 */
+{ const CP = new Function(stub + bare + '; seedJuly(); return {CTR3,vehOpen,vehSave,vehOf,chvOpen,cx3Save,CHVAC,get vh(){return vh;},get cx3(){return cx3;}};')();
+  const h = CP.CTR3('b1본관801호'), four = CP.vehOf('b1본관801호').length === 4;
+  CP.vehOpen('b1', 0, 'b1본관801호'); Object.assign(CP.vh, {plate:'90하1111', own:'시험', tel:'010-0000-0000', fee:'월정액'}); CP.vehSave();
+  const added = CP.vehOf('b1본관801호').length === 5;
   CP.chvOpen('b1본관401호'); CP.cx3Save(); const noT = !CP.CHVAC['b1본관401호']; CP.cx3.t = '건물주 것 사용'; CP.cx3Save();
-  r6.push(['계약 상세 — 주차정보에 배정 주차면 2면 · 계약에서 B1-04 배정 → 건물 주차면에도 반영 · 냉난방기 구분 없으면 저장 안 됨',
-    two && /주차정보/.test(h) && /냉난방기/.test(h) && /임차인 설치/.test(h) && moved && noT && CP.CHVAC['b1본관401호'].t === '건물주 것 사용']); }
+  r6.push(['계약 상세 — 주차정보에 등록 차량 4대 · 계약 상세에서 차량 추가(계약 고정) → 5대 · 냉난방기 구분 없으면 저장 안 됨',
+    four && /등록 차량 4대/.test(h) && /냉난방기/.test(h) && /임차인 설치/.test(h) && added && noT && CP.CHVAC['b1본관401호'].t === '건물주 것 사용']); }
 /* 청구일·납부마감일 규칙 — 청구년월 기준 전월·당월·익월 + N일·말일 */
 { const DR = new Function(stub + bare + '; return {dayRule};')().dayRule;
   r6.push(['청구일·납부마감일 — 7월분: 전월 25일 = 6/25 · 당월 1일 = 7/1 · 당월 19일 = 7/19 · 당월 말일 = 7/31 · 익월 10일 = 8/10 · 2월분 당월 말일 = 2/28',
@@ -672,14 +661,18 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   BE.beOpen('b1', 'mgmt'); BE.be.f.me = '2028-02-29'; BE.beSave();
   r6.push(['요약 카드 수정 — 별칭 중복 막힘 · 지번 저장 · 기계식 6 → 총 26면 · 지분 100% 아니면 막힘 · 채권 10억 · 공용시설 추가·삭제 · 위탁운영계약 종료일',
     dup && b.addr2 === '지번 바꿈' && pk && sh && b.owners[0].share === 50 && b.bondNow === 1e9 && fac && !b.fac.includes('라운지') && b.mgmtEnd === '2028-02-29']); }
-/* 주차 탭 — 유닛과 관리비 사이 · 요약에서 주차장 빠짐 · 요약 숫자 · 빈 자리 필터 · 계약별 무상 대비 초과 · 배정 바꾸면 이력 */
-{ const PT = new Function(stub + bare + '; return {PRO3,pkOpen,pkSave,BUILDINGS,PLOG,setFpk,get pk(){return pk;},set tab3(v){tab3=v;},get fpk(){return fpk;}};')();
+/* 주차 탭 — 등록 차량을 계약별로 · 작은 요약 · 무료는 무상 대수까지(넘으면 막힘) · 차량번호 중복 막힘 · 필터 · 수정·삭제하면 이력 */
+{ const PT = new Function(stub + bare + '; return {PRO3,vehOpen,vehSave,vehMissing,vehDel,vehOf,PLOG,get vh(){return vh;},set tab3(v){tab3=v;},get fpk(){return fpk;},get VEH(){return VEH;}};')();
   PT.tab3 = '요약'; const sum = PT.PRO3('b1'); PT.tab3 = '주차'; const h = PT.PRO3('b1');
   const order = h.indexOf('>유닛<') < h.indexOf('>주차<') && h.indexOf('>주차<') < h.indexOf('>관리비<');
-  PT.fpk.as = '빈 자리'; const hv = PT.PRO3('b1'); PT.fpk.as = '';
-  PT.pkOpen('b1', 3, 'assign'); PT.pk.k = '본관101호'; PT.pkSave(); const lg = /본관101호/.test(PT.PLOG.b1[0].det);
-  r6.push(['주차 탭 — 탭 순서 유닛 · 주차 · 관리비 · 요약에 주차장 없음 · 등록·배정·빈 자리 숫자 · 빈 자리 필터 · 계약별 배정 현황 · 배정 바꾸면 이력',
-    order && !/<div class="ct">주차장/.test(sum) && /빈 자리/.test(h) && /계약별 배정 현황/.test(h) && /배정 변경 이력/.test(h) && !/카리나\|본관801호/.test(hv.split('계약별 배정 현황')[0].split('<tbody>')[1]||'') && lg]); }
+  PT.vehOpen('b1'); Object.assign(PT.vh, {k:'b1본관801호', plate:'99거9999', own:'홍길동', tel:'010-0000-0001', fee:'무료'}); PT.vehSave();
+  const overFree = PT.vehMissing().some(m => /무상 주차 3대까지/.test(m)); PT.vh.plate = '10가3291'; const dupP = PT.vehMissing().some(m => /이미 등록됨/.test(m));
+  PT.vh.plate = '99거9999'; PT.vh.fee = '월정액'; PT.vehSave(); const ok = PT.vehOf('b1본관801호').length === 5;
+  PT.fpk.fee = '월정액'; const hf = PT.PRO3('b1'); PT.fpk.fee = '';
+  const id = PT.VEH.find(v => v.plate === '99거9999').id; PT.vehDel(id); const lg = PT.PLOG.b1[0].det === '등록 해제';
+  r6.push(['주차 탭 — 유닛 · 주차 · 관리비 순 · 요약에 주차 없음 · 작은 요약(주차면 24 · 등록 10대) · 계약별 묶음 · 무료는 무상 대수까지 · 차량번호 중복 막힘 · 월정액 필터 · 등록 해제 이력',
+    order && !/등록 차량/.test(sum) && /주차면 24 · 등록 10대/.test(h) && /카리나\|본관801호/.test(h) && overFree && dupP && ok
+    && /145라5562/.test(hf) && !/10가3291/.test(hf) && lg]); }
 /* 수납 내역 더보기 — 받을 돈이 있는 계약(비씨에이전시)만 수납 처리가 눌리고, 다 받은 계약(에스씨케이컴퍼니)은 흐림 · 원장 보기는 모두 */
 { const MV = new Function(stub + bare + '; seedJuly(); return {PAY6,RC,MORE};')();
   MV.RC.f = {b:'b1', ym:'2026-07', st:''}; MV.MORE.length = 0; const h = MV.PAY6();
