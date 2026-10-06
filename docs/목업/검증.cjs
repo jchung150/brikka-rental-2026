@@ -601,8 +601,8 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   const on1 = MT.METER.elec.includes('본관9층') && !MT.METER.water.includes('본관9층');
   MT.udOpen('b1', '본관6층'); MT.udEdit(); MT.ud.mt.elec = false; MT.udSave(); const off = !MT.METER.elec.includes('본관6층');
   MT.udOpen('b1', '본관6층'); MT.udEdit(); MT.ud.mt.elec = true; MT.udSave(); const back = MT.METER.elec.includes('본관6층');
-  r6.push(['계량기 — 카리나빌딩 계량기 항목은 전기요금·수도요금 · 등록 때 전기만 체크 · 본관6층 계량기 떼기 · 다시 달기',
-    its.join() === 'elec,water' && /계량기 있음/.test(h) && on1 && off && back]); }
+  r6.push(['계량기 — 계량기 항목은 전기요금·수도요금·가스요금(카리나빌딩은 가스를 청구하지 않아도 표시) · 등록 때 전기만 체크 · 본관6층 계량기 떼기 · 다시 달기',
+    its.join() === 'elec,water,gas' && /계량기 있음/.test(h) && on1 && off && back]); }
 /* 수납 내역 더보기 — 받을 돈이 있는 계약(비씨에이전시)만 수납 처리가 눌리고, 다 받은 계약(에스씨케이컴퍼니)은 흐림 · 원장 보기는 모두 */
 { const MV = new Function(stub + bare + '; seedJuly(); return {PAY6,RC,MORE};')();
   MV.RC.f = {b:'b1', ym:'2026-07', st:''}; MV.MORE.length = 0; const h = MV.PAY6();

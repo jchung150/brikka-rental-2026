@@ -1784,7 +1784,9 @@ function t요약(b){
    계량기 설정은 등록 후 유닛 상세(PRO-4)에서 한다. 목업은 정산 자료(UNITS_B1)에 넣지 않는다 ═══ */
 const UNIT_USE=['사무실','근린생활','창고','기타'];
 /* 계량기를 쓰는 항목 — 이 건물에서 사용 중이고 배분 기준이 계량기를 요구하는 항목. 목업의 계량기 기록(METER)은 카리나빌딩 것이다 → 4.1.3-1 */
-const meterItems=b=>b.id!=='b1'?[]:b.charge.filter(c=>c.use&&needMeter(c.basis)&&!c.ref).map(c=>codeOf(c.it));   /* 다른 항목 검침값을 쓰는 항목(전력기금·TV수신료)은 계량기가 따로 없다 */
+/* 계량기 종류 — 사용량 단위가 있는 항목(전기 · 수도 · 가스). 이 건물이 지금 청구하지 않는 항목도 보여 준다. 계량기는 물건이라 청구와 상관없이 달려 있을 수 있다 */
+const meterItems=b=>b.id!=='b1'?[]:MASTER.filter(m=>m.unit&&!m.fixed).map(m=>m.code);
+const meterUsed=(b,code)=>b.charge.some(c=>c.use&&codeOf(c.it)===code);
 function setMeters(no,on){Object.keys(on).forEach(code=>{const L=METER[code]||(METER[code]=[]), i=L.indexOf(no);
   if(on[code]&&i<0) L.push(no); if(!on[code]&&i>=0) L.splice(i,1); SAVED[code]=null;});}
 let un=null;
@@ -1830,8 +1832,8 @@ function unHTML(){
         <div class="c2" style="margin:-4px 0 9px;white-space:normal">비운영중은 건물주 직접 사용이나 공사 중일 때만 고릅니다(슈퍼관리자). 계약을 등록하면 사용중으로 바뀝니다</div>
         ${R('메모',T('memo'))}</div>
       ${meterItems(b).length?`<div class="fg"><div class="fl">계량기</div>
-        ${meterItems(b).map(c=>R(M(c).name,`<label class="ck"><input type="checkbox" ${un.mt[c]?'checked':''} onchange="un.mt['${c}']=this.checked">계량기 있음</label>`)).join('')}
-        <div class="c2" style="margin:0;white-space:normal">사용량으로 나누는 항목만 보입니다. 나중에 계량기를 달거나 떼면 유닛 상세에서 바꿉니다</div></div>`:''}
+        ${meterItems(b).map(c=>R(M(c).name,`<label class="ck"><input type="checkbox" ${un.mt[c]?'checked':''} onchange="un.mt['${c}']=this.checked">계량기 있음</label>${meterUsed(b,c)?'':'<span class="c2" style="margin:0">이 건물은 지금 청구하지 않음</span>'}`)).join('')}
+        <div class="c2" style="margin:0;white-space:normal">나중에 계량기를 달거나 떼면 유닛 상세에서 바꿉니다</div></div>`:''}
       ${miss.length?`<div class="fnd wa3" style="margin:0"><span class="h">저장할 수 없습니다</span>빠진 항목: <b>${miss.join(' · ')}</b></div>`:''}
     </div>
     <div class="df"><button class="btn" onclick="closeDrawer()">닫기</button>
@@ -1869,7 +1871,7 @@ function udHTML(){
   const cs=unitCtrs(b.id,u.no), had=cs.length>0, flL=fl=>fl>0?fl+'층':'지하 '+Math.abs(fl)+'층';
   const inp='border:1px solid var(--line);border-radius:var(--r-sm);padding:7px 9px;font:inherit';
   const R=(k,body)=>`<div class="fr"><span class="fk">${k}</span>${body}</div>`, V=(k,v)=>R(k,`<span class="fv">${v}</span>`);
-  const meters=meterItems(b).map(c=>[M(c).name,(METER[c]||[]).includes(u.no)?'있음':'없음']);
+  const meters=meterItems(b).map(c=>[M(c).name,((METER[c]||[]).includes(u.no)?'있음':'없음')+(meterUsed(b,c)?'':' <span class="c2">이 건물은 지금 청구하지 않음</span>')]);
   let body,foot;
   if(ud.edit){const f=ud.f, miss=ud.tried?udMissing():[];
     const T=(k,w)=>`<input type="text" value="${f[k]}" oninput="ud.f.${k}=this.value" onchange="render(true)" style="${inp};${w?`max-width:${w}px`:'width:100%'}">`;
@@ -1884,7 +1886,7 @@ function udHTML(){
       ${R('유닛상태',u.st==='사용중'?`<span class="fv">사용중 <span class="lock">계약으로 정해짐</span></span>`:S('st',['공실','비운영중']))}
       ${R('메모',T('memo'))}</div>
       ${meterItems(b).length?`<div class="fg"><div class="fl">계량기</div>
-        ${meterItems(b).map(c=>R(M(c).name,`<label class="ck"><input type="checkbox" ${ud.mt[c]?'checked':''} onchange="ud.mt['${c}']=this.checked">계량기 있음</label>`)).join('')}
+        ${meterItems(b).map(c=>R(M(c).name,`<label class="ck"><input type="checkbox" ${ud.mt[c]?'checked':''} onchange="ud.mt['${c}']=this.checked">계량기 있음</label>${meterUsed(b,c)?'':'<span class="c2" style="margin:0">이 건물은 지금 청구하지 않음</span>'}`)).join('')}
         <div class="c2" style="margin:0;white-space:normal">계량기를 새로 달거나 고장으로 떼면 바꿉니다. 아직 확정하지 않은 관리비 정산에 바로 반영됩니다</div></div>`:''}
       ${miss.length?`<div class="fnd wa3" style="margin:0"><span class="h">저장할 수 없습니다</span>빠진 항목: <b>${miss.join(' · ')}</b></div>`:''}`;
     foot=`<button class="btn" onclick="ud.edit=false;ud.tried=false;render(true)">취소</button><button class="btn pri" onclick="udSave()">저장</button>`;}
