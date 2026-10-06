@@ -1,5 +1,5 @@
-<!-- BRIKKA 관리자 백오피스 목업 · 2026.10.05판 · 작업 중(미완성). 정본은 docs/기능정의서 -->
-<title>BRIKKA 백오피스 · 목업 2026.10.05 (작업 중)</title>
+<!-- BRIKKA 관리자 백오피스 목업 · 2026.10.06판 · 작업 중(미완성). 정본은 docs/기능정의서 -->
+<title>BRIKKA 백오피스 · 목업 2026.10.06 (작업 중)</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap">
 <style>
 :root{
@@ -535,7 +535,7 @@ table.nowr th,table.nowr td{white-space:nowrap}
     <header class="top">
       <div class="crumb" id="crumb"></div>
       <div class="sp"></div>
-      <div class="ver" title="목업 버전 — 아직 완성본이 아니다. 기능정의서가 정본">목업 2026.10.05판 · 작업 중</div>
+      <div class="ver" title="목업 버전 — 아직 완성본이 아니다. 기능정의서가 정본">목업 2026.10.06판 · 작업 중</div>
       <div class="today" title="오늘 — 목업의 기준 시점">2026년 8월 10일(월)</div>
     </header>
     <div class="wrap" id="view"></div>
@@ -1844,7 +1844,8 @@ function unHTML(){
    계약이 한 번이라도 있었던 유닛은 삭제하지 않는다(원장·이력이 이 유닛을 가리킨다)
    계약이 있었던 유닛은 유닛고유번호를 바꾸지 않는다(계약고유이름에 들어 있다) ═══ */
 let ud=null;
-const unitCtrs=(bid,no)=>CTRS.filter(c=>c.b===bid&&c.no===no);
+/* 이 유닛에 있었던 모든 계약 — 상태와 상관없이, 최근 계약이 위 */
+const unitCtrs=(bid,no)=>CTRS.filter(c=>c.b===bid&&c.no===no).sort((a,b)=>dnum(b.base)-dnum(a.base));
 function udOpen(bid,no){ud={bid,no,edit:false,del:false,why:''};DRAWER='udet';render(true);}
 function udEdit(){const u=BUILDINGS.find(x=>x.id===ud.bid).units.find(x=>x.no===ud.no);
   const b0=BUILDINGS.find(x=>x.id===ud.bid);
@@ -1871,7 +1872,7 @@ function udHTML(){
   const cs=unitCtrs(b.id,u.no), had=cs.length>0, flL=fl=>fl>0?fl+'층':'지하 '+Math.abs(fl)+'층';
   const inp='border:1px solid var(--line);border-radius:var(--r-sm);padding:7px 9px;font:inherit';
   const R=(k,body)=>`<div class="fr"><span class="fk">${k}</span>${body}</div>`, V=(k,v)=>R(k,`<span class="fv">${v}</span>`);
-  const meters=meterItems(b).map(c=>[M(c).name,((METER[c]||[]).includes(u.no)?'있음':'없음')+(meterUsed(b,c)?'':' <span class="c2">이 건물은 지금 청구하지 않음</span>')]);
+  const meters=meterItems(b).map(c=>[M(c).name,(METER[c]||[]).includes(u.no)?'있음':'없음']);
   let body,foot;
   if(ud.edit){const f=ud.f, miss=ud.tried?udMissing():[];
     const T=(k,w)=>`<input type="text" value="${f[k]}" oninput="ud.f.${k}=this.value" onchange="render(true)" style="${inp};${w?`max-width:${w}px`:'width:100%'}">`;
@@ -1886,14 +1887,14 @@ function udHTML(){
       ${R('유닛상태',u.st==='사용중'?`<span class="fv">사용중 <span class="lock">계약으로 정해짐</span></span>`:S('st',['공실','비운영중']))}
       ${R('메모',T('memo'))}</div>
       ${meterItems(b).length?`<div class="fg"><div class="fl">계량기</div>
-        ${meterItems(b).map(c=>R(M(c).name,`<label class="ck"><input type="checkbox" ${ud.mt[c]?'checked':''} onchange="ud.mt['${c}']=this.checked">계량기 있음</label>${meterUsed(b,c)?'':'<span class="c2" style="margin:0">이 건물은 지금 청구하지 않음</span>'}`)).join('')}
+        ${meterItems(b).map(c=>R(M(c).name,`<label class="ck"><input type="checkbox" ${ud.mt[c]?'checked':''} onchange="ud.mt['${c}']=this.checked">계량기 있음</label>`)).join('')}
         <div class="c2" style="margin:0;white-space:normal">계량기를 새로 달거나 고장으로 떼면 바꿉니다. 아직 확정하지 않은 관리비 정산에 바로 반영됩니다</div></div>`:''}
       ${miss.length?`<div class="fnd wa3" style="margin:0"><span class="h">저장할 수 없습니다</span>빠진 항목: <b>${miss.join(' · ')}</b></div>`:''}`;
     foot=`<button class="btn" onclick="ud.edit=false;ud.tried=false;render(true)">취소</button><button class="btn pri" onclick="udSave()">저장</button>`;}
   else{
     body=`<div class="fg"><div class="fl">유닛 정보</div>
       ${V('유닛상태',stb(u.st))}${b.dong&&u.dong?V('동',u.dong):''}${V('층',flL(u.fl))}${V('유닛용도',u.use)}
-      ${V('임대면적',m2(u.area))}${V('전용면적',u.net?`${m2(u.net)} <span class="c2">전용률 ${(u.net/u.area*100).toFixed(1)}%</span>`:'—')}
+      ${V('임대면적',m2(u.area))}${V('전용면적',u.net?m2(u.net):'—')}
       ${V('유닛주소',`${b.addr} ${u.no}`)}${V('메모',u.memo||'—')}</div>
       ${meters.length?`<div class="fg"><div class="fl">계량기</div>${meters.map(([n,v])=>V(n,`계량기 ${v}`)).join('')}</div>`:''}
       <div class="fg"><div class="fl">계약 이력</div>
@@ -1902,7 +1903,7 @@ function udHTML(){
         :'<div class="c2" style="margin:0">계약이 없습니다</div>'}</div>
 `;
     foot=`<button class="btn" ${had?'disabled title="계약이 있었던 유닛은 삭제할 수 없습니다"':'title="슈퍼관리자만"'} onclick="udDel()">삭제</button>
-        <button class="btn" onclick="closeDrawer()">닫기</button><button class="btn pri" onclick="udEdit()">수정</button>`;}
+<button class="btn pri" onclick="udEdit()">수정</button>`;}
   return `<div class="dro"><div class="ov" onclick="closeDrawer()"></div><div class="pn">
     <div class="dh"><div><div class="t">${u.no}</div><div class="s">${b.name} · 유닛 상세</div></div>
       <button class="x" onclick="closeDrawer()">✕</button></div>
