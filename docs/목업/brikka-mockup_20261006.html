@@ -518,7 +518,7 @@ table.nowr th,table.nowr td{white-space:nowrap}
         <div class="nh"><b>알림</b><span class="cl" onclick="event.stopPropagation();closeNoti()">모두 지우기</span></div>
         <div class="ni" onclick="go('pay-10')"><span class="bd wa">주의</span>
           <div class="nb"><div class="nt">8월 정산 미확정</div>
-            <div class="nd">카리나빌딩 · 청구일(19일)까지 9일 남았습니다.</div></div>
+            <div class="nd">카리나빌딩 · 청구일(8/19)까지 9일 남았습니다.</div></div>
           <span class="ng">3시간 전</span></div>
         <div class="ni" onclick="go('pay-12')"><span class="bd ac">정보</span>
           <div class="nb"><div class="nt">7월 월 마감 완료</div>
@@ -1539,6 +1539,8 @@ function PRO2(){
     건물관리자는 사용자 관리에 등록된 관리자 중에서 고릅니다. 새 관리자는 슈퍼관리자가 사용자 관리에서 먼저 등록합니다.<br>
     임대인은 사업자등록번호로 조회합니다. 목업에서는 <b>105-81-42117</b>(카리나)이 기존 임대인이고, 다른 번호는 새 임대인입니다.</div></div>`;
 }
+/* 건물 삭제 — 유닛도 계약도 없는 건물만(잘못 등록한 건물). 슈퍼관리자만 → 3.7 */
+function bDel(id){const i=BUILDINGS.findIndex(b=>b.id===id); if(i<0||BUILDINGS[i].units.length||CTRS.some(c=>c.b===id)) return; BUILDINGS.splice(i,1); render(true);}
 function PRO1(){
   const q=f1p.q.trim();
   const list=BUILDINGS.filter(b=>(!q||[b.name,b.addr,b.addr2,b.owner,b.mgr].some(x=>(x||'').includes(q)))
@@ -1546,7 +1548,6 @@ function PRO1(){
   const rows=list.map(b=>{
     const d=dday(b.mgmtEnd);
     return `<tr onclick="go('pro-3/${b.id}')">
-      <td class="c" onclick="event.stopPropagation()"><span class="cb"></span></td>
       <td><div class="c1">${b.name}${bOp(b.id)==='비운영중'?' <span class="bd mu">비운영중</span>':''}</div><div class="c2">${b.alias} · ${b.kind}</div></td>
       <td><div class="c1" style="font-weight:400">${b.addr}</div><div class="c2">${b.addr2}</div></td>
       <td><div class="c1" style="font-weight:400">${b.owner}${b.owners.length>1?` <span class="c2">외 ${b.owners.length-1}</span>`:''}</div><div class="c2">${b.ownerBiz}</div></td>
@@ -1554,6 +1555,8 @@ function PRO1(){
       <td class="n"><div class="c1" style="font-weight:400">${m2(b.area)}</div><div class="c2">연면적 ${num(b.gross)}</div></td>
       <td class="n"><div class="c1" style="font-weight:400">${pct(b.vac)}</div>
           <div class="c2">전체 ${b.unitCnt} · 공실 ${b.vacCnt}</div></td>
+      <td class="c">${moreCell([{t:'상세',go:`tab3='요약';go('pro-3/${b.id}')`},{t:'수정',go:`tab3='요약';go('pro-3/${b.id}')`},
+        {t:'삭제',go:`bDel('${b.id}')`,off:b.units.length||b.unitCnt||CTRS.some(c=>c.b===b.id)?'유닛이나 계약이 있는 건물은 삭제할 수 없습니다. 운영을 멈추려면 운영 중지를 쓰세요':''}])}</td>
     </tr>`}).join('');
   return `
   <div class="ph"><h1>건물 목록</h1><span class="sid">PRO-1</span>
@@ -1566,10 +1569,9 @@ function PRO1(){
   </div>
   <div class="tbl"><div class="tw"><table>
     <thead><tr>
-      <th class="c" style="width:44px"><span class="cb"></span></th>
       <th>건물 <span class="so">⇅</span></th><th>주소 <span class="so">⇅</span></th>
       <th>건물주 <span class="so">⇅</span></th><th>건물관리자 <span class="so">⇅</span></th>
-      <th class="n">임대가능면적 <span class="so">⇅</span></th><th class="n">공실률 <span class="so">⇅</span></th>
+      <th class="n">임대가능면적 <span class="so">⇅</span></th><th class="n">공실률 <span class="so">⇅</span></th><th class="c">더보기</th>
     </tr></thead><tbody>${rows||'<tr><td colspan="7"><div class="empty">조건에 맞는 건물이 없습니다</div></td></tr>'}</tbody>
   </table></div>
   <div class="pgw">
@@ -1771,9 +1773,9 @@ function t요약(b){
   </div>`}`;
 }
 
-/* 유닛 탭 — 카드 한 장이 유닛 하나. 계약이 있는 유닛은 누르면 계약 상세로 간다 → PRO-3 */
+/* 유닛 탭 — 카드 한 장이 유닛 하나. 누르면 오른쪽에 유닛 상세 패널(PRO-4) */
 /* ═══ 유닛 등록 — 건물 상세 유닛 탭의 오른쪽 패널. 주차면 추가와 같은 방식 → PRO-3
-   계량기 설정은 등록 후 유닛 상세(PRO-4)에서 한다. 목업은 정산 자료(UNITS_B1)에 넣지 않는다 ═══ */
+   계량기는 여기서 정하고 나중에 유닛 상세(PRO-4)에서 달고 뗀다. 목업은 정산 자료(UNITS_B1)에 넣지 않는다 ═══ */
 const UNIT_USE=['사무실','근린생활','창고','기타'];
 /* 계량기를 쓰는 항목 — 이 건물에서 사용 중이고 배분 기준이 계량기를 요구하는 항목. 목업의 계량기 기록(METER)은 카리나빌딩 것이다 → 4.1.3-1 */
 /* 계량기 종류 — 사용량 단위가 있는 항목(전기 · 수도 · 가스). 이 건물이 지금 청구하지 않는 항목도 보여 준다. 계량기는 물건이라 청구와 상관없이 달려 있을 수 있다 */
@@ -1939,6 +1941,7 @@ const dTitle=d=>d.ttl||docTitle(d.t);
 const docCtr=(b,d)=>{const c=d.k&&CTRS.find(x=>ckey(x)===d.k);return c?cnameHTML(b.alias,c.no,c.ten):'<span style="color:var(--faint)">—</span>';};   /* 올릴 때 정한 제목. 없으면 파일 이름 */
 function dPickRow(i,e){if(e)e.stopPropagation();selD[i]=!selD[i];render(true);}
 function dPickAll(b,v){selD={};if(v)b.docs.forEach((_,i)=>selD[i]=true);render(true);}
+function dPickIds(ids,v){selD={};if(v)ids.forEach(i=>selD[i]=true);render(true);}
 function docOpen(bid,i){dc={bid,mode:'view',i};DRAWER='doc';render(true);}
 function docDelOpen(bid,ids){if(!ids.length) return; dc={bid,mode:'del',ids,why:''};DRAWER='doc';render(true);}
 function docDel(){if(!dc.why.trim()) return; const b=BUILDINGS.find(x=>x.id===dc.bid);
@@ -1976,19 +1979,19 @@ function docHTML(){
   </div></div>`;
 }
 /* ═══ 파일 업로드 — 자료보관 탭의 「+ 파일 업로드」. 귀속 대상은 이 건물로 정해져 있다(DOC-3의 탭 경로) → PRO-3 · DOC-3
-   여러 파일을 「파일 찾기」로 한 번에 고르고, 파일마다 제목 · 카테고리 · 메모를 정한다. 제목은 파일 이름으로 미리 채운다 ═══ */
+   한 번에 파일 하나. 제목 · 카테고리 · 메모를 정한다. 제목은 파일 이름으로 미리 채운다 ═══ */
 let up=null;
 const fileSz=n=>n>=1048576?(n/1048576).toFixed(1)+' MB':Math.max(1,Math.round(n/1024))+' KB';
 /* 한 번에 파일 하나. 처음부터 파일 · 제목 · 카테고리 · 메모 칸을 다 보여 준다 */
 const upSlot=()=>({t:'',sz:'',ttl:'',c:'',m:'',k:''});
 /* nc — 계약 등록 화면에서 연 경우. 귀속 대상이 등록 중인 계약으로 정해져 있다 */
-function upOpen(bid,fromNc){up={bid,nc:!!fromNc,files:[upSlot()],tried:false};DRAWER='upl';render(true);}
+function upOpen(bid,fromNc,ck){up={bid,nc:!!fromNc,ck:ck||'',files:[{...upSlot(),k:ck||''}],tried:false};DRAWER='upl';render(true);}
 /* 관련 계약 — 건물 자료보관에서 올릴 때만 고른다. 고르면 귀속 대상이 그 계약이 되고 카테고리도 계약용으로 바뀐다 */
 function upCtr(k){const f=up.files[0]; f.k=k; if(f.c&&!DOC_CAT_OF[k?'계약':'건물'].includes(f.c)) f.c=''; render(true);}
 function upSet(i,file){const f=up.files[i]; f.t=file.name; f.sz=fileSz(file.size); if(!f.ttl.trim()) f.ttl=docTitle(file.name); render(true);}
 function upPick(i){const el=document.createElement('input');el.type='file';el.onchange=()=>{if(el.files[0]) upSet(i,el.files[0]);};el.click();}
-function upMissing(){const m=[], n=up.files.length>1;
-  up.files.forEach((f,i)=>{const p=n?`${i+1}번 `:''; if(!f.t) m.push(p+'파일'); if(!f.ttl.trim()) m.push(p+'제목'); if(!f.c) m.push(p+'카테고리');});return m;}
+function upMissing(){const m=[], f=up.files[0];
+  if(!f.t) m.push('파일'); if(!f.ttl.trim()) m.push('제목'); if(!f.c) m.push('카테고리'); return m;}
 function upSave(){up.tried=true; if(upMissing().length){render(true);return;}
   const b=BUILDINGS.find(x=>x.id===up.bid), now=`${TODAY_S} ${new Date().toTimeString().slice(0,5)}`;
   if(up.nc) up.files.forEach(f=>nc.files.push({file:f.t,t:f.ttl.trim(),c:f.c,m:f.m.trim()}));
@@ -1996,12 +1999,10 @@ function upSave(){up.tried=true; if(upMissing().length){render(true);return;}
   selD={}; DRAWER=null; up=null; render(true);}
 function upHTML(){
   if(DRAWER!=='upl'||!up) return '';
-  const b=BUILDINGS.find(x=>x.id===up.bid), miss=up.tried?upMissing():[], many=up.files.length>1;
+  const b=BUILDINGS.find(x=>x.id===up.bid), miss=up.tried?upMissing():[];
   const inp='border:1px solid var(--line);border-radius:var(--r-sm);padding:7px 9px;font:inherit';
   const R=(k,body,req)=>`<div class="fr"><span class="fk">${k}${req?' <b style="color:var(--warn)">*</b>':''}</span>${body}</div>`;
   const slot=(f,i)=>`
-        ${many?`<div style="display:flex;align-items:center;margin-bottom:6px"><b style="font-size:12px">${i+1}번 파일</b>
-          <button class="btn sm" style="margin-left:auto" onclick="up.files.splice(${i},1);render(true)">빼기</button></div>`:''}
         ${R('파일',`<button class="btn sm" onclick="upPick(${i})">파일 찾기</button>${f.t?`<span class="fv">${f.t} <span class="c2">${f.sz}</span></span>`:'<span class="c2" style="margin:0">선택된 파일 없음</span>'}`,1)}
         ${R('제목',`<input type="text" value="${f.ttl}" placeholder="파일을 고르면 파일 이름으로 채워집니다" oninput="up.files[${i}].ttl=this.value" style="${inp};width:100%">`,1)}
         ${R('카테고리',`<select onchange="up.files[${i}].c=this.value;render(true)" style="${inp}"><option value="">선택</option>${DOC_CAT_OF[up.nc||f.k?'계약':'건물'].map(c=>`<option ${f.c===c?'selected':''}>${c}</option>`).join('')}</select>`,1)}
@@ -2011,29 +2012,32 @@ function upHTML(){
       <button class="x" onclick="closeDrawer()">✕</button></div>
     <div class="db">
       ${up.nc?R('귀속 대상','<span class="fv">계약 · 지금 등록 중인 계약</span>')
+        :up.ck?(c=>R('귀속 대상',`<span class="fv">계약 · ${cname(b.alias,c.no,c.ten)}</span>`))(CTRS.find(x=>ckey(x)===up.ck))
         :(()=>{const f=up.files[0], cs=CTRS.filter(c=>c.b===b.id).sort((x,y)=>dnum(y.base)-dnum(x.base)), cur=f.k&&CTRS.find(c=>ckey(c)===f.k);
           return R('관련 계약',`<select onchange="upCtr(this.value)" style="${inp};max-width:100%"><option value="">없음 — 건물 문서</option>${cs.map(c=>`<option value="${ckey(c)}" ${f.k===ckey(c)?'selected':''}>${cname(b.alias,c.no,c.ten)} (${c.st})</option>`).join('')}</select>`)
             +R('귀속 대상',`<span class="fv">${cur?`계약 · ${cname(b.alias,cur.no,cur.ten)}`:`건물 · ${b.name}`}</span>`);})()}
-      ${up.files.map((f,i)=>many?`<div style="border:1px solid var(--line);border-radius:var(--r-sm);padding:10px 12px 2px;margin-bottom:10px">${slot(f,i)}</div>`:slot(f,i)).join('')}
+      ${slot(up.files[0],0)}
       ${miss.length?`<div class="fnd wa3" style="margin:0"><span class="h">올릴 수 없습니다</span>빠진 항목: <b>${miss.join(' · ')}</b></div>`:''}
     </div>
-    <div class="df"><button class="btn pri" onclick="upSave()">올리기${many?` ${up.files.length}건`:''}</button></div>
+    <div class="df"><button class="btn pri" onclick="upSave()">올리기</button></div>
   </div></div>`;
 }
-function t자료(b){
-  const nSel=b.docs.filter((_,i)=>selD[i]).length, all=b.docs.length&&nSel===b.docs.length;
+/* 자료보관 목록 — 건물 상세(ck 없음)와 계약 상세(ck = 계약 키)가 같은 표를 쓴다. 계약 상세는 그 계약에 귀속된 문서만 → PRO-3 · CTR-3 */
+function t자료(b,ck){
+  const ids=b.docs.map((_,i)=>i).filter(i=>!ck||b.docs[i].k===ck);
+  const nSel=ids.filter(i=>selD[i]).length, all=ids.length&&nSel===ids.length;
   return `<div class="card"><div class="ct">자료보관
-    <span class="ca"><button class="btn sm" ${nSel?'':'disabled title="삭제할 문서를 체크하세요"'} onclick="docDelOpen('${b.id}',${JSON.stringify(b.docs.map((_,i)=>i).filter(i=>selD[i]))})">선택 삭제${nSel?` ${nSel}건`:''}</button>
-      <button class="btn pri sm" onclick="upOpen('${b.id}')">+ 파일 업로드</button></span></div>
-    ${!b.docs.length?`<div class="empty"><div class="t">등록된 자료가 없습니다</div>계약서·등기부등본 등을 업로드할 수 있습니다.</div>`:`<div class="tw"><table>
-      <thead><tr><th class="c" style="width:44px"><span class="cb ${all?'on':''}" style="cursor:pointer" onclick="dPickAll(BUILDINGS.find(x=>x.id==='${b.id}'),${all?'false':'true'})"></span></th>
-        <th>제목 <span class="so">⇅</span></th><th>카테고리</th><th>관련 계약</th><th>업로드한 사람</th><th>등록일시 <span class="so">⇅</span></th><th class="c">더보기</th></tr></thead>
-      <tbody>${b.docs.map((d,i)=>`<tr class="${selD[i]?'on':''}">
+    <span class="ca"><button class="btn sm" ${nSel?'':'disabled title="삭제할 문서를 체크하세요"'} onclick="docDelOpen('${b.id}',${JSON.stringify(ids.filter(i=>selD[i]))})">선택 삭제${nSel?` ${nSel}건`:''}</button>
+      <button class="btn pri sm" onclick="upOpen('${b.id}',false${ck?`,'${ck}'`:''})">+ 파일 업로드</button></span></div>
+    ${!ids.length?`<div class="empty"><div class="t">등록된 자료가 없습니다</div>${ck?'계약서·사업자등록증':'계약서·등기부등본'} 등을 업로드할 수 있습니다.</div>`:`<div class="tw"><table>
+      <thead><tr><th class="c" style="width:44px"><span class="cb ${all?'on':''}" style="cursor:pointer" onclick="dPickIds(${JSON.stringify(ids)},${all?'false':'true'})"></span></th>
+        <th>제목 <span class="so">⇅</span></th><th>카테고리</th>${ck?'':'<th>관련 계약</th>'}<th>업로드한 사람</th><th>등록일시 <span class="so">⇅</span></th><th class="c">더보기</th></tr></thead>
+      <tbody>${ids.map(i=>{const d=b.docs[i];return `<tr class="${selD[i]?'on':''}">
         <td class="c"><span class="cb ${selD[i]?'on':''}" style="cursor:pointer" onclick="dPickRow(${i},event)"></span></td>
         <td><div class="c1">${dTitle(d)}</div><div class="c2">${docExt(d.t)} · ${d.sz}</div></td>
-        <td><span class="bd mu">${d.c}</span></td><td>${docCtr(b,d)}</td><td>${d.by}</td>
+        <td><span class="bd mu">${d.c}</span></td>${ck?'':`<td>${docCtr(b,d)}</td>`}<td>${d.by}</td>
         <td><div class="c1" style="font-weight:400">${d.at.split(' ')[0]}</div><div class="c2">${d.at.split(' ')[1]}</div></td>
-        <td class="c">${moreCell([{t:'상세',go:`docOpen('${b.id}',${i})`},{t:'내려받기',go:`docDown('${b.id}',${i})`},{t:'삭제',go:`docDelOpen('${b.id}',[${i}])`}])}</td></tr>`).join('')}</tbody>
+        <td class="c">${moreCell([{t:'상세',go:`docOpen('${b.id}',${i})`},{t:'내려받기',go:`docDown('${b.id}',${i})`},{t:'삭제',go:`docDelOpen('${b.id}',[${i}])`}])}</td></tr>`;}).join('')}</tbody>
     </table></div>`}</div>`;
 }
 
@@ -2074,7 +2078,8 @@ function cdHTML(){
   </div></div>`;
 }
 function t청구(b){
-  if(!b.charge.length) return `<div class="tbl"><div class="empty"><div class="t">등록된 관리비 항목이 없습니다</div>건물에서 부과할 항목을 추가하세요.</div></div>`;
+  if(!b.charge.length) return `<div class="card"><div class="ct">관리비<span class="ca"><button class="btn pri sm" onclick="openCS()">+ 청구 항목 추가</button></span></div>
+    <div class="empty"><div class="t">등록된 청구항목이 없습니다</div>이 건물에서 받을 청구항목을 추가하세요.</div></div>`;
   return `
   <div class="card"><div class="ct">관리비
     <span class="ca"><button class="btn pri sm" onclick="openCS()">+ 청구 항목 추가</button></span></div>
@@ -2241,8 +2246,7 @@ function stRead(m,R){
   <div class="card"><div class="ct">검침 입력${todo?` <span class="bd wa">미입력 ${todo}개</span>`:''}
     <span class="ca">
       <span style="font-size:12px;color:var(--muted);margin-right:6px">검침일 일괄 적용</span>
-      <input class="inp d" type="date" value="${b.readDate||TODAY_ISO}" onchange="setReadDate('${m.code}',this.value)">
-      <button class="btn sm">엑셀 업로드</button></span></div>
+      <input class="inp d" type="date" value="${b.readDate||TODAY_ISO}" onchange="setReadDate('${m.code}',this.value)"></span></div>
     <div class="tw"><table>
       <thead><tr><th>계약고유이름</th><th>검침일</th>
         <th class="n">직전 검침값</th><th class="n">당월 검침값</th>
@@ -2384,7 +2388,7 @@ function stAdj(m,R){
 }
 
 /* ── 4단계 · 산출 결과 ── */
-/* ═══ 일할 계산기 — 고지서 사용 기간 중 일부만 쓴 계약(입주·퇴거)의 몫을 줄인다 → PAY-10 · 4.1.9
+/* ═══ 일할 계산기 — 고지서 부과 기간 중 일부만 쓴 계약(입주·퇴거)의 몫을 줄인다 → PAY-10 · 4.1.9
    일수는 양 끝을 모두 센다. 원 미만은 버린다. 계산값은 담당자가 고칠 수 있다. 줄어든 몫은 공실·미청구분(건물주 부담)으로 간다 ═══ */
 let prc=null;
 function prcOpen(code,no){
@@ -2417,17 +2421,17 @@ function prcHTML(){
     <div class="dh"><div><div class="t">${m.name} 일할 계산</div><div class="s">${cname(BUILDINGS[0].alias,prc.no,prc.ten)}</div></div>
       <button class="x" onclick="closeDrawer()">✕</button></div>
     <div class="db">
-      <div class="fg"><div class="fl">고지서 사용 기간</div>${D('from','부과 시작일')}${D('to','부과 종료일')}${V('부과 일수',`<b>${pd}일</b>`)}</div>
+      <div class="fg"><div class="fl">고지서 부과 기간</div>${D('from','부과 시작일')}${D('to','부과 종료일')}${V('부과 일수',`<b>${pd}일</b>`)}</div>
       <div class="fg"><div class="fl">이 계약이 쓴 기간</div>${D('af','적용 시작일')}${D('at','적용 종료일')}${V('적용 일수',`<b>${ad}일</b>`)}
         <div class="c2" style="margin:0;white-space:normal">기산일·계약 종료일로 미리 채웠습니다. 양 끝 날짜를 모두 셉니다.</div></div>
       <div class="fg"><div class="fl">금액</div>
-        ${V(m.name,won(prc.base))}
+        ${V('원래 금액',won(prc.base))}
         ${V('계산값',`${won(v)} <span class="c2">몫 × ${ad} ÷ ${pd}, 원 미만 버림</span>`)}
-        <div class="fr"><span class="fk">조정 ${m.name}</span><input type="text" inputmode="numeric" value="${prc.amt===''?num(v):num(numOf(prc.amt))}"
+        <div class="fr"><span class="fk">조정 금액</span><input type="text" inputmode="numeric" value="${prc.amt===''?num(v):num(numOf(prc.amt))}"
           onchange="prcSet('amt',this.value)" style="text-align:right;max-width:140px"><span class="c2" style="margin:0">원</span></div>
         <div class="fr"><span class="fk">사유</span><input type="text" value="${prc.why}" placeholder="${prcWhy()}" oninput="prc.why=this.value"></div>
 </div>
-      ${bad?'<div class="fnd wa3" style="margin:0"><span class="h">적용 기간을 확인하세요</span>적용 기간은 고지서 사용 기간 안이어야 합니다.</div>':''}
+      ${bad?'<div class="fnd wa3" style="margin:0"><span class="h">적용 기간을 확인하세요</span>적용 기간은 고지서 부과 기간 안이어야 합니다.</div>':''}
       ${over?'<div class="fnd wa3" style="margin:8px 0 0"><span class="h">원래 금액보다 클 수 없습니다</span></div>':''}
     </div>
     <div class="df"><button class="btn" onclick="closeDrawer()">닫기</button>
@@ -2521,8 +2525,8 @@ function PAY12(){
       <td class="st c" onclick="go('pay-10')">
         <span class="stp"><span class="dot2" style="background:var(--${p.settle==='확정'?'ok':p.settle==='작성중'?'warn':'faint'})"></span>
         ${p.settle}</span></td>
-      <td class="st n" onclick="go('pay-1')">${p.inv?`<b>${p.inv}건</b><div class="c2">발행 완료</div>`
-        :`<span style="color:var(--faint)">미발행</span><div class="c2">대상 ${p.invN}건</div>`}</td>
+      <td class="st n" onclick="go('pay-1')">${p.inv?`<b>${p.inv} / ${p.invN}건</b><div class="c2">발행 / 대상</div>`
+        :`<span style="color:var(--faint)">0 / ${p.invN}건</span><div class="c2">발행 / 대상</div>`}</td>
       <td class="n">${p.amt?won(p.amt):'—'}</td>
       <td class="st n" onclick="go('pay-6')">${p.inv?`<b>${p.paidN} / ${p.invN}</b>
         <div class="bar ${rate<100?'part':''}"><i style="width:${rate}%"></i></div>`:'—'}</td>
@@ -2588,7 +2592,7 @@ const MC_WAIT={b2:{'2026-07':3}};
 let s11={b:'b1',ym:'2026-07'}, mcx=null;
 const mcKey=(b,ym)=>b+'|'+ym;
 /* 청구일 · 납부마감일 — 청구년월을 기준으로 「전월·당월·익월」 + 「N일·말일」. 7월분을 6/25에 청구하고 7/1까지 받는 건물도 있다 → 3.5 */
-function dayRule(rule,ym){const m=/(전월|당월|익월)\s*(\d+일|말일)/.exec(rule||''); if(!m) return dueStr(ym);
+function dayRule(rule,ym){const m=/(전월|당월|익월)\s*(\d+일|말일)/.exec(rule||''); if(!m) return eom(ym);
   const [y,mo]=ym.split('-').map(Number), off={전월:-1,당월:0,익월:1}[m[1]];
   const d=m[2]==='말일'?new Date(Date.UTC(y,mo+off,0)):new Date(Date.UTC(y,mo-1+off,parseInt(m[2])));
   return d.toISOString().slice(0,10);}
@@ -3029,8 +3033,8 @@ function PAY1(){
     <b>미납 잔액</b>은 원장에서 계산되는 값이며 이번 회차 청구와 별개다.
     청구서에는 <b>합계에 넣지 않고 별도 안내로</b> 표기한다. 세금계산서에는 넣지 않는다.
     <b>과납</b>(돌려줄 돈)도 같은 칸에 같은 방식으로 표기한다.<br>
-    항목 상태는 셋이다. <b>약정</b>(계약서 금액이라 변하지 않는다) ·
-    <b>정산 미확정</b>(관리비 정산을 확정하면 확정된다) · <b>정산 확정</b>.<br>
+    항목 상태는 넷이다. <b>약정</b>(계약서 금액이라 변하지 않는다) ·
+    <b>정산 미확정</b>(관리비 정산을 확정하면 확정된다) · <b>정산 확정</b> · <b>추가</b>(계약 상세에서 더 받기로 넣은 추가 청구).<br>
     <b>합계는 부가세 포함</b>이다. 임차인이 실제로 납부하는 금액이다.
     발행 문서가 <b>세금계산서</b>인 항목만 부가세가 붙는다.<br>
     금액 칸의 <b style="color:var(--warn)">미산출</b>은 이번 회차 대상인데 금액이 없다는 뜻이다.
@@ -3040,7 +3044,7 @@ function PAY1(){
 }
 
 /* ═══ PAY-6 수납 내역 ═══ */
-/* 2026-07 카리나빌딩 운영계좌 거래내역 — 은행에서 내려받은 형식 그대로다. 7/20 ~ 7/31분.
+/* 2026-07 카리나빌딩 납부 계좌 거래내역 — 은행에서 내려받은 형식 그대로다. 7/20 ~ 7/31분.
    8월 실제 거래내역의 날짜를 7월로 옮기고, 임차인 입금액은 7월 청구액에 맞춰 만든 예시값이다.
    (주)비씨에이전시는 6·7월분 중 5,000,000원만 냈다 · 주식회사루비뮤직은 6월 부족분 385,000원을 얹어 냈다
    에스씨케이컴퍼니는 6월 과납 18,000원(전월 과납액)을 뺀 금액을 냈다
@@ -3106,7 +3110,7 @@ No.    거래일시    적요    기재내용    지급(원)    입금(원)    �
 55    2026.07.21 14:14:25    타행건별    SK렌터카(주)    0    1,938,620    158,820,108    신한은행(088699)        0
 56    2026.07.20 11:04:33    인터넷    기업연단구입    162,800    0    156,881,488    동부이촌동지점        0`;
 
-/* 2026-06 카리나빌딩 운영계좌 거래내역 — 목업 예시값. 6월 청구액을 6/24 ~ 6/30에 받았다.
+/* 2026-06 카리나빌딩 납부 계좌 거래내역 — 목업 예시값. 6월 청구액을 6/24 ~ 6/30에 받았다.
    (주)비씨에이전시는 내지 않았다 · 주식회사루비뮤직은 385,000원을 덜 냈다 · 국세환급금은 임차인 입금이 아니다
    아마데우스는 7월과 입금자명이 다르다(AMADEUS KOREA) — 7월에는 자동 매칭되지 않는다
    에스씨케이컴퍼니는 18,000원을 더 냈다(과납) — 7월 청구에서 전월 과납액으로 빠지고, 7월에는 그만큼 덜 냈다 */
@@ -3156,7 +3160,10 @@ const normName=s=>String(s||'').normalize('NFKC')
 /* 날짜 — 시간대 영향 없이 날 단위로 센다 */
 const TODAY_S='2026-08-10';   /* 오늘 — 7월 청구서는 7/19 발행 · 7/31 납부마감 · 8/5 월 마감. 8월 청구서는 8/19 발행 예정 */
 const dnum=d=>{const [y,m,dd]=d.slice(0,10).split('-').map(Number);return Date.UTC(y,m-1,dd)/864e5;};
-const dueStr=ym=>{const [y,m]=ym.split('-').map(Number);const d=new Date(Date.UTC(y,m,0));return d.toISOString().slice(0,10);};
+const eom=ym=>{const [y,m]=ym.split('-').map(Number);const d=new Date(Date.UTC(y,m,0));return d.toISOString().slice(0,10);};
+/* 카리나빌딩의 납부마감일 · 청구일 — 건물 규칙(3.5)에서 구한다. 목업의 수납 자료는 카리나빌딩뿐이다 */
+const dueStr=ym=>dayRule(BUILDINGS[0].dueDay,ym);
+const billOn=ym=>dayRule(BUILDINGS[0].billDay,ym);
 const BILLS=[];
 /* 원장에 기록된 수납 배분 — 청구 건별 누적액 */
 const PAID={};
@@ -3309,8 +3316,8 @@ function rcPrefix(nm,B){
 function rcPlan(amt,keys,paid,extra,t){
   const ci=k=>CTRS.findIndex(c=>ckey(c)===k);
   /* t(입금일)에 마감되어 있던 달의 청구에는 배분하지 않는다. 그 달 미납은 미납액으로 넘어갔다 → 4.3.6 */
-  /* 입금일에 아직 발행되지 않은 청구(발행일 = 매월 19일)는 넣지 않는다 */
-  const open=[...BILLS.filter(i=>!(t&&(closedBy(bOfK(i.k),i.ym,t)||dnum(i.date||i.ym+'-19')>dnum(t)))),...(t?keys.map(k=>carryAt(k,t)).filter(Boolean):[]),...(extra||[])].filter(i=>keys.includes(i.k))
+  /* 입금일에 아직 발행되지 않은 청구(발행일 = 건물의 청구일)는 넣지 않는다 */
+  const open=[...BILLS.filter(i=>!(t&&(closedBy(bOfK(i.k),i.ym,t)||dnum(i.date||billOn(i.ym))>dnum(t)))),...(t?keys.map(k=>carryAt(k,t)).filter(Boolean):[]),...(extra||[])].filter(i=>keys.includes(i.k))
     .map(i=>({...i,pr:i.carry?0:prioOf(i.n.split(' ')[0]),due:i.amt-cutOf(i.id)-paidNet(i.id,paid)})).filter(i=>i.due>0)
     .sort((a,b)=>a.ym<b.ym?-1:a.ym>b.ym?1:a.pr!==b.pr?a.pr-b.pr:ci(a.k)-ci(b.k));
   let r=amt;const lines=[];
@@ -3582,7 +3589,7 @@ function PAY13(){
     ${g.biz?`<div class="isec"><div class="ish"><span class="isn">2</span>배분 미리보기
         <span class="c2" style="margin:0 0 0 6px;font-weight:400">${B[g.biz].n} 미납 ${won(openAll)} → ${won(openAll-(d.amt-pl.rest))}</span></div>
       <div class="card">${tbl}</div>
-      <div class="hint">오래된 회차부터, 같은 회차 안에서는 우선순위 순서로 채웁니다. 확정하면 이대로 원장에 기록됩니다.</div></div>`:''}
+      <div class="hint">전월 미납액부터, 그다음 오래된 회차부터, 같은 회차 안에서는 우선순위 순서로 채웁니다. 확정하면 이대로 원장에 기록됩니다.</div></div>`:''}
     <div style="display:flex;gap:8px;margin-top:6px">
       <button class="btn" onclick="rcIgnore(${d.no})">무시</button>
       <button class="btn" onclick="rcMis(${d.no})">오납</button>
@@ -3790,7 +3797,7 @@ function payHTML(){
   const ok=((pm.amt>0&&pl.lines.length)||pm.feeOn)&&!over;
   return `<div class="dro"><div class="ov" onclick="closeDrawer()"></div><div class="pn">
     <div class="dh"><div><div class="t">수납 처리</div>
-      <div class="s">${bn.name} · ${c.no} · ${c.ten}</div></div>
+      <div class="s">${cname(bn.alias,c.no,c.ten)}</div></div>
       <button class="x" onclick="closeDrawer()">✕</button></div>
     <div class="db">
       <div class="fg"><div class="fl">정리할 돈</div>
@@ -4325,12 +4332,13 @@ function CTR2(){
         onchange="nc.memo=this.value">${nc.memo}</textarea>`);
   return `
   <div class="ph"><h1>새로운 계약 등록</h1><span class="sid">CTR-2</span>
-    <div class="act"><button class="btn" onclick="nc=null;go('ctr-1')">취소</button></div></div>
+</div>
   <div class="two" style="align-items:start;grid-template-columns:minmax(0,1fr) minmax(0,1fr)">${'<div>'+left+'</div><div>'+right+'</div>'}</div>
   ${miss.length||(nc.tried&&cl&&cl.block)?`<div class="fnd wa3" style="margin-bottom:12px"><span class="h">저장할 수 없습니다</span>
     ${miss.length?`빠진 항목: <b>${miss.join(' · ')}</b>`:''}${cl&&cl.block?`${miss.length?'<br>':''}같은 유닛의 진행중 계약과 기간이 겹칩니다.`:''}</div>`:''}
   <div style="display:flex;gap:8px;justify-content:flex-end;align-items:center;padding:14px 0;border-top:1px solid var(--line)">
     <span class="c2" style="margin-right:auto"><b style="color:var(--warn)">*</b> 필수 · 저장하면 계약 상세로 이동합니다</span>
+    <button class="btn" onclick="nc=null;go('ctr-1')">취소</button>
     <button class="btn" onclick="ncSave(false)">저장 (웰컴 메일 안 보냄)</button>
     <button class="btn pri" onclick="ncSave(true)">저장 및 웰컴 메일 보내기</button></div>
   <div class="hint">
@@ -4679,7 +4687,7 @@ function ledgerOf(k){
   BILLS.filter(i=>i.k===k).forEach(i=>{
     const tax=isTaxItem(i.n), sup=tax?Math.floor(i.amt*10/11):i.amt;
     const ymL=i.ym.slice(2).replace('-','.')+'월분';
-    rows.push({date:i.date||i.ym+'-19',type:'청구',acc:'매출채권',memo:i.memo||`${ymL} ${i.n}`,item:i.memo||`${ymL} ${i.n}`,bid:i.fee?null:i.id,
+    rows.push({date:i.date||billOn(i.ym),type:'청구',acc:'매출채권',memo:i.memo||`${ymL} ${i.n}`,item:i.memo||`${ymL} ${i.n}`,bid:i.fee?null:i.id,
       g:i.fee?'fee'+i.id:'bill'+i.ym,ym:i.ym,ttl:i.memo,
       inc:i.amt,sup,vat:i.amt-sup,ord:1,pr:prioOf(i.n.split(' ')[0])});
     (PAYEV[i.id]||[]).filter(e=>!e.dep.startsWith('cr')).forEach(e=>rows.push({date:e.date,type:'수납',acc:'매출채권',
@@ -4722,7 +4730,8 @@ function CTR3(k){
   const c=CTRS.find(x=>ckey(x)===k);
   if(!c) return TODO('ctr-1');
   if(tab3c!=='원장') return CTR3head(c,k)+(tab3c==='요약'?CTR3sum(c,k):tab3c==='청구·수납'?CTR3month(c,k):tab3c==='임대료·관리비'?CTR3rent(c,k)
-    :`<div class="tbl"><div class="empty"><div class="t">아직 만들지 않은 탭입니다</div>목업에는 요약 · 원장 · 임대료·관리비 탭만 있습니다.</div></div>`);
+    :tab3c==='자료보관'?t자료(BUILDINGS.find(x=>x.id===c.b)||BUILDINGS[0],k)
+    :`<div class="tbl"><div class="empty"><div class="t">아직 만들지 않은 탭입니다</div>목업에는 임차인 탭이 없습니다.</div></div>`);
   const bn=BUILDINGS.find(x=>x.id===c.b)||BUILDINGS[0];
   const L=ledgerOf(k);
   const from=f3.per?new Date((dnum(TODAY_S)-({'1':30,'3':91,'12':365}[f3.per]))*864e5)
@@ -4732,8 +4741,6 @@ function CTR3(k){
   /* 매출채권 잔액이 0보다 작으면 과납이다 */
   const balTx=v=>won(v);
   const b0=L.bal.매출채권, late=arrears(c).due;
-  const now=b0>0?`<b style="color:var(--warn)">미납 ${won(late)}</b>${b0>late?` <span class="c2" style="margin:0 0 0 4px">납부 전 ${won(b0-late)}</span>`:''}`
-    :b0<0?`<b style="color:var(--pri)">과납 ${won(-b0)}</b> <span class="c2" style="margin:0 0 0 4px">돌려줄 돈 · 다음 청구서 발행 때 먼저 배분되며, 위 「환불」로 돌려줄 수도 있습니다</span>`:'<b>0원</b>';
   const dash='<span style="color:var(--faint)">—</span>';
   return CTR3head(c,k)+`
   <div class="fbar">

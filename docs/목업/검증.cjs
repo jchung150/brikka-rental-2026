@@ -640,6 +640,15 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   r6.push(['관련 계약 — 계약 고르면 귀속 대상 계약 · 카테고리 계약용(건물서류 지워짐) · 목록에 관련 계약 · 계약 등록은 귀속 대상 고정 · 한 건씩 붙음',
     reset && /계약 · 카리나\|본관8층/.test(h) && /보증금관련/.test(h) && b.docs[0].k === 'b1본관8층' && /관련 계약/.test(t)
     && /지금 등록 중인 계약/.test(hn) && !/관련 계약/.test(hn) && RC2.nc.files.length === 1 && RC2.nc.files[0].t === '사업자등록증']); }
+/* 감사 반영 — 계약 상세 자료보관 탭(관련 계약 문서) · 건물 목록 더보기(삭제는 유닛·계약 있으면 잠김) · 빈 관리비 탭에도 추가 버튼 */
+{ const AU = new Function(stub + bare + '; return {upOpen,upSave,upHTML,CTR3,PRO1,BUILDINGS,MORE,bDel,t청구,get up(){return up;},set tab3c(v){tab3c=v;}};')();
+  const b = AU.BUILDINGS[0];
+  AU.upOpen('b1', false, 'b1본관8층'); const hu = AU.upHTML(); Object.assign(AU.up.files[0], {t:'합의서.pdf', sz:'100 KB', ttl:'합의서', c:'계약서'}); AU.upSave();
+  AU.tab3c = '자료보관'; const hc = AU.CTR3('b1본관8층');
+  AU.MORE.length = 0; AU.PRO1(); const dm = AU.MORE.find(x => x[0].go.includes("pro-3/b1")); const lock = dm && dm[2].t === '삭제' && !!dm[2].off;
+  const nb = {id:'bx', name:'빈 건물', charge:[], units:[]}; const ec = AU.t청구(nb);
+  r6.push(['감사 반영 — 계약 상세 자료보관에 그 계약 문서(합의서) · 귀속 대상 계약 · 건물 목록 더보기 삭제 잠김 · 빈 관리비 탭에 「+ 청구 항목 추가」',
+    /계약 · 카리나\|본관8층/.test(hu) && !/관련 계약/.test(hu) && hc.includes('합의서') && !hc.includes('등기부등본') && lock && /청구 항목 추가/.test(ec)]); }
 /* 수납 내역 더보기 — 받을 돈이 있는 계약(비씨에이전시)만 수납 처리가 눌리고, 다 받은 계약(에스씨케이컴퍼니)은 흐림 · 원장 보기는 모두 */
 { const MV = new Function(stub + bare + '; seedJuly(); return {PAY6,RC,MORE};')();
   MV.RC.f = {b:'b1', ym:'2026-07', st:''}; MV.MORE.length = 0; const h = MV.PAY6();
