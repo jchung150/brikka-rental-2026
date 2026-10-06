@@ -619,8 +619,8 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   DC.docOpen('b1', 0); const hv = DC.docHTML();
   DC.dPickRow(1); DC.dPickRow(2); DC.MORE.length = 0; const h1 = DC.PRO3('b1');
   DC.docDelOpen('b1', [1, 2]); DC.docDel(); const kept = b.docs.length === n0; DC.dc.why = '중복 업로드'; DC.docDel();
-  r6.push(['자료보관 — 더보기 상세·내려받기·삭제 · 상세에 귀속 대상·파일 · 2건 체크하면 「2건 삭제」 버튼 · 사유 없으면 안 지움 · 지우면 2건 줄어듦',
-    dd && /귀속 대상/.test(hv) && /2건 삭제/.test(h1) && kept && b.docs.length === n0 - 2]); }
+  r6.push(['자료보관 — 더보기 상세·내려받기·삭제 · 상세에 귀속 대상·파일 · 2건 체크 → 선택 삭제 2건 · 사유 없으면 안 지움 · 지우면 2건 줄어듦',
+    dd && /귀속 대상/.test(hv) && /선택 삭제 2건/.test(h1) && kept && b.docs.length === n0 - 2]); }
 /* 수납 내역 더보기 — 받을 돈이 있는 계약(비씨에이전시)만 수납 처리가 눌리고, 다 받은 계약(에스씨케이컴퍼니)은 흐림 · 원장 보기는 모두 */
 { const MV = new Function(stub + bare + '; seedJuly(); return {PAY6,RC,MORE};')();
   MV.RC.f = {b:'b1', ym:'2026-07', st:''}; MV.MORE.length = 0; const h = MV.PAY6();
