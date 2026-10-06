@@ -1172,18 +1172,7 @@ function csHTML(){
     warn=`계량기를 보유한 유닛이 ${nM} / ${nAll}개입니다. 사용량 기준에서는 계량기 없는 `
       +`유닛의 배분 몫이 0이 되어 공용분을 부담하지 않고, 그 몫을 계량기 보유 유닛이 `
       +`대신 냅니다. <b>사용량+임대면적</b>을 쓰세요.`;
-  const prev = warn ? `<div class="prev warn2"><div class="pt">설정을 확인하세요</div>${warn}</div>`
-   : `<div class="prev"><div class="pt">이 설정의 결과</div>
-      ${nM&&A.charge==='청구함'
-        ? `계량기 보유 <b>${nM}개 유닛</b>은 자기 사용량만큼 청구받습니다.<br>`
-        : nM?`계량기 보유 ${nM}개 유닛의 사용분은 임차인이 직접 납부합니다.<br>`:''}
-      ${cs.fixed
-        ? '나누지 않습니다. 계약마다 등록된 약정액을 그대로 청구합니다.<br>'
-        : cs.basis==='직접 입력'
-        ? '안분하지 않습니다. 정산 때 계약별 금액을 직접 입력합니다.<br>'
-        : `${nM&&A.charge==='청구함'?'남은 공용분':'고지서 전액'}을 <b>전체 ${nAll}개 유닛</b>에
-           <b>${byUse?'사용량':'임대면적'}${cs.ref&&cs.ref!==cs.item?` · ${M(cs.ref).name} 검침값`:''} 비율</b>로 나눕니다.<br>`}
-      <b>${cs.cycle}</b> 발생합니다.</div>`;
+  const prev = warn ? `<div class="prev warn2"><div class="pt">설정을 확인하세요</div>${warn}</div>` : '';
   return `<div class="dro"><div class="ov" onclick="closeDrawer()"></div><div class="pn">
     <div class="dh"><div><div class="t">청구항목 설정</div>
       <div class="s">카리나빌딩${cs.editing?' · 수정':''}</div></div>
@@ -1287,6 +1276,7 @@ function drawerHTML(){
   if(DRAWER==='unit') return unHTML();
   if(DRAWER==='udet') return udHTML();
   if(DRAWER==='cidet') return cdHTML();
+  if(DRAWER==='doc') return docHTML();
   if(DRAWER==='bop') return bopHTML();
   if(DRAWER==='c3x') return cx3HTML();
   if(DRAWER==='over') return overHTML();
@@ -1938,17 +1928,67 @@ function t유닛(b){
     목업의 용도·전용면적은 예시값입니다.</div>`;
 }
 
+/* ═══ 자료보관 — 체크해서 여러 건을 한 번에 지우고, 줄마다 더보기(상세 · 다운로드 · 삭제) → PRO-3 · DOC-2
+   상세는 DOC-2(개별 문서 조회)와 같은 내용을 오른쪽 패널로 연다. 문서 삭제는 사유가 필수다 → 3.6 ═══ */
+let selD={}, dc=null;
+const docExt=t=>(t.split('.').pop()||'').toUpperCase();
+const docTitle=t=>t.replace(/\.[^.]+$/,'').replace(/_/g,' ');
+function dPickRow(i,e){if(e)e.stopPropagation();selD[i]=!selD[i];render(true);}
+function dPickAll(b,v){selD={};if(v)b.docs.forEach((_,i)=>selD[i]=true);render(true);}
+function docOpen(bid,i){dc={bid,mode:'view',i};DRAWER='doc';render(true);}
+function docDelOpen(bid,ids){if(!ids.length) return; dc={bid,mode:'del',ids,why:''};DRAWER='doc';render(true);}
+function docDel(){if(!dc.why.trim()) return; const b=BUILDINGS.find(x=>x.id===dc.bid);
+  b.docs=b.docs.filter((_,i)=>!dc.ids.includes(i)); selD={}; DRAWER=null; dc=null; render(true);}
+function docDown(bid,i){const d=BUILDINGS.find(x=>x.id===bid).docs[i];
+  alert(`다운로드 — ${d.t} (${d.sz})\n목업에서는 파일을 내려받지 않습니다.`);}
+function docHTML(){
+  if(DRAWER!=='doc'||!dc) return '';
+  const b=BUILDINGS.find(x=>x.id===dc.bid), inp='border:1px solid var(--line);border-radius:var(--r-sm);padding:7px 9px;font:inherit';
+  const R=(k,v)=>`<div class="fr"><span class="fk">${k}</span><span class="fv">${v}</span></div>`;
+  if(dc.mode==='del'){const ds=dc.ids.map(i=>b.docs[i]);
+    return `<div class="dro"><div class="ov" onclick="closeDrawer()"></div><div class="pn">
+    <div class="dh"><div><div class="t">문서 삭제</div><div class="s">${b.name} · ${ds.length}건</div></div>
+      <button class="x" onclick="closeDrawer()">✕</button></div>
+    <div class="db">
+      <div class="fg"><div class="fl">지울 문서</div>${ds.map(d=>`<div class="fr"><span class="fv">${docTitle(d.t)} <span class="c2">${docExt(d.t)} · ${d.sz}</span></span></div>`).join('')}</div>
+      <div class="fg"><div class="fl">삭제 사유 (필수)</div>
+        <input type="text" value="${dc.why}" oninput="dc.why=this.value;document.getElementById('dcok').disabled=!this.value.trim()" style="${inp};width:100%"></div>
+      <div class="c2" style="margin:0;white-space:normal">지운 문서는 되돌릴 수 없습니다. 삭제 기록은 사유와 함께 변경 이력에 남습니다.</div>
+    </div>
+    <div class="df"><button class="btn pri" id="dcok" disabled onclick="docDel()">삭제</button></div>
+  </div></div>`;}
+  const d=b.docs[dc.i], ext=docExt(d.t), pv=ext==='PDF'||ext==='JPG'||ext==='PNG';
+  return `<div class="dro"><div class="ov" onclick="closeDrawer()"></div><div class="pn">
+    <div class="dh"><div><div class="t">${docTitle(d.t)}</div><div class="s">${b.name} · 문서 상세</div></div>
+      <button class="x" onclick="closeDrawer()">✕</button></div>
+    <div class="db">
+      <div style="height:220px;border:1px solid var(--line);border-radius:var(--r-sm);background:var(--soft);display:flex;align-items:center;justify-content:center;
+        color:var(--muted);font-size:12px;margin-bottom:16px;text-align:center;padding:12px">${pv?`${ext} 미리보기<br><span class="c2">실제 화면에서는 문서 첫 장이 보입니다</span>`
+          :`${ext} 파일은 미리보기가 없습니다<br><span class="c2">다운로드해서 여세요</span>`}</div>
+      <div class="fg"><div class="fl">문서 정보</div>
+        ${R('제목',docTitle(d.t))}${R('카테고리',`<span class="bd mu">${d.c}</span>`)}${R('귀속 대상',`건물 · ${b.name}`)}
+        ${R('파일',`${d.t} <span class="c2">${ext} · ${d.sz}</span>`)}
+        ${R('업로드한 사람',d.by)}${R('등록일시',d.at.replace(/-/g,'.'))}${R('메모',d.m||'—')}</div>
+    </div>
+    <div class="df"><button class="btn pri" onclick="docDown('${b.id}',${dc.i})">다운로드</button>
+      <button class="btn" onclick="docDelOpen('${b.id}',[${dc.i}])">삭제</button></div>
+  </div></div>`;
+}
 function t자료(b){
-  if(!b.docs.length) return `<div class="tbl"><div class="empty"><div class="t">등록된 자료가 없습니다</div>계약서·등기부등본 등을 업로드할 수 있습니다.</div></div>`;
+  const nSel=b.docs.filter((_,i)=>selD[i]).length, all=b.docs.length&&nSel===b.docs.length;
   return `<div class="card"><div class="ct">자료보관 <span class="sub">${b.docs.length}건</span>
-    <span class="ca"><button class="btn pri sm">+ 파일 업로드</button></span></div>
-    <div class="tw"><table>
-      <thead><tr><th>제목 <span class="so">⇅</span></th><th>카테고리</th><th>업로드한 사람</th><th>등록일시 <span class="so">⇅</span></th><th class="c" style="width:70px"></th></tr></thead>
-      <tbody>${b.docs.map(d=>`<tr><td><div class="c1">${d.t}</div><div class="c2">${d.sz}</div></td>
+    <span class="ca"><button class="btn sm" ${nSel?'':'disabled'} onclick="docDelOpen('${b.id}',${JSON.stringify(b.docs.map((_,i)=>i).filter(i=>selD[i]))})">선택 삭제${nSel?` ${nSel}건`:''}</button>
+      <button class="btn pri sm">+ 파일 업로드</button></span></div>
+    ${!b.docs.length?`<div class="empty"><div class="t">등록된 자료가 없습니다</div>계약서·등기부등본 등을 업로드할 수 있습니다.</div>`:`<div class="tw"><table>
+      <thead><tr><th class="c" style="width:44px"><span class="cb ${all?'on':''}" style="cursor:pointer" onclick="dPickAll(BUILDINGS.find(x=>x.id==='${b.id}'),${all?'false':'true'})"></span></th>
+        <th>제목 <span class="so">⇅</span></th><th>카테고리</th><th>업로드한 사람</th><th>등록일시 <span class="so">⇅</span></th><th class="c">더보기</th></tr></thead>
+      <tbody>${b.docs.map((d,i)=>`<tr class="${selD[i]?'on':''}">
+        <td class="c"><span class="cb ${selD[i]?'on':''}" style="cursor:pointer" onclick="dPickRow(${i},event)"></span></td>
+        <td><div class="c1">${docTitle(d.t)}</div><div class="c2">${docExt(d.t)} · ${d.sz}</div></td>
         <td><span class="bd mu">${d.c}</span></td><td>${d.by}</td>
         <td><div class="c1" style="font-weight:400">${d.at.split(' ')[0]}</div><div class="c2">${d.at.split(' ')[1]}</div></td>
-        <td class="c"><span class="det">상세</span></td></tr>`).join('')}</tbody>
-    </table></div></div>`;
+        <td class="c">${moreCell([{t:'상세',go:`docOpen('${b.id}',${i})`},{t:'다운로드',go:`docDown('${b.id}',${i})`},{t:'삭제',go:`docDelOpen('${b.id}',[${i}])`}])}</td></tr>`).join('')}</tbody>
+    </table></div>`}</div>`;
 }
 
 /* ═══ 청구항목 상세 — 관리비 탭의 더보기 「상세」. 설정을 한눈에 보고, 최근 3개월 고지서 금액을 본다. 고치려면 「수정」 → PRO-3 ═══ */

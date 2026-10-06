@@ -612,6 +612,15 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   CD.ciDel('septic'); const gone = !CD.BUILDINGS[0].charge.some(c => c.it === '정화조청소비') && CD.BILL.septic.on === false;
   r6.push(['청구항목 상세 — 더보기 ⋮ 상세·수정·삭제(임대료 잠김) · 정화조청소비 삭제 · 전기요금 계량기 보유 유닛 · 최근 고지서 금액 3개월 · 8월 8,491,672원 · 임대료는 약정액 안내',
     dd && dl && keepRent && gone && /계량기 보유 유닛/.test(h) && /최근 고지서 금액/.test(h) && /8,491,672/.test(h) && /약정액/.test(r) && !/최근 고지서 금액/.test(r)]); }
+/* 자료보관 — 체크 선택 삭제 · 더보기(상세·다운로드·삭제) · 삭제 사유 필수 */
+{ const DC = new Function(stub + bare + '; return {PRO3,dPickRow,dPickAll,docOpen,docHTML,docDelOpen,docDel,BUILDINGS,MORE,get dc(){return dc;},set tab3(v){tab3=v;}};')();
+  const b = DC.BUILDINGS[0], n0 = b.docs.length; DC.tab3 = '자료보관';
+  DC.MORE.length = 0; const h0 = DC.PRO3('b1'); const dd = DC.MORE.some(x => x.map(i => i.t).join() === '상세,다운로드,삭제');
+  DC.docOpen('b1', 0); const hv = DC.docHTML();
+  DC.dPickRow(1); DC.dPickRow(2); DC.MORE.length = 0; const h1 = DC.PRO3('b1');
+  DC.docDelOpen('b1', [1, 2]); DC.docDel(); const kept = b.docs.length === n0; DC.dc.why = '중복 업로드'; DC.docDel();
+  r6.push(['자료보관 — 더보기 상세·다운로드·삭제 · 상세에 귀속 대상·파일·미리보기 · 2건 체크 → 선택 삭제 2건 · 사유 없으면 안 지움 · 지우면 2건 줄어듦',
+    dd && /귀속 대상/.test(hv) && /미리보기/.test(hv) && /선택 삭제 2건/.test(h1) && kept && b.docs.length === n0 - 2]); }
 /* 수납 내역 더보기 — 받을 돈이 있는 계약(비씨에이전시)만 수납 처리가 눌리고, 다 받은 계약(에스씨케이컴퍼니)은 흐림 · 원장 보기는 모두 */
 { const MV = new Function(stub + bare + '; seedJuly(); return {PAY6,RC,MORE};')();
   MV.RC.f = {b:'b1', ym:'2026-07', st:''}; MV.MORE.length = 0; const h = MV.PAY6();
