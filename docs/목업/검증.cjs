@@ -625,11 +625,11 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
 { const UP = new Function(stub + bare + '; return {upOpen,upSave,upHTML,upMissing,BUILDINGS,PRO3,get up(){return up;},set tab3(v){tab3=v;}};')();
   const b = UP.BUILDINGS[0], n0 = b.docs.length;
   UP.upOpen('b1'); const h0 = UP.upHTML(); UP.upSave(); const none = b.docs.length === n0 && UP.upMissing().includes('파일') && /카테고리/.test(h0) && /제목/.test(h0);
-  UP.up.files.splice(0, 1,{t:'승강기_점검표_2026.pdf', sz:'420 KB', ttl:'승강기 점검표 2026', c:'', m:''}, {t:'소방점검.jpg', sz:'1.1 MB', ttl:'소방점검', c:'시설관련', m:''});
-  UP.upSave(); const noCat = b.docs.length === n0 && UP.upMissing().includes('1번 카테고리'); const h = UP.upHTML();
-  UP.up.files[0].c = '시설관련'; UP.up.files[1].c = '건물서류'; const cats = /보증금관련/.test(UP.upHTML()); UP.upSave(); UP.tab3 = '자료보관'; const t = UP.PRO3('b1');
-  r6.push(['파일 업로드 — 처음부터 파일·제목·카테고리 칸이 보임 · 파일 없으면 막힘 · 카테고리 빠지면 막힘 · 건물용 카테고리만(보증금관련 없음) · 파일 찾기 · 귀속 대상 건물 · 2건 올리면 목록 맨 위에 제목으로',
-    none && noCat && /건물 · 카리나빌딩/.test(h) && b.docs.length === n0 + 2 && b.docs[0].ttl === '승강기 점검표 2026' && t.includes('승강기 점검표 2026') && !cats && /파일 찾기/.test(h)]); }
+  UP.up.files.splice(0, 1, {t:'승강기_점검표_2026.pdf', sz:'420 KB', ttl:'승강기 점검표 2026', c:'', m:''});
+  UP.upSave(); const noCat = b.docs.length === n0 && UP.upMissing().includes('카테고리'); const h = UP.upHTML();
+  UP.up.files[0].c = '시설관련'; const cats = /보증금관련/.test(UP.upHTML()); UP.upSave(); UP.tab3 = '자료보관'; const t = UP.PRO3('b1');
+  r6.push(['파일 업로드 — 처음부터 파일·제목·카테고리 칸이 보임 · 파일 없으면 막힘 · 카테고리 빠지면 막힘 · 건물용 카테고리만(보증금관련 없음) · 파일 찾기 · 귀속 대상 건물 · 한 번에 한 건 · 올리면 목록 맨 위에 제목으로',
+    none && noCat && /건물 · 카리나빌딩/.test(h) && b.docs.length === n0 + 1 && b.docs[0].ttl === '승강기 점검표 2026' && !/파일 추가/.test(h) && t.includes('승강기 점검표 2026') && !cats && /파일 찾기/.test(h)]); }
 /* 수납 내역 더보기 — 받을 돈이 있는 계약(비씨에이전시)만 수납 처리가 눌리고, 다 받은 계약(에스씨케이컴퍼니)은 흐림 · 원장 보기는 모두 */
 { const MV = new Function(stub + bare + '; seedJuly(); return {PAY6,RC,MORE};')();
   MV.RC.f = {b:'b1', ym:'2026-07', st:''}; MV.MORE.length = 0; const h = MV.PAY6();

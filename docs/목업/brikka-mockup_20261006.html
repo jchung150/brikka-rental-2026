@@ -1977,7 +1977,7 @@ function docHTML(){
    여러 파일을 「파일 찾기」로 한 번에 고르고, 파일마다 제목 · 카테고리 · 메모를 정한다. 제목은 파일 이름으로 미리 채운다 ═══ */
 let up=null;
 const fileSz=n=>n>=1048576?(n/1048576).toFixed(1)+' MB':Math.max(1,Math.round(n/1024))+' KB';
-/* 처음부터 파일 한 칸(파일 · 제목 · 카테고리 · 메모)을 다 보여 준다. 여러 개는 「+ 파일 추가」로 칸을 늘린다 */
+/* 한 번에 파일 하나. 처음부터 파일 · 제목 · 카테고리 · 메모 칸을 다 보여 준다 */
 const upSlot=()=>({t:'',sz:'',ttl:'',c:'',m:''});
 function upOpen(bid){up={bid,files:[upSlot()],tried:false};DRAWER='upl';render(true);}
 function upSet(i,file){const f=up.files[i]; f.t=file.name; f.sz=fileSz(file.size); if(!f.ttl.trim()) f.ttl=docTitle(file.name); render(true);}
@@ -2006,7 +2006,6 @@ function upHTML(){
     <div class="db">
       ${R('귀속 대상',`<span class="fv">건물 · ${b.name}</span>`)}
       ${up.files.map((f,i)=>many?`<div style="border:1px solid var(--line);border-radius:var(--r-sm);padding:10px 12px 2px;margin-bottom:10px">${slot(f,i)}</div>`:slot(f,i)).join('')}
-      <button class="btn sm" style="margin:2px 0 12px" onclick="up.files.push(upSlot());render(true)">+ 파일 추가</button>
       ${miss.length?`<div class="fnd wa3" style="margin:0"><span class="h">올릴 수 없습니다</span>빠진 항목: <b>${miss.join(' · ')}</b></div>`:''}
     </div>
     <div class="df"><button class="btn pri" onclick="upSave()">올리기${many?` ${up.files.length}건`:''}</button></div>
