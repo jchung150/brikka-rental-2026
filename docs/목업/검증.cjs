@@ -681,6 +681,19 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   DM.tab3 = '자료보관'; const hd = DM.PRO3('b1'); DM.tab3 = '요약'; const hs = DM.PRO3('b1');
   r6.push(['자료보관 줄 클릭 → 상세 · 요약 탭 건물관리자(카드 목록, 표 아님)에 이름 · 연락처 · 이메일',
     /<tr class="" style="cursor:pointer" onclick="docOpen\('b1',0\)">/.test(hd) && /<dt>김관리<\/dt>/.test(hs) && /kim@teonhaus.kr/.test(hs) && !/마지막 접속/.test(hs) && !/<th>이름 · 회사/.test(hs)]); }
+/* 계약 상세 요약 — 기본정보(건물 · 건물주 · 이 달 청구일 · 납부마감일) · 사업자구분 · 계약유형 · 렌트프리 · 기산일 · 보증금 3칸 · 중개사 · 메모 · 수정 패널이 저장됨 */
+{ const CS = new Function(stub + bare + '; seedJuly(); return {CTR3,cx3Open,cx3Save,cx3HTML,CTRS,get cx3(){return cx3;},set tab3c(v){tab3c=v;}};')();
+  CS.tab3c = '요약'; const h = CS.CTR3('b1본관101호'), h8 = CS.CTR3('b1본관801호'), h4 = CS.CTR3('b1본관401호');
+  const cards = ['기본정보','계약정보','임대정보','보증금','주차정보','냉난방기','중개사','메모'].every(t => h.includes(`<div class="ct">${t}`));
+  const vals = /8월분 → 8월 \d+일<span class="lock">건물 설정/.test(h) && /<dt>사업자구분<\/dt><dd>법인/.test(h) && /있음 · 2025.08.01 - 2025.09.30/.test(h) && /<dt>기산일<\/dt><dd>2025.10.01/.test(h)
+    && /보증금 반환예정일/.test(h) && /중개사 없이 맺은 계약/.test(h) && /마포센트럴공인중개사사무소/.test(h8) && /확정기간후자동갱신/.test(h4) && !/예시값입니다/.test(h);
+  const c = CS.CTRS.find(x => x.no === '본관101호');
+  CS.cx3Open('b1본관101호', 'ctr'); const hp = CS.cx3HTML(); CS.cx3.kind = '개인'; CS.cx3.type = '확정기간후자동갱신'; CS.cx3Save();
+  CS.cx3Open('b1본관101호', 'dep'); CS.cx3.dep = '50000000'; CS.cx3.depRet = '2027-07-31'; CS.cx3Save();
+  CS.cx3Open('b1본관101호', 'ag'); CS.cx3.has = true; CS.cx3.an = '시험중개'; CS.cx3Save();
+  CS.cx3Open('b1본관101호', 'memo'); CS.cx3.memo = '시험 메모'; CS.cx3Save();
+  r6.push(['계약 상세 요약 — 기본정보 · 계약정보 · 임대정보 · 보증금 · 주차 · 냉난방기 · 중개사 · 메모 · 청구일은 건물 설정의 실제 날짜 · 렌트프리 · 기산일 · 수정 패널 4종 저장',
+    cards && vals && /해지 처리로 바뀝니다/.test(hp) && c.kind === '개인' && c.type === '확정기간후자동갱신' && c.dep === 5e7 && c.depRet === '2027-07-31' && c.ag.n === '시험중개' && c.memo === '시험 메모']); }
 /* 수납 내역 더보기 — 받을 돈이 있는 계약(비씨에이전시)만 수납 처리가 눌리고, 다 받은 계약(에스씨케이컴퍼니)은 흐림 · 원장 보기는 모두 */
 { const MV = new Function(stub + bare + '; seedJuly(); return {PAY6,RC,MORE};')();
   MV.RC.f = {b:'b1', ym:'2026-07', st:''}; MV.MORE.length = 0; const h = MV.PAY6();
