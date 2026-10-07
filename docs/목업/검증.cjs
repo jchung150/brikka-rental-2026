@@ -636,8 +636,8 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   AU.tab3c = '자료보관'; const hc = AU.CTR3('b1본관801호');
   AU.MORE.length = 0; AU.PRO1(); const dm = AU.MORE.find(x => x[0].go.includes("pro-3/b1")); const lock = !dm && /<span class="more" onclick="event.stopPropagation\(\);tab3='요약';go\('pro-3\/b1'\)">상세<\/span>/.test(AU.PRO1());
   const nb = {id:'bx', name:'빈 건물', charge:[], units:[]}; const ec = AU.t청구(nb);
-  r6.push(['감사 반영 — 계약 상세 자료보관에 그 계약 문서(합의서) · 귀속 대상 계약 · 건물 목록 더보기 상세 하나(링크) · 빈 관리비 탭에 「+ 청구 항목 추가」',
-    /계약 · 카리나\|본관801호/.test(hu) && !/관련 계약/.test(hu) && hc.includes('합의서') && !hc.includes('등기부등본') && lock && /청구 항목 추가/.test(ec)]); }
+  r6.push(['감사 반영 — 계약 상세 자료보관에 그 계약 문서(합의서) · 귀속 대상 계약 · 건물 목록 더보기 상세 하나(링크) · 빈 관리비 탭에 「+ 항목 추가」',
+    /계약 · 카리나\|본관801호/.test(hu) && !/관련 계약/.test(hu) && hc.includes('합의서') && !hc.includes('등기부등본') && lock && /항목 추가/.test(ec)]); }
 /* 요약 탭 아래쪽 — 청구 정보 · 건물관리자 · 위탁운영계약 · 운영 상태(패널로 수정). 설정 탭은 없다 */
 { const ST = new Function(stub + bare + '; return {PRO3,spOpen,spSave,spHTML,BUILDINGS,BLOG,dueStr,get sp(){return sp;},set tab3(v){tab3=v;}};')();
   const b = ST.BUILDINGS[0]; ST.tab3 = '요약'; const sum = ST.PRO3('b1');
