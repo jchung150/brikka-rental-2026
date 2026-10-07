@@ -4236,7 +4236,7 @@ const cutSet=fxSet, cutConfirm=fxConfirm, extraSave=fxConfirm;
 const extraSet=(f,v)=>fxSet(f==='n'?'name':f==='memo'?'why':f,v);
 /* ═══ 환불 — 과납은 계약 원장에서, 오납은 입금 매칭에서. 과납은 따로 처리하지 않으면 다음 달로 넘어간다 → 4.3.4 · 4.3.5 ═══ */
 let ov=null;
-function openRefund(k){ov={k,amt:overOf(k),date:TODAY_S,acct:'',memo:''};DRAWER='over';render(true);}
+function openRefund(k){ov={k,amt:overOf(k),date:TODAY_S,acct:refTx(k),memo:''};DRAWER='over';render(true);}
 function openMis(no){ov={mis:no,date:TODAY_S,acct:'',memo:''};DRAWER='over';render(true);}
 function ovSet(f,v){ov[f]=f==='amt'?numOf(v):v;render(true);}
 const misDep=no=>depsAll().find(d=>d.no===+no);
@@ -4260,7 +4260,7 @@ function overHTML(){
         ${md?R('입금',`${md.dt.slice(5,16).replace('-','.')} ${md.name}`):R('환불할 금액',`<input type="text" inputmode="numeric" value="${amt?num(amt):''}" oninput="kwLive(this)" onchange="ovSet('amt',this.value)" style="text-align:right"><span class="kw">${korWon(amt)}</span>`)}
         ${!md&&amt>max?'<div class="c2" style="margin:-4px 0 9px 114px;color:var(--danger)">과납보다 많이 돌려줄 수 없습니다</div>':''}</div>
       <div class="fg"><div class="fl">보낸 기록</div>
-        ${R('환불계좌',`<input type="text" value="${ov.acct}" placeholder="${md?'보낸 사람 계좌':'계약자 환불계좌 (계약 상세 › 임차인)'}" onchange="ovSet('acct',this.value)">`)}
+        ${R('환불계좌',`<input type="text" value="${ov.acct}" placeholder="${md?'보낸 사람 계좌':'환불계좌 (계약 상세 › 보증금 정보)'}" onchange="ovSet('acct',this.value)">`)}
         ${R('보낸 날',`<input type="date" value="${ov.date}" max="${TODAY_S}" onchange="ovSet('date',this.value)">`)}
         ${R('메모',`<input type="text" value="${ov.memo}" onchange="ovSet('memo',this.value)">`)}
         <div class="c2" style="margin:2px 0 0;white-space:normal">${md?'입금 기록에 환불일과 계좌가 남습니다. 계약이 없는 돈이라 원장에는 기록하지 않습니다.'
@@ -4425,7 +4425,11 @@ const CPPL={'b1본관801호':[{n:'정하늘',t:'경영지원팀 과장',tel:'010
 const pplOf=c=>{const k=ckey(c);if(!CPPL[k]){const i=CTRS.indexOf(c), n=PPL_N[(i<0?CTRS.length:i)%PPL_N.length];
   CPPL[k]=c.fresh&&c.ppl?c.ppl:[{n,t:'담당자',tel:`010-${String(3100+i*217).slice(-4)}-${String(1200+i*389).slice(-4)}`,mail:`contact${i+1}@tenant-sample.kr`}];}
   return CPPL[k];};
-const CPARTY={'b1본관301호':{n:'(유)유니버셜대부',biz:'211-88-30217',ceo:'한도윤',tel:'02-6402-1180',mail:'contract@universal-sample.kr',addr:'서울특별시 마포구 독막로 12',rb:'신한은행',ra:'110-482-339201',rn:'(유)유니버셜대부'}};
+const CPARTY={'b1본관301호':{n:'(유)유니버셜대부',biz:'211-88-30217',ceo:'한도윤',tel:'02-6402-1180',mail:'contract@universal-sample.kr',addr:'서울특별시 마포구 독막로 12'}};
+/* 환불계좌 — 계약마다 하나. 보증금 반환 · 과납 환불에 쓴다. 계약자가 따로 있으면 보통 그 계좌. 목업 예시값(가짜), 일부는 미입력 → CTR-3 */
+const CREF={'b1본관801호':{rb:'국민은행',ra:'004-21-0583-117',rn:'(주)아이씨비'},'b1본관301호':{rb:'신한은행',ra:'110-482-339201',rn:'(유)유니버셜대부'},
+  'b1본관101호':{rb:'우리은행',ra:'1005-803-447120',rn:'(주)에스씨케이컴퍼니'},'b1별관301호':{rb:'하나은행',ra:'357-910288-11407',rn:'(주)비씨에이전시'}};
+const refTx=k=>{const r=CREF[k];return r?`${r.rb} ${r.ra} (${r.rn})`:'';};
 const CPROXY={'b1본관601호':{n:'윤서아',tel:'010-7714-2208',mail:'proxy@sample.kr',addr:'서울특별시 용산구 한강대로 100'}};
 const man=n=>n>=1e8?(n/1e8).toFixed(n%1e8?1:0)+'억':n>=1e4?num(Math.round(n/1e4))+'만':num(n);
 
@@ -4534,7 +4538,8 @@ function ncSave(welcome){
   const k=ckey(c);
   CPARK[k]={free:parseInt(nc.park)||0};
   CPPL[k]=[{n:nc.pn,t:nc.pt,tel:nc.ptel,mail:nc.pmail}];
-  if(nc.diff) CPARTY[k]={n:nc.cn,biz:nc.cbiz,ceo:nc.cceo,tel:nc.ctel,mail:nc.cmail,addr:nc.caddr,rb:nc.rbank,ra:nc.racct,rn:nc.rname};
+  if(nc.diff) CPARTY[k]={n:nc.cn,biz:nc.cbiz,ceo:nc.cceo,tel:nc.ctel,mail:nc.cmail,addr:nc.caddr};
+  if(nc.racct.trim()) CREF[k]={rb:nc.rbank.trim(),ra:nc.racct.trim(),rn:nc.rname.trim()};
   if(nc.proxy) CPROXY[k]={n:nc.xn,tel:nc.xtel,mail:nc.xmail,addr:nc.xaddr};
   const hvs=nc.hvs.filter(x=>x.n.trim()&&parseInt(x.q)>0&&x.t); if(hvs.length) CHVAC[k]=hvs.map(x=>({n:x.n.trim(),q:parseInt(x.q),t:x.t,m:x.m.trim()}));
   nc=null; tab3c='요약'; go('ctr-3/'+k);
@@ -4611,7 +4616,7 @@ function CTR2(){
     +card('계약자 · 대리인 · 중개사',
       C('diff','임차인과 계약자가 다름')
       +(nc.diff?`<div style="margin-top:10px">${R('계약자 상호',T('cn'))+R('사업자등록번호',T('cbiz'))+R('대표자명',T('cceo'))+R('연락처',T('ctel'))
-        +R('이메일',T('cmail'))+R('주소',T('caddr'))+R('환불계좌',`${T('rbank','은행',90)}${T('racct','계좌번호')}${T('rname','예금주',90)}`)}</div>`:'')
+        +R('이메일',T('cmail'))+R('주소',T('caddr'))}</div>`:'')
       +`<div style="margin-top:10px">${C('proxy','대리인이 있음')}</div>`
       +(nc.proxy?`<div style="margin-top:10px">${R('대리인 이름',T('xn'))+R('연락처',T('xtel'))+R('이메일',T('xmail'))+R('주소',T('xaddr'))}</div>`:'')
       +`<div style="margin-top:10px">${C('agent','중개사가 있음')}</div>`
@@ -4635,7 +4640,7 @@ function CTR2(){
             :nc.late?D('lateD')+`<span class="c2" style="white-space:nowrap">${nc.lateD&&nc.start&&dnum(nc.lateD)<dnum(nc.start)?'소급':''}</span>`
             :`<span class="fv">${nc.start?d8(nc.start):'—'} <span class="c2">계약시작일과 같음</span></span>`)
         +(nc.rf!=='있음'?R('',C('late','기산일을 따로 정하기 (소급 등)')):'');})())
-    +card('보증금',R('보증금',N('dep','약정액'))+R('반환예정일',D('depRet')))
+    +card('보증금',R('보증금',N('dep','약정액'))+R('반환예정일',D('depRet'))+R('환불계좌',`${T('rbank','은행',90)}${T('racct','계좌번호')}${T('rname','예금주',90)}`))
     +card('주차',R('무료 주차',`${T('park','',70)}<span class="c2" style="margin:0">대</span>`)
       +'<div class="c2" style="margin:0">등록 차량은 저장한 뒤 계약 상세의 주차정보에서 넣습니다</div>')
     +card('냉난방기',nc.hvs.map((x,i)=>`<div style="display:flex;gap:6px;align-items:center;margin-bottom:8px">
@@ -4896,7 +4901,7 @@ function cpkOpen(k){const c=CTRS.find(x=>ckey(x)===k), b=BUILDINGS.find(x=>x.id=
 /* 계약정보 · 보증금 · 중개사 · 메모 수정 — 오른쪽 패널 → 3.8 */
 function cx3Open(k,mode){const c=CTRS.find(x=>ckey(x)===k), A=c.ag||{};
   const CP=CPARTY[k]||{}, PX=CPROXY[k]||{};
-  cx3={k,mode,ppl:pplOf(c).map(x=>({...x})),diff:!!CPARTY[k],cp:{n:'',biz:'',ceo:'',tel:'',mail:'',addr:'',rb:'',ra:'',rn:'',...CP},px_on:!!CPROXY[k],px:{n:'',tel:'',mail:'',addr:'',...PX},
+  cx3={k,mode,rf:{rb:'',ra:'',rn:'',...(CREF[k]||{})},ppl:pplOf(c).map(x=>({...x})),diff:!!CPARTY[k],cp:{n:'',biz:'',ceo:'',tel:'',mail:'',addr:'',rb:'',ra:'',rn:'',...CP},px_on:!!CPROXY[k],px:{n:'',tel:'',mail:'',addr:'',...PX},
     kind:ctrKind(c),type:ctrType(c),start:c.base,end:ctrEnd(c),dep:String(ctrDeposit(c)),depRet:ctrDepRet(c),
     has:!!c.ag,an:A.n||'',aceo:A.ceo||'',ano:A.no||'',atel:A.tel||'',aaddr:A.addr||'',afee:A.fee||'',memo:c.memo||''};DRAWER='c3x';render(true);}
 function chvOpen(k){cx3={k,mode:'hvac',hv:(CHVAC[k]||[]).map(x=>({...x,q:String(x.q)}))};if(!cx3.hv.length) cx3.hv.push({n:'',q:'1',t:'',m:''});DRAWER='c3x';render(true);}
@@ -4907,8 +4912,8 @@ function cx3Save(){const c=CTRS.find(x=>ckey(x)===cx3.k);
   if(cx3.mode==='park'){const b=BUILDINGS.find(x=>x.id===c.b);
     CPARK[cx3.k]={...(CPARK[cx3.k]||{}),free:parseInt(cx3.free)||0};}
   else if(cx3.mode==='ctr'){if(!cx3.start||!cx3.end||dnum(cx3.end)<dnum(cx3.start)) return;
-    Object.assign(c,{kind:cx3.kind,type:cx3.type,base:cx3.start,end:cx3.end});}
-  else if(cx3.mode==='dep') Object.assign(c,{dep:numOf(cx3.dep),depRet:cx3.depRet});
+    Object.assign(c,{type:cx3.type,base:cx3.start,end:cx3.end});}
+  else if(cx3.mode==='dep'){Object.assign(c,{dep:numOf(cx3.dep),depRet:cx3.depRet}); if(cx3.rf.ra.trim()) CREF[cx3.k]={rb:cx3.rf.rb.trim(),ra:cx3.rf.ra.trim(),rn:cx3.rf.rn.trim()}; else delete CREF[cx3.k];}
   else if(cx3.mode==='ag') c.ag=cx3.an.trim()?{n:cx3.an.trim(),ceo:cx3.aceo,no:cx3.ano,tel:cx3.atel,addr:cx3.aaddr,fee:String(cx3.afee).trim()}:null;
   else if(cx3.mode==='memo') c.memo=cx3.memo.trim();
   else if(cx3.mode==='ppl'){if(!cx3.ppl[0].n.trim()||!cx3.ppl[0].mail.trim()) return; CPPL[cx3.k]=cx3.ppl.filter((x,i)=>!i||x.n.trim());}
@@ -4934,17 +4939,18 @@ function cx3HTML(){
       +`<button class="btn sm" onclick="cx3.ppl.push({n:'',t:'',tel:'',mail:''});render(true)">+ 담당자 추가</button>`
     :cx3.mode==='ctr'?F('유닛',`<span class="fv">${c.no} <span class="c2" style="margin:0">수정 불가</span></span>`)
       +F('임차인',`<span class="fv">${c.ten} <span class="c2" style="margin:0">임차인 관리에서 고칩니다</span></span>`)
-      +F('사업자구분',SEL('kind',['법인','개인']))+F('계약유형',SEL('type',['확정기간계약','확정기간후자동갱신']))
+      +F('사업자구분',`<span class="fv">${ctrKind(c)} <span class="c2" style="margin:0">임차인 관리에서 고칩니다</span></span>`)+F('계약유형',SEL('type',['확정기간계약','확정기간후자동갱신']))
       +F('계약상태',`<span class="fv">${c.st} <span class="c2" style="margin:0">해지 처리로 바뀝니다</span></span>`)
       +F('계약시작일',I('start',160,'date'))+F('계약종료일',I('end',160,'date'))
       +`<div class="hint" style="color:var(--warn)">계약시작일을 바꾸면 계약 기간 · 유닛상태 · 공실률 집계가 바뀝니다. 청구는 기산일을 따르므로 바뀌지 않습니다.</div>`
       +`<div style="margin-top:14px">`+`<label class="ck" style="display:flex;margin-bottom:10px"><input type="checkbox" ${cx3.diff?'checked':''} onchange="cx3.diff=this.checked;render(true)">임차인과 계약자가 다름</label>`
       +(cx3.diff?`<div class="fg">${F('계약자 상호',O('cp','n'))+F('사업자등록번호',O('cp','biz',160))+F('대표자명',O('cp','ceo',140))+F('연락처',O('cp','tel',160))+F('이메일',O('cp','mail'))+F('주소',O('cp','addr'))}
-          ${F('환불계좌',O('cp','rb',90)+O('cp','ra')+O('cp','rn',100))}</div>`:'')
+</div>`:'')
       +`<label class="ck" style="display:flex;margin:6px 0 10px"><input type="checkbox" ${cx3.px_on?'checked':''} onchange="cx3.px_on=this.checked;render(true)">대리인이 있음</label>`
       +(cx3.px_on?`<div class="fg">${F('대리인 이름',O('px','n',140))+F('연락처',O('px','tel',160))+F('이메일',O('px','mail'))+F('주소',O('px','addr'))}</div>`:'')+`</div>`
     :cx3.mode==='dep'?F('보증금 약정액',`<input type="text" inputmode="numeric" value="${num(numOf(cx3.dep))}" oninput="cx3.dep=this.value" style="${inp};width:160px;text-align:right"><span class="c2" style="margin:0">원</span>`)
       +F('보증금 반환예정일',I('depRet',160,'date'))
+      +F('환불계좌',O('rf','rb',90)+O('rf','ra')+O('rf','rn',100))
       +`<div class="c2" style="white-space:normal">받은 보증금과 잔액은 원장의 「보증금 예치 · 차감 · 환급」으로만 바뀝니다.</div>`
     :cx3.mode==='ag'?(F('중개사무소',I('an'))+F('대표자명',I('aceo',160))+F('등록번호',I('ano',180))+F('연락처',I('atel',160))+F('소재지',I('aaddr'))
         +F('중개 수수료율',`<input type="text" inputmode="decimal" value="${cx3.afee}" oninput="cx3.afee=this.value" style="${inp};width:70px;text-align:right"><span class="c2" style="margin:0">% · 모르면 비워 두고 나중에 넣습니다</span>`))
@@ -5031,7 +5037,6 @@ function CTR3sum(c,k){
       <dt>계약유형</dt><dd>${ctrType(c)}</dd>
       <dt>계약기간</dt><dd>${d8(c.base)} - ${d8(end)}</dd>
       <dt>계약자</dt><dd>${CP?`${CP.n}<span class="lock">${CP.biz} · 대표 ${CP.ceo}</span>`:'임차인과 같음'}</dd>
-      ${CP?`<dt>환불계좌</dt><dd>${CP.rb} ${CP.ra}<span class="lock">${CP.rn}</span></dd>`:''}
       <dt>대리인</dt><dd>${PX?`${PX.n}<span class="lock">${PX.tel}</span>`:'없음'}</dd></dl>`,
     `${c.st==='진행중'?`<button class="btn sm" onclick="termOpen('${k}')">해지</button>`:''}${edit('ctr')}`);
   const rfx=c.rf&&c.from, rfIt=rfx?[c.rf.rent&&'임대료',c.rf.mgmt&&'고정관리비',c.rf.vars&&'정산 항목'].filter(Boolean).join(' · '):'';
@@ -5055,7 +5060,8 @@ function CTR3sum(c,k){
   const dep=card('보증금 정보',`<dl class="dl">
       <dt>보증금 약정액</dt><dd>${won(ctrDeposit(c))}</dd>
       <dt>보증금 잔액</dt><dd>${won(L.bal.임대보증금)}</dd>
-      <dt>보증금 반환예정일</dt><dd>${d8(ctrDepRet(c))}</dd></dl>`,edit('dep'));
+      <dt>보증금 반환예정일</dt><dd>${d8(ctrDepRet(c))}</dd>
+      <dt>환불계좌</dt><dd>${CREF[k]?`${CREF[k].rb} ${CREF[k].ra}<span class="lock">${CREF[k].rn}</span>`:'<span style="color:var(--warn)">미입력</span>'}</dd></dl>`,edit('dep'));
   const A=c.ag;
   const ag=card('중개사',A?`<dl class="dl">
       <dt>중개사무소</dt><dd>${A.n}<span class="lock">${A.no||''}</span></dd>

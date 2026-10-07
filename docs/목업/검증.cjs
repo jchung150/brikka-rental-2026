@@ -690,13 +690,13 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   const vals = /<dt>사업자구분<\/dt><dd>법인/.test(h) && /있음 · 2025.08.01 - 2025.09.30/.test(h) && /<dt>기산일<\/dt><dd>2025.10.01/.test(h)
     && /보증금 반환예정일/.test(h) && /마포센트럴공인중개사사무소/.test(h8) && /확정기간후자동갱신/.test(h4) && !/예시값입니다/.test(h);
   const c = CS.CTRS.find(x => x.no === '본관101호');
-  CS.cx3Open('b1본관101호', 'ctr'); const hp = CS.cx3HTML(); CS.cx3.kind = '개인'; CS.cx3.type = '확정기간후자동갱신'; CS.cx3Save();
-  CS.cx3Open('b1본관101호', 'dep'); CS.cx3.dep = '50000000'; CS.cx3.depRet = '2027-07-31'; CS.cx3Save();
+  CS.cx3Open('b1본관101호', 'ctr'); const hp = CS.cx3HTML(); CS.cx3.type = '확정기간후자동갱신'; CS.cx3Save();
+  CS.cx3Open('b1본관101호', 'dep'); CS.cx3.dep = '50000000'; CS.cx3.depRet = '2027-07-31'; CS.cx3.rf.ra = '999-99'; CS.cx3Save(); const rf = /999-99/.test(CS.CTR3('b1본관101호')) && /<dt>환불계좌<\/dt><dd><span style="color:var\(--warn\)">미입력/.test(CS.CTR3('b1본관401호'));
   CS.cx3Open('b1본관101호', 'ag'); const agp = !/중개사가 있음/.test(CS.cx3HTML()); CS.cx3.an = '시험중개'; CS.cx3Save();
   CS.cx3Open('b1본관101호', 'memo'); CS.cx3.memo = '시험 메모'; CS.cx3Save();
   const ag2 = /여의도빌딩중개법인|합정역|서교부동산|홍대오피스|상수타워|망원상가/.test(h) && /<dt>중개 수수료율<\/dt>/.test(h8) && /0\.9%/.test(h8);
-  r6.push(['계약 상세 요약 — 계약정보가 첫 카드(폭 전체) · 남은 일수 없음 · 기본정보 없음 · 임대정보(미납 잔액 없음 · 청구일 · 납부마감일 · 기산일) · 보증금 정보(납부마감일 없음) · 보증금 · 주차 · 냉난방기 · 중개사 · 메모 · 청구일은 건물 설정의 실제 날짜 · 렌트프리 · 기산일 · 수정 패널 4종 저장',
-    cards && vals && ag2 && agp && /해지 처리로 바뀝니다/.test(hp) && c.kind === '개인' && c.type === '확정기간후자동갱신' && c.dep === 5e7 && c.depRet === '2027-07-31' && c.ag.n === '시험중개' && c.memo === '시험 메모']); }
+  r6.push(['계약 상세 요약 — 계약정보가 첫 카드(폭 전체) · 남은 일수 없음 · 기본정보 없음 · 임대정보(미납 잔액 없음 · 청구일 · 납부마감일 · 기산일) · 보증금 정보(납부마감일 없음) · 보증금 · 주차 · 냉난방기 · 중개사 · 메모 · 청구일은 건물 설정의 실제 날짜 · 렌트프리 · 기산일 · 사업자구분은 패널에서 잠김 · 환불계좌는 보증금 정보(미입력 강조) · 수정 패널 4종 저장',
+    cards && vals && ag2 && agp && /해지 처리로 바뀝니다/.test(hp) && /사업자구분<\/span><span class="fv">법인 <span class="c2" style="margin:0">임차인 관리에서 고칩니다/.test(hp) && !c.kind && c.type === '확정기간후자동갱신' && c.dep === 5e7 && rf && c.depRet === '2027-07-31' && c.ag.n === '시험중개' && c.memo === '시험 메모']); }
 /* 계약 상세 탭 4개 · 임대정보 수정 패널(두 항목 · 연체이자율 · 대납) · 담당자 · 계약자 · 대리인 */
 { const RT = new Function(stub + bare + '; seedJuly(); return {CTR3,ciOpen,ciSave,ciHTML,cx3Open,cx3Save,ISSUE,CTRS,CPPL,CPARTY,get ci(){return ci;},get cx3(){return cx3;},set tab3c(v){tab3c=v;}};')();
   RT.tab3c = '요약'; const h = RT.CTR3('b1본관801호'), hb = RT.CTR3('b1본관301호');
