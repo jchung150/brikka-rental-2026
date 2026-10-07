@@ -4859,7 +4859,7 @@ function cx3HTML(){
   const SEL=(f,o)=>`<select onchange="cx3.${f}=this.value" style="${inp}">${o.map(v=>`<option ${cx3[f]===v?'selected':''}>${v}</option>`).join('')}</select>`;
   const TTL={ctr:'계약정보 수정',dep:'보증금 정보 수정',ag:'중개사 수정',memo:'메모 수정',park:'주차 수정',hvac:'냉난방기 수정'};
   const body=cx3.mode==='ctr'?F('유닛',`<span class="fv">${c.no} <span class="c2" style="margin:0">수정 불가</span></span>`)
-      +F('대표임차인',`<span class="fv">${c.ten} <span class="c2" style="margin:0">임차인 탭에서 고칩니다</span></span>`)
+      +F('임차인',`<span class="fv">${c.ten} <span class="c2" style="margin:0">임차인 탭에서 고칩니다</span></span>`)
       +F('사업자구분',SEL('kind',['법인','개인']))+F('계약유형',SEL('type',['확정기간계약','확정기간후자동갱신']))
       +F('계약상태',`<span class="fv">${c.st} <span class="c2" style="margin:0">해지 처리로 바뀝니다</span></span>`)
       +F('계약시작일',I('start',160,'date'))+F('계약종료일',I('end',160,'date'))
@@ -4944,8 +4944,8 @@ function CTR3sum(c,k){
   const edit=m=>`<button class="btn sm" onclick="cx3Open('${k}','${m}')">수정</button>`;
   /* 청구일 · 납부마감일은 건물에서 정한다(계약마다 정하지 않는다) → PRO-3 · 3.5 */
   const info=card('계약정보',`<dl class="dl">
-      <dt>유닛</dt><dd>${c.no}<span class="lock">수정 불가</span></dd>
-      <dt>대표임차인</dt><dd>${c.ten}</dd>
+      <dt>유닛</dt><dd>${c.no}</dd>
+      <dt>임차인</dt><dd>${c.ten}</dd>
       <dt>사업자구분</dt><dd>${ctrKind(c)}</dd>
       <dt>계약상태</dt><dd><span class="bd ${c.st==='진행중'?'ok':'mu'}">${c.st}</span></dd>
       <dt>계약유형</dt><dd>${ctrType(c)}</dd>
@@ -4961,7 +4961,7 @@ function CTR3sum(c,k){
       <dt>연체이자율</dt><dd>연 ${rateOf(k)}%</dd>
       <dt>렌트프리</dt><dd>${rfx?`있음 · ${d8(c.base)} - ${d8(c.rf.end)}<span class="lock">${rfIt}</span>`:'없음'}</dd></dl>`);
   const dep=card('보증금 정보',`<dl class="dl">
-      <dt>보증금 약정액</dt><dd>${won(ctrDeposit(c))}<span class="lock">${eok(ctrDeposit(c))}</span></dd>
+      <dt>보증금 약정액</dt><dd>${won(ctrDeposit(c))}</dd>
       <dt>보증금 잔액</dt><dd>${won(L.bal.임대보증금)}</dd>
       <dt>보증금 반환예정일</dt><dd>${d8(ctrDepRet(c))}</dd></dl>`,edit('dep'));
   const A=c.ag;

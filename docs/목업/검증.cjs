@@ -684,7 +684,7 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
 /* 계약 상세 요약 — 기본정보(건물 · 건물주 · 이 달 청구일 · 납부마감일) · 사업자구분 · 계약유형 · 렌트프리 · 기산일 · 보증금 3칸 · 중개사 · 메모 · 수정 패널이 저장됨 */
 { const CS = new Function(stub + bare + '; seedJuly(); return {CTR3,cx3Open,cx3Save,cx3HTML,CTRS,get cx3(){return cx3;},set tab3c(v){tab3c=v;}};')();
   CS.tab3c = '요약'; const h = CS.CTR3('b1본관101호'), h8 = CS.CTR3('b1본관801호'), h4 = CS.CTR3('b1본관401호');
-  const cards = ['계약정보','임대정보','보증금 정보','주차정보','냉난방기','중개사','메모'].every(t => h.includes(`<div class="ct">${t}`)) && !h.includes('<div class="ct">기본정보') && h.indexOf('<div class="ct">계약정보') < h.indexOf('<div class="two">') && !/<dt>건물주<\/dt>/.test(h) && !/미납 잔액|보증금 납부마감일|일 남음|건물 설정 ·/.test(h)
+  const cards = ['계약정보','임대정보','보증금 정보','주차정보','냉난방기','중개사','메모'].every(t => h.includes(`<div class="ct">${t}`)) && !h.includes('<div class="ct">기본정보') && h.indexOf('<div class="ct">계약정보') < h.indexOf('<div class="two">') && !/<dt>건물주<\/dt>/.test(h) && !/미납 잔액|보증금 납부마감일|일 남음|건물 설정 ·|수정 불가|대표임차인|억원/.test(h) && /<dt>임차인<\/dt>/.test(h)
     && /<dt>청구일<\/dt><dd>당월 \d+일<\/dd>/.test(h) && h.indexOf('<dt>납부마감일') < h.indexOf('<dt>기산일');
   const vals = /<dt>사업자구분<\/dt><dd>법인/.test(h) && /있음 · 2025.08.01 - 2025.09.30/.test(h) && /<dt>기산일<\/dt><dd>2025.10.01/.test(h)
     && /보증금 반환예정일/.test(h) && /중개사 없이 맺은 계약/.test(h) && /마포센트럴공인중개사사무소/.test(h8) && /확정기간후자동갱신/.test(h4) && !/예시값입니다/.test(h);
