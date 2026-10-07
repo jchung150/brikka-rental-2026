@@ -4465,7 +4465,7 @@ function ncInit(){
       kind:'법인',biz:'',found:null,ten:'',ceo:'',addr:'',item:'',alias:'',
       pn:'',pt:'',ptel:'',pmail:'',diff:false,cn:'',cbiz:'',cceo:'',ctel:'',cmail:'',caddr:'',rbank:'',racct:'',rname:'',
       proxy:false,xn:'',xtel:'',xmail:'',xaddr:'',an:'',aceo:'',ano:'',atel:'',aaddr:'',
-      dep:'',depRet:'',park:'0',parkFee:'',hv:'',hvm:'',rent:'',mgmt:'',rentCy:'매월',mgmtCy:'매월',late:false,lateD:'',rf:'',rfM:'',rfEnd:'',rfRent:true,rfMgmt:false,rfVar:false,
+      dep:'',depRet:'',park:'0',hv:'',hvm:'',rent:'',mgmt:'',rentCy:'매월',mgmtCy:'매월',late:false,lateD:'',rf:'',rfM:'',rfEnd:'',rfRent:true,rfMgmt:false,rfVar:false,
       adj:[],files:[],memo:'',tried:false};
 }
 function ncSet(f,v){
@@ -4522,7 +4522,7 @@ function ncSave(welcome){
   if(nc.mgmtCy!=='매월') itemMeta(c,'고정관리비').cycle=nc.mgmtCy;
   CTRS.push(c);
   const k=ckey(c);
-  CPARK[k]={free:parseInt(nc.park)||0,fee:numOf(nc.parkFee)};
+  CPARK[k]={free:parseInt(nc.park)||0};
   CPPL[k]=[{n:nc.pn,t:nc.pt,tel:nc.ptel,mail:nc.pmail}];
   if(nc.diff) CPARTY[k]={n:nc.cn,biz:nc.cbiz,ceo:nc.cceo,tel:nc.ctel,mail:nc.cmail,addr:nc.caddr,rb:nc.rbank,ra:nc.racct,rn:nc.rname};
   if(nc.proxy) CPROXY[k]={n:nc.xn,tel:nc.xtel,mail:nc.xmail,addr:nc.xaddr};
@@ -4626,7 +4626,7 @@ function CTR2(){
             :`<span class="fv">${nc.start?d8(nc.start):'—'} <span class="c2">계약시작일과 같음</span></span>`)
         +(nc.rf!=='있음'?R('',C('late','기산일을 따로 정하기 (소급 등)')):'');})())
     +card('보증금',R('보증금',N('dep','약정액'))+R('반환예정일',D('depRet')))
-    +card('주차',R('무상 주차',`${T('park','',70)}<span class="c2" style="margin:0">대</span>`)+R('초과 1대 월',N('parkFee','단가 (부가세 포함)'))
+    +card('주차',R('무상 주차',`${T('park','',70)}<span class="c2" style="margin:0">대</span>`)
       +'<div class="c2" style="margin:0">등록 차량은 저장한 뒤 계약 상세의 주차정보에서 넣습니다</div>')
     +card('냉난방기',R('구분',`<select onchange="ncSet('hv',this.value)"><option value="">선택</option>${HVAC_OWN.map(v=>`<option ${nc.hv===v?'selected':''}>${v}</option>`).join('')}</select>`)
       +R('메모',T('hvm','예: 시스템에어컨 4대 · 2024.03 설치'))
@@ -4869,12 +4869,12 @@ function CTR3month(c,k){
 /* CTR-3 요약 탭 — 계약·임대 정보. 잔액은 원장에서 */
 /* 계약의 주차 약정 · 냉난방기 구분 — 목업 예시값. 등록 차량은 건물 주차 탭과 같은 기록(VEH) → CTR-3 · PRO-3 */
 /* 무상 주차 대수 — 명부의 「층(배정대수)」. 초과 단가는 예시값 */
-const CPARK=Object.fromEntries([['본관801호',3],['본관701호',3],['본관601호',3],['본관501호',3],['본관401호',3],['본관302호',3],['본관201호',3],['본관101호',3],['본관B201호',3],['별관401호',2],['별관301호',2],['별관201호',2]].map(([n,f])=>['b1'+n,{free:f,fee:110000}]));
+const CPARK=Object.fromEntries([['본관801호',3],['본관701호',3],['본관601호',3],['본관501호',3],['본관401호',3],['본관302호',3],['본관201호',3],['본관101호',3],['본관B201호',3],['별관401호',2],['별관301호',2],['별관201호',2]].map(([n,f])=>['b1'+n,{free:f}]));
 const HVAC_OWN=['임차인 설치','전 임차인 것 이어받음','건물주 것 사용'];
 const CHVAC={'b1본관801호':{t:'임차인 설치',m:'시스템에어컨 4대 · 2024.03 설치'},'b1본관101호':{t:'건물주 것 사용',m:''},'b1별관301호':{t:'전 임차인 것 이어받음',m:'벽걸이 2대'}};
 let cx3=null;
 function cpkOpen(k){const c=CTRS.find(x=>ckey(x)===k), b=BUILDINGS.find(x=>x.id===c.b), P=CPARK[k]||{};
-  cx3={k,mode:'park',free:P.free!=null?String(P.free):'',fee:P.fee?String(P.fee):''};DRAWER='c3x';render(true);}
+  cx3={k,mode:'park',free:P.free!=null?String(P.free):''};DRAWER='c3x';render(true);}
 /* 계약정보 · 보증금 · 중개사 · 메모 수정 — 오른쪽 패널 → 3.8 */
 function cx3Open(k,mode){const c=CTRS.find(x=>ckey(x)===k), A=c.ag||{};
   const CP=CPARTY[k]||{}, PX=CPROXY[k]||{};
@@ -4886,7 +4886,7 @@ function cx3Save(){const c=CTRS.find(x=>ckey(x)===cx3.k);
   const LBL={ctr:'계약정보',dep:'보증금 정보',ag:'중개사',memo:'메모',ppl:'담당자',party:'계약자 · 대리인',park:'주차정보',hvac:'냉난방기'};
   if(LBL[cx3.mode]&&!(cx3.mode==='hvac'&&!cx3.t)) clog(cx3.k,'계약','수정',`${LBL[cx3.mode]} 수정`);
   if(cx3.mode==='park'){const b=BUILDINGS.find(x=>x.id===c.b);
-    CPARK[cx3.k]={free:parseInt(cx3.free)||0,fee:numOf(cx3.fee)};}
+    CPARK[cx3.k]={...(CPARK[cx3.k]||{}),free:parseInt(cx3.free)||0};}
   else if(cx3.mode==='ctr'){if(!cx3.start||!cx3.end||dnum(cx3.end)<dnum(cx3.start)) return;
     Object.assign(c,{kind:cx3.kind,type:cx3.type,base:cx3.start,end:cx3.end});}
   else if(cx3.mode==='dep') Object.assign(c,{dep:numOf(cx3.dep),depRet:cx3.depRet});
@@ -4908,8 +4908,8 @@ function cx3HTML(){
   const O=(o,f,w)=>`<input type="text" value="${cx3[o][f]}" oninput="cx3.${o}.${f}=this.value" style="${inp};${w?`width:${w}px`:'flex:1;min-width:0'}">`;
   const PI=(i,f,w,ph)=>`<input type="text" value="${cx3.ppl[i][f]||''}" placeholder="${ph||''}" oninput="cx3.ppl[${i}].${f}=this.value" style="${inp};${w?`width:${w}px`:'flex:1;min-width:0'}">`;
   const body=cx3.mode==='ppl'?cx3.ppl.map((x,i)=>`<div class="fg" style="border:1px solid var(--line);border-radius:var(--r-sm);padding:10px 12px 2px">
-        <div class="fl" style="display:flex">${i?`담당자 ${i+1}`:'대표 담당자 <span class="c2" style="margin:0 0 0 6px">청구서 메일을 받습니다 · 삭제할 수 없습니다</span>'}
-          ${i?`<span class="lk" style="margin-left:auto;font-weight:400" onclick="cx3.ppl.splice(${i},1);render(true)">삭제</span>`:''}</div>
+        <div class="fl" style="display:flex;align-items:center">${i?`담당자 ${i+1}`:'대표 담당자'}
+          ${i?`<button class="btn sm" style="margin-left:auto;color:var(--danger)" onclick="cx3.ppl.splice(${i},1);render(true)">삭제</button>`:''}</div>
         ${F('담당자명',PI(i,'n',140))}${F('직위',PI(i,'t',160))}${F('연락처',PI(i,'tel',160))}${F('이메일',PI(i,'mail'))}</div>`).join('')
       +`<button class="btn sm" onclick="cx3.ppl.push({n:'',t:'',tel:'',mail:''});render(true)">+ 담당자 추가</button>`
     :cx3.mode==='party'?`<label class="ck" style="display:flex;margin-bottom:10px"><input type="checkbox" ${cx3.diff?'checked':''} onchange="cx3.diff=this.checked;render(true)">임차인과 계약자가 다름</label>`
@@ -4929,14 +4929,9 @@ function cx3HTML(){
     :cx3.mode==='ag'?`<label class="ck" style="display:flex;margin-bottom:12px"><input type="checkbox" ${cx3.has?'checked':''} onchange="cx3.has=this.checked;render(true)">중개사가 있음</label>`
       +(cx3.has?F('중개사무소',I('an'))+F('대표자명',I('aceo',160))+F('등록번호',I('ano',180))+F('연락처',I('atel',160))+F('소재지',I('aaddr')):'')
     :cx3.mode==='memo'?`<textarea rows="8" oninput="cx3.memo=this.value" placeholder="계약서에 없는 약속 · 특이사항" style="${inp};width:100%;resize:vertical">${cx3.memo}</textarea>`
-    :cx3.mode==='park'?`
-      <div class="fg"><div class="fl">무상 주차 대수</div><input type="text" inputmode="numeric" value="${cx3.free}" oninput="cx3.free=this.value" style="${inp};width:80px"> 대</div>
-      <div class="fg"><div class="fl">초과 1대당 월 단가 (부가세 포함)</div><input type="text" inputmode="numeric" value="${cx3.fee?numOf(cx3.fee).toLocaleString('ko-KR'):''}" oninput="cx3.fee=this.value" style="${inp};width:140px"> 원</div>
-      <div class="c2" style="white-space:normal">차량은 주차정보 카드의 「차량 추가」나 건물 상세 주차 탭에서 등록합니다.</div>`
-    :`<div class="fg"><div class="fl">냉난방기 구분 (필수)</div>
-        ${HVAC_OWN.map(v=>`<label class="ck" style="display:flex;margin-bottom:7px"><input type="radio" name="hv" ${cx3.t===v?'checked':''} onchange="cx3.t='${v}';document.getElementById('c3ok').disabled=false">${v}</label>`).join('')}</div>
-      <div class="fg"><div class="fl">메모</div><input type="text" value="${cx3.m}" placeholder="예: 시스템에어컨 4대 · 2024.03 설치" oninput="cx3.m=this.value" style="${inp};width:100%"></div>
-      <div class="c2" style="white-space:normal">퇴거할 때 철거·원상복구를 누가 하는지 가리는 근거입니다.</div>`;
+    :cx3.mode==='park'?F('무상 주차 대수',`<input type="text" inputmode="numeric" value="${cx3.free}" oninput="cx3.free=this.value" style="${inp};width:80px;text-align:right"><span class="c2" style="margin:0">대</span>`)
+    :F('구분',`<select onchange="cx3.t=this.value;render(true)" style="${inp}"><option value="" ${cx3.t?'':'selected'}>선택 (필수)</option>${HVAC_OWN.map(v=>`<option ${cx3.t===v?'selected':''}>${v}</option>`).join('')}</select>`)
+      +F('메모',`<input type="text" value="${cx3.m}" placeholder="예: 시스템에어컨 4대 · 2024.03 설치" oninput="cx3.m=this.value" style="${inp};flex:1;min-width:0">`);
   return `<div class="dro"><div class="ov" onclick="closeDrawer()"></div><div class="pn">
     <div class="dh"><div><div class="t">${TTL[cx3.mode]}</div><div class="s">${cname(b.alias,c.no,c.ten)}</div></div>
       <button class="x" onclick="closeDrawer()">✕</button></div>
@@ -5004,7 +4999,7 @@ function CTR3sum(c,k){
   /* 청구일 · 납부마감일은 건물에서 정한다(계약마다 정하지 않는다) → PRO-3 · 3.5 */
   const info=card('계약정보',`<dl class="dl">
       <dt>유닛</dt><dd>${c.no}</dd>
-      <dt>임차인</dt><dd><span class="lk" onclick="go('user-6')">${c.ten}</span></dd>
+      <dt>임차인</dt><dd>${c.ten}</dd>
       <dt>사업자구분</dt><dd>${ctrKind(c)}</dd>
       <dt>계약상태</dt><dd><span class="bd ${c.st==='진행중'?'ok':'mu'}">${c.st}</span></dd>
       <dt>계약유형</dt><dd>${ctrType(c)}</dd>
@@ -5053,7 +5048,6 @@ function CTR3sum(c,k){
       ${(V=>V.length?V.map((v,i)=>`<dt>${i?'':`등록 차량 ${V.length}대`}</dt><dd>${v.plate} · ${v.own}<span class="lock">${v.loc} · ${v.fee}</span></dd>`).join('')
         :'<dt>등록 차량</dt><dd><span style="color:var(--muted)">없음</span></dd>')(vehOf(k))}
       <dt>무상 주차 대수</dt><dd>${CPARK[k]?`${CPARK[k].free}대`:'—'}</dd>
-      <dt>초과 1대당 월 단가</dt><dd>${CPARK[k]&&CPARK[k].fee?`${won(CPARK[k].fee)}<span class="lock">부가세 포함</span>`:'—'}</dd>
     </dl></div></div>
     <div class="card"><div class="ct">냉난방기<span class="ca"><button class="btn sm" onclick="chvOpen('${k}')">수정</button></span></div><div class="cc"><dl class="dl">
       <dt>구분</dt><dd>${CHVAC[k]?`<b>${CHVAC[k].t}</b>`:'<span style="color:var(--warn)">미입력</span>'}</dd>
