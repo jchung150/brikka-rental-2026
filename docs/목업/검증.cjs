@@ -675,6 +675,11 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   PT.fpk.q = '145하'; const hf = PT.PRO3('b1'); PT.fpk.q = '';
   r6.push(['주차 탭 — 유닛·주차·관리비 순 · 처음엔 접힘 · 본관501호 무료 1대 초과 · 연락처 미확인 · 펼치면 차량 · 묶음 줄 「총 4대 · 무료 3대 + 월정액 1대」 · 차량 줄을 누르면 상세 · 무료 초과로 새로 넣기 막힘 · 차량번호 중복 막힘 · 검색',
     order && !/등록 차량/.test(sum) && closed && open1 && all && grp && det && overFree && dupP && ok && /145하5562/.test(hf) && !/10버3291/.test(hf)]); }
+/* 자료보관 줄을 누르면 상세 · 설정 탭 건물관리자에 회사·연락처·이메일·계정상태 */
+{ const DM = new Function(stub + bare + '; return {PRO3,set tab3(v){tab3=v;}};')();
+  DM.tab3 = '자료보관'; const hd = DM.PRO3('b1'); DM.tab3 = '설정'; const hs = DM.PRO3('b1');
+  r6.push(['자료보관 줄 클릭 → 상세 · 설정 탭 건물관리자에 회사 · 연락처 · 이메일 · 계정상태',
+    /<tr class="" style="cursor:pointer" onclick="docOpen\('b1',0\)">/.test(hd) && /브리카운영\(주\)/.test(hs) && /kim@brikka.kr/.test(hs) && /계정상태/.test(hs)]); }
 /* 수납 내역 더보기 — 받을 돈이 있는 계약(비씨에이전시)만 수납 처리가 눌리고, 다 받은 계약(에스씨케이컴퍼니)은 흐림 · 원장 보기는 모두 */
 { const MV = new Function(stub + bare + '; seedJuly(); return {PAY6,RC,MORE};')();
   MV.RC.f = {b:'b1', ym:'2026-07', st:''}; MV.MORE.length = 0; const h = MV.PAY6();

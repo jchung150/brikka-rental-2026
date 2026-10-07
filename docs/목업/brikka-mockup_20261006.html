@@ -1408,7 +1408,10 @@ const BKIND=['오피스빌딩','근린생활시설(상가)','지식산업센터'
 const BHVAC=['중앙공조','EHP(시스템에어컨)','GHP(가스 시스템에어컨)','지역난방','개별냉난방','기타'];   /* 냉난방 방식 → 3.1. 여러 개 고를 수 있다 */
 /* 건물관리자 — 사용자 관리(USER-3)에 등록된 관리자 중에서만 고른다. 여기서 새로 만들지 않는다 → 3.7 */
 /* 슈퍼관리자는 모든 건물을 보므로 건물관리자로 고르지 않는다. 한 건물에 여러 명, 한 사람이 여러 건물 */
-const BMGRS=[{n:'김관리',tel:'010-5521-0934'},{n:'박현장',tel:'010-7716-2280'},{n:'이담당',tel:'010-2290-4471'}];
+const BMGRS=[{n:'김관리',co:'브리카운영(주)',tel:'010-5521-0934',mail:'kim@brikka.kr',st:'정상',last:'2026-08-10 09:12'},
+  {n:'박현장',co:'브리카운영(주)',tel:'010-7716-2280',mail:'park@brikka.kr',st:'정상',last:'2026-08-09 18:40'},
+  {n:'이담당',co:'카리나시설관리',tel:'010-2290-4471',mail:'lee@karina-fm.kr',st:'차단됨',last:'2026-06-30 11:05'}];
+const mgrOf=n=>BMGRS.find(x=>x.n===n)||{n};
 const mgrTel=n=>(BMGRS.find(x=>x.n===n)||{}).tel||'';
 const DAY_OPTS=[...Array.from({length:28},(_,i)=>`${i+1}일`)];
 function nbInit(){
@@ -1821,7 +1824,7 @@ function spHTML(){
   if(sp.mode==='mgr'){t='건물관리자';
     body=`<div class="fg"><div class="fl">이 건물을 맡을 관리자</div>
       ${BMGRS.map(x=>`<label class="ck" style="display:flex;margin-bottom:8px"><input type="checkbox" ${sp.pick.includes(x.n)?'checked':''}
-        onchange="sp.pick=this.checked?[...sp.pick,'${x.n}']:sp.pick.filter(v=>v!=='${x.n}');render(true)"><b style="font-weight:500">${x.n}</b><span class="c2" style="margin:0 0 0 6px">${x.tel}</span></label>`).join('')}</div>
+        onchange="sp.pick=this.checked?[...sp.pick,'${x.n}']:sp.pick.filter(v=>v!=='${x.n}');render(true)"><b style="font-weight:500">${x.n}</b><span class="c2" style="margin:0 0 0 6px">${x.co} · ${x.tel}${x.st==='차단됨'?' · 차단됨':''}</span></label>`).join('')}</div>
       <div class="c2" style="white-space:normal">사용자 관리에 등록된 관리자입니다. 고른 관리자에게 이 건물이 담당 건물로 배정됩니다. 슈퍼관리자는 모든 건물을 보므로 목록에 없습니다.</div>`;}
   else if(sp.mode==='rule'){t='청구 규칙'; dis=spRuleBad();
     body=`<div class="fg"><div class="fl">청구일</div><div style="display:flex;gap:6px">${sel('bm',['전월','당월'])}${sel('bd',days)}</div></div>
@@ -1843,7 +1846,13 @@ function t설정(b){
   const d=dday(b.mgmtEnd), op=bOp(b.id), o=BOP[b.id], canDel=bCanDel(b);
   const card=(t,body,act)=>`<div class="card"><div class="ct">${t}${act?`<span class="ca">${act}</span>`:''}</div><div class="cc">${body}</div></div>`;
   const edit=mode=>`<button class="btn sm" title="슈퍼관리자만" onclick="spOpen('${b.id}','${mode}')">수정</button>`;
-  const mgr=card('건물관리자',b.mgrs.length?`<dl class="dl">${b.mgrs.map((n,i)=>`<dt>${i?'':'관리자'}</dt><dd>${n}<span class="lock">${mgrTel(n)}</span></dd>`).join('')}</dl>`
+  /* 건물관리자 — 사용자 관리(USER-2)의 관리자 정보를 그대로 보인다. 고치는 곳은 사용자 관리 */
+  const mgr=card('건물관리자',b.mgrs.length?`<div class="tw" style="border:1px solid var(--line);border-radius:var(--r-sm)"><table>
+      <thead><tr><th>이름 · 회사</th><th>연락처 · 이메일</th><th class="c">계정상태</th></tr></thead>
+      <tbody>${b.mgrs.map(n=>{const m=mgrOf(n);return `<tr><td><div class="c1" style="font-weight:500">${m.n}</div><div class="c2">${m.co||'—'}</div></td>
+        <td><div style="white-space:nowrap">${m.tel||'—'}</div><div class="c2">${m.mail||'—'}</div></td>
+        <td class="c">${m.st==='차단됨'?'<span class="bd da">차단됨</span>':'<span class="bd ok">정상</span>'}<div class="c2">${m.last?`접속 ${m.last.slice(5,10).replace('-','.')}`:''}</div></td></tr>`;}).join('')}</tbody></table></div>
+      <div class="hint">관리자 정보는 사용자 관리에서 고칩니다. 차단된 관리자는 이 건물을 볼 수 없습니다.</div>`
       :'<div class="c2" style="margin:0">지정된 건물관리자가 없습니다. 슈퍼관리자만 이 건물을 봅니다</div>',edit('mgr'));
   const rule=card('청구 규칙',`<dl class="dl"><dt>청구일</dt><dd>${b.billDay}<span class="lock">예: 8월분 → ${ruleEx(b.billDay,'2026-08')}</span></dd>
       <dt>납부마감일</dt><dd>${b.dueDay}<span class="lock">예: 8월분 → ${ruleEx(b.dueDay,'2026-08')}</span></dd></dl>`,edit('rule'));
@@ -2306,7 +2315,7 @@ function t자료(b,ck){
     ${!ids.length?`<div class="empty"><div class="t">등록된 자료가 없습니다</div>${ck?'계약서·사업자등록증':'계약서·등기부등본'} 등을 업로드할 수 있습니다.</div>`:`<div class="tw"><table>
       <thead><tr><th class="c" style="width:44px"><span class="cb ${all?'on':''}" style="cursor:pointer" onclick="dPickIds(${JSON.stringify(ids)},${all?'false':'true'})"></span></th>
         <th>제목 <span class="so">⇅</span></th><th>카테고리</th><th>업로드한 사람</th><th>등록일시 <span class="so">⇅</span></th><th class="c">더보기</th></tr></thead>
-      <tbody>${ids.map(i=>{const d=b.docs[i];return `<tr class="${selD[i]?'on':''}">
+      <tbody>${ids.map(i=>{const d=b.docs[i];return `<tr class="${selD[i]?'on':''}" style="cursor:pointer" onclick="docOpen('${b.id}',${i})">
         <td class="c"><span class="cb ${selD[i]?'on':''}" style="cursor:pointer" onclick="dPickRow(${i},event)"></span></td>
         <td><div class="c1">${dTitle(d)}</div><div class="c2">${!ck&&d.k?`계약 · ${docCtrTx(d)} · `:''}${docExt(d.t)} · ${d.sz}</div></td>
         <td><span class="bd mu">${d.c}</span></td><td>${d.by}</td>
