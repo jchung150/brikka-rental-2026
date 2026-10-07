@@ -103,7 +103,7 @@ run('CTR-3 청구·수납', "seedJuly();tab3c='청구·수납';g7={'2026-07':tru
 run('CTR-3 빈 탭', "tab3c='자료보관';CTR3('b1별관301호')");
 run('CTR-3 요약 임대정보 · 인상 예약', "tab3c='요약';CTR3('b1별관301호')+CTR3('b1본관301호')");
 run('CTR-3 계약 전환 메뉴', "CSW=true;tab3c='원장';CTR3('b1별관301호')");
-run('CTR-3 청구항목 패널', "ciOpen('b1별관301호','edit','임대료');ciSet('amt','1');ciHTML();ciOpen('b1별관301호','edit','고정관리비');ciHTML();ciOpen('b1별관301호','adj');ciHTML();ciOpen('b1별관301호','payto');ciHTML();ciOpen('b1별관301호','rent');ciHTML();cx3Open('b1본관801호','ppl');cx3HTML();cx3Open('b1본관301호','party');cx3HTML()");
+run('CTR-3 청구항목 패널', "ciOpen('b1별관301호','edit','임대료');ciSet('amt','1');ciHTML();ciOpen('b1별관301호','edit','고정관리비');ciHTML();ciOpen('b1별관301호','adj');ciHTML();ciOpen('b1별관301호','payto');ciHTML();ciOpen('b1별관301호','rent');ciHTML();cx3Open('b1본관801호','ppl');cx3HTML();cx3Open('b1본관301호','ctr');cx3HTML()");
 run('CTR-3 원장 비씨에이전시', "tab3c='원장';CTR3('b1별관301호')");
 run('CTR-3 원장 전체 펼침', "tab3c='원장';g3All=true;CTR3('b1본관101호')");
 run('CTR-3 원장 필터', "tab3c='원장';f3={per:'3',acc:'매출채권'};CTR3('b1본관302호')");
@@ -522,9 +522,8 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   CP.chvOpen('b1본관401호'); CP.cx3Save(); const noT = !CP.CHVAC['b1본관401호'];
   Object.assign(CP.cx3.hv[0], {n:'시스템에어컨', q:'3', t:'임차인 설치'}); CP.cx3.hv.push({n:'벽걸이', q:'1', t:'임대인 설치', m:''}); CP.cx3Save();
   const hv = CP.CHVAC['b1본관401호'] && CP.CHVAC['b1본관401호'].length === 2 && CP.CHVAC['b1본관401호'][0].q === 3;
-  const hv801 = /<dt>합계<\/dt><dd>5대<span class="lock">임차인 설치 4 · 임대인 설치 1/.test(h);
-  r6.push(['계약 상세 — 주차정보에 등록 차량 4대 · 계약 상세에서 차량 추가(계약 고정) → 5대 · 냉난방기 여러 줄(종류 · 대수 · 소유) · 합계 5대(임차인 4 · 임대인 1) · 소유 없으면 저장 안 됨',
-    four && /<dt>등록 차량<\/dt>/.test(h) && h.indexOf('<dt>무료 주차 대수') < h.indexOf('<dt>등록 차량') && !/철거·원상복구를 누가/.test(h) && /냉난방기/.test(h) && /임차인 설치/.test(h) && added && noT && hv && hv801]); }
+  r6.push(['계약 상세 — 주차정보에 등록 차량 4대 · 계약 상세에서 차량 추가(계약 고정) → 5대 · 냉난방기 여러 줄(종류 · 대수 · 소유) · 소유 없으면 저장 안 됨',
+    four && /<dt>등록 차량<\/dt>/.test(h) && h.indexOf('<dt>무료 주차 대수') < h.indexOf('<dt>등록 차량') && !/철거·원상복구를 누가/.test(h) && /냉난방기/.test(h) && /임차인 설치/.test(h) && added && noT && hv]); }
 /* 청구일·납부마감일 규칙 — 청구년월 기준 전월·당월·익월 + N일·말일 */
 { const DR = new Function(stub + bare + '; return {dayRule};')().dayRule;
   r6.push(['청구일·납부마감일 — 7월분: 전월 25일 = 6/25 · 당월 1일 = 7/1 · 당월 19일 = 7/19 · 당월 말일 = 7/31 · 익월 10일 = 8/10 · 2월분 당월 말일 = 2/28',
@@ -702,14 +701,14 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
 { const RT = new Function(stub + bare + '; seedJuly(); return {CTR3,ciOpen,ciSave,ciHTML,cx3Open,cx3Save,ISSUE,CTRS,CPPL,CPARTY,get ci(){return ci;},get cx3(){return cx3;},set tab3c(v){tab3c=v;}};')();
   RT.tab3c = '요약'; const h = RT.CTR3('b1본관801호'), hb = RT.CTR3('b1본관301호');
   const tabs = /tab3c='자료보관'/.test(h) && !/tab3c='임차인'/.test(h) && !/tab3c='임대료·관리비'/.test(h) && /<div class="ct">임대료 인상 예약/.test(h)
-    && /<div class="ct">담당자/.test(h) && /정하늘/.test(h) && /<span class="bd ac">대표/.test(h) && /임차인과 같음/.test(h) && /\(유\)유니버셜대부/.test(hb) && /110-482-339201/.test(hb) && !/go\('user-6'\)/.test(h) && !/초과 1대당/.test(h);
+    && /<div class="ct">담당자/.test(h) && !/<div class="ct">계약자/.test(h) && /<dt>계약자<\/dt><dd>임차인과 같음/.test(h) && /<dt>대리인<\/dt>/.test(h) && !/<dt>합계<\/dt>/.test(h) && /정하늘/.test(h) && /<span class="bd ac">대표/.test(h) && /임차인과 같음/.test(h) && /\(유\)유니버셜대부/.test(hb) && /110-482-339201/.test(hb) && !/go\('user-6'\)/.test(h) && !/초과 1대당/.test(h);
   const c = RT.CTRS.find(x => x.no === '별관201호'), ln = n => (RT.ISSUE().find(x => x.no === '별관201호').lines.find(l => l.n === n) || null);
   RT.ciOpen('b1별관301호', 'adj'); const adjH = RT.ciHTML(); const adjOk = /지금 약정액/.test(adjH) && /3,465,000원/.test(adjH) && /1,342,000원/.test(adjH);
   RT.ciOpen('b1별관201호', 'rent'); RT.ci.its.임대료.amt = '4400000'; RT.ciSave(); const needWhy = RT.ci !== null;
   RT.ci.why = '재협의'; RT.ci.rate = '10'; RT.ciSave(); const ok = RT.ci === null && ln('임대료').amt === 4400000 && c.rate === 10;
   RT.cx3Open('b1본관801호', 'ppl'); RT.cx3.ppl.push({n:'시험담당', t:'', tel:'', mail:'t@t.kr'}); RT.cx3Save(); const pp = RT.CPPL['b1본관801호'].length === 3;
-  RT.cx3Open('b1본관301호', 'party'); RT.cx3.diff = false; RT.cx3Save(); const pt = !RT.CPARTY['b1본관301호'];
-  r6.push(['계약 상세 탭 4개(요약 · 청구·수납 · 원장 · 자료보관) · 임대정보 수정(금액 바꾸면 사유 필수 → 4,400,000 · 연체이자율 10%) · 인상 예약 카드(추가 패널에 지금 약정액) · 담당자(대표) 추가 · 계약자 · 대리인 · 임차인 이름은 링크 아님 · 초과 단가 없음',
+  RT.cx3Open('b1본관301호', 'ctr'); RT.cx3.diff = false; RT.cx3Save(); const pt = !RT.CPARTY['b1본관301호'];
+  r6.push(['계약 상세 탭 4개(요약 · 청구·수납 · 원장 · 자료보관) · 임대정보 수정(금액 바꾸면 사유 필수 → 4,400,000 · 연체이자율 10%) · 인상 예약 카드(추가 패널에 지금 약정액) · 담당자(대표) 추가 · 계약자 · 대리인은 계약정보 카드 · 패널 · 임차인 이름은 링크 아님 · 초과 단가 없음',
     tabs && adjOk && needWhy && ok && pp && pt]); }
 /* 이력 탭 — 건물 상세 · 계약 상세에 같은 표(머리글 같음) · 건물은 건물 + 월 마감 + 그 건물 계약 전부 · 계약은 그 계약만 · 바꾸면 바로 쌓임 · 변경 전/후 펼침 */
 { const HI = new Function(stub + bare + '; seedJuly(); return {PRO3,CTR3,histB,BUILDINGS,cx3Open,cx3Save,setFh,hdOpen,hdHTML,hdDelete,get hdDel(){return hdDel;},HROWS,set tab3(v){tab3=v;},set tab3c(v){tab3c=v;},hp,get cx3(){return cx3;}};')();
