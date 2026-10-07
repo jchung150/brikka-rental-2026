@@ -2326,14 +2326,14 @@ function t자료(b,ck){
     </div>
     <div class="tw"><table>
       <thead><tr><th class="c" style="width:44px"><span class="cb ${all?'on':''}" style="cursor:pointer" onclick="dPickIds(${JSON.stringify(ids)},${all?'false':'true'})"></span></th>
-        <th>제목 <span class="so">⇅</span></th><th>카테고리</th><th>업로드한 사람</th><th>등록일시 <span class="so">⇅</span></th><th class="c">더보기</th></tr></thead>
+        <th>제목 <span class="so">⇅</span></th><th>카테고리</th><th>파일 형식</th><th>업로드한 사람</th><th>등록일시 <span class="so">⇅</span></th><th class="c">더보기</th></tr></thead>
       <tbody>${ids.length?ids.map(i=>{const d=b.docs[i];return `<tr class="${selD[i]?'on':''}" style="cursor:pointer" onclick="docOpen('${b.id}',${i})">
         <td class="c"><span class="cb ${selD[i]?'on':''}" style="cursor:pointer" onclick="dPickRow(${i},event)"></span></td>
-        <td><div class="c1">${dTitle(d)}</div><div class="c2">${d.k?`계약 · ${docCtrTx(d)} · `:''}${docExt(d.t)} · ${d.sz}</div></td>
-        <td><span class="bd mu">${d.c}</span></td><td>${d.by}</td>
-        <td><div class="c1" style="font-weight:400">${d.at.split(' ')[0]}</div><div class="c2">${d.at.split(' ')[1]}</div></td>
+        <td><div class="c1">${dTitle(d)}</div></td>
+        <td><span class="bd mu">${d.c}</span></td><td>${docExt(d.t)}</td><td>${d.by}</td>
+        <td style="white-space:nowrap">${d.at.replace(/-/g,'.')}</td>
         <td class="c">${moreCell([{t:'상세',go:`docOpen('${b.id}',${i})`},{t:'내려받기',go:`docDown('${b.id}',${i})`},{t:'삭제',go:`docDelOpen('${b.id}',[${i}])`}])}</td></tr>`;}).join('')
-      :`<tr><td colspan="6" style="text-align:center;padding:28px 0;color:var(--muted)">${fdoc.c||fdoc.per?'조건에 맞는 자료가 없습니다':'등록된 자료가 없습니다'}</td></tr>`}</tbody>
+      :`<tr><td colspan="7" style="text-align:center;padding:28px 0;color:var(--muted)">${fdoc.c||fdoc.per?'조건에 맞는 자료가 없습니다':'등록된 자료가 없습니다'}</td></tr>`}</tbody>
     </table></div></div>`;
 }
 
@@ -5132,14 +5132,12 @@ const HKIND={'관리비 설정':['건물 관리비 설정','수정'],'운영 상
 function histC(c){
   const k=ckey(c), nm=`${c.no} ${c.ten}`, out=[], G={}, at=o=>{o.k=k;return o;};
   ledgerOf(k).rows.forEach(r=>{const key=r.g+'|'+r.date;(G[key]=G[key]||{r,items:[]}).items.push(r);});
-  Object.values(G).forEach(({r,items})=>{const sum=x=>items.reduce((a,i)=>a+(i.inc||0)+(i.dec||0),0), led=items.map(i=>[r.date,i.item,(i.inc||0)+(i.dec||0)]);
-    const out0=out.length;
+  Object.values(G).forEach(({r,items})=>{const sum=x=>items.reduce((a,i)=>a+(i.inc||0)+(i.dec||0),0);
     if(r.type==='청구') out.push({at:r.date,by:'김관리',kind:'청구',name:nm,type:'등록',sum:r.ttl||`${r.ym.slice(2).replace('-','.')}월분 청구서 발행 · ${items.length}건 · ${won(sum())}`});
     else if(r.type==='수납') out.push({at:r.date,by:'김관리',kind:'수납',name:nm,type:'등록',sum:`${r.src&&r.src!=='이전 입금'?r.src.replace(/^\d\d:\d\d:\d\d /,'')+' 입금':'입금'} ${won(sum())} · ${items.length}건에 배분`});
     else if(r.type==='감액') out.push({at:r.date,by:'슈퍼관리자',kind:'청구',name:nm,type:'감액',sum:r.item});
     else if(r.type==='환불') out.push({at:r.date,by:'김관리',kind:'수납',name:nm,type:'등록',sum:`${r.item} ${won(sum())}`});
-    else if(r.type==='보증금 차감') out.push({at:r.date,by:'김관리',kind:'수납',name:nm,type:'등록',sum:`보증금상계 ${won(sum())}`});
-    if(out.length>out0) out[out.length-1].led=led;});
+    else if(r.type==='보증금 차감') out.push({at:r.date,by:'김관리',kind:'수납',name:nm,type:'등록',sum:`보증금상계 ${won(sum())}`});});
   out.push({at:c.base,by:'김관리',kind:'계약',name:nm,type:'등록',sum:`계약 등록 · ${c.base.replace(/-/g,'.')} - ${ctrEnd(c).replace(/-/g,'.')}`});
   if(TERMS[k]) out.push({at:TODAY_S,by:'슈퍼관리자',kind:'계약',name:nm,type:'상태변경',sum:`해지 — ${TERMS[k].type} · 해지일 ${TERMS[k].out.replace(/-/g,'.')}`,why:TERMS[k].why});
   (CLOG[k]||[]).forEach(x=>out.push({...x,name:nm}));
@@ -5179,9 +5177,6 @@ function hdHTML(){
       ${r.chg&&r.chg.length?`<div class="fg"><div class="fl">변경 항목</div>
         <div class="tw" style="border:1px solid var(--line);border-radius:var(--r-sm)"><table><thead><tr><th>항목</th><th>변경 전</th><th>변경 후</th></tr></thead>
         <tbody>${r.chg.map(([f,a,b])=>`<tr><td>${f}</td><td class="c2" style="margin:0">${a}</td><td><b>${b}</b></td></tr>`).join('')}</tbody></table></div></div>`:''}
-      ${r.led&&r.led.length?`<div class="fg"><div class="fl">관련 원장 거래 · ${r.led.length}건</div>
-        <div class="tw" style="border:1px solid var(--line);border-radius:var(--r-sm)"><table><thead><tr><th>날짜</th><th>내용</th><th class="n">금액</th></tr></thead>
-        <tbody>${r.led.map(([dt,t,a])=>`<tr><td style="white-space:nowrap">${d(dt).slice(2)}</td><td>${t}</td><td class="n">${won(a)}</td></tr>`).join('')}</tbody></table></div></div>`:''}
     </div>
     ${hdDel?`<div class="df" style="flex-direction:column;align-items:stretch;gap:8px">
         <div class="c2" style="margin:0;white-space:normal">이 이력을 지웁니다. 원장 거래는 지워지지 않습니다. 슈퍼관리자만 지울 수 있습니다.</div>

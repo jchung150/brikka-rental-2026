@@ -627,7 +627,7 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   RC2.tab3 = '자료보관'; const t = RC2.PRO3('b1');
   RC2.CTR2(); RC2.upOpen('b1', true); const hn = RC2.upHTML(); Object.assign(RC2.up.files[0], {t:'사업자등록증.pdf', sz:'200 KB', ttl:'사업자등록증', c:'사업자등록증·신분증'}); RC2.upSave();
   r6.push(['관련 계약 — 계약 고르면 귀속 대상 계약 · 카테고리 계약용(건물서류 지워짐) · 목록 제목 아래 「계약 · 본관801호 …」(관련 계약 칸 없음) · 계약 등록은 귀속 대상 고정 · 한 건씩 붙음',
-    reset && /계약 · 카리나\|본관801호/.test(h) && /보증금관련/.test(h) && b.docs[0].k === 'b1본관801호' && /계약 · 본관801호 \(주\)아이씨비 · PDF/.test(t) && !/<th>관련 계약<\/th>/.test(t)
+    reset && /계약 · 카리나\|본관801호/.test(h) && /보증금관련/.test(h) && b.docs[0].k === 'b1본관801호' && /<th>파일 형식<\/th>/.test(t) && /<td>PDF<\/td>/.test(t) && !/· PDF ·/.test(t) && /\d{4}\.\d\d\.\d\d \d\d:\d\d<\/td>/.test(t) && !/<th>관련 계약<\/th>/.test(t)
     && /지금 등록 중인 계약/.test(hn) && !/관련 계약/.test(hn) && RC2.nc.files.length === 1 && RC2.nc.files[0].t === '사업자등록증']); }
 /* 감사 반영 — 계약 상세 자료보관 탭(관련 계약 문서) · 건물 목록 더보기(삭제는 유닛·계약 있으면 잠김) · 빈 관리비 탭에도 추가 버튼 */
 { const AU = new Function(stub + bare + '; return {upOpen,upSave,upHTML,CTR3,PRO1,BUILDINGS,MORE,bDel,t청구,get up(){return up;},set tab3c(v){tab3c=v;}};')();
@@ -722,12 +722,12 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   HI.cx3Open('b1본관801호', 'memo'); HI.cx3.memo = '시험'; HI.cx3Save(); const live = /메모 수정/.test(HI.CTR3('b1본관801호'));
   HI.hdOpen('cb1본관801호', HI.HROWS['cb1본관801호'].findIndex(r => /담당자 추가/.test(r.sum))); const hd1 = HI.hdHTML();
   HI.hdOpen('cb1본관801호', HI.HROWS['cb1본관801호'].findIndex(r => r.kind === '수납')); const hd2 = HI.hdHTML();
-  const exp = /이력 상세/.test(hd1) && /<th>변경 전<\/th>/.test(hd1) && !/>수정<\/button>|이동<\/button>|원장에서 보기/.test(hd1) && /닫기/.test(hd1) && /삭제/.test(hd1) && /관련 원장 거래/.test(hd2)
+  const exp = /이력 상세/.test(hd1) && /<th>변경 전<\/th>/.test(hd1) && !/>수정<\/button>|이동<\/button>|원장에서 보기/.test(hd1) && /닫기/.test(hd1) && /삭제/.test(hd1) && !/관련 원장 거래/.test(hd2) && /이력 상세/.test(hd2)
     && /hdOpen\('cb1본관801호',0\)/.test(HI.CTR3('b1본관801호')) && /<th class="c">더보기<\/th>/.test(HI.CTR3('b1본관801호'));
   const n0 = HI.HROWS['cb1본관801호'].length, di = HI.HROWS['cb1본관801호'].findIndex(r => /담당자 추가/.test(r.sum));
   HI.hdOpen('cb1본관801호', di, true); HI.hdDelete(); const kept = HI.hdHTML() !== '';
   HI.hdDel.why = '잘못 기록'; HI.hdDelete(); const h2 = HI.CTR3('b1본관801호'); const del = kept && !/담당자 추가/.test(h2) && HI.HROWS['cb1본관801호'].length === n0 - 1;
-  r6.push(['이력 탭 — 건물 상세 · 계약 상세 같은 표 · 대상 종류 · 변경 유형 필터 줄(검색 없음) · 안내 문구 없음 · 한 페이지 10줄(페이지 번호) · 건물은 월 마감 · 관리비 설정 · 모든 계약 · 계약은 그 계약만 · 수정하면 바로 쌓임 · 더보기(상세 · 삭제) · 줄을 누르면 상세 패널(변경 전/후 · 관련 원장 거래 · 닫기 · 삭제만) · 삭제는 사유 필수',
+  r6.push(['이력 탭 — 건물 상세 · 계약 상세 같은 표 · 대상 종류 · 변경 유형 필터 줄(검색 없음) · 안내 문구 없음 · 한 페이지 10줄(페이지 번호) · 건물은 월 마감 · 관리비 설정 · 모든 계약 · 계약은 그 계약만 · 수정하면 바로 쌓임 · 더보기(상세 · 삭제) · 줄을 누르면 상세 패널(변경 전/후 · 닫기 · 삭제만, 원장 거래 없음) · 삭제는 사유 필수',
     same && ui && page && bOk && cOk && cOnly && live && exp && del]); }
 /* 자료보관 — 건물 · 계약 같은 표 · 같은 필터 줄(카테고리 · 기간) · 빈 계약도 표 모양 그대로 */
 { const DF = new Function(stub + bare + '; return {PRO3,CTR3,setFdoc,set tab3(v){tab3=v;},set tab3c(v){tab3c=v;}};')();
