@@ -1482,7 +1482,8 @@ function PRO2(){
       ${R('건물유형',S('kind',BKIND,'선택'),1)}
       ${R('건물주소',T('addr','도로명 주소'),1)}
       ${R('',T('addr2','지번 주소'))}
-      ${R('건축일 · 사용승인일',D('built')+D('approved'))}
+      ${R('건축일',D('built'))}
+      ${R('사용승인일',D('approved'))}
       ${R('건물 사진',BPHOTO.new?`<img src="${BPHOTO.new}" alt="" style="width:36px;height:48px;object-fit:cover;border-radius:4px;flex:none">
           <button class="btn sm" onclick="bphPick('new')">바꾸기</button><button class="btn sm" onclick="delete BPHOTO.new;render(true)">삭제</button>`
         :`<button class="btn sm" onclick="bphPick('new')">파일 올리기</button><span class="c2" style="margin:0">한 장 · JPG·PNG · 세로로 긴 사진(권장 900×1200px, 가로:세로 3:4)</span>`)}`);
@@ -1549,7 +1550,7 @@ function PRO2(){
     <button class="btn" onclick="nb=null;go('pro-1')">취소</button>
     <button class="btn pri" onclick="nbSave()">저장</button></div>
   <div class="hint">
-    건물 상세의 요약 탭 · 설정 탭과 같은 카드, 같은 순서입니다. 공용시설과 등록 차량은 저장한 뒤 건물 상세에서 하나씩 넣습니다.<br>
+    건물 상세의 요약 탭과 같은 카드, 같은 순서입니다. 공용시설과 등록 차량은 저장한 뒤 건물 상세에서 하나씩 넣습니다.<br>
     청구일과 납부마감일이 있어야 이 건물의 청구서를 낼 수 있어 필수입니다. 청구년월을 기준으로 전월·당월·익월을 고릅니다. 7월분을 6월 25일에 청구하고 7월 1일까지 받는다면 「전월 25일 · 당월 1일」입니다.<br>
     건물관리자는 사용자 관리에 등록된 관리자 중에서 고릅니다. 새 관리자는 슈퍼관리자가 사용자 관리에서 먼저 등록합니다.<br>
     임대인은 사업자등록번호로 조회합니다. 목업에서는 <b>105-81-42117</b>(카리나)이 기존 임대인이고, 다른 번호는 새 임대인입니다.</div></div>`;
@@ -1570,7 +1571,7 @@ function PRO1(){
       <td class="n"><div class="c1" style="font-weight:400">${m2(b.area)}</div><div class="c2">연면적 ${num(b.gross)}</div></td>
       <td class="n"><div class="c1" style="font-weight:400">${pct(b.vac)}</div>
           <div class="c2">전체 ${b.unitCnt} · 공실 ${b.vacCnt}</div></td>
-      <td class="c">${moreCell([{t:'상세',go:`tab3='요약';go('pro-3/${b.id}')`},{t:'설정',go:`tab3='설정';go('pro-3/${b.id}')`}])}</td>
+      <td class="c">${moreCell([{t:'상세',go:`tab3='요약';go('pro-3/${b.id}')`}])}</td>
     </tr>`}).join('');
   return `
   <div class="ph"><h1>건물 목록</h1><span class="sid">PRO-1</span>
@@ -1637,8 +1638,8 @@ function bopHTML(){
 }
 function PRO3(id){
   const b=BUILDINGS.find(x=>x.id===id)||BUILDINGS[0];
-  const T=['요약','유닛','주차','관리비','자료보관','설정'];
-  const body={'요약':t요약,'유닛':t유닛,'주차':t주차,'관리비':t청구,'자료보관':t자료,'설정':t설정}[tab3](b);
+  const T=['요약','유닛','주차','관리비','자료보관'];
+  const body=({'요약':t요약,'유닛':t유닛,'주차':t주차,'관리비':t청구,'자료보관':t자료}[tab3]||t요약)(b);
   return `
   <div class="ph">
     <div class="bsw">
@@ -1789,9 +1790,8 @@ function vehHTML(){
     <div class="df"><button class="btn pri" onclick="vehSave()">${vh.id?'저장':'등록'}</button></div>
   </div></div>`;
 }
-/* ═══ 설정 탭 — 이 건물을 어떻게 운영하는지. 일반 관리자도 보고, 바꾸는 것은 슈퍼관리자만 → PRO-3 · 3.7
-   위탁운영계약 · 운영 상태(운영 중지 · 건물 삭제) · 변경 이력 ═══ */
-/* 건물 변경 이력 — 목업 예시값과 이 화면에서 바꾼 것. 실제는 이력(REC-1)을 이 건물로 거른 것 → 3.6 */
+/* ═══ 요약 탭 아래쪽 운영 카드 — 청구 정보 · 건물관리자 · 위탁운영계약 · 운영 상태. 바꾸는 것은 슈퍼관리자만 → PRO-3 · 3.7 ═══ */
+/* 건물 변경 기록 — 바꾼 것은 이력(REC-1)에 남는다 → 3.6. 건물 화면에는 보이지 않는다 */
 const BLOG={b1:[{at:'2026-08-01 10:12',by:'슈퍼관리자',what:'관리비 설정',det:'전기요금 배분 기준 사용량 → 사용량 (계량기 보유 13개 유닛)'},
   {at:'2026-07-20 15:30',by:'김관리',what:'임대인 정보',det:'관리비 납부 계좌 예금주 표기 수정'},
   {at:'2026-05-12 11:02',by:'슈퍼관리자',what:'관리비 설정',det:'정화조청소비 반복주기 연1회 → 반기'},
@@ -1799,7 +1799,7 @@ const BLOG={b1:[{at:'2026-08-01 10:12',by:'슈퍼관리자',what:'관리비 설�
   {at:'2026-01-08 16:10',by:'박현장',what:'자료',det:'2026년 화재보험증권 올림'},
   {at:'2025-03-01 14:20',by:'슈퍼관리자',what:'위탁운영계약',det:'2025-03-01 ~ 2027-02-28 등록'}]};
 const blog=(id,what,det,why)=>{(BLOG[id]=BLOG[id]||[]).unshift({at:`${TODAY_S} ${new Date().toTimeString().slice(0,5)}`,by:'슈퍼관리자',what,det,why:why||''});};
-/* 설정 탭의 바꾸기는 모두 오른쪽 패널에서 한다(추가 · 수정 · 삭제 = 패널) → 3.8 */
+/* 바꾸기는 모두 오른쪽 패널에서 한다(추가 · 수정 · 삭제 = 패널) → 3.8 */
 let sp=null;
 function spOpen(id,mode){const b=BUILDINGS.find(x=>x.id===id), p=r=>{const m=/(전월|당월|익월)\s*(\d+일|말일)/.exec(r||'')||[];return [m[1]||'당월',m[2]||''];};
   if(mode==='mgr') sp={id,mode,pick:[...b.mgrs]};
@@ -1862,7 +1862,7 @@ function bInfoCards(b){
       <dt>납부마감일</dt><dd>${b.dueDay}<span class="lock">예: 8월분 → ${ruleEx(b.dueDay,'2026-08')}</span></dd></dl>`,edit('rule'));
   return `<div class="two">${rule}${mgr}</div>`;
 }
-function t설정(b){
+function bOpsCards(b){
   const d=dday(b.mgmtEnd), op=bOp(b.id), o=BOP[b.id], canDel=bCanDel(b);
   const card=(t,body,act)=>`<div class="card"><div class="ct">${t}${act?`<span class="ca">${act}</span>`:''}</div><div class="cc">${body}</div></div>`;
   const edit=mode=>`<button class="btn sm" title="슈퍼관리자만" onclick="spOpen('${b.id}','${mode}')">수정</button>`;
@@ -1884,15 +1884,8 @@ function t설정(b){
       trow('운영 중지','건물 운영을 멈춥니다. 청구서 발행 · 계약 등록 · 관리비 정산이 막히고 수납 · 미납 · 환불 · 월 마감은 계속합니다. 단, 진행중·준비중 계약이 있으면 멈출 수 없습니다.',
         op==='비운영중',op==='운영중'&&nC>0,'진행중·준비중 계약이 있어 멈출 수 없습니다',`bopOpen('${b.id}')`)
       +trow('건물 삭제','건물을 삭제합니다. 유닛도 계약도 없는 건물만 삭제할 수 있습니다.',false,!canDel,'유닛이나 계약이 있는 건물은 삭제할 수 없습니다',`spOpen('${b.id}','del')`));
-  /* 변경 이력 — 최근 5건만. 전체는 이력 목록(REC-1)을 이 건물로 걸러서 연다 */
-  const log=card('변경 이력',(BLOG[b.id]||[]).length?`<div class="tw" style="border:1px solid var(--line);border-radius:var(--r-sm)"><table>
-      <thead><tr><th>일시</th><th>구분</th><th>내용</th><th>바꾼 사람</th></tr></thead>
-      <tbody>${BLOG[b.id].slice(0,5).map(x=>`<tr><td style="white-space:nowrap">${x.at.replace(/-/g,'.')}</td><td><span class="bd mu">${x.what}</span></td>
-        <td>${x.det}${x.why?`<div class="c2">${x.why}</div>`:''}</td><td>${x.by}</td></tr>`).join('')}</tbody></table></div>`
-      :'<div class="c2" style="margin:0">기록된 변경이 없습니다</div>',
-      `<button class="btn sm" onclick="go('rec-1')">전체 이력</button>`);
-  /* 위탁운영계약 | 운영 상태 · 변경 이력(한 줄 전체). 청구 정보 · 건물관리자는 요약 탭 아래쪽 */
-  return `<div class="two">${mgmt}${opc}</div>`+log;
+  /* 요약 탭 맨 아래 줄 — 위탁운영계약 | 운영 상태 */
+  return `<div class="two">${mgmt}${opc}</div>`;
 }
 /* ═══ 건물 정보 수정 — 요약 탭 카드마다 「수정」 → 오른쪽 패널. 카드 단위로 고친다 → PRO-3 · 3.8 ═══ */
 let be=null;
@@ -1984,7 +1977,8 @@ function t요약(b){
         <span class="lock">계약고유이름에 사용 — ${b.alias}|101호|임차인명</span></dd>
       <dt>건물유형</dt><dd>${b.kind}</dd>
       <dt>건물주소</dt><dd>${b.addr}<div class="c2">${b.addr2}</div></dd>
-      <dt>건축일 · 사용승인일</dt><dd>${b.built} · ${b.approved}</dd>
+      <dt>건축일</dt><dd>${b.built}</dd>
+      <dt>사용승인일</dt><dd>${b.approved}</dd>
     </dl>${bphHTML(b)}</div></div>
   <div class="two">
     <div class="card"><div class="ct">건물 제원
@@ -2010,14 +2004,14 @@ function t요약(b){
         <dt>은행 · 지점</dt><dd>${b.bondBank}<span class="lock">${b.bondTel}</span></dd>
         <dt>채권최고금액</dt><dd>${won(b.bondMax)}<span class="lock">${eok(b.bondMax)}</span></dd>
         <dt>실제채권금액</dt><dd>${won(b.bondNow)}<span class="lock">${eok(b.bondNow)}</span></dd>
-      </dl>`:'<div style="padding:12px 0;color:var(--muted)">등록된 채권 정보가 없습니다.</div>'}
-      <div class="hint">등기부등본 기준. 등기 변동 시 담당자가 직접 갱신한다.</div></div></div>
+      </dl>`:'<div style="padding:12px 0;color:var(--muted)">등록된 채권 정보가 없습니다.</div>'}</div></div>
     <div class="card"><div class="ct">공용시설<span class="ca"><button class="btn sm" onclick="beOpen('${b.id}','fac')">추가</button></span></div>
       <div class="cc" style="padding-top:12px">
       ${b.fac.map(f=>`<span class="tag">${f}<span class="x" style="cursor:pointer" onclick="facDel('${b.id}','${f}')">✕</span></span>`).join('')||'<span style="color:var(--muted)">등록된 공용시설이 없습니다.</span>'}
     </div></div>
   </div>
   ${bInfoCards(b)}
+  ${bOpsCards(b)}
 `;
 }
 
