@@ -1639,8 +1639,8 @@ function bopHTML(){
 }
 function PRO3(id){
   const b=BUILDINGS.find(x=>x.id===id)||BUILDINGS[0];
-  const T=['요약','유닛','주차','관리비','자료보관'];
-  const body=({'요약':t요약,'유닛':t유닛,'주차':t주차,'관리비':t청구,'자료보관':t자료}[tab3]||t요약)(b);
+  const T=['요약','유닛','주차','관리비','자료보관','이력'];
+  const body=({'요약':t요약,'유닛':t유닛,'주차':t주차,'관리비':t청구,'자료보관':t자료,'이력':b=>histHTML(histB(b),'b'+b.id)}[tab3]||t요약)(b);
   return `
   <div class="ph">
     <div class="bsw">
@@ -4695,6 +4695,7 @@ function ciOpen(k,mode,n){
 function ciSet(f,v){ci[f]=v;render(true);}
 function ciSave(){
   const c=ciC();
+  const LB={rent:'임대정보 수정',edit:`${ci.n} 수정`,adj:'임대료 인상 예약',payto:'정산액 대납 계약 변경'}[ci.mode];
   if(ci.mode==='edit'){
     const mt=itemMeta(c,ci.n); let x=c.it.find(y=>y[0]===ci.n);
     if(!x){x=[ci.n,0];c.it.push(x);}
@@ -4718,6 +4719,7 @@ function ciSave(){
     c.adj=c.adj||[]; if(ci.i!=null) c.adj[ci.i]=a; else c.adj.push(a);
     /* 일정은 탭에 보인다 — 저장하면 패널을 닫는다 */
   }
+  clog(ci.k,'계약','수정',LB,ci.why||'');
   DRAWER=null;ci=null;render(true);
 }
 function ciDelAdj(k,i){const c=CTRS.find(x=>ckey(x)===k);c.adj.splice(i,1);render(true);}
@@ -4826,7 +4828,7 @@ function CTR3head(c,k){
       <button class="btn" onclick="go('ctr-1')">목록</button></div>
   </div>
   <div class="tabs">
-    ${['요약','청구·수납','원장','자료보관'].map(t=>`<button class="${t===tab3c?'on':''}" onclick="tab3c='${t}';render()">${t}</button>`).join('')}
+    ${['요약','청구·수납','원장','자료보관','이력'].map(t=>`<button class="${t===tab3c?'on':''}" onclick="tab3c='${t}';render()">${t}</button>`).join('')}
   </div>`;
 }
 /* CTR-3 청구·수납 탭 — 수납 내역(PAY-6)과 같은 줄을 이 계약 하나로. 미납·연체료가 있는 달은 「상세」로 미납 상세 패널 */
@@ -4866,6 +4868,8 @@ function cx3Open(k,mode){const c=CTRS.find(x=>ckey(x)===k), A=c.ag||{};
     has:!!c.ag,an:A.n||'',aceo:A.ceo||'',ano:A.no||'',atel:A.tel||'',aaddr:A.addr||'',memo:c.memo||''};DRAWER='c3x';render(true);}
 function chvOpen(k){const H=CHVAC[k]||{};cx3={k,mode:'hvac',t:H.t||'',m:H.m||''};DRAWER='c3x';render(true);}
 function cx3Save(){const c=CTRS.find(x=>ckey(x)===cx3.k);
+  const LBL={ctr:'계약정보',dep:'보증금 정보',ag:'중개사',memo:'메모',ppl:'담당자',party:'계약자 · 대리인',park:'주차정보',hvac:'냉난방기'};
+  if(LBL[cx3.mode]&&!(cx3.mode==='hvac'&&!cx3.t)) clog(cx3.k,'계약','수정',`${LBL[cx3.mode]} 수정`);
   if(cx3.mode==='park'){const b=BUILDINGS.find(x=>x.id===c.b);
     CPARK[cx3.k]={free:parseInt(cx3.free)||0,fee:numOf(cx3.fee)};}
   else if(cx3.mode==='ctr'){if(!cx3.start||!cx3.end||dnum(cx3.end)<dnum(cx3.start)) return;
@@ -5101,13 +5105,61 @@ function ledgerOf(k){
     const as=r.acc==='매출채권';r.dr=as?r.inc:r.dec;r.cr=as?r.dec:r.inc;});
   return {c,rows,bal};
 }
+
+/* ═══ 이력 탭 — 건물 상세 · 계약 상세에 같은 표. 이력(REC-1)을 그 건물 · 그 계약으로 거른 것이다 → 3.6 · REC-1
+   칸: 일시 · 대상 종류 · 대상 이름 · 변경 유형 · 변경 요약(아래에 사유) · 처리자. 변경 전/후가 있는 줄은 펼친다(REC-2) ═══ */
+const CLOG={};   /* 계약 화면에서 바꾼 것 + 목업 예시값 */
+const clog=(k,kind,type,sum,why,chg)=>{(CLOG[k]=CLOG[k]||[]).unshift({at:`${TODAY_S} ${new Date().toTimeString().slice(0,5)}`,by:'슈퍼관리자',kind,type,sum,why:why||'',chg:chg||null});};
+CLOG['b1본관801호']=[{at:'2026-07-22 14:05',by:'김관리',kind:'계약',type:'수정',sum:'담당자 추가 — 오승민(총무 대리)',why:'',chg:[['담당자','정하늘','정하늘 · 오승민']]},
+  {at:'2026-03-04 10:30',by:'슈퍼관리자',kind:'계약',type:'수정',sum:'냉난방기 구분 입력 — 임차인 설치',why:'입주 점검 때 확인',chg:[['냉난방기','미입력','임차인 설치']]}];
+CLOG['b1별관301호']=[{at:'2026-06-25 16:20',by:'슈퍼관리자',kind:'계약',type:'수정',sum:'연체이자율 8% → 12%',why:'계약서 특약 반영',chg:[['연체이자율','연 8%','연 12%']]}];
+const HKIND={'관리비 설정':['건물 관리비 설정','수정'],'운영 상태':['건물','상태변경'],'자료':['문서','등록']};
+function histC(c){
+  const k=ckey(c), nm=`${c.no} ${c.ten}`, out=[], G={};
+  ledgerOf(k).rows.forEach(r=>{const key=r.g+'|'+r.date;(G[key]=G[key]||{r,items:[]}).items.push(r);});
+  Object.values(G).forEach(({r,items})=>{const sum=x=>items.reduce((a,i)=>a+(i.inc||0)+(i.dec||0),0);
+    if(r.type==='청구') out.push({at:r.date,by:'김관리',kind:'청구',name:nm,type:'등록',sum:r.ttl||`${r.ym.slice(2).replace('-','.')}월분 청구서 발행 · ${items.length}건 · ${won(sum())}`});
+    else if(r.type==='수납') out.push({at:r.date,by:'김관리',kind:'수납',name:nm,type:'등록',sum:`${r.src&&r.src!=='이전 입금'?r.src.replace(/^\d\d:\d\d:\d\d /,'')+' 입금':'입금'} ${won(sum())} · ${items.length}건에 배분`});
+    else if(r.type==='감액') out.push({at:r.date,by:'슈퍼관리자',kind:'청구',name:nm,type:'감액',sum:r.item});
+    else if(r.type==='환불') out.push({at:r.date,by:'김관리',kind:'수납',name:nm,type:'등록',sum:`${r.item} ${won(sum())}`});
+    else if(r.type==='보증금 차감') out.push({at:r.date,by:'김관리',kind:'수납',name:nm,type:'등록',sum:`보증금상계 ${won(sum())}`});});
+  out.push({at:c.base,by:'김관리',kind:'계약',name:nm,type:'등록',sum:`계약 등록 · ${c.base.replace(/-/g,'.')} - ${ctrEnd(c).replace(/-/g,'.')}`});
+  if(TERMS[k]) out.push({at:TODAY_S,by:'슈퍼관리자',kind:'계약',name:nm,type:'상태변경',sum:`해지 — ${TERMS[k].type} · 해지일 ${TERMS[k].out.replace(/-/g,'.')}`,why:TERMS[k].why});
+  (CLOG[k]||[]).forEach(x=>out.push({...x,name:nm}));
+  return out;
+}
+function histB(b){
+  const out=(BLOG[b.id]||[]).map(x=>{const [kind,type]=HKIND[x.what]||['건물','수정'];
+    return {at:x.at,by:x.by,kind,name:b.name,type,sum:`${x.what} — ${x.det}`,why:x.why||''};});
+  Object.entries(MC[b.id]||{}).forEach(([ym,m])=>{const L=MC_LOG[`${b.id}|${ym}`]||[{at:m.at,by:m.by,act:'마감'}];
+    L.forEach(x=>out.push({at:'2026-'+x.at,by:x.by,kind:'월 마감',name:`${b.name} ${+ym.slice(5)}월분`,type:x.act.replace(' ',''),sum:`${+ym.slice(5)}월분 ${x.act}`,why:x.why||''}));});
+  return out.concat(...CTRS.filter(c=>c.b===b.id).map(histC));
+}
+let fh={kind:''}, hx={};
+function histHTML(rows,scope){
+  const kinds=[...new Set(rows.map(r=>r.kind))];
+  const R=rows.filter(r=>!fh.kind||r.kind===fh.kind).sort((p,q)=>p.at<q.at?1:p.at>q.at?-1:0);
+  const d=a=>a.replace(/-/g,'.');
+  return `<div class="card"><div class="ct">이력<span class="sub">${R.length}건 · 최근이 위 · 고치거나 지울 수 없습니다</span>
+      <span class="ca"><select onchange="fh.kind=this.value;render(true)"><option value="">전체 대상 종류</option>${kinds.map(v=>`<option ${fh.kind===v?'selected':''}>${v}</option>`).join('')}</select></span></div>
+    ${R.length?`<div class="tw"><table>
+      <thead><tr><th>일시</th><th>대상 종류</th><th>대상 이름</th><th>변경 유형</th><th>변경 요약</th><th>처리자</th></tr></thead>
+      <tbody>${R.map((r,i)=>{const id=`${scope}|${r.at}|${i}`, op=hx[id], ex=r.chg&&r.chg.length;
+        return `<tr ${ex?`style="cursor:pointer" onclick="hx['${id}']=!hx['${id}'];render(true)"`:''}>
+          <td style="white-space:nowrap">${ex?`<span class="tg ${op?'op':''}" style="display:inline-block;vertical-align:middle">${ic('chev',14)}</span>`:''}${d(r.at)}</td>
+          <td><span class="bd mu">${r.kind}</span></td><td style="white-space:nowrap">${r.name}</td><td>${r.type}</td>
+          <td>${r.sum}${r.why?`<div class="c2">사유: ${r.why}</div>`:''}</td><td style="white-space:nowrap">${r.by}</td></tr>`
+        +(ex&&op?`<tr class="sub"><td></td><td colspan="5"><table style="width:auto"><thead><tr><th>항목</th><th>변경 전</th><th>변경 후</th></tr></thead>
+          <tbody>${r.chg.map(([f,a,b])=>`<tr><td>${f}</td><td class="c2" style="margin:0">${a}</td><td><b>${b}</b></td></tr>`).join('')}</tbody></table></td></tr>`:'');}).join('')}</tbody></table></div>`
+    :'<div class="cc"><div class="c2" style="margin:0">기록된 이력이 없습니다.</div></div>'}</div>`;
+}
 let tab3c='요약', g3={}, g3All=false;
 const g3Open=k=>(k in g3)?g3[k]:g3All;
 const g3Tog=k=>{g3[k]=!g3Open(k);render(true);};
 function CTR3(k){
   const c=CTRS.find(x=>ckey(x)===k);
   if(!c) return TODO('ctr-1');
-  if(tab3c!=='원장') return CTR3head(c,k)+(tab3c==='청구·수납'?CTR3month(c,k):tab3c==='자료보관'?t자료(BUILDINGS.find(x=>x.id===c.b)||BUILDINGS[0],k):CTR3sum(c,k));
+  if(tab3c!=='원장') return CTR3head(c,k)+(tab3c==='청구·수납'?CTR3month(c,k):tab3c==='이력'?histHTML(histC(c),'c'+k):tab3c==='자료보관'?t자료(BUILDINGS.find(x=>x.id===c.b)||BUILDINGS[0],k):CTR3sum(c,k));
   const bn=BUILDINGS.find(x=>x.id===c.b)||BUILDINGS[0];
   const L=ledgerOf(k);
   const from=f3.per?new Date((dnum(TODAY_S)-({'1':30,'3':91,'12':365}[f3.per]))*864e5)

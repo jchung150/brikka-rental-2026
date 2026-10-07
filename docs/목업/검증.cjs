@@ -707,6 +707,18 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   RT.cx3Open('b1본관301호', 'party'); RT.cx3.diff = false; RT.cx3Save(); const pt = !RT.CPARTY['b1본관301호'];
   r6.push(['계약 상세 탭 4개(요약 · 청구·수납 · 원장 · 자료보관) · 임대정보 수정(금액 바꾸면 사유 필수 → 4,400,000 · 연체이자율 10%) · 인상 예약 카드 · 담당자(대표) 추가 · 계약자 · 대리인 · 임차인 이름은 임차인 관리로',
     tabs && needWhy && ok && pp && pt]); }
+/* 이력 탭 — 건물 상세 · 계약 상세에 같은 표(머리글 같음) · 건물은 건물 + 월 마감 + 그 건물 계약 전부 · 계약은 그 계약만 · 바꾸면 바로 쌓임 · 변경 전/후 펼침 */
+{ const HI = new Function(stub + bare + '; seedJuly(); return {PRO3,CTR3,cx3Open,cx3Save,set tab3(v){tab3=v;},set tab3c(v){tab3c=v;},hx,get cx3(){return cx3;}};')();
+  HI.tab3 = '이력'; const hb = HI.PRO3('b1'); HI.tab3c = '이력'; const hc = HI.CTR3('b1본관801호');
+  const th = h => (h.match(/<thead><tr><th>일시<\/th>.*?<\/tr><\/thead>/) || [''])[0];
+  const same = th(hb) && th(hb) === th(hc) && /<th>대상 종류<\/th><th>대상 이름<\/th><th>변경 유형<\/th><th>변경 요약<\/th><th>처리자<\/th>/.test(th(hb));
+  const bOk = /마감 취소/.test(hb) && /관리비 설정 — /.test(hb) && /별관301호/.test(hb) && /본관801호/.test(hb) && />이력</.test(hb);
+  const cOk = /계약 등록/.test(hc) && /07월분 청구서/.test(hc) && /입금 /.test(hc);
+  const cOnly = !/별관301호/.test(hc) && !/마감 취소/.test(hc) && /담당자 추가/.test(hc);
+  HI.cx3Open('b1본관801호', 'memo'); HI.cx3.memo = '시험'; HI.cx3Save(); const live = /메모 수정/.test(HI.CTR3('b1본관801호'));
+  const key = (HI.CTR3('b1본관801호').match(/hx\['(cb1본관801호\|2026-07-22 14:05\|\d+)'\]/) || [])[1]; if (key) HI.hx[key] = true; const exp = !!key && /<th>변경 전<\/th>/.test(HI.CTR3('b1본관801호'));
+  r6.push(['이력 탭 — 건물 상세 · 계약 상세 같은 표 · 건물은 월 마감 · 관리비 설정 · 모든 계약 · 계약은 그 계약만(청구서 발행 · 계약 등록 · 담당자 추가) · 수정하면 바로 쌓임 · 변경 전/후 펼침',
+    same && bOk && cOk && cOnly && live && exp]); }
 /* 수납 내역 더보기 — 받을 돈이 있는 계약(비씨에이전시)만 수납 처리가 눌리고, 다 받은 계약(에스씨케이컴퍼니)은 흐림 · 원장 보기는 모두 */
 { const MV = new Function(stub + bare + '; seedJuly(); return {PAY6,RC,MORE};')();
   MV.RC.f = {b:'b1', ym:'2026-07', st:''}; MV.MORE.length = 0; const h = MV.PAY6();
