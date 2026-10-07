@@ -3052,7 +3052,7 @@ const CITEM={
 const ckey=c=>c.key||c.b+c.no;
 const CTRS=[
  {b:'b1',no:'본관801호',ten:'(주)아이씨비',st:'진행중',base:'2024-03-01',
-  ag:{n:'마포센트럴공인중개사사무소',ceo:'한지민',no:'11440-2019-00123',tel:'02-334-5521',addr:'서울특별시 마포구 양화로 45'},
+  ag:{n:'마포센트럴공인중개사사무소',ceo:'한지민',no:'11440-2019-00123',tel:'02-334-5521',addr:'서울특별시 마포구 양화로 45',fee:'0.9'},
   memo:'본관701호와 계약서 한 장(층별 해지 가능하게 계약 2건으로 관리). 청구서는 합쳐 보낸다',
   it:[['임대료',8900000],['고정관리비',2650000],['전기요금'],['전력기금'],['TV수신료'],['수도요금'],['정화조청소비'],['교통유발부담금'],['주차비']]},
  {b:'b1',no:'본관701호',ten:'(주)아이씨비',st:'진행중',base:'2024-03-01',
@@ -3085,6 +3085,15 @@ const CTRS=[
  {b:'b2',no:'1501호',ten:'리틀브릿지',st:'종료됨',base:'2023-02-01',
   it:[['임대료',6200000],['고정관리비',1180000],['전기요금'],['수도요금']]},
 ];
+/* 중개사 — 목업 예시값(가짜). 상가 임대차는 대부분 중개사를 거친다. 수수료율(%)은 계약이 끝나고 한참 뒤에 알게 되는 일이 많아 비어 있을 수 있다 */
+const AG_POOL=[
+  {n:'합정역공인중개사사무소',ceo:'윤재석',no:'11440-2017-00218',tel:'02-322-7810',addr:'서울특별시 마포구 양화로 72',fee:'0.9'},
+  {n:'서교부동산중개법인',ceo:'박소영',no:'11440-2020-00451',tel:'02-336-4402',addr:'서울특별시 마포구 독막로 18',fee:''},
+  {n:'홍대오피스공인중개사사무소',ceo:'정민호',no:'11440-2016-00097',tel:'02-325-1188',addr:'서울특별시 마포구 와우산로 33',fee:'0.5'},
+  {n:'상수타워공인중개사사무소',ceo:'김하윤',no:'11440-2021-00532',tel:'02-3141-2290',addr:'서울특별시 마포구 토정로 9',fee:'0.8'},
+  {n:'망원상가공인중개사사무소',ceo:'이도현',no:'11440-2018-00376',tel:'02-338-6051',addr:'서울특별시 마포구 망원로 51',fee:''},
+  {n:'여의도빌딩중개법인',ceo:'최예린',no:'11560-2015-00144',tel:'02-780-3317',addr:'서울특별시 영등포구 국제금융로 6',fee:'0.9'}];
+CTRS.forEach((c,i)=>{if(!c.ag) c.ag={...AG_POOL[i%AG_POOL.length]};});
 /* 계약별 미납 잔액 — 원장에서 계산되는 값이다. 청구 합계에 포함하지 않는다 → PAY-2
    카리나빌딩은 수납 기록(PAY-6)의 결과에서 계산한다 → dueOf. 나머지 건물은 예시값이다 */
 const UNPAID={
@@ -4461,7 +4470,7 @@ const BIZ={'211-86-40519':{kind:'법인',ten:'(주)비씨에이전시',ceo:'박�
 let nc=null;
 const ncEnd=d=>{if(!d) return '';const x=new Date(d+'T00:00:00Z');x.setUTCFullYear(x.getUTCFullYear()+2);x.setUTCDate(x.getUTCDate()-1);return x.toISOString().slice(0,10);};
 function ncInit(){
-  nc={b:'b1',no:'',st:'준비중',type:'확정기간계약',start:'',end:'',agent:false,rate:'8',
+  nc={b:'b1',no:'',st:'준비중',type:'확정기간계약',start:'',end:'',agent:false,afee:'',rate:'8',
       kind:'법인',biz:'',found:null,ten:'',ceo:'',addr:'',item:'',alias:'',
       pn:'',pt:'',ptel:'',pmail:'',diff:false,cn:'',cbiz:'',cceo:'',ctel:'',cmail:'',caddr:'',rbank:'',racct:'',rname:'',
       proxy:false,xn:'',xtel:'',xmail:'',xaddr:'',an:'',aceo:'',ano:'',atel:'',aaddr:'',
@@ -4511,7 +4520,7 @@ function ncSave(welcome){
   const bd=BUILDINGS.find(x=>x.id===nc.b);
   const c={b:nc.b,no:nc.no,ten:nc.ten.trim(),st:nc.st,base:nc.start,end:nc.end||ncEnd(nc.start),rate:+nc.rate||8,
     dep:numOf(nc.dep)||null,depRet:nc.depRet||null,kind:nc.kind,type:nc.type,memo:nc.memo.trim(),
-    ag:nc.agent?{n:nc.an,ceo:nc.aceo,no:nc.ano,tel:nc.atel,addr:nc.aaddr}:null,fresh:true,
+    ag:nc.agent?{n:nc.an,ceo:nc.aceo,no:nc.ano,tel:nc.atel,addr:nc.aaddr,fee:String(nc.afee||'').trim()}:null,fresh:true,
     /* 기산일 — 렌트프리면 체크한 항목만 기산일부터, 나머지는 계약시작일부터 청구한다 */
     from:ncFrom()!==nc.start?ncFrom():null,
     adj:nc.adj.filter(x=>x.d&&(numOf(x.rent)||numOf(x.mgmt))).map(x=>({d:x.d,rent:numOf(x.rent)||null,mgmt:numOf(x.mgmt)||null})),rf:nc.rf==='있음'?{end:nc.rfEnd,rent:nc.rfRent,mgmt:nc.rfMgmt,vars:nc.rfVar}:null,
@@ -4605,7 +4614,7 @@ function CTR2(){
       +`<div style="margin-top:10px">${C('proxy','대리인이 있음')}</div>`
       +(nc.proxy?`<div style="margin-top:10px">${R('대리인 이름',T('xn'))+R('연락처',T('xtel'))+R('이메일',T('xmail'))+R('주소',T('xaddr'))}</div>`:'')
       +`<div style="margin-top:10px">${C('agent','중개사가 있음')}</div>`
-      +(nc.agent?`<div style="margin-top:10px">${R('중개사무소',T('an'))+R('대표자명',T('aceo'))+R('등록번호',T('ano'))+R('연락처',T('atel'))+R('소재지',T('aaddr'))}</div>`:''));
+      +(nc.agent?`<div style="margin-top:10px">${R('중개사무소',T('an'))+R('대표자명',T('aceo'))+R('등록번호',T('ano'))+R('연락처',T('atel'))+R('소재지',T('aaddr'))+R('중개 수수료율',`${T('afee','',70)}<span class="c2" style="margin:0">% · 몰라도 됩니다. 나중에 계약 상세에서 넣습니다</span>`)}</div>`:''));
   const right=
     card('임대료 · 관리비','<div class="c2" style="margin:-4px 0 10px">부가세를 포함한 금액을 넣고, 오른쪽에서 반복 주기를 고릅니다(보통 매월)</div>'
       +R('임대료',N('rent','금액 (부가세 포함)')+`<select title="반복 주기" onchange="ncSet('rentCy',this.value)" style="flex:none;width:84px">${ITEM_CYCLES.map(o=>`<option ${nc.rentCy===o?'selected':''}>${o}</option>`).join('')}</select>`,1)
@@ -4788,7 +4797,8 @@ function ciHTML(){
   } else {
     t=ci.i!=null?'임대료 인상 예약 수정':'임대료 인상 예약 추가';
     body=`<div class="c2" style="margin:-2px 0 10px;white-space:normal">적용일부터 새 금액으로 자동 청구합니다. 30일 전에 알려 드립니다.</div>`
-      +R('적용일',DT('d'))+R('임대료',NUM('rent','바뀐 금액 (부가세 포함)'))+R('고정관리비',NUM('mgmt','바뀐 금액 (부가세 포함)'))
+      +`<div class="fg"><div class="fl">지금 약정액 (부가세 포함)</div>${R('임대료',`<span class="fv">${won(Math.round(ctrAmt(c,'임대료')*1.1))}</span>`)}${R('고정관리비',`<span class="fv">${ctrAmt(c,'고정관리비')?won(Math.round(ctrAmt(c,'고정관리비')*1.1)):'0원'}</span>`)}</div>`
+      +`<div class="fg"><div class="fl">바뀐 금액</div>`+R('적용일',DT('d'))+R('임대료',NUM('rent','바뀐 금액 (부가세 포함)'))+R('고정관리비',NUM('mgmt','바뀐 금액 (부가세 포함)'))+`</div>`
       +`<div class="c2" style="margin:-4px 0 9px 114px">비워 두면 그 항목은 그대로입니다</div>`+MEMO;
     ok=ci.d&&(numOf(ci.rent)||numOf(ci.mgmt));
   }
@@ -4880,7 +4890,7 @@ function cx3Open(k,mode){const c=CTRS.find(x=>ckey(x)===k), A=c.ag||{};
   const CP=CPARTY[k]||{}, PX=CPROXY[k]||{};
   cx3={k,mode,ppl:pplOf(c).map(x=>({...x})),diff:!!CPARTY[k],cp:{n:'',biz:'',ceo:'',tel:'',mail:'',addr:'',rb:'',ra:'',rn:'',...CP},px_on:!!CPROXY[k],px:{n:'',tel:'',mail:'',addr:'',...PX},
     kind:ctrKind(c),type:ctrType(c),start:c.base,end:ctrEnd(c),dep:String(ctrDeposit(c)),depRet:ctrDepRet(c),
-    has:!!c.ag,an:A.n||'',aceo:A.ceo||'',ano:A.no||'',atel:A.tel||'',aaddr:A.addr||'',memo:c.memo||''};DRAWER='c3x';render(true);}
+    has:!!c.ag,an:A.n||'',aceo:A.ceo||'',ano:A.no||'',atel:A.tel||'',aaddr:A.addr||'',afee:A.fee||'',memo:c.memo||''};DRAWER='c3x';render(true);}
 function chvOpen(k){const H=CHVAC[k]||{};cx3={k,mode:'hvac',t:H.t||'',m:H.m||''};DRAWER='c3x';render(true);}
 function cx3Save(){const c=CTRS.find(x=>ckey(x)===cx3.k);
   const LBL={ctr:'계약정보',dep:'보증금 정보',ag:'중개사',memo:'메모',ppl:'담당자',party:'계약자 · 대리인',park:'주차정보',hvac:'냉난방기'};
@@ -4890,7 +4900,7 @@ function cx3Save(){const c=CTRS.find(x=>ckey(x)===cx3.k);
   else if(cx3.mode==='ctr'){if(!cx3.start||!cx3.end||dnum(cx3.end)<dnum(cx3.start)) return;
     Object.assign(c,{kind:cx3.kind,type:cx3.type,base:cx3.start,end:cx3.end});}
   else if(cx3.mode==='dep') Object.assign(c,{dep:numOf(cx3.dep),depRet:cx3.depRet});
-  else if(cx3.mode==='ag') c.ag=cx3.has&&cx3.an.trim()?{n:cx3.an.trim(),ceo:cx3.aceo,no:cx3.ano,tel:cx3.atel,addr:cx3.aaddr}:null;
+  else if(cx3.mode==='ag') c.ag=cx3.has&&cx3.an.trim()?{n:cx3.an.trim(),ceo:cx3.aceo,no:cx3.ano,tel:cx3.atel,addr:cx3.aaddr,fee:String(cx3.afee).trim()}:null;
   else if(cx3.mode==='memo') c.memo=cx3.memo.trim();
   else if(cx3.mode==='ppl'){if(!cx3.ppl[0].n.trim()||!cx3.ppl[0].mail.trim()) return; CPPL[cx3.k]=cx3.ppl.filter((x,i)=>!i||x.n.trim());}
   else if(cx3.mode==='party'){if(cx3.diff) CPARTY[cx3.k]={...cx3.cp}; else delete CPARTY[cx3.k];
@@ -4927,7 +4937,8 @@ function cx3HTML(){
       +F('보증금 반환예정일',I('depRet',160,'date'))
       +`<div class="c2" style="white-space:normal">받은 보증금과 잔액은 원장의 「보증금 예치 · 차감 · 환급」으로만 바뀝니다.</div>`
     :cx3.mode==='ag'?`<label class="ck" style="display:flex;margin-bottom:12px"><input type="checkbox" ${cx3.has?'checked':''} onchange="cx3.has=this.checked;render(true)">중개사가 있음</label>`
-      +(cx3.has?F('중개사무소',I('an'))+F('대표자명',I('aceo',160))+F('등록번호',I('ano',180))+F('연락처',I('atel',160))+F('소재지',I('aaddr')):'')
+      +(cx3.has?F('중개사무소',I('an'))+F('대표자명',I('aceo',160))+F('등록번호',I('ano',180))+F('연락처',I('atel',160))+F('소재지',I('aaddr'))
+        +F('중개 수수료율',`<input type="text" inputmode="decimal" value="${cx3.afee}" oninput="cx3.afee=this.value" style="${inp};width:70px;text-align:right"><span class="c2" style="margin:0">% · 모르면 비워 두고 나중에 넣습니다</span>`):'')
     :cx3.mode==='memo'?`<textarea rows="8" oninput="cx3.memo=this.value" placeholder="계약서에 없는 약속 · 특이사항" style="${inp};width:100%;resize:vertical">${cx3.memo}</textarea>`
     :cx3.mode==='park'?F('무료 주차 대수',`<input type="text" inputmode="numeric" value="${cx3.free}" oninput="cx3.free=this.value" style="${inp};width:80px;text-align:right"><span class="c2" style="margin:0">대</span>`)
     :F('구분',`<select onchange="cx3.t=this.value;render(true)" style="${inp}"><option value="" ${cx3.t?'':'selected'}>선택 (필수)</option>${HVAC_OWN.map(v=>`<option ${cx3.t===v?'selected':''}>${v}</option>`).join('')}</select>`)
@@ -5036,7 +5047,8 @@ function CTR3sum(c,k){
       <dt>중개사무소</dt><dd>${A.n}<span class="lock">${A.no||''}</span></dd>
       <dt>대표자명</dt><dd>${A.ceo||'—'}</dd>
       <dt>연락처</dt><dd>${A.tel||'—'}</dd>
-      <dt>소재지</dt><dd>${A.addr||'—'}</dd></dl>`:'<div style="padding:6px 0;color:var(--muted)">중개사 없이 맺은 계약입니다.</div>',edit('ag'));
+      <dt>소재지</dt><dd>${A.addr||'—'}</dd>
+      <dt>중개 수수료율</dt><dd>${A.fee?`${A.fee}%`:'<span style="color:var(--warn)">미입력</span>'}</dd></dl>`:'<div style="padding:6px 0;color:var(--muted)">중개사 없이 맺은 계약입니다.</div>',edit('ag'));
   const memo=card('메모',c.memo?`<div style="font-size:12.5px;line-height:1.7;white-space:pre-wrap">${c.memo}</div>`:'<div style="padding:6px 0;color:var(--muted)">메모가 없습니다.</div>',edit('memo'));
   return `
   ${info}
