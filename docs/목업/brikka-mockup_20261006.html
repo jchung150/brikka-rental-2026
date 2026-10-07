@@ -1852,8 +1852,7 @@ function bInfoCards(b){
   const edit=mode=>`<button class="btn sm" title="슈퍼관리자만" onclick="spOpen('${b.id}','${mode}')">수정</button>`;
   /* 건물관리자 — 사용자 관리(USER-2)의 관리자 정보를 그대로 보인다. 고치는 곳은 사용자 관리 */
   const mgr=card('건물관리자',b.mgrs.length?`<dl class="dl">${b.mgrs.map(n=>{const m=mgrOf(n);return `<dt>${m.n}</dt>
-      <dd>${m.tel||'—'}<span class="lock">${m.mail||'—'}</span>
-        <div class="c2">${m.co||'—'} · ${m.st==='차단됨'?'<b style="color:var(--danger)">차단됨</b>':'정상'}${m.last?` · 마지막 접속 ${m.last.slice(5,10).replace('-','.')}`:''}</div></dd>`;}).join('')}</dl>`
+      <dd>${m.tel||'—'}<span class="lock">${m.mail||'—'}</span></dd>`;}).join('')}</dl>`
       :'<div class="c2" style="margin:0">지정된 건물관리자가 없습니다. 슈퍼관리자만 이 건물을 봅니다</div>',edit('mgr'));
   const rule=card('청구 정보',`<dl class="dl"><dt>청구일</dt><dd>${b.billDay}<span class="lock">예: 8월분 → ${ruleEx(b.billDay,'2026-08')}</span></dd>
       <dt>납부마감일</dt><dd>${b.dueDay}<span class="lock">예: 8월분 → ${ruleEx(b.dueDay,'2026-08')}</span></dd></dl>`,edit('rule'));
