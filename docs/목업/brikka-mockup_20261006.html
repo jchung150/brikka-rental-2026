@@ -94,6 +94,11 @@ svg{flex:none}
 
 /* PAY-10 정산 */
 .fbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:16px}
+/* 페이지 나누기 — 표 아래 가운데. 한 페이지 10줄 */
+.pgr{display:flex;justify-content:center;gap:4px;padding:12px 0 14px}
+.pgr button{min-width:30px;height:30px;padding:0 8px;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:var(--r-sm);font:inherit;font-size:12.5px;cursor:pointer}
+.pgr button.on{background:var(--pri);border-color:var(--pri);color:#fff;font-weight:600}
+.pgr button:disabled{opacity:.4;cursor:default}
 .fbar select{border:1px solid var(--line);background:var(--bg);padding:8px 11px;border-radius:var(--r-sm);
   font-size:12.5px;min-width:150px}
 .fbar input.fq{border:1px solid var(--line);background:var(--bg);padding:8px 11px;border-radius:var(--r-sm);font-size:12.5px;width:220px}
@@ -5135,23 +5140,36 @@ function histB(b){
     L.forEach(x=>out.push({at:'2026-'+x.at,by:x.by,kind:'월 마감',name:`${b.name} ${+ym.slice(5)}월분`,type:x.act.replace(' ',''),sum:`${+ym.slice(5)}월분 ${x.act}`,why:x.why||''}));});
   return out.concat(...CTRS.filter(c=>c.b===b.id).map(histC));
 }
-let fh={kind:''}, hx={};
+let fh={kind:'',type:'',q:''}, hx={};
+const hp={};
+const HPER=10;
+const setFh=(f,v)=>{fh[f]=v;Object.keys(hp).forEach(k=>delete hp[k]);render(true);};
+/* 페이지 나누기 — 이전 · 번호 · 다음. 페이지가 하나면 보이지 않는다 */
+function pagerHTML(n,cur,go){const N=Math.ceil(n/HPER); if(N<=1) return '';
+  return `<div class="pgr"><button ${cur<=1?'disabled':''} onclick="${go}(${cur-1})">‹</button>${Array.from({length:N},(_,i)=>`<button class="${i+1===cur?'on':''}" onclick="${go}(${i+1})">${i+1}</button>`).join('')}<button ${cur>=N?'disabled':''} onclick="${go}(${cur+1})">›</button></div>`;}
 function histHTML(rows,scope){
-  const kinds=[...new Set(rows.map(r=>r.kind))];
-  const R=rows.filter(r=>!fh.kind||r.kind===fh.kind).sort((p,q)=>p.at<q.at?1:p.at>q.at?-1:0);
+  const S=(f,opts,lab)=>`<select onchange="setFh('${f}',this.value)"><option value="">${lab}</option>${opts.map(v=>`<option ${fh[f]===v?'selected':''}>${v}</option>`).join('')}</select>`;
+  const q=fh.q.trim();
+  const R=rows.filter(r=>(!fh.kind||r.kind===fh.kind)&&(!fh.type||r.type===fh.type)&&(!q||[r.name,r.sum,r.why,r.by].join(' ').includes(q)))
+    .sort((p,q)=>p.at<q.at?1:p.at>q.at?-1:0);
+  const N=Math.max(1,Math.ceil(R.length/HPER)), cur=Math.min(hp[scope]||1,N), P=R.slice((cur-1)*HPER,cur*HPER);
   const d=a=>a.replace(/-/g,'.');
-  return `<div class="card"><div class="ct">이력<span class="sub">${R.length}건 · 최근이 위 · 고치거나 지울 수 없습니다</span>
-      <span class="ca"><select onchange="fh.kind=this.value;render(true)"><option value="">전체 대상 종류</option>${kinds.map(v=>`<option ${fh.kind===v?'selected':''}>${v}</option>`).join('')}</select></span></div>
+  return `<div class="card"><div class="ct">이력</div>
+    <div class="fbar" style="padding:0 16px 10px;margin:0">
+      <input class="fq" type="text" value="${fh.q}" placeholder="대상 이름 · 내용 · 처리자 검색" onchange="setFh('q',this.value)" style="width:260px">
+      ${S('kind',[...new Set(rows.map(r=>r.kind))],'전체 대상 종류')}${S('type',[...new Set(rows.map(r=>r.type))],'전체 변경 유형')}
+    </div>
     ${R.length?`<div class="tw"><table>
       <thead><tr><th>일시</th><th>대상 종류</th><th>대상 이름</th><th>변경 유형</th><th>변경 요약</th><th>처리자</th></tr></thead>
-      <tbody>${R.map((r,i)=>{const id=`${scope}|${r.at}|${i}`, op=hx[id], ex=r.chg&&r.chg.length;
+      <tbody>${P.map((r,i)=>{const id=`${scope}|${r.at}|${(cur-1)*HPER+i}`, op=hx[id], ex=r.chg&&r.chg.length;
         return `<tr ${ex?`style="cursor:pointer" onclick="hx['${id}']=!hx['${id}'];render(true)"`:''}>
           <td style="white-space:nowrap">${ex?`<span class="tg ${op?'op':''}" style="display:inline-block;vertical-align:middle">${ic('chev',14)}</span>`:''}${d(r.at)}</td>
           <td><span class="bd mu">${r.kind}</span></td><td style="white-space:nowrap">${r.name}</td><td>${r.type}</td>
           <td>${r.sum}${r.why?`<div class="c2">사유: ${r.why}</div>`:''}</td><td style="white-space:nowrap">${r.by}</td></tr>`
         +(ex&&op?`<tr class="sub"><td></td><td colspan="5"><table style="width:auto"><thead><tr><th>항목</th><th>변경 전</th><th>변경 후</th></tr></thead>
-          <tbody>${r.chg.map(([f,a,b])=>`<tr><td>${f}</td><td class="c2" style="margin:0">${a}</td><td><b>${b}</b></td></tr>`).join('')}</tbody></table></td></tr>`:'');}).join('')}</tbody></table></div>`
-    :'<div class="cc"><div class="c2" style="margin:0">기록된 이력이 없습니다.</div></div>'}</div>`;
+          <tbody>${r.chg.map(([f,a,b])=>`<tr><td>${f}</td><td class="c2" style="margin:0">${a}</td><td><b>${b}</b></td></tr>`).join('')}</tbody></table></td></tr>`:'');}).join('')}</tbody></table></div>
+      ${pagerHTML(R.length,cur,`(p=>{hp['${scope}']=p;render(true);})`)}`
+    :'<div class="cc"><div class="c2" style="margin:0">조건에 맞는 이력이 없습니다.</div></div>'}</div>`;
 }
 let tab3c='요약', g3={}, g3All=false;
 const g3Open=k=>(k in g3)?g3[k]:g3All;
