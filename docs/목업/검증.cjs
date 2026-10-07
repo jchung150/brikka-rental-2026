@@ -519,9 +519,9 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   const h = CP.CTR3('b1본관801호'), four = CP.vehOf('b1본관801호').length === 4;
   CP.vehOpen('b1', 0, 'b1본관801호'); Object.assign(CP.vh, {plate:'90하1111', own:'시험', tel:'010-0000-0000', fee:'월정액'}); CP.vehSave();
   const added = CP.vehOf('b1본관801호').length === 5;
-  CP.chvOpen('b1본관401호'); CP.cx3Save(); const noT = !CP.CHVAC['b1본관401호']; CP.cx3.t = '건물주 것 사용'; CP.cx3Save();
+  CP.chvOpen('b1본관401호'); CP.cx3Save(); const noT = !CP.CHVAC['b1본관401호']; CP.cx3.t = '임대인 설치'; CP.cx3Save();
   r6.push(['계약 상세 — 주차정보에 등록 차량 4대 · 계약 상세에서 차량 추가(계약 고정) → 5대 · 냉난방기 구분 없으면 저장 안 됨',
-    four && /등록 차량 4대/.test(h) && /냉난방기/.test(h) && /임차인 설치/.test(h) && added && noT && CP.CHVAC['b1본관401호'].t === '건물주 것 사용']); }
+    four && /<dt>등록 차량<\/dt>/.test(h) && h.indexOf('<dt>무료 주차 대수') < h.indexOf('<dt>등록 차량') && !/철거·원상복구를 누가/.test(h) && /냉난방기/.test(h) && /임차인 설치/.test(h) && added && noT && CP.CHVAC['b1본관401호'].t === '임대인 설치']); }
 /* 청구일·납부마감일 규칙 — 청구년월 기준 전월·당월·익월 + N일·말일 */
 { const DR = new Function(stub + bare + '; return {dayRule};')().dayRule;
   r6.push(['청구일·납부마감일 — 7월분: 전월 25일 = 6/25 · 당월 1일 = 7/1 · 당월 19일 = 7/19 · 당월 말일 = 7/31 · 익월 10일 = 8/10 · 2월분 당월 말일 = 2/28',
@@ -662,16 +662,16 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   BE.beOpen('b1', 'mgmt'); BE.be.f.me = '2028-02-29'; BE.beSave();
   r6.push(['요약 카드 수정 — 별칭 중복 막힘 · 지번 저장 · 기계식 6 → 총 주차면 다시 계산 · 지분 100% 아니면 막힘 · 채권 10억 · 공용시설 추가·삭제 · 위탁운영계약 종료일',
     dup && b.addr2 === '지번 바꿈' && pk && sh && b.owners[0].share === 50 && b.bondNow === 1e9 && fac && !b.fac.includes('라운지') && b.mgmtEnd === '2028-02-29']); }
-/* 주차 탭 — 실제 명부 31대 · 계약별로 접고 펼침 · 무료가 무상 대수를 넘으면 초과 표시(본관501호 4/3) · 연락처 미확인 · 새로 넣을 때는 무료 초과 막힘 · 차량번호 중복 막힘 · 필터 */
+/* 주차 탭 — 실제 명부 31대 · 계약별로 접고 펼침 · 무료가 무료 주차 대수를 넘으면 초과 표시(본관501호 4/3) · 연락처 미확인 · 새로 넣을 때는 무료 초과 막힘 · 차량번호 중복 막힘 · 필터 */
 { const PT = new Function(stub + bare + '; return {PRO3,vehOpen,vehSave,vehMissing,vehDel,vehOf,gpkTog,gpkSet,vdOpen,vdHTML,get vh(){return vh;},set tab3(v){tab3=v;},get fpk(){return fpk;},get VEH(){return VEH;}};')();
   PT.tab3 = '요약'; const sum = PT.PRO3('b1'); PT.tab3 = '주차'; const h0 = PT.PRO3('b1');
   const order = h0.indexOf('>유닛<') < h0.indexOf('>주차<') && h0.indexOf('>주차<') < h0.indexOf('>관리비<');
   const closed = !/10버3291/.test(h0) && /무료 1대 초과/.test(h0) && /연락처 미확인/.test(h0) && /주차면 32 · 등록 31대/.test(h0) && /\+ 차량 추가/.test(h0) && /계약고유이름 · 차량 소유자/.test(h0) && !/전체 요금부과/.test(h0);
   PT.gpkTog('b1본관801호'); const h1 = PT.PRO3('b1'); const open1 = /10버3291/.test(h1) && !/45라0809/.test(h1);
   PT.gpkSet(true); const h2 = PT.PRO3('b1'); const all = /45라0809/.test(h2) && /미확인/.test(h2);
-  const grp = /총 4대 · 무료 3대 \+ 월정액 1대/.test(h2) && /vdOpen\('b1',1\)/.test(h2); PT.vdOpen('b1', 1); const hd = PT.vdHTML(); const det = /비상 연락/.test(hd) && /이한용/.test(hd) && /무상 한도 3대/.test(hd);
+  const grp = /총 4대 · 무료 3대 \+ 월정액 1대/.test(h2) && /vdOpen\('b1',1\)/.test(h2); PT.vdOpen('b1', 1); const hd = PT.vdHTML(); const det = /비상 연락/.test(hd) && /이한용/.test(hd) && /무료 한도 3대/.test(hd);
   PT.vehOpen('b1'); Object.assign(PT.vh, {k:'b1본관801호', plate:'99거9999', own:'홍길동', tel:'010-0000-0001', fee:'무료'}); PT.vehSave();
-  const overFree = PT.vehMissing().some(m => /무상 주차 3대까지/.test(m)); PT.vh.plate = '10버3291'; const dupP = PT.vehMissing().some(m => /이미 등록됨/.test(m));
+  const overFree = PT.vehMissing().some(m => /무료 주차 3대까지/.test(m)); PT.vh.plate = '10버3291'; const dupP = PT.vehMissing().some(m => /이미 등록됨/.test(m));
   PT.vh.plate = '99거9999'; PT.vh.fee = '월정액'; PT.vehSave(); const ok = PT.vehOf('b1본관801호').length === 5;
   r6.push(['주차 탭 — 유닛·주차·관리비 순 · 처음엔 접힘 · 본관501호 무료 1대 초과 · 연락처 미확인 · 펼치면 차량 · 묶음 줄 「총 4대 · 무료 3대 + 월정액 1대」 · 차량 줄을 누르면 상세 · 무료 초과로 새로 넣기 막힘 · 차량번호 중복 막힘 · 검색 칸 없음',
     order && !/등록 차량/.test(sum) && closed && open1 && all && grp && det && overFree && dupP && ok && !/class="fq"/.test(h0)]); }

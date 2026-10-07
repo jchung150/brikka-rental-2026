@@ -1691,8 +1691,8 @@ function bphHTML(b){
 }
 /* ═══ 등록 차량 — 주차는 자리 번호가 아니라 차량으로 관리한다. 비상시 차 주인에게 바로 연락해야 하기 때문이다 → PRO-3 주차 탭 · CTR-3
    차량마다 계약 · 차량 소유자 · 차량번호 · 연락처 · 차종 · 주차구분 · 요금부과(무료 / 월정액).
-   무료로 등록할 수 있는 대수는 그 계약의 무상 주차 대수까지다. 넘는 차량은 월정액 → 주차비 정산.
-   카리나빌딩 실제 명부(대표 제공). 모르는 칸은 비워 두었다(소유자 · 연락처 미확인). 무료가 무상 대수를 넘은 계약은 그대로 두고 화면에서 초과로 보인다 ═══ */
+   무료로 등록할 수 있는 대수는 그 계약의 무료 주차 대수까지다. 넘는 차량은 월정액 → 주차비 정산.
+   카리나빌딩 실제 명부(대표 제공). 모르는 칸은 비워 두었다(소유자 · 연락처 미확인). 무료가 무료 주차 대수를 넘은 계약은 그대로 두고 화면에서 초과로 보인다 ═══ */
 const VEH_LOC=['지상','지하','기계식'], VEH_FEE=['무료','월정액'];
 let VEH=[
  {id:1,k:'b1본관801호',own:'이한용',plate:'10버3291',tel:'010-4745-7585',model:'BMW 520 (2020)',loc:'기계식',fee:'무료'},
@@ -1739,7 +1739,7 @@ function vehMissing(){const m=[];
   const b=BUILDINGS.find(x=>x.id===vh.bid);
   if(vh.plate.trim()&&VEH.some(v=>v.id!==vh.id&&v.plate===vh.plate.trim()&&ctrOfK(v.k)&&ctrOfK(v.k).b===b.id)) m.push('차량번호(이미 등록됨)');
   if(vh.k&&vh.fee==='무료'){const free=(CPARK[vh.k]||{}).free||0, n=vehOf(vh.k).filter(v=>v.id!==vh.id&&v.fee==='무료').length;
-    if(n+1>free) m.push(`요금부과(무료는 무상 주차 ${free}대까지 · 월정액으로)`);}
+    if(n+1>free) m.push(`요금부과(무료는 무료 주차 ${free}대까지 · 월정액으로)`);}
   return m;}
 function vehSave(){vh.tried=true; if(vehMissing().length){render(true);return;}
   const b=BUILDINGS.find(x=>x.id===vh.bid), c=ctrOfK(vh.k), val={k:vh.k,own:vh.own.trim(),plate:vh.plate.trim(),tel:vh.tel.trim(),model:vh.model.trim(),loc:vh.loc,fee:vh.fee};
@@ -1766,7 +1766,7 @@ function vdHTML(){
         ${R('요금부과',v.fee==='월정액'?`<span class="bd wa2">월정액</span>${cp.fee?` <span class="c2">월 ${won(cp.fee)}</span>`:''}`:'<span class="bd mu">무료</span>')}</div>
       <div class="fg"><div class="fl">비상 연락</div>${R('차량 소유자',v.own||miss)}${R('연락처',v.tel||miss)}</div>
       <div class="fg"><div class="fl">계약</div>${R('계약고유이름',c?`<span class="plk" onclick="closeDrawer();tab3c='요약';go('ctr-3/${v.k}')">${cnameHTML(b.alias,c.no,c.ten)}</span>`:'—')}
-        ${R('이 계약 차량',`총 ${vehOf(v.k).length}대 · 무료 ${vehOf(v.k).filter(x=>x.fee==='무료').length}대 + 월정액 ${vehOf(v.k).filter(x=>x.fee==='월정액').length}대${cp.free!=null?` <span class="c2">(무상 한도 ${cp.free}대)</span>`:''}`)}</div>
+        ${R('이 계약 차량',`총 ${vehOf(v.k).length}대 · 무료 ${vehOf(v.k).filter(x=>x.fee==='무료').length}대 + 월정액 ${vehOf(v.k).filter(x=>x.fee==='월정액').length}대${cp.free!=null?` <span class="c2">(무료 한도 ${cp.free}대)</span>`:''}`)}</div>
     </div>
     <div class="df"><button class="btn pri" onclick="vehOpen('${b.id}',${v.id})">수정</button><button class="btn" onclick="closeDrawer();vehDel(${v.id})">삭제</button></div>
   </div></div>`;
@@ -1784,14 +1784,14 @@ function vehHTML(){
     <div class="db">
       ${R('계약',fixed?`<span class="fv">${cname(b.alias,fixed.no,fixed.ten)}</span>`
         :`<select onchange="vh.k=this.value;render(true)" style="${inp};max-width:100%"><option value="">선택</option>${cs.map(c=>`<option value="${ckey(c)}" ${vh.k===ckey(c)?'selected':''}>${cname(b.alias,c.no,c.ten)}</option>`).join('')}</select>`,1)}
-      ${cp?`<div class="c2" style="margin:-4px 0 10px 114px">무상 주차 ${cp.free}대 · 지금 무료 ${vehOf(vh.k).filter(v=>v.fee==='무료'&&v.id!==vh.id).length}대 등록</div>`:''}
+      ${cp?`<div class="c2" style="margin:-4px 0 10px 114px">무료 주차 ${cp.free}대 · 지금 무료 ${vehOf(vh.k).filter(v=>v.fee==='무료'&&v.id!==vh.id).length}대 등록</div>`:''}
       ${R('차량번호',T('plate','예: 12가3456',160),1)}
       ${R('차량 소유자',T('own','',160),1)}
       ${R('연락처',T('tel','비상시 연락',160),1)}
       ${R('차종',T('model','예: 그랜저 IG'))}
       ${R('주차구분',`<select onchange="vh.loc=this.value" style="${inp}">${VEH_LOC.map(v=>`<option ${vh.loc===v?'selected':''}>${v}</option>`).join('')}</select>`)}
       ${R('요금부과',`<select onchange="vh.fee=this.value;render(true)" style="${inp}">${VEH_FEE.map(v=>`<option ${vh.fee===v?'selected':''}>${v}</option>`).join('')}</select>`)}
-      <div class="c2" style="margin:0;white-space:normal">무료는 계약의 무상 주차 대수까지입니다. 넘는 차량은 월정액이며 주차비로 청구합니다.</div>
+      <div class="c2" style="margin:0;white-space:normal">무료는 계약의 무료 주차 대수까지입니다. 넘는 차량은 월정액이며 주차비로 청구합니다.</div>
       ${miss.length?`<div class="fnd wa3" style="margin:10px 0 0"><span class="h">저장할 수 없습니다</span>빠진 항목: <b>${miss.join(' · ')}</b></div>`:''}
     </div>
     <div class="df"><button class="btn pri" onclick="vehSave()">${vh.id?'저장':'등록'}</button></div>
@@ -2030,7 +2030,7 @@ function t주차(b){
   const list=all.filter(v=>(!fpk.k||v.k===fpk.k)&&(!fpk.loc||v.loc===fpk.loc));
   const nFree=all.filter(v=>v.fee==='무료').length, left=b.park-all.length;
   const S=(f,opts,lab)=>`<select onchange="setFpk('${f}',this.value)"><option value="">${lab}</option>${opts.map(([v,t])=>`<option value="${v}" ${fpk[f]===v?'selected':''}>${t}</option>`).join('')}</select>`;
-  /* 필터가 없으면 차량이 없어도 무상 주차가 있는 계약을 보인다(빈 자리를 알 수 있게) */
+  /* 필터가 없으면 차량이 없어도 무료 주차가 있는 계약을 보인다(빈 자리를 알 수 있게) */
   const groups=cs.map(c=>({c,k:ckey(c),vs:list.filter(v=>v.k===ckey(c))})).filter(g=>g.vs.length||(!filt&&CPARK[g.k]));
   const anyOp=groups.some(g=>gpkOpen(g.k)), miss='<span style="color:var(--warn)">미확인</span>';
   return `
@@ -2054,7 +2054,7 @@ function t주차(b){
           :`<tr><td colspan="7" class="c2" style="padding-left:44px">등록된 차량이 없습니다</td></tr>`);}).join('')}</tbody>
     </table></div>`:`<div class="empty">${all.length?'조건에 맞는 차량이 없습니다':'등록된 차량이 없습니다'}</div>`}
   </div>
-  <div class="hint">계약을 누르면 그 계약의 차량이 펼쳐집니다. 무료 차량이 계약의 무상 주차 대수를 넘으면 <b>무료 ○대 초과</b>로 표시합니다. 넘는 차량은 월정액으로 바꿔 주차비를 받습니다.<br>
+  <div class="hint">계약을 누르면 그 계약의 차량이 펼쳐집니다. 무료 차량이 계약의 무료 주차 대수를 넘으면 <b>무료 ○대 초과</b>로 표시합니다. 넘는 차량은 월정액으로 바꿔 주차비를 받습니다.<br>
     비상시 연락해야 하므로 소유자 · 연락처가 비어 있는 차량은 <b>미확인</b>으로 표시합니다.</div>`;
 }
 
@@ -4626,7 +4626,7 @@ function CTR2(){
             :`<span class="fv">${nc.start?d8(nc.start):'—'} <span class="c2">계약시작일과 같음</span></span>`)
         +(nc.rf!=='있음'?R('',C('late','기산일을 따로 정하기 (소급 등)')):'');})())
     +card('보증금',R('보증금',N('dep','약정액'))+R('반환예정일',D('depRet')))
-    +card('주차',R('무상 주차',`${T('park','',70)}<span class="c2" style="margin:0">대</span>`)
+    +card('주차',R('무료 주차',`${T('park','',70)}<span class="c2" style="margin:0">대</span>`)
       +'<div class="c2" style="margin:0">등록 차량은 저장한 뒤 계약 상세의 주차정보에서 넣습니다</div>')
     +card('냉난방기',R('구분',`<select onchange="ncSet('hv',this.value)"><option value="">선택</option>${HVAC_OWN.map(v=>`<option ${nc.hv===v?'selected':''}>${v}</option>`).join('')}</select>`)
       +R('메모',T('hvm','예: 시스템에어컨 4대 · 2024.03 설치'))
@@ -4868,10 +4868,10 @@ function CTR3month(c,k){
 }
 /* CTR-3 요약 탭 — 계약·임대 정보. 잔액은 원장에서 */
 /* 계약의 주차 약정 · 냉난방기 구분 — 목업 예시값. 등록 차량은 건물 주차 탭과 같은 기록(VEH) → CTR-3 · PRO-3 */
-/* 무상 주차 대수 — 명부의 「층(배정대수)」. 초과 단가는 예시값 */
+/* 무료 주차 대수 — 명부의 「층(배정대수)」 */
 const CPARK=Object.fromEntries([['본관801호',3],['본관701호',3],['본관601호',3],['본관501호',3],['본관401호',3],['본관302호',3],['본관201호',3],['본관101호',3],['본관B201호',3],['별관401호',2],['별관301호',2],['별관201호',2]].map(([n,f])=>['b1'+n,{free:f}]));
-const HVAC_OWN=['임차인 설치','전 임차인 것 이어받음','건물주 것 사용'];
-const CHVAC={'b1본관801호':{t:'임차인 설치',m:'시스템에어컨 4대 · 2024.03 설치'},'b1본관101호':{t:'건물주 것 사용',m:''},'b1별관301호':{t:'전 임차인 것 이어받음',m:'벽걸이 2대'}};
+const HVAC_OWN=['임차인 설치','전 임차인 것 이어받음','임대인 설치'];
+const CHVAC={'b1본관801호':{t:'임차인 설치',m:'시스템에어컨 4대 · 2024.03 설치'},'b1본관101호':{t:'임대인 설치',m:''},'b1별관301호':{t:'전 임차인 것 이어받음',m:'벽걸이 2대'}};
 let cx3=null;
 function cpkOpen(k){const c=CTRS.find(x=>ckey(x)===k), b=BUILDINGS.find(x=>x.id===c.b), P=CPARK[k]||{};
   cx3={k,mode:'park',free:P.free!=null?String(P.free):''};DRAWER='c3x';render(true);}
@@ -4929,7 +4929,7 @@ function cx3HTML(){
     :cx3.mode==='ag'?`<label class="ck" style="display:flex;margin-bottom:12px"><input type="checkbox" ${cx3.has?'checked':''} onchange="cx3.has=this.checked;render(true)">중개사가 있음</label>`
       +(cx3.has?F('중개사무소',I('an'))+F('대표자명',I('aceo',160))+F('등록번호',I('ano',180))+F('연락처',I('atel',160))+F('소재지',I('aaddr')):'')
     :cx3.mode==='memo'?`<textarea rows="8" oninput="cx3.memo=this.value" placeholder="계약서에 없는 약속 · 특이사항" style="${inp};width:100%;resize:vertical">${cx3.memo}</textarea>`
-    :cx3.mode==='park'?F('무상 주차 대수',`<input type="text" inputmode="numeric" value="${cx3.free}" oninput="cx3.free=this.value" style="${inp};width:80px;text-align:right"><span class="c2" style="margin:0">대</span>`)
+    :cx3.mode==='park'?F('무료 주차 대수',`<input type="text" inputmode="numeric" value="${cx3.free}" oninput="cx3.free=this.value" style="${inp};width:80px;text-align:right"><span class="c2" style="margin:0">대</span>`)
     :F('구분',`<select onchange="cx3.t=this.value;render(true)" style="${inp}"><option value="" ${cx3.t?'':'selected'}>선택 (필수)</option>${HVAC_OWN.map(v=>`<option ${cx3.t===v?'selected':''}>${v}</option>`).join('')}</select>`)
       +F('메모',`<input type="text" value="${cx3.m}" placeholder="예: 시스템에어컨 4대 · 2024.03 설치" oninput="cx3.m=this.value" style="${inp};flex:1;min-width:0">`);
   return `<div class="dro"><div class="ov" onclick="closeDrawer()"></div><div class="pn">
@@ -5045,14 +5045,14 @@ function CTR3sum(c,k){
   <div class="two">${ppl}${party}</div>
   <div class="two">
     <div class="card"><div class="ct">주차정보<span class="ca"><button class="btn sm" onclick="vehOpen('${c.b}',0,'${k}')">차량 추가</button><button class="btn sm" onclick="cpkOpen('${k}')">수정</button></span></div><div class="cc"><dl class="dl">
-      ${(V=>V.length?V.map((v,i)=>`<dt>${i?'':`등록 차량 ${V.length}대`}</dt><dd>${v.plate} · ${v.own}<span class="lock">${v.loc} · ${v.fee}</span></dd>`).join('')
+      <dt>무료 주차 대수</dt><dd>${CPARK[k]?`${CPARK[k].free}대`:'—'}</dd>
+      ${(V=>V.length?V.map((v,i)=>`<dt>${i?'':'등록 차량'}</dt><dd>${v.plate} · ${v.own}<span class="lock">${v.loc} · ${v.fee}</span></dd>`).join('')
         :'<dt>등록 차량</dt><dd><span style="color:var(--muted)">없음</span></dd>')(vehOf(k))}
-      <dt>무상 주차 대수</dt><dd>${CPARK[k]?`${CPARK[k].free}대`:'—'}</dd>
     </dl></div></div>
     <div class="card"><div class="ct">냉난방기<span class="ca"><button class="btn sm" onclick="chvOpen('${k}')">수정</button></span></div><div class="cc"><dl class="dl">
       <dt>구분</dt><dd>${CHVAC[k]?`<b>${CHVAC[k].t}</b>`:'<span style="color:var(--warn)">미입력</span>'}</dd>
       <dt>메모</dt><dd>${CHVAC[k]&&CHVAC[k].m?CHVAC[k].m:'—'}</dd>
-    </dl><div class="hint">임차인 설치 / 전 임차인 것 이어받음 / 건물주 것 사용. 퇴거 때 철거·원상복구를 누가 하는지 가리는 근거입니다.</div></div></div>
+    </dl></div></div>
   </div>
   <div class="two">${ag}${memo}</div>
   ${TERMS[k]?`<div class="card"><div class="ct">해지정보<span class="ca"><button class="btn sm" onclick="termOpen('${k}')">수정</button></span></div><div class="cc"><dl class="dl">
