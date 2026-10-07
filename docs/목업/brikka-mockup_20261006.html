@@ -4392,7 +4392,7 @@ const ctrDeposit=c=>c.dep!=null?c.dep:ctrAmt(c,'임대료')*10;
 /* 계약 요약 정보 — 등록 때 받은 값. 기존 예시 계약은 비어 있는 값을 계약에서 계산한다(사업자구분은 상호로, 보증금 날짜는 계약 기간으로) */
 const ctrKind=c=>c.kind||(/\(주\)|㈜|\(유\)|주식회사|유한회사/.test(c.ten)?'법인':'개인');
 const ctrType=c=>c.type||'확정기간계약';
-const ctrDepDue=c=>c.depDue||c.base, ctrDepRet=c=>c.depRet||ctrEnd(c);
+const ctrDepRet=c=>c.depRet||ctrEnd(c);
 const man=n=>n>=1e8?(n/1e8).toFixed(n%1e8?1:0)+'억':n>=1e4?num(Math.round(n/1e4))+'만':num(n);
 
 /* ═══ CTR-1 계약 목록 ═══ */
@@ -4441,7 +4441,7 @@ function ncInit(){
       kind:'법인',biz:'',found:null,ten:'',ceo:'',addr:'',item:'',alias:'',
       pn:'',pt:'',ptel:'',pmail:'',diff:false,cn:'',cbiz:'',cceo:'',ctel:'',cmail:'',caddr:'',rbank:'',racct:'',rname:'',
       proxy:false,xn:'',xtel:'',xmail:'',xaddr:'',an:'',aceo:'',ano:'',atel:'',aaddr:'',
-      dep:'',depDue:'',depRet:'',park:'0',parkFee:'',hv:'',hvm:'',rent:'',mgmt:'',rentCy:'매월',mgmtCy:'매월',late:false,lateD:'',rf:'',rfM:'',rfEnd:'',rfRent:true,rfMgmt:false,rfVar:false,
+      dep:'',depRet:'',park:'0',parkFee:'',hv:'',hvm:'',rent:'',mgmt:'',rentCy:'매월',mgmtCy:'매월',late:false,lateD:'',rf:'',rfM:'',rfEnd:'',rfRent:true,rfMgmt:false,rfVar:false,
       adj:[],files:[],memo:'',tried:false};
 }
 function ncSet(f,v){
@@ -4486,7 +4486,7 @@ function ncSave(welcome){
   if(ncMissing().length||(cl&&cl.block)){render(true);return;}
   const bd=BUILDINGS.find(x=>x.id===nc.b);
   const c={b:nc.b,no:nc.no,ten:nc.ten.trim(),st:nc.st,base:nc.start,end:nc.end||ncEnd(nc.start),rate:+nc.rate||8,
-    dep:numOf(nc.dep)||null,depDue:nc.depDue||null,depRet:nc.depRet||null,kind:nc.kind,type:nc.type,memo:nc.memo.trim(),
+    dep:numOf(nc.dep)||null,depRet:nc.depRet||null,kind:nc.kind,type:nc.type,memo:nc.memo.trim(),
     ag:nc.agent?{n:nc.an,ceo:nc.aceo,no:nc.ano,tel:nc.atel,addr:nc.aaddr}:null,fresh:true,
     /* 기산일 — 렌트프리면 체크한 항목만 기산일부터, 나머지는 계약시작일부터 청구한다 */
     from:ncFrom()!==nc.start?ncFrom():null,
@@ -4598,7 +4598,7 @@ function CTR2(){
             :nc.late?D('lateD')+`<span class="c2" style="white-space:nowrap">${nc.lateD&&nc.start&&dnum(nc.lateD)<dnum(nc.start)?'소급':''}</span>`
             :`<span class="fv">${nc.start?d8(nc.start):'—'} <span class="c2">계약시작일과 같음</span></span>`)
         +(nc.rf!=='있음'?R('',C('late','기산일을 따로 정하기 (소급 등)')):'');})())
-    +card('보증금',R('보증금',N('dep','약정액'))+R('납부마감일',D('depDue'))+R('반환예정일',D('depRet')))
+    +card('보증금',R('보증금',N('dep','약정액'))+R('반환예정일',D('depRet')))
     +card('주차',R('무상 주차',`${T('park','',70)}<span class="c2" style="margin:0">대</span>`)+R('초과 1대 월',N('parkFee','단가 (부가세 포함)'))
       +'<div class="c2" style="margin:0">등록 차량은 저장한 뒤 계약 상세의 주차정보에서 넣습니다</div>')
     +card('냉난방기',R('구분',`<select onchange="ncSet('hv',this.value)"><option value="">선택</option>${HVAC_OWN.map(v=>`<option ${nc.hv===v?'selected':''}>${v}</option>`).join('')}</select>`)
@@ -4837,7 +4837,7 @@ function cpkOpen(k){const c=CTRS.find(x=>ckey(x)===k), b=BUILDINGS.find(x=>x.id=
   cx3={k,mode:'park',free:P.free!=null?String(P.free):'',fee:P.fee?String(P.fee):''};DRAWER='c3x';render(true);}
 /* 계약정보 · 보증금 · 중개사 · 메모 수정 — 오른쪽 패널 → 3.8 */
 function cx3Open(k,mode){const c=CTRS.find(x=>ckey(x)===k), A=c.ag||{};
-  cx3={k,mode,kind:ctrKind(c),type:ctrType(c),start:c.base,end:ctrEnd(c),dep:String(ctrDeposit(c)),depDue:ctrDepDue(c),depRet:ctrDepRet(c),
+  cx3={k,mode,kind:ctrKind(c),type:ctrType(c),start:c.base,end:ctrEnd(c),dep:String(ctrDeposit(c)),depRet:ctrDepRet(c),
     has:!!c.ag,an:A.n||'',aceo:A.ceo||'',ano:A.no||'',atel:A.tel||'',aaddr:A.addr||'',memo:c.memo||''};DRAWER='c3x';render(true);}
 function chvOpen(k){const H=CHVAC[k]||{};cx3={k,mode:'hvac',t:H.t||'',m:H.m||''};DRAWER='c3x';render(true);}
 function cx3Save(){const c=CTRS.find(x=>ckey(x)===cx3.k);
@@ -4845,7 +4845,7 @@ function cx3Save(){const c=CTRS.find(x=>ckey(x)===cx3.k);
     CPARK[cx3.k]={free:parseInt(cx3.free)||0,fee:numOf(cx3.fee)};}
   else if(cx3.mode==='ctr'){if(!cx3.start||!cx3.end||dnum(cx3.end)<dnum(cx3.start)) return;
     Object.assign(c,{kind:cx3.kind,type:cx3.type,base:cx3.start,end:cx3.end});}
-  else if(cx3.mode==='dep') Object.assign(c,{dep:numOf(cx3.dep),depDue:cx3.depDue,depRet:cx3.depRet});
+  else if(cx3.mode==='dep') Object.assign(c,{dep:numOf(cx3.dep),depRet:cx3.depRet});
   else if(cx3.mode==='ag') c.ag=cx3.has&&cx3.an.trim()?{n:cx3.an.trim(),ceo:cx3.aceo,no:cx3.ano,tel:cx3.atel,addr:cx3.aaddr}:null;
   else if(cx3.mode==='memo') c.memo=cx3.memo.trim();
   else{if(!cx3.t) return; CHVAC[cx3.k]={t:cx3.t,m:cx3.m.trim()};}
@@ -4857,7 +4857,7 @@ function cx3HTML(){
   const F=(l,h)=>`<div class="fr"><span class="fk">${l}</span>${h}</div>`;
   const I=(f,w,t)=>`<input type="${t||'text'}" value="${cx3[f]}" oninput="cx3.${f}=this.value" ${t==='date'?`onchange="cx3.${f}=this.value;render(true)"`:''} style="${inp};${w?`width:${w}px`:'flex:1;min-width:0'}">`;
   const SEL=(f,o)=>`<select onchange="cx3.${f}=this.value" style="${inp}">${o.map(v=>`<option ${cx3[f]===v?'selected':''}>${v}</option>`).join('')}</select>`;
-  const TTL={ctr:'계약정보 수정',dep:'보증금 수정',ag:'중개사 수정',memo:'메모 수정',park:'주차 수정',hvac:'냉난방기 수정'};
+  const TTL={ctr:'계약정보 수정',dep:'보증금 정보 수정',ag:'중개사 수정',memo:'메모 수정',park:'주차 수정',hvac:'냉난방기 수정'};
   const body=cx3.mode==='ctr'?F('유닛',`<span class="fv">${c.no} <span class="c2" style="margin:0">수정 불가</span></span>`)
       +F('대표임차인',`<span class="fv">${c.ten} <span class="c2" style="margin:0">임차인 탭에서 고칩니다</span></span>`)
       +F('사업자구분',SEL('kind',['법인','개인']))+F('계약유형',SEL('type',['확정기간계약','확정기간후자동갱신']))
@@ -4865,7 +4865,7 @@ function cx3HTML(){
       +F('계약시작일',I('start',160,'date'))+F('계약종료일',I('end',160,'date'))
       +`<div class="hint" style="color:var(--warn)">계약시작일을 바꾸면 계약 기간 · 유닛상태 · 공실률 집계가 바뀝니다. 청구는 기산일을 따르므로 바뀌지 않습니다.</div>`
     :cx3.mode==='dep'?F('보증금 약정액',`<input type="text" inputmode="numeric" value="${num(numOf(cx3.dep))}" oninput="cx3.dep=this.value" style="${inp};width:160px;text-align:right"><span class="c2" style="margin:0">원</span>`)
-      +F('보증금 납부마감일',I('depDue',160,'date'))+F('보증금 반환예정일',I('depRet',160,'date'))
+      +F('보증금 반환예정일',I('depRet',160,'date'))
       +`<div class="c2" style="white-space:normal">받은 보증금과 잔액은 원장의 「보증금 예치 · 차감 · 환급」으로만 바뀝니다.</div>`
     :cx3.mode==='ag'?`<label class="ck" style="display:flex;margin-bottom:12px"><input type="checkbox" ${cx3.has?'checked':''} onchange="cx3.has=this.checked;render(true)">중개사가 있음</label>`
       +(cx3.has?F('중개사무소',I('an'))+F('대표자명',I('aceo',160))+F('등록번호',I('ano',180))+F('연락처',I('atel',160))+F('소재지',I('aaddr')):'')
@@ -4942,31 +4942,27 @@ function CTR3sum(c,k){
   const d8=d=>d?d.replace(/-/g,'.'):'—', dash='<span style="color:var(--faint)">—</span>';
   const card=(t,body,act)=>`<div class="card"><div class="ct">${t}${act?`<span class="ca">${act}</span>`:''}</div><div class="cc">${body}</div></div>`;
   const edit=m=>`<button class="btn sm" onclick="cx3Open('${k}','${m}')">수정</button>`;
-  /* 청구일 · 납부마감일은 건물에서 정한다(계약마다 정하지 않는다) → PRO-3 · 3.5. 이 달 청구서의 실제 날짜를 보인다 */
-  const ym=TODAY_S.slice(0,7), mo=+ym.slice(5)+'월분';
+  /* 청구일 · 납부마감일은 건물에서 정한다(계약마다 정하지 않는다) → PRO-3 · 3.5 */
   const info=card('계약정보',`<dl class="dl">
       <dt>유닛</dt><dd>${c.no}<span class="lock">수정 불가</span></dd>
       <dt>대표임차인</dt><dd>${c.ten}</dd>
       <dt>사업자구분</dt><dd>${ctrKind(c)}</dd>
       <dt>계약상태</dt><dd><span class="bd ${c.st==='진행중'?'ok':'mu'}">${c.st}</span></dd>
       <dt>계약유형</dt><dd>${ctrType(c)}</dd>
-      <dt>계약기간</dt><dd>${d8(c.base)} - ${d8(end)} ${c.st==='진행중'?ddBadge(end):''}</dd></dl>`,
+      <dt>계약기간</dt><dd>${d8(c.base)} - ${d8(end)}</dd></dl>`,
     `${c.st==='진행중'?`<button class="btn sm" onclick="termOpen('${k}')">해지</button>`:''}${edit('ctr')}`);
   const rfx=c.rf&&c.from, rfIt=rfx?[c.rf.rent&&'임대료',c.rf.mgmt&&'고정관리비',c.rf.vars&&'정산 항목'].filter(Boolean).join(' · '):'';
   const rent=card('임대정보',`<dl class="dl">
-      <dt>미납 잔액</dt><dd>${L.bal.매출채권<0?`<b style="color:var(--pri)">과납 ${won(-L.bal.매출채권)}</b><span class="lock">돌려줄 돈 · 다음 청구서 발행 때 먼저 배분됨</span>`
-        :`<b style="${L.bal.매출채권?'color:var(--warn)':''}">${won(L.bal.매출채권)}</b>`}</dd>
       <dt>임대료</dt><dd>${won(Math.round(ctrAmt(c,'임대료')*1.1))}<span class="lock">월 · 부가세 포함</span></dd>
       <dt>고정관리비</dt><dd>${ctrAmt(c,'고정관리비')?won(Math.round(ctrAmt(c,'고정관리비')*1.1)):'—'}<span class="lock">월 · 부가세 포함</span></dd>
-      <dt>청구일</dt><dd>${mo} → ${ruleEx(bn.billDay,ym)}<span class="lock">건물 설정 · ${bn.billDay}</span></dd>
-      <dt>납부마감일</dt><dd>${mo} → ${ruleEx(bn.dueDay,ym)}<span class="lock">건물 설정 · ${bn.dueDay}</span></dd>
+      <dt>청구일</dt><dd>${bn.billDay}</dd>
+      <dt>납부마감일</dt><dd>${bn.dueDay}</dd>
+      <dt>기산일</dt><dd>${d8(c.from||c.base)}${rfx?`<span class="lock">${rfIt}만 이날부터 청구</span>`:''}</dd>
       <dt>연체이자율</dt><dd>연 ${rateOf(k)}%</dd>
-      <dt>렌트프리</dt><dd>${rfx?`있음 · ${d8(c.base)} - ${d8(c.rf.end)}<span class="lock">${rfIt}</span>`:'없음'}</dd>
-      <dt>기산일</dt><dd>${d8(c.from||c.base)}${rfx?`<span class="lock">${rfIt}만 이날부터 청구</span>`:''}</dd></dl>`);
-  const dep=card('보증금',`<dl class="dl">
+      <dt>렌트프리</dt><dd>${rfx?`있음 · ${d8(c.base)} - ${d8(c.rf.end)}<span class="lock">${rfIt}</span>`:'없음'}</dd></dl>`);
+  const dep=card('보증금 정보',`<dl class="dl">
       <dt>보증금 약정액</dt><dd>${won(ctrDeposit(c))}<span class="lock">${eok(ctrDeposit(c))}</span></dd>
       <dt>보증금 잔액</dt><dd>${won(L.bal.임대보증금)}</dd>
-      <dt>보증금 납부마감일</dt><dd>${d8(ctrDepDue(c))}</dd>
       <dt>보증금 반환예정일</dt><dd>${d8(ctrDepRet(c))}</dd></dl>`,edit('dep'));
   const A=c.ag;
   const ag=card('중개사',A?`<dl class="dl">
@@ -4976,8 +4972,8 @@ function CTR3sum(c,k){
       <dt>소재지</dt><dd>${A.addr||'—'}</dd></dl>`:'<div style="padding:6px 0;color:var(--muted)">중개사 없이 맺은 계약입니다.</div>',edit('ag'));
   const memo=card('메모',c.memo?`<div style="font-size:12.5px;line-height:1.7;white-space:pre-wrap">${c.memo}</div>`:'<div style="padding:6px 0;color:var(--muted)">메모가 없습니다.</div>',edit('memo'));
   return `
-  <div class="two">${info}${rent}</div>
-  <div class="two">${dep}${ag}</div>
+  ${info}
+  <div class="two">${rent}${dep}</div>
   <div class="two">
     <div class="card"><div class="ct">주차정보<span class="ca"><button class="btn sm" onclick="vehOpen('${c.b}',0,'${k}')">차량 추가</button><button class="btn sm" onclick="cpkOpen('${k}')">수정</button></span></div><div class="cc"><dl class="dl">
       ${(V=>V.length?V.map((v,i)=>`<dt>${i?'':`등록 차량 ${V.length}대`}</dt><dd>${v.plate} · ${v.own}<span class="lock">${v.loc} · ${v.fee}</span></dd>`).join('')
@@ -4990,7 +4986,7 @@ function CTR3sum(c,k){
       <dt>메모</dt><dd>${CHVAC[k]&&CHVAC[k].m?CHVAC[k].m:'—'}</dd>
     </dl><div class="hint">임차인 설치 / 전 임차인 것 이어받음 / 건물주 것 사용. 퇴거 때 철거·원상복구를 누가 하는지 가리는 근거입니다.</div></div></div>
   </div>
-  ${memo}
+  <div class="two">${ag}${memo}</div>
   ${TERMS[k]?`<div class="card"><div class="ct">해지정보<span class="ca"><button class="btn sm" onclick="termOpen('${k}')">수정</button></span></div><div class="cc"><dl class="dl">
       <dt>해지유형</dt><dd>${TERMS[k].type}</dd>
       <dt>해지일</dt><dd>${TERMS[k].out.replace(/-/g,'.')}</dd>
