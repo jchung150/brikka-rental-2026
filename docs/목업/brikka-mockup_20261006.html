@@ -483,7 +483,7 @@ table.nowr th,table.nowr td{white-space:nowrap}
 .rcr{grid-template-columns:minmax(150px,.7fr) minmax(170px,1fr) 130px minmax(240px,1.4fr) 180px}
 .rcr > :nth-child(4){padding-left:28px}
 .ctr{grid-template-columns:minmax(260px,1fr) 150px 150px 150px 100px 80px}
-.ctm{grid-template-columns:minmax(200px,1fr) 150px 150px 150px 100px 80px}
+.ctm{grid-template-columns:minmax(180px,1fr) 110px 140px 140px 150px 100px 80px}
 .schr.dep .nm{color:var(--muted)}
 .led{grid-template-columns:96px 92px 76px minmax(260px,1fr) 124px 124px 132px}
 .schr.led.sub .nm{padding-left:14px}
@@ -3945,12 +3945,14 @@ function rcvRow(x,o){
       <div class="schr ${o.cls} sub ni"><div class="nm">과납액</div>
         <div class="n c2">${dash}</div><div class="n c2">${won(x.over)}</div><div class="n">${dash}</div>
         <div class="c"></div>${tail}</div>`);
+  /* 납부마감일 칸(계약 상세 청구·수납 탭) — 펼친 항목 줄은 비운다 */
+  const pre=o.dueCol!==undefined?'<div></div>':'';
   return `<div class="schr ${o.cls} grp" onclick="${o.tog}">
-      <div class="nm"><span class="tg ${op?'op':''}">${ic('chev',16)}</span>${o.label}</div>
+      <div class="nm"><span class="tg ${op?'op':''}">${ic('chev',16)}</span>${o.label}</div>${o.dueCol!==undefined?`<div>${o.dueCol}</div>`:''}
       <div class="n">${won(g.bill)}</div>
       <div class="n">${g.paid?won(g.paid):dash}</div>
-      <div class="n">${g.due?`<b style="color:var(--warn)">${won(g.due)}</b>`:dash}</div>
-      <div class="c"><span class="bd ${PST[x.st]}">${x.st}</span></div>${o.more!==undefined?`<div class="c">${o.more}</div>`:''}</div>`+sub;
+      <div class="n">${g.due?`<b style="color:var(--warn)">${won(g.due)}</b>`:dash}${o.fee?`<div class="c2" style="margin:0">연체료 ${won(o.fee)}</div>`:''}</div>
+      <div class="c"><span class="bd ${PST[x.st]}">${x.st}</span></div>${o.more!==undefined?`<div class="c">${o.more}</div>`:''}</div>`+(pre?sub.replace(/(<div class="nm">[^<]*<\/div>)/g,'$1'+pre):sub);
 }
 
 /* ═══ 더보기 — 표 맨 오른쪽 칸. 할 일이 하나면 링크, 둘 이상이면 ⋮ 드롭다운 → 3.8
@@ -4870,17 +4872,21 @@ function CTR3head(c,k){
 let g7={};
 function CTR3month(c,k){
   const yms=[...new Set(BILLS.filter(i=>i.k===k).map(i=>i.ym))].sort().reverse();
-  const late=new Set(arrears(c).months.map(m=>m.ym));
+  const A=arrears(c).months, feeOf=ym=>(A.find(m=>m.ym===ym)||{}).fee||0, late=new Set(A.map(m=>m.ym));
   const rows=yms.map(ym=>({ym,x:{...ctrPay(k,ym),k}})).filter(r=>r.x.st);
   /* 합계 — 청구액은 달마다의 청구만 더한다(전월 미납액은 앞 달 청구라 두 번 세지 않는다). 수납액은 실제로 받은 돈 */
   const T=rows.reduce((a,r)=>{const g=rcvSum(r.x);return {bill:a.bill+r.x.bill,paid:a.paid+g.paid};},{bill:0,paid:0});
-  if(!rows.length) return `<div class="tbl"><div class="empty"><div class="t">아직 발행한 청구서가 없습니다</div>청구서를 발행하면 달마다 한 줄씩 보입니다.</div></div>`;
+  const N=Math.max(1,Math.ceil(rows.length/HPER)), cur=Math.min(hp['m'+k]||1,N), P=rows.slice((cur-1)*HPER,cur*HPER);
+  const hd=`<div class="schr ctm hd"><div>청구년월 · 청구항목</div><div>납부마감일</div><div class="n">청구액</div><div class="n">수납액</div><div class="n">미납액</div><div class="c">납부상태</div><div class="c">더보기</div></div>`;
+  if(!rows.length) return `<div class="tbl schl">${hd}<div class="schr ctm"><div style="grid-column:1/-1;text-align:center;padding:16px 0;color:var(--muted)">아직 발행한 청구서가 없습니다</div></div></div>`;
   return `<div class="tbl schl">
-    <div class="schr ctm hd"><div>청구년월 · 청구항목</div><div class="n">청구액</div><div class="n">수납액</div><div class="n">미납액</div><div class="c">납부상태</div><div class="c">더보기</div></div>
-    ${rows.map(r=>rcvRow(r.x,{cls:'ctm',op:!!g7[r.ym],tog:`g7['${r.ym}']=!g7['${r.ym}'];render(true)`,label:`${r.ym.replace('-','년 ')}월분`,ym:r.ym,
-      more:late.has(r.ym)?`<span class="more" onclick="event.stopPropagation();openDue('${k}','${r.ym}')">상세</span>`:''})).join('')}
-    <div class="schr ctm sum"><div>합계</div><div class="n">${won(T.bill)}</div><div class="n">${won(T.paid)}</div>
+    ${hd}
+    ${P.map(r=>rcvRow(r.x,{cls:'ctm',op:!!g7[r.ym],tog:`g7['${r.ym}']=!g7['${r.ym}'];render(true)`,label:`${r.ym.replace('-','년 ')}월분`,ym:r.ym,
+      dueCol:dueStr(r.ym).replace(/-/g,'.'),fee:feeOf(r.ym),
+      more:moreCell([{t:'상세',go:`openDue('${k}','${r.ym}')`,off:late.has(r.ym)?null:'미납 · 연체료가 없는 달입니다'},{t:'청구서 보기',go:`billView('${k}','${r.ym}')`}])})).join('')}
+    <div class="schr ctm sum"><div>합계</div><div></div><div class="n">${won(T.bill)}</div><div class="n">${won(T.paid)}</div>
       <div class="n">${(v=>v>0?`<span style="color:var(--warn)">${won(v)}</span>`:v<0?`<span style="color:var(--pri)">과납 ${won(-v)}</span>`:'—')(ledgerOf(k).bal.매출채권)}</div><div></div><div></div></div>
+    ${pagerHTML(rows.length,cur,`(p=>{hp['m${k}']=p;render(true);})`)}
   </div>
   <div class="hint">달마다 청구액·수납액·미납액을 봅니다. 줄을 누르면 항목별로 펼쳐집니다. 미납이나 연체료가 있는 달은 더보기의 <b>상세</b>로 그 달의 내역을 봅니다.<br>
     합계의 미납액은 지금 남은 받을 돈(원장 잔액)입니다. 마감한 달의 미납은 다음 달 전월 미납액으로 넘어가므로 달별 미납액을 더한 값과 다를 수 있습니다.<br>

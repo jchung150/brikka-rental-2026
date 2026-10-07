@@ -754,10 +754,11 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
 { const DD = new Function(stub + bare + '; seedJuly(); return {PAY2,f2};')();
   DD.f2.dd = '30'; const h30 = DD.PAY2(); DD.f2.dd = '60'; const h60 = DD.PAY2();
   r6.push(['미납 관리 연체일수 필터 — 30일 이상이면 비씨에이전시(41일)만 · 60일 이상이면 없음', /별관301호/.test(h30) && !/본관B201호/.test(h30) && /60일 이상 밀린 계약이 없습니다/.test(h60)]); }
-{ const MT = new Function(stub + bare + '; seedJuly(); return {CTR3,set tab3c(v){tab3c=v;}};')();
-  MT.tab3c = '청구·수납'; const h = MT.CTR3('b1별관301호'), h2 = MT.CTR3('b1본관101호');
-  r6.push(['계약 상세 청구·수납 탭 — 비씨에이전시 6·7월 줄 · 미납 달에 상세 · 합계 미납 5,146,472 · 에스씨케이는 상세 없음',
-    /2026년 07월분/.test(h) && /2026년 06월분/.test(h) && (h.match(/openDue\('b1별관301호'/g) || []).length === 2 && /5,146,472원/.test(h) && !/openDue/.test(h2)]); }
+{ const MT = new Function(stub + bare + '; seedJuly(); return {CTR3,MORE,set tab3c(v){tab3c=v;}};')();
+  MT.tab3c = '청구·수납'; MT.MORE.length = 0; const h = MT.CTR3('b1별관301호'); const m1 = MT.MORE.slice(); MT.MORE.length = 0; const h2 = MT.CTR3('b1본관101호'); const m2 = MT.MORE.slice();
+  const due = m1.filter(m => m[0].t === '상세' && !m[0].off).length === 2 && m1.every(m => m[1].t === '청구서 보기') && m2.length && m2.every(m => m[0].off);
+  r6.push(['계약 상세 청구·수납 탭 — 비씨에이전시 6·7월 줄 · 납부마감일 칸 · 연체료 · 더보기(상세 · 청구서 보기) · 미납 없는 달은 상세 흐림 · 합계 미납 5,146,472',
+    /2026년 07월분/.test(h) && /2026년 06월분/.test(h) && /<div>납부마감일<\/div>/.test(h) && /<div>2026\.07\.31<\/div>/.test(h) && /연체료 /.test(h) && due && /5,146,472원/.test(h)]); }
 const bad6 = r6.filter(x => !x[1]);
 if (bad6.length) fail = 1;
 console.log('⑥ 수납 기록 ' + (bad6.length ? '✗ ' + bad6.map(x => x[0]).join(' / ') : 'OK — ' + r6.length + '개 검산'));
