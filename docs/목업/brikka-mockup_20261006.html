@@ -4944,11 +4944,6 @@ function CTR3sum(c,k){
   const edit=m=>`<button class="btn sm" onclick="cx3Open('${k}','${m}')">수정</button>`;
   /* 청구일 · 납부마감일은 건물에서 정한다(계약마다 정하지 않는다) → PRO-3 · 3.5. 이 달 청구서의 실제 날짜를 보인다 */
   const ym=TODAY_S.slice(0,7), mo=+ym.slice(5)+'월분';
-  const basic=card('기본정보',`<dl class="dl">
-      <dt>건물</dt><dd>${bn.name}</dd>
-      <dt>건물주</dt><dd>${bn.owner}${bn.owners.length>1?` 외 ${bn.owners.length-1}`:''}<span class="lock">${bn.ownerBiz}</span></dd>
-      <dt>청구일</dt><dd>${mo} → ${ruleEx(bn.billDay,ym)}<span class="lock">건물 설정 · ${bn.billDay}</span></dd>
-      <dt>납부마감일</dt><dd>${mo} → ${ruleEx(bn.dueDay,ym)}<span class="lock">건물 설정 · ${bn.dueDay}</span></dd></dl>`);
   const info=card('계약정보',`<dl class="dl">
       <dt>유닛</dt><dd>${c.no}<span class="lock">수정 불가</span></dd>
       <dt>대표임차인</dt><dd>${c.ten}</dd>
@@ -4963,6 +4958,8 @@ function CTR3sum(c,k){
         :`<b style="${L.bal.매출채권?'color:var(--warn)':''}">${won(L.bal.매출채권)}</b>`}</dd>
       <dt>임대료</dt><dd>${won(Math.round(ctrAmt(c,'임대료')*1.1))}<span class="lock">월 · 부가세 포함</span></dd>
       <dt>고정관리비</dt><dd>${ctrAmt(c,'고정관리비')?won(Math.round(ctrAmt(c,'고정관리비')*1.1)):'—'}<span class="lock">월 · 부가세 포함</span></dd>
+      <dt>청구일</dt><dd>${mo} → ${ruleEx(bn.billDay,ym)}<span class="lock">건물 설정 · ${bn.billDay}</span></dd>
+      <dt>납부마감일</dt><dd>${mo} → ${ruleEx(bn.dueDay,ym)}<span class="lock">건물 설정 · ${bn.dueDay}</span></dd>
       <dt>연체이자율</dt><dd>연 ${rateOf(k)}%</dd>
       <dt>렌트프리</dt><dd>${rfx?`있음 · ${d8(c.base)} - ${d8(c.rf.end)}<span class="lock">${rfIt}</span>`:'없음'}</dd>
       <dt>기산일</dt><dd>${d8(c.from||c.base)}${rfx?`<span class="lock">${rfIt}만 이날부터 청구</span>`:''}</dd></dl>`);
@@ -4979,8 +4976,8 @@ function CTR3sum(c,k){
       <dt>소재지</dt><dd>${A.addr||'—'}</dd></dl>`:'<div style="padding:6px 0;color:var(--muted)">중개사 없이 맺은 계약입니다.</div>',edit('ag'));
   const memo=card('메모',c.memo?`<div style="font-size:12.5px;line-height:1.7;white-space:pre-wrap">${c.memo}</div>`:'<div style="padding:6px 0;color:var(--muted)">메모가 없습니다.</div>',edit('memo'));
   return `
-  <div class="two">${basic}${info}</div>
-  <div class="two">${rent}${dep}</div>
+  <div class="two">${info}${rent}</div>
+  <div class="two">${dep}${ag}</div>
   <div class="two">
     <div class="card"><div class="ct">주차정보<span class="ca"><button class="btn sm" onclick="vehOpen('${c.b}',0,'${k}')">차량 추가</button><button class="btn sm" onclick="cpkOpen('${k}')">수정</button></span></div><div class="cc"><dl class="dl">
       ${(V=>V.length?V.map((v,i)=>`<dt>${i?'':`등록 차량 ${V.length}대`}</dt><dd>${v.plate} · ${v.own}<span class="lock">${v.loc} · ${v.fee}</span></dd>`).join('')
@@ -4993,7 +4990,7 @@ function CTR3sum(c,k){
       <dt>메모</dt><dd>${CHVAC[k]&&CHVAC[k].m?CHVAC[k].m:'—'}</dd>
     </dl><div class="hint">임차인 설치 / 전 임차인 것 이어받음 / 건물주 것 사용. 퇴거 때 철거·원상복구를 누가 하는지 가리는 근거입니다.</div></div></div>
   </div>
-  <div class="two">${ag}${memo}</div>
+  ${memo}
   ${TERMS[k]?`<div class="card"><div class="ct">해지정보<span class="ca"><button class="btn sm" onclick="termOpen('${k}')">수정</button></span></div><div class="cc"><dl class="dl">
       <dt>해지유형</dt><dd>${TERMS[k].type}</dd>
       <dt>해지일</dt><dd>${TERMS[k].out.replace(/-/g,'.')}</dd>
