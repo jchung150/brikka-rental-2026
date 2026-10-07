@@ -103,7 +103,7 @@ run('CTR-3 청구·수납', "seedJuly();tab3c='청구·수납';g7={'2026-07':tru
 run('CTR-3 빈 탭', "tab3c='자료보관';CTR3('b1별관301호')");
 run('CTR-3 요약 임대정보 · 인상 예약', "tab3c='요약';CTR3('b1별관301호')+CTR3('b1본관301호')");
 run('CTR-3 계약 전환 메뉴', "CSW=true;tab3c='원장';CTR3('b1별관301호')");
-run('CTR-3 청구항목 패널', "ciOpen('b1별관301호','edit','임대료');ciSet('amt','1');ciHTML();ciOpen('b1별관301호','edit','고정관리비');ciHTML();ciOpen('b1별관301호','adj');ciHTML();ciOpen('b1별관301호','payto');ciHTML();ciOpen('b1별관301호','rent');ciHTML();cx3Open('b1본관801호','ppl');cx3HTML();cx3Open('b1본관301호','ctr');cx3HTML()");
+run('CTR-3 청구항목 패널', "ciOpen('b1별관301호','rent');ci.its.임대료.amt='1';ciHTML();ciOpen('b1별관301호','adj');ciHTML();ciOpen('b1별관301호','rent');ciHTML();cx3Open('b1본관801호','ppl');cx3HTML();cx3Open('b1본관301호','ctr');cx3HTML()");
 run('CTR-3 원장 비씨에이전시', "tab3c='원장';CTR3('b1별관301호')");
 run('CTR-3 원장 전체 펼침', "tab3c='원장';g3All=true;CTR3('b1본관101호')");
 run('CTR-3 원장 필터', "tab3c='원장';f3={per:'3',acc:'매출채권'};CTR3('b1본관302호')");
@@ -356,9 +356,9 @@ r6.push(['6·7월 청구서 화면 합계 = 원장 청구 · 6월 거래 18건(�
 const G = new Function(stub + bare + '; return {ciOpen,ciSet,ciSave,ISSUE,CTRS,CTR3sum,get ci(){return ci;}};')();
 const iss = no => G.ISSUE().find(c => c.no === no), ln = (no, n) => (iss(no).lines.find(l => l.n === n) || null);
 /* 반복주기 — 고정관리비를 분기로: 기산일이 8월이면 8월 청구, 9월이면 8월 제외 */
-G.ciOpen('b1별관301호', 'edit', '고정관리비'); G.ciSet('cycle', '분기'); G.ciSet('from', '2026-08-01'); G.ciSave();
+G.ciOpen('b1별관301호', 'rent'); Object.assign(G.ci.its.고정관리비, {cycle:'분기', from:'2026-08-01'}); G.ciSave();
 const q8 = !!ln('별관301호', '고정관리비');
-G.ciOpen('b1별관201호', 'edit', '고정관리비'); G.ciSet('cycle', '분기'); G.ciSet('from', '2026-09-01'); G.ciSave();
+G.ciOpen('b1별관201호', 'rent'); Object.assign(G.ci.its.고정관리비, {cycle:'분기', from:'2026-09-01'}); G.ciSave();
 const q9 = !ln('별관201호', '고정관리비');
 /* 정산 항목은 건물 관리비 설정을 그대로 받는다 */
 const noElec = G.ISSUE().filter(c => c.b === 'b1' && !c.lines.some(l => /전기요금/.test(l.n))).map(c => c.no).join();
@@ -366,12 +366,12 @@ const elecAll = noElec === '본관301호' && G.ISSUE().find(c => c.no === '본�
 /* 301호 고정관리비 0원 = 청구 안 함 · 수정에서 금액을 넣으면 청구 */
 const t301 = G.CTR3sum(G.CTRS.find(c => c.no === '본관301호'), 'b1본관301호');
 const zero301 = !ln('본관301호', '고정관리비') && /고정관리비/.test(t301) && /청구 안 함/.test(t301) && !/전기요금/.test(t301) && !/class="tgl/.test(t301) && /<dt>정산액 대납<\/dt><dd>본관302호/.test(t301);
-G.ciOpen('b1본관301호', 'edit', '고정관리비'); G.ciSet('amt', '110000'); G.ciSave(); const m301 = ln('본관301호', '고정관리비');
+G.ciOpen('b1본관301호', 'rent'); G.ci.its.고정관리비.amt = '110000'; G.ciSave(); const m301 = ln('본관301호', '고정관리비');
 const act301 = zero301 && m301 && m301.amt === 110000;
 G.ciOpen('b1별관301호', 'adj'); G.ciSet('d', '2026-08-01'); G.ciSet('rent', '3630000'); G.ciSave();
 const rent = ln('별관301호', '임대료'), closed = G.ci === null && /3,630,000/.test(G.CTR3sum(G.CTRS.find(c => c.no === '별관301호'), 'b1별관301호'));
-G.ciOpen('b1본관B201호', 'payto'); G.ciSet('payTo', '본관201호'); G.ciSave(); const payTo = G.CTRS.find(c => c.no === '본관B201호').payTo === '본관201호';
-G.ciOpen('b1별관301호', 'edit', '고정관리비'); G.ciSet('amt', '1400000'); G.ciSave(); const noWhy = G.ci !== null;
+G.ciOpen('b1본관B201호', 'rent'); G.ci.payTo = '본관201호'; G.ciSave(); const payTo = G.CTRS.find(c => c.no === '본관B201호').payTo === '본관201호';
+G.ciOpen('b1별관301호', 'rent'); G.ci.its.고정관리비.amt = '1400000'; G.ciSave(); const noWhy = G.ci !== null;
 G.ciSet('why', '재협의'); G.ciSave(); const fixed2 = G.ci === null && ln('별관301호', '고정관리비') && ln('별관301호', '고정관리비').amt === 1400000;
 r6.push(['임대정보 · 임대료 인상 예약(요약 탭) — 분기 · 기산일 8월 청구 · 9월 기산은 8월 제외 · 정산 항목은 건물 설정 그대로 · 301호 고정관리비 0원은 청구 안 함, 금액을 넣으면 청구 · 8/1 인상 예약 → 3,630,000 · 금액을 바꾸면 사유 필수 → 1,400,000 반영 · 정산액 대납',
   q8 && q9 && elecAll && act301 && rent && rent.amt === 3630000 && closed && noWhy && fixed2 && payTo]);
@@ -671,7 +671,7 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   const closed = !/10버3291/.test(h0) && /무료 1대 초과/.test(h0) && /연락처 미확인/.test(h0) && /주차면 32 · 등록 31대/.test(h0) && /\+ 차량 추가/.test(h0) && /계약고유이름 · 차량 소유자/.test(h0) && !/전체 요금부과/.test(h0);
   PT.gpkTog('b1본관801호'); const h1 = PT.PRO3('b1'); const open1 = /10버3291/.test(h1) && !/45라0809/.test(h1);
   PT.gpkSet(true); const h2 = PT.PRO3('b1'); const all = /45라0809/.test(h2) && /미확인/.test(h2);
-  const grp = /총 4대 · 무료 3대 \+ 월정액 1대/.test(h2) && /vdOpen\('b1',1\)/.test(h2); PT.vdOpen('b1', 1); const hd = PT.vdHTML(); const det = /비상 연락/.test(hd) && /이한용/.test(hd) && /무료 한도 3대/.test(hd);
+  const grp = /총 4대 · 무료 3대 \+ 월정액 1대/.test(h2) && /vdOpen\('b1',1\)/.test(h2); PT.vdOpen('b1', 1); const hd = PT.vdHTML(); const det = /비상 연락/.test(hd) && /이한용/.test(hd) && /무료 주차 3대/.test(hd);
   PT.vehOpen('b1'); Object.assign(PT.vh, {k:'b1본관801호', plate:'99거9999', own:'홍길동', tel:'010-0000-0001', fee:'무료'}); PT.vehSave();
   const overFree = PT.vehMissing().some(m => /무료 주차 3대까지/.test(m)); PT.vh.plate = '10버3291'; const dupP = PT.vehMissing().some(m => /이미 등록됨/.test(m));
   PT.vh.plate = '99거9999'; PT.vh.fee = '월정액'; PT.vehSave(); const ok = PT.vehOf('b1본관801호').length === 5;

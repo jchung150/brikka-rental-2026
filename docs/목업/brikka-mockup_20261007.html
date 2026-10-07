@@ -1,5 +1,5 @@
-<!-- BRIKKA 관리자 백오피스 목업 · 2026.10.06판 · 작업 중(미완성). 정본은 docs/기능정의서 -->
-<title>BRIKKA 백오피스 · 목업 2026.10.06 (작업 중)</title>
+<!-- BRIKKA 관리자 백오피스 목업 · 2026.10.07판 · 작업 중(미완성). 정본은 docs/기능정의서 -->
+<title>BRIKKA 백오피스 · 목업 2026.10.07 (작업 중)</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap">
 <style>
 :root{
@@ -543,7 +543,7 @@ table.nowr th,table.nowr td{white-space:nowrap}
     <header class="top">
       <div class="crumb" id="crumb"></div>
       <div class="sp"></div>
-      <div class="ver" title="목업 버전 — 아직 완성본이 아니다. 기능정의서가 정본">목업 2026.10.06판 · 작업 중</div>
+      <div class="ver" title="목업 버전 — 아직 완성본이 아니다. 기능정의서가 정본">목업 2026.10.07판 · 작업 중</div>
       <div class="today" title="오늘 — 목업의 기준 시점">2026년 8월 10일(월)</div>
     </header>
     <div class="wrap" id="view"></div>
@@ -1767,7 +1767,7 @@ function vdHTML(){
         ${R('요금부과',v.fee==='월정액'?`<span class="bd wa2">월정액</span>${cp.fee?` <span class="c2">월 ${won(cp.fee)}</span>`:''}`:'<span class="bd mu">무료</span>')}</div>
       <div class="fg"><div class="fl">비상 연락</div>${R('차량 소유자',v.own||miss)}${R('연락처',v.tel||miss)}</div>
       <div class="fg"><div class="fl">계약</div>${R('계약고유이름',c?`<span class="plk" onclick="closeDrawer();tab3c='요약';go('ctr-3/${v.k}')">${cnameHTML(b.alias,c.no,c.ten)}</span>`:'—')}
-        ${R('이 계약 차량',`총 ${vehOf(v.k).length}대 · 무료 ${vehOf(v.k).filter(x=>x.fee==='무료').length}대 + 월정액 ${vehOf(v.k).filter(x=>x.fee==='월정액').length}대${cp.free!=null?` <span class="c2">(무료 한도 ${cp.free}대)</span>`:''}`)}</div>
+        ${R('이 계약 차량',`총 ${vehOf(v.k).length}대 · 무료 ${vehOf(v.k).filter(x=>x.fee==='무료').length}대 + 월정액 ${vehOf(v.k).filter(x=>x.fee==='월정액').length}대${cp.free!=null?` <span class="c2">(무료 주차 ${cp.free}대)</span>`:''}`)}</div>
     </div>
     <div class="df"><button class="btn pri" onclick="vehOpen('${b.id}',${v.id})">수정</button><button class="btn" onclick="closeDrawer();vehDel(${v.id})">삭제</button></div>
   </div></div>`;
@@ -4717,11 +4717,7 @@ let ci=null;
 const ciC=()=>CTRS.find(x=>ckey(x)===ci.k);
 function ciOpen(k,mode,n){
   const c=CTRS.find(x=>ckey(x)===k);
-  if(mode==='edit'){const x=c.it.find(y=>y[0]===n), mt=(c.meta||{})[n]||{};
-    const a0=x&&x[1]?Math.round(x[1]*(isTax(itemDoc(c,n))?1.1:1)):0;
-    ci={k,mode,n,cycle:itemCycle(c,n),from:itemFrom(c,n),memo:mt.memo||'',amt:a0,amt0:a0,why:''};}
-  else if(mode==='adj') ci={k,mode,d:'',rent:'',mgmt:'',memo:'',i:n};
-  else if(mode==='payto') ci={k,mode,payTo:c.payTo||''};
+  if(mode==='adj') ci={k,mode,d:'',rent:'',mgmt:'',memo:'',i:n};
   /* 임대정보 수정 — 임대료 · 고정관리비(금액 · 반복주기 · 기산일) · 연체이자율 · 정산액 대납 */
   else if(mode==='rent'){const one=n=>{const x=c.it.find(y=>y[0]===n), a0=x&&x[1]?Math.round(x[1]*1.1):0;return {amt:a0,amt0:a0,cycle:itemCycle(c,n),from:itemFrom(c,n)};};
     ci={k,mode,its:{임대료:one('임대료'),고정관리비:one('고정관리비')},rate:String(rateOf(k)),payTo:c.payTo||'',why:''};}
@@ -4731,23 +4727,14 @@ function ciOpen(k,mode,n){
 function ciSet(f,v){ci[f]=v;render(true);}
 function ciSave(){
   const c=ciC();
-  const LB={rent:'임대정보 수정',edit:`${ci.n} 수정`,adj:'임대료 인상 예약',payto:'정산액 대납 계약 변경'}[ci.mode];
-  if(ci.mode==='edit'){
-    const mt=itemMeta(c,ci.n); let x=c.it.find(y=>y[0]===ci.n);
-    if(!x){x=[ci.n,0];c.it.push(x);}
-    /* 금액을 바꾸면 사유를 남긴다 — 이력 → 3.6. 0원이던 금액을 처음 넣을 때는 묻지 않는다 */
-    const a=numOf(ci.amt);
-    if(a!==ci.amt0){if(ci.amt0&&!ci.why.trim()) return; x[1]=isTax(itemDoc(c,ci.n))?Math.floor(a*10/11):a; if(ci.amt0) mt.fixWhy=ci.why.trim();}
-    mt.cycle=ci.cycle; mt.from=ci.from; mt.memo=ci.memo;
-  } else if(ci.mode==='rent'){
+  const LB={rent:'임대정보 수정',adj:'임대료 인상 예약'}[ci.mode];
+  if(ci.mode==='rent'){
     const chg=Object.values(ci.its).some(v=>numOf(v.amt)!==v.amt0&&v.amt0>0);
     if(chg&&!ci.why.trim()) return;
     Object.entries(ci.its).forEach(([n,v])=>{const mt=itemMeta(c,n); let x=c.it.find(y=>y[0]===n); if(!x){x=[n,0];c.it.push(x);}
       const a=numOf(v.amt); if(a!==v.amt0){x[1]=Math.floor(a*10/11); if(v.amt0) mt.fixWhy=ci.why.trim();}
       mt.cycle=v.cycle; mt.from=v.from;});
     c.rate=parseFloat(ci.rate)||8;
-    if(ci.payTo) c.payTo=ci.payTo; else delete c.payTo;
-  } else if(ci.mode==='payto'){
     if(ci.payTo) c.payTo=ci.payTo; else delete c.payTo;
   } else {
     if(!ci.d||!(numOf(ci.rent)||numOf(ci.mgmt))) return;
@@ -4764,7 +4751,6 @@ function ciHTML(){
   const c=ciC(), bd=BUILDINGS.find(x=>x.id===c.b)||BUILDINGS[0];
   const R=(k,body)=>`<div class="fr"><span class="fk">${k}</span>${body}</div>`;
   const NUM=(f,ph)=>`<input type="text" inputmode="numeric" value="${ci[f]?numOf(ci[f]).toLocaleString('ko-KR'):''}" placeholder="${ph}" oninput="kwLive(this)" onchange="ciSet('${f}',this.value)" style="text-align:right"><span class="kw">${korWon(numOf(ci[f]))}</span>`;
-  const SEL=(f,opts)=>`<select onchange="ciSet('${f}',this.value)">${opts.map(o=>`<option ${ci[f]===o?'selected':''}>${o}</option>`).join('')}</select>`;
   const DT=f=>`<input type="date" value="${ci[f]}" onchange="ciSet('${f}',this.value)">`;
   const MEMO=R('메모',`<input type="text" value="${ci.memo}" onchange="ciSet('memo',this.value)">`);
   let t, body, ok;
@@ -4788,24 +4774,6 @@ function ciHTML(){
         ${CTRS.filter(x=>x.b===c.b&&x!==c&&(x.st==='진행중'||x.st==='준비중')).map(x=>`<option value="${x.no}" ${ci.payTo===x.no?'selected':''}>${x.no} · ${x.ten}</option>`).join('')}</select>`)}
         <div class="c2" style="margin:-4px 0 0;white-space:normal">이 계약의 정산 항목(전기·수도 등)을 다른 계약이 대신 낼 때만 고릅니다.</div></div>`;
     ok=!chg||ci.why.trim();
-  } else if(ci.mode==='edit'){
-    t=`${ci.n} 수정`;
-    const chg=numOf(ci.amt)!==ci.amt0&&ci.amt0>0;
-    body=(`<div class="c2" style="margin:-2px 0 10px;white-space:normal">슈퍼관리자만 고칠 수 있습니다. 바로 고친 금액은 다음 청구서부터 적용됩니다.
-          날짜를 정해 바뀌는 인상은 탭의 「임대료 인상 예약」에 넣으세요.</div>`
-        +R('금액',NUM('amt','부가세 포함'))
-        +(chg?R('사유',`<input type="text" value="${ci.why}" placeholder="필수. 예: 계약서 금액 오기, 재협의" onchange="ciSet('why',this.value)">`):'')
-        +R('반복 주기',SEL('cycle',ITEM_CYCLES))+R('기산일',DT('from'))
-        +`<div class="c2" style="margin:-4px 0 9px 114px">0원이면 청구하지 않습니다</div>`)
-      +MEMO;
-    ok=!chg||ci.why.trim();
-  } else if(ci.mode==='payto'){
-    t='정산액 대납 계약';
-    body=`<div class="c2" style="margin:-2px 0 12px;white-space:normal">이 계약의 정산 항목(전기·수도 등)을 다른 계약이 대신 낼 때만 고릅니다.
-        금액은 이 유닛 몫으로 계산하고, 청구서만 고른 계약에 「대납」으로 실립니다. 임대료·고정관리비는 옮기지 않습니다.</div>`
-      +R('대신 낼 계약',`<select onchange="ciSet('payTo',this.value)"><option value="">없음 (이 계약이 낸다)</option>
-        ${CTRS.filter(x=>x.b===c.b&&x!==c&&(x.st==='진행중'||x.st==='준비중')).map(x=>`<option value="${x.no}" ${ci.payTo===x.no?'selected':''}>${x.no} · ${x.ten}</option>`).join('')}</select>`);
-    ok=true;
   } else {
     t=ci.i!=null?'임대료 인상 예약 수정':'임대료 인상 예약 추가';
     body=`<div class="c2" style="margin:-2px 0 10px;white-space:normal">적용일부터 새 금액으로 자동 청구합니다. 30일 전에 알려 드립니다.</div>`
@@ -5154,7 +5122,7 @@ function ledgerOf(k){
 }
 
 /* ═══ 이력 탭 — 건물 상세 · 계약 상세에 같은 표. 이력(REC-1)을 그 건물 · 그 계약으로 거른 것이다 → 3.6 · REC-1
-   칸: 일시 · 대상 종류 · 대상 이름 · 변경 유형 · 변경 요약(아래에 사유) · 처리자. 변경 전/후가 있는 줄은 펼친다(REC-2) ═══ */
+   칸: 일시 · 대상 종류 · 대상 이름 · 변경 유형 · 변경 요약(아래에 사유) · 처리자 · 더보기. 줄을 누르면 이력 상세 패널(REC-2) ═══ */
 const CLOG={};   /* 계약 화면에서 바꾼 것 + 목업 예시값 */
 const clog=(k,kind,type,sum,why,chg)=>{(CLOG[k]=CLOG[k]||[]).unshift({at:`${TODAY_S} ${new Date().toTimeString().slice(0,5)}`,by:'슈퍼관리자',kind,type,sum,why:why||'',chg:chg||null});};
 CLOG['b1본관801호']=[{at:'2026-07-22 14:05',by:'김관리',kind:'계약',type:'수정',sum:'담당자 추가 — 오승민(총무 대리)',why:'',chg:[['담당자','정하늘','정하늘 · 오승민']]},
@@ -5196,7 +5164,7 @@ const setFh=(f,v)=>{fh[f]=v;Object.keys(hp).forEach(k=>delete hp[k]);render(true
 /* 페이지 나누기 — 이전 · 번호 · 다음. 페이지가 하나면 보이지 않는다 */
 function pagerHTML(n,cur,go){const N=Math.ceil(n/HPER); if(N<=1) return '';
   return `<div class="pgr"><button ${cur<=1?'disabled':''} onclick="${go}(${cur-1})">‹</button>${Array.from({length:N},(_,i)=>`<button class="${i+1===cur?'on':''}" onclick="${go}(${i+1})">${i+1}</button>`).join('')}<button ${cur>=N?'disabled':''} onclick="${go}(${cur+1})">›</button></div>`;}
-/* 이력 상세 — 줄을 누르면 오른쪽 패널(REC-2와 같은 내용). 기본 정보 · 변경 항목(전/후) · 관련 원장 거래 · 해당 화면으로 이동 → 3.8 */
+/* 이력 상세 — 줄을 누르면 오른쪽 패널(REC-2와 같은 내용). 기본 정보 · 변경 항목(전/후) · 삭제(슈퍼관리자, 사유 필수) · 닫기 → 3.8 */
 function hdOpen(scope,i,del){hd=HROWS[scope][i];hdDel=del?{why:''}:null;DRAWER='hdet';render(true);}
 let hdDel=null;
 function hdDelete(){if(!hdDel||!hdDel.why.trim()) return; HDEL.add(hKey(hd)); hd=null;hdDel=null;DRAWER=null;render(true);}
@@ -5233,15 +5201,14 @@ function histHTML(rows,scope){
     <div class="fbar" style="padding:0 16px 10px;margin:0">
       ${S('kind',[...new Set(rows.map(r=>r.kind))],'전체 대상 종류')}${S('type',[...new Set(rows.map(r=>r.type))],'전체 변경 유형')}
     </div>
-    ${R.length?`<div class="tw"><table>
+    <div class="tw"><table>
       <thead><tr><th>일시</th><th>대상 종류</th><th>대상 이름</th><th>변경 유형</th><th>변경 요약</th><th>처리자</th><th class="c">더보기</th></tr></thead>
-      <tbody>${P.map((r,i)=>`<tr style="cursor:pointer" onclick="hdOpen('${scope}',${(cur-1)*HPER+i})">
+      <tbody>${R.length?P.map((r,i)=>`<tr style="cursor:pointer" onclick="hdOpen('${scope}',${(cur-1)*HPER+i})">
           <td style="white-space:nowrap">${d(r.at)}</td>
           <td><span class="bd mu">${r.kind}</span></td><td style="white-space:nowrap">${r.name}</td><td>${r.type}</td>
           <td>${r.sum}${r.why?`<div class="c2">사유: ${r.why}</div>`:''}</td><td style="white-space:nowrap">${r.by}</td>
-          <td class="c">${moreCell([{t:'상세',go:`hdOpen('${scope}',${(cur-1)*HPER+i})`},{t:'삭제',go:`hdOpen('${scope}',${(cur-1)*HPER+i},true)`}])}</td></tr>`).join('')}</tbody></table>
-      ${pagerHTML(R.length,cur,`(p=>{hp['${scope}']=p;render(true);})`)}</div>`
-    :'<div class="cc"><div class="c2" style="margin:0">조건에 맞는 이력이 없습니다.</div></div>'}</div>`;
+          <td class="c">${moreCell([{t:'상세',go:`hdOpen('${scope}',${(cur-1)*HPER+i})`},{t:'삭제',go:`hdOpen('${scope}',${(cur-1)*HPER+i},true)`}])}</td></tr>`).join(''):`<tr><td colspan="7" style="text-align:center;padding:28px 0;color:var(--muted)">조건에 맞는 이력이 없습니다</td></tr>`}</tbody></table>
+      ${pagerHTML(R.length,cur,`(p=>{hp['${scope}']=p;render(true);})`)}</div></div>`;
 }
 let tab3c='요약', g3={}, g3All=false;
 const g3Open=k=>(k in g3)?g3[k]:g3All;
