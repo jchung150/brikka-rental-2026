@@ -2363,7 +2363,7 @@ function t청구(b){
         <th class="c">더보기</th></tr></thead>
       <tbody>${[...b.charge].sort((x,y)=>prioOf(x.it)-prioOf(y.it)).map(c=>{const m=M(codeOf(c.it)), st=resolve(codeOf(c.it));
         /* 임대료·고정관리비는 금액·주기·배분 방식이 계약서 약정이다 — 줄 색을 달리한다. 발행 문서·우선순위는 수정에서 바꾼다 */
-        return `<tr class="${c.fixed?'fixr':''}" style="${c.use?'':'opacity:.55'}">
+        return `<tr class="${c.fixed?'fixr':''}" style="cursor:pointer;${c.use?'':'opacity:.55'}" onclick="cdOpen(codeOf('${c.it}'))">
         <td class="c"><b>${prioOf(c.it)}</b></td>
         <td class="c1">${c.it}</td>
         <td>${c.use?'<span class="bd ok">사용</span>':'<span class="bd mu">미사용</span>'}</td>

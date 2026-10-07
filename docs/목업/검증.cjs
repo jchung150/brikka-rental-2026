@@ -594,13 +594,13 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
     its.join() === 'elec,water,gas' && /계량기 있음/.test(h) && on1 && off && back]); }
 /* 청구항목 상세 — 관리비 탭 더보기 ⋮(상세·수정) · 전기요금 상세에 계량기 보유 유닛과 최근 3개월 고지서 금액 · 임대료는 약정액 안내 */
 { const CD = new Function(stub + bare + '; return {cdOpen,cdHTML,ciDel,PRO3,MORE,BUILDINGS,BILL,set tab3(v){tab3=v;}};')();
-  CD.tab3 = '관리비'; CD.MORE.length = 0; CD.PRO3('b1'); const dd = CD.MORE.some(x => x[0].t === '상세' && x[1].t === '수정');
+  CD.tab3 = '관리비'; CD.MORE.length = 0; const hrow = CD.PRO3('b1'); const dd = CD.MORE.some(x => x[0].t === '상세' && x[1].t === '수정');
   CD.cdOpen('elec'); const h = CD.cdHTML(); CD.cdOpen('rent'); const r = CD.cdHTML();
   CD.MORE.length = 0; CD.PRO3('b1'); const dm = CD.MORE.find(x => x[0].go.includes("'임대료'")), dl = dm && dm[2].t === '삭제' && !!dm[2].off;
   CD.ciDel('rent'); const keepRent = CD.BUILDINGS[0].charge.some(c => c.it === '임대료');
   CD.ciDel('septic'); const gone = !CD.BUILDINGS[0].charge.some(c => c.it === '정화조청소비') && CD.BILL.septic.on === false;
-  r6.push(['청구항목 상세 — 더보기 ⋮ 상세·수정·삭제(임대료 잠김) · 정화조청소비 삭제 · 전기요금 계량기 보유 유닛 · 최근 고지서 금액 3개월 · 8월 8,491,672원 · 임대료는 약정액 안내',
-    dd && dl && keepRent && gone && /계량기 보유 유닛/.test(h) && /최근 고지서 금액/.test(h) && /8,491,672/.test(h) && /약정액/.test(r) && !/최근 고지서 금액/.test(r)]); }
+  r6.push(['청구항목 상세 — 줄을 누르면 상세 · 더보기 ⋮ 상세·수정·삭제(임대료 잠김) · 정화조청소비 삭제 · 전기요금 계량기 보유 유닛 · 최근 고지서 금액 3개월 · 8월 8,491,672원 · 임대료는 약정액 안내',
+    dd && dl && keepRent && gone && /onclick="cdOpen\(codeOf\('전기요금'\)\)"/.test(hrow) && /계량기 보유 유닛/.test(h) && /최근 고지서 금액/.test(h) && /8,491,672/.test(h) && /약정액/.test(r) && !/최근 고지서 금액/.test(r)]); }
 /* 자료보관 — 체크 선택 삭제 · 더보기(상세·다운로드·삭제) · 삭제 사유 필수 */
 { const DC = new Function(stub + bare + '; return {PRO3,dPickRow,dPickAll,docOpen,docHTML,docDelOpen,docDel,BUILDINGS,MORE,get dc(){return dc;},set tab3(v){tab3=v;}};')();
   const b = DC.BUILDINGS[0], n0 = b.docs.length; DC.tab3 = '자료보관';
