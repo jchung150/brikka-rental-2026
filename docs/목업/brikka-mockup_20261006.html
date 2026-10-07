@@ -2308,23 +2308,33 @@ function upHTML(){
     <div class="df"><button class="btn pri" onclick="upSave()">올리기</button></div>
   </div></div>`;
 }
-/* 자료보관 목록 — 건물 상세(ck 없음)와 계약 상세(ck = 계약 키)가 같은 표를 쓴다. 계약 상세는 그 계약에 귀속된 문서만 → PRO-3 · CTR-3 */
+/* 자료보관 목록 — 건물 상세(ck 없음)와 계약 상세(ck = 계약 키)가 같은 표 · 같은 필터 줄을 쓴다. 계약 상세는 그 계약에 귀속된 문서만 → PRO-3 · CTR-3
+   필터: 카테고리 · 등록일시 기간(원장 탭과 같은 기간 선택) */
+let fdoc={c:'',per:''};
+const setFdoc=(f,v)=>{fdoc[f]=v;render(true);};
 function t자료(b,ck){
-  const ids=b.docs.map((_,i)=>i).filter(i=>!ck||b.docs[i].k===ck);
+  const from=fdoc.per?dnum(TODAY_S)-({'1':30,'3':91,'12':365}[fdoc.per]):null;
+  const ids=b.docs.map((_,i)=>i).filter(i=>{const d=b.docs[i];return (!ck||d.k===ck)&&(!fdoc.c||d.c===fdoc.c)&&(from==null||dnum(d.at.slice(0,10))>=from);});
   const nSel=ids.filter(i=>selD[i]).length, all=ids.length&&nSel===ids.length;
+  const cats=ck?DOC_CAT_OF.계약:DOC_CAT;
   return `<div class="card"><div class="ct">자료보관
     <span class="ca"><button class="btn sm" ${nSel?'':'disabled title="삭제할 문서를 체크하세요"'} onclick="docDelOpen('${b.id}',${JSON.stringify(ids.filter(i=>selD[i]))})">선택 삭제${nSel?` ${nSel}건`:''}</button>
       <button class="btn pri sm" onclick="upOpen('${b.id}',false${ck?`,'${ck}'`:''})">+ 파일 업로드</button></span></div>
-    ${!ids.length?`<div class="empty"><div class="t">등록된 자료가 없습니다</div>${ck?'계약서·사업자등록증':'계약서·등기부등본'} 등을 업로드할 수 있습니다.</div>`:`<div class="tw"><table>
+    <div class="fbar" style="padding:0 16px 10px;margin:0">
+      <select onchange="setFdoc('c',this.value)"><option value="">전체 카테고리</option>${cats.map(v=>`<option ${fdoc.c===v?'selected':''}>${v}</option>`).join('')}</select>
+      <select onchange="setFdoc('per',this.value)">${[['','전체 기간'],['1','최근 1개월'],['3','최근 3개월'],['12','최근 12개월']].map(([v,t])=>`<option value="${v}" ${fdoc.per===v?'selected':''}>${t}</option>`).join('')}</select>
+    </div>
+    <div class="tw"><table>
       <thead><tr><th class="c" style="width:44px"><span class="cb ${all?'on':''}" style="cursor:pointer" onclick="dPickIds(${JSON.stringify(ids)},${all?'false':'true'})"></span></th>
         <th>제목 <span class="so">⇅</span></th><th>카테고리</th><th>업로드한 사람</th><th>등록일시 <span class="so">⇅</span></th><th class="c">더보기</th></tr></thead>
-      <tbody>${ids.map(i=>{const d=b.docs[i];return `<tr class="${selD[i]?'on':''}" style="cursor:pointer" onclick="docOpen('${b.id}',${i})">
+      <tbody>${ids.length?ids.map(i=>{const d=b.docs[i];return `<tr class="${selD[i]?'on':''}" style="cursor:pointer" onclick="docOpen('${b.id}',${i})">
         <td class="c"><span class="cb ${selD[i]?'on':''}" style="cursor:pointer" onclick="dPickRow(${i},event)"></span></td>
-        <td><div class="c1">${dTitle(d)}</div><div class="c2">${!ck&&d.k?`계약 · ${docCtrTx(d)} · `:''}${docExt(d.t)} · ${d.sz}</div></td>
+        <td><div class="c1">${dTitle(d)}</div><div class="c2">${d.k?`계약 · ${docCtrTx(d)} · `:''}${docExt(d.t)} · ${d.sz}</div></td>
         <td><span class="bd mu">${d.c}</span></td><td>${d.by}</td>
         <td><div class="c1" style="font-weight:400">${d.at.split(' ')[0]}</div><div class="c2">${d.at.split(' ')[1]}</div></td>
-        <td class="c">${moreCell([{t:'상세',go:`docOpen('${b.id}',${i})`},{t:'내려받기',go:`docDown('${b.id}',${i})`},{t:'삭제',go:`docDelOpen('${b.id}',[${i}])`}])}</td></tr>`;}).join('')}</tbody>
-    </table></div>`}</div>`;
+        <td class="c">${moreCell([{t:'상세',go:`docOpen('${b.id}',${i})`},{t:'내려받기',go:`docDown('${b.id}',${i})`},{t:'삭제',go:`docDelOpen('${b.id}',[${i}])`}])}</td></tr>`;}).join('')
+      :`<tr><td colspan="6" style="text-align:center;padding:28px 0;color:var(--muted)">${fdoc.c||fdoc.per?'조건에 맞는 자료가 없습니다':'등록된 자료가 없습니다'}</td></tr>`}</tbody>
+    </table></div></div>`;
 }
 
 /* ═══ 청구항목 상세 — 관리비 탭의 더보기 「상세」. 설정을 한눈에 보고, 최근 3개월 고지서 금액을 본다. 고치려면 「수정」 → PRO-3 ═══ */
@@ -5156,7 +5166,6 @@ function histHTML(rows,scope){
   const d=a=>a.replace(/-/g,'.');
   return `<div class="card"><div class="ct">이력</div>
     <div class="fbar" style="padding:0 16px 10px;margin:0">
-      <input class="fq" type="text" value="${fh.q}" placeholder="대상 이름 · 내용 · 처리자 검색" onchange="setFh('q',this.value)" style="width:260px">
       ${S('kind',[...new Set(rows.map(r=>r.kind))],'전체 대상 종류')}${S('type',[...new Set(rows.map(r=>r.type))],'전체 변경 유형')}
     </div>
     ${R.length?`<div class="tw"><table>
