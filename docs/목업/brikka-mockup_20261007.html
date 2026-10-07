@@ -4477,7 +4477,7 @@ const BIZ={'211-86-40519':{kind:'법인',ten:'(주)비씨에이전시',ceo:'박�
 let nc=null;
 const ncEnd=d=>{if(!d) return '';const x=new Date(d+'T00:00:00Z');x.setUTCFullYear(x.getUTCFullYear()+2);x.setUTCDate(x.getUTCDate()-1);return x.toISOString().slice(0,10);};
 function ncInit(){
-  nc={b:'b1',no:'',st:'준비중',type:'확정기간계약',start:'',end:'',agent:false,afee:'',rate:'8',
+  nc={b:'b1',no:'',st:'준비중',type:'확정기간계약',start:'',end:'',afee:'',rate:'8',
       kind:'법인',biz:'',found:null,ten:'',ceo:'',addr:'',item:'',alias:'',
       pn:'',pt:'',ptel:'',pmail:'',diff:false,cn:'',cbiz:'',cceo:'',ctel:'',cmail:'',caddr:'',rbank:'',racct:'',rname:'',
       proxy:false,xn:'',xtel:'',xmail:'',xaddr:'',an:'',aceo:'',ano:'',atel:'',aaddr:'',
@@ -4527,7 +4527,7 @@ function ncSave(welcome){
   const bd=BUILDINGS.find(x=>x.id===nc.b);
   const c={b:nc.b,no:nc.no,ten:nc.ten.trim(),st:nc.st,base:nc.start,end:nc.end||ncEnd(nc.start),rate:+nc.rate||8,
     dep:numOf(nc.dep)||null,depRet:nc.depRet||null,kind:nc.kind,type:nc.type,memo:nc.memo.trim(),
-    ag:nc.agent?{n:nc.an,ceo:nc.aceo,no:nc.ano,tel:nc.atel,addr:nc.aaddr,fee:String(nc.afee||'').trim()}:null,fresh:true,
+    ag:nc.an.trim()?{n:nc.an.trim(),ceo:nc.aceo,no:nc.ano,tel:nc.atel,addr:nc.aaddr,fee:String(nc.afee||'').trim()}:null,fresh:true,
     /* 기산일 — 렌트프리면 체크한 항목만 기산일부터, 나머지는 계약시작일부터 청구한다 */
     from:ncFrom()!==nc.start?ncFrom():null,
     adj:nc.adj.filter(x=>x.d&&(numOf(x.rent)||numOf(x.mgmt))).map(x=>({d:x.d,rent:numOf(x.rent)||null,mgmt:numOf(x.mgmt)||null})),rf:nc.rf==='있음'?{end:nc.rfEnd,rent:nc.rfRent,mgmt:nc.rfMgmt,vars:nc.rfVar}:null,
@@ -4621,8 +4621,8 @@ function CTR2(){
         +R('이메일',T('cmail'))+R('주소',T('caddr'))}</div>`:'')
       +`<div style="margin-top:10px">${C('proxy','대리인이 있음')}</div>`
       +(nc.proxy?`<div style="margin-top:10px">${R('대리인 이름',T('xn'))+R('연락처',T('xtel'))+R('이메일',T('xmail'))+R('주소',T('xaddr'))}</div>`:'')
-      +`<div style="margin-top:10px">${C('agent','중개사가 있음')}</div>`
-      +(nc.agent?`<div style="margin-top:10px">${R('중개사무소',T('an'))+R('대표자명',T('aceo'))+R('등록번호',T('ano'))+R('연락처',T('atel'))+R('소재지',T('aaddr'))+R('중개 수수료율',`${T('afee','',70)}<span class="c2" style="margin:0">% · 몰라도 됩니다. 나중에 계약 상세에서 넣습니다</span>`)}</div>`:''));
+      +`<div class="fl" style="margin-top:14px">중개사</div>`
+      +`<div style="margin-top:6px">${R('중개사무소',T('an'))+R('대표자명',T('aceo'))+R('등록번호',T('ano'))+R('연락처',T('atel'))+R('소재지',T('aaddr'))+R('중개 수수료율',`${T('afee','',70)}<span class="c2" style="margin:0">% · 몰라도 됩니다. 나중에 계약 상세에서 넣습니다</span>`)}</div>`);
   const right=
     card('임대료 · 관리비','<div class="c2" style="margin:-4px 0 10px">부가세를 포함한 금액을 넣고, 오른쪽에서 반복 주기를 고릅니다(보통 매월)</div>'
       +R('임대료',N('rent','금액 (부가세 포함)')+`<select title="반복 주기" onchange="ncSet('rentCy',this.value)" style="flex:none;width:84px">${ITEM_CYCLES.map(o=>`<option ${nc.rentCy===o?'selected':''}>${o}</option>`).join('')}</select>`,1)
