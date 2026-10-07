@@ -101,9 +101,9 @@ for (const f of ["f1c.st=''", "f1c.b='b2'", "f1c.dd='90'", "f1c.dd='0'"]) run('C
 run('CTR-3 요약', "tab3c='요약';CTR3('b1별관301호')");
 run('CTR-3 청구·수납', "seedJuly();tab3c='청구·수납';g7={'2026-07':true,'2026-06':true};CTR3('b1별관301호')+CTR3('b1본관101호')+CTR3('b1본관B201호')+CTR3('b21203호')");
 run('CTR-3 빈 탭', "tab3c='자료보관';CTR3('b1별관301호')");
-run('CTR-3 임대료·관리비', "tab3c='임대료·관리비';CTR3('b1별관301호')+CTR3('b1본관301호')");
+run('CTR-3 요약 임대정보 · 인상 예약', "tab3c='요약';CTR3('b1별관301호')+CTR3('b1본관301호')");
 run('CTR-3 계약 전환 메뉴', "CSW=true;tab3c='원장';CTR3('b1별관301호')");
-run('CTR-3 청구항목 패널', "ciOpen('b1별관301호','edit','임대료');ciSet('amt','1');ciHTML();ciOpen('b1별관301호','edit','고정관리비');ciHTML();ciOpen('b1별관301호','adj');ciHTML();ciOpen('b1별관301호','payto');ciHTML()");
+run('CTR-3 청구항목 패널', "ciOpen('b1별관301호','edit','임대료');ciSet('amt','1');ciHTML();ciOpen('b1별관301호','edit','고정관리비');ciHTML();ciOpen('b1별관301호','adj');ciHTML();ciOpen('b1별관301호','payto');ciHTML();ciOpen('b1별관301호','rent');ciHTML();cx3Open('b1본관801호','ppl');cx3HTML();cx3Open('b1본관301호','party');cx3HTML()");
 run('CTR-3 원장 비씨에이전시', "tab3c='원장';CTR3('b1별관301호')");
 run('CTR-3 원장 전체 펼침', "tab3c='원장';g3All=true;CTR3('b1본관101호')");
 run('CTR-3 원장 필터', "tab3c='원장';f3={per:'3',acc:'매출채권'};CTR3('b1본관302호')");
@@ -353,7 +353,7 @@ r6.push(['6·7월 청구서 화면 합계 = 원장 청구 · 6월 거래 18건(�
   && j6('별관301호').st === '미납' && j6('본관B201호').due === 385000 && others6
   && D.BILL_M['2026-07'].elec.read['본관801호'][1] === D.BILL_M['2026-08'].elec.read['본관801호'][0]]);
 /* 청구 약정 — 분기 고정액 추가 · 중지 · 조정 일정이 청구서 발행에 반영된다 → PAY-3 · PAY-1 */
-const G = new Function(stub + bare + '; return {ciOpen,ciSet,ciSave,ISSUE,CTRS,CTR3rent,get ci(){return ci;}};')();
+const G = new Function(stub + bare + '; return {ciOpen,ciSet,ciSave,ISSUE,CTRS,CTR3sum,get ci(){return ci;}};')();
 const iss = no => G.ISSUE().find(c => c.no === no), ln = (no, n) => (iss(no).lines.find(l => l.n === n) || null);
 /* 반복주기 — 고정관리비를 분기로: 기산일이 8월이면 8월 청구, 9월이면 8월 제외 */
 G.ciOpen('b1별관301호', 'edit', '고정관리비'); G.ciSet('cycle', '분기'); G.ciSet('from', '2026-08-01'); G.ciSave();
@@ -364,16 +364,16 @@ const q9 = !ln('별관201호', '고정관리비');
 const noElec = G.ISSUE().filter(c => c.b === 'b1' && !c.lines.some(l => /전기요금/.test(l.n))).map(c => c.no).join();
 const elecAll = noElec === '본관301호' && G.ISSUE().find(c => c.no === '본관302호').lines.filter(l => /수도요금/.test(l.n)).length === 2; /* 301호 전기는 302호 계량기로, 수도는 302호가 대납 */
 /* 301호 고정관리비 0원 = 청구 안 함 · 수정에서 금액을 넣으면 청구 */
-const t301 = G.CTR3rent(G.CTRS.find(c => c.no === '본관301호'), 'b1본관301호');
-const zero301 = !ln('본관301호', '고정관리비') && /고정관리비/.test(t301) && /청구 안 함/.test(t301) && !/전기요금/.test(t301) && !/class="tgl/.test(t301);
+const t301 = G.CTR3sum(G.CTRS.find(c => c.no === '본관301호'), 'b1본관301호');
+const zero301 = !ln('본관301호', '고정관리비') && /고정관리비/.test(t301) && /청구 안 함/.test(t301) && !/전기요금/.test(t301) && !/class="tgl/.test(t301) && /<dt>정산액 대납<\/dt><dd>본관302호/.test(t301);
 G.ciOpen('b1본관301호', 'edit', '고정관리비'); G.ciSet('amt', '110000'); G.ciSave(); const m301 = ln('본관301호', '고정관리비');
 const act301 = zero301 && m301 && m301.amt === 110000;
 G.ciOpen('b1별관301호', 'adj'); G.ciSet('d', '2026-08-01'); G.ciSet('rent', '3630000'); G.ciSave();
-const rent = ln('별관301호', '임대료'), closed = G.ci === null && /3,630,000/.test(G.CTR3rent(G.CTRS.find(c => c.no === '별관301호'), 'b1별관301호'));
+const rent = ln('별관301호', '임대료'), closed = G.ci === null && /3,630,000/.test(G.CTR3sum(G.CTRS.find(c => c.no === '별관301호'), 'b1별관301호'));
 G.ciOpen('b1본관B201호', 'payto'); G.ciSet('payTo', '본관201호'); G.ciSave(); const payTo = G.CTRS.find(c => c.no === '본관B201호').payTo === '본관201호';
 G.ciOpen('b1별관301호', 'edit', '고정관리비'); G.ciSet('amt', '1400000'); G.ciSave(); const noWhy = G.ci !== null;
 G.ciSet('why', '재협의'); G.ciSave(); const fixed2 = G.ci === null && ln('별관301호', '고정관리비') && ln('별관301호', '고정관리비').amt === 1400000;
-r6.push(['임대료·관리비 탭 — 분기 · 기산일 8월 청구 · 9월 기산은 8월 제외 · 정산 항목은 건물 설정 그대로 · 301호 고정관리비 0원은 청구 안 함, 금액을 넣으면 청구 · 8/1 인상 예약 → 3,630,000 · 금액을 바꾸면 사유 필수 → 1,400,000 반영 · 정산액 대납',
+r6.push(['임대정보 · 임대료 인상 예약(요약 탭) — 분기 · 기산일 8월 청구 · 9월 기산은 8월 제외 · 정산 항목은 건물 설정 그대로 · 301호 고정관리비 0원은 청구 안 함, 금액을 넣으면 청구 · 8/1 인상 예약 → 3,630,000 · 금액을 바꾸면 사유 필수 → 1,400,000 반영 · 정산액 대납',
   q8 && q9 && elecAll && act301 && rent && rent.amt === 3630000 && closed && noWhy && fixed2 && payTo]);
 /* 매월 항목 자동 · 계약에는 고정액 2개만 → PAY-10 · CTR-2 */
 { const A = new Function(stub + bare + '; return {monthlyItems,BILL,MASTER,CTR2,ncSet,ncLookup,ncSave,CTRS,ISSUE,get nc(){return nc;}};')();
@@ -695,6 +695,18 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   CS.cx3Open('b1본관101호', 'memo'); CS.cx3.memo = '시험 메모'; CS.cx3Save();
   r6.push(['계약 상세 요약 — 계약정보가 첫 카드(폭 전체) · 남은 일수 없음 · 기본정보 없음 · 임대정보(미납 잔액 없음 · 청구일 · 납부마감일 · 기산일) · 보증금 정보(납부마감일 없음) · 보증금 · 주차 · 냉난방기 · 중개사 · 메모 · 청구일은 건물 설정의 실제 날짜 · 렌트프리 · 기산일 · 수정 패널 4종 저장',
     cards && vals && /해지 처리로 바뀝니다/.test(hp) && c.kind === '개인' && c.type === '확정기간후자동갱신' && c.dep === 5e7 && c.depRet === '2027-07-31' && c.ag.n === '시험중개' && c.memo === '시험 메모']); }
+/* 계약 상세 탭 4개 · 임대정보 수정 패널(두 항목 · 연체이자율 · 대납) · 담당자 · 계약자 · 대리인 */
+{ const RT = new Function(stub + bare + '; seedJuly(); return {CTR3,ciOpen,ciSave,cx3Open,cx3Save,ISSUE,CTRS,CPPL,CPARTY,get ci(){return ci;},get cx3(){return cx3;},set tab3c(v){tab3c=v;}};')();
+  RT.tab3c = '요약'; const h = RT.CTR3('b1본관801호'), hb = RT.CTR3('b1본관301호');
+  const tabs = /tab3c='자료보관'/.test(h) && !/tab3c='임차인'/.test(h) && !/tab3c='임대료·관리비'/.test(h) && /<div class="ct">임대료 인상 예약/.test(h)
+    && /<div class="ct">담당자/.test(h) && /정하늘/.test(h) && /<span class="bd ac">대표/.test(h) && /임차인과 같음/.test(h) && /\(유\)유니버셜대부/.test(hb) && /110-482-339201/.test(hb) && /go\('user-6'\)/.test(h);
+  const c = RT.CTRS.find(x => x.no === '별관201호'), ln = n => (RT.ISSUE().find(x => x.no === '별관201호').lines.find(l => l.n === n) || null);
+  RT.ciOpen('b1별관201호', 'rent'); RT.ci.its.임대료.amt = '4400000'; RT.ciSave(); const needWhy = RT.ci !== null;
+  RT.ci.why = '재협의'; RT.ci.rate = '10'; RT.ciSave(); const ok = RT.ci === null && ln('임대료').amt === 4400000 && c.rate === 10;
+  RT.cx3Open('b1본관801호', 'ppl'); RT.cx3.ppl.push({n:'시험담당', t:'', tel:'', mail:'t@t.kr'}); RT.cx3Save(); const pp = RT.CPPL['b1본관801호'].length === 3;
+  RT.cx3Open('b1본관301호', 'party'); RT.cx3.diff = false; RT.cx3Save(); const pt = !RT.CPARTY['b1본관301호'];
+  r6.push(['계약 상세 탭 4개(요약 · 청구·수납 · 원장 · 자료보관) · 임대정보 수정(금액 바꾸면 사유 필수 → 4,400,000 · 연체이자율 10%) · 인상 예약 카드 · 담당자(대표) 추가 · 계약자 · 대리인 · 임차인 이름은 임차인 관리로',
+    tabs && needWhy && ok && pp && pt]); }
 /* 수납 내역 더보기 — 받을 돈이 있는 계약(비씨에이전시)만 수납 처리가 눌리고, 다 받은 계약(에스씨케이컴퍼니)은 흐림 · 원장 보기는 모두 */
 { const MV = new Function(stub + bare + '; seedJuly(); return {PAY6,RC,MORE};')();
   MV.RC.f = {b:'b1', ym:'2026-07', st:''}; MV.MORE.length = 0; const h = MV.PAY6();
