@@ -588,8 +588,7 @@ const MENU=[
  {k:'상대',g:'연락처',i:'users',items:[
    {id:'user-6',n:'임차인',sid:'USER-6',i:'users'},
    {id:'user-8',n:'임대인',sid:'USER-8',i:'home'}]},
- {k:'문서',g:'문서',i:'folder',items:[
-   {id:'doc-1',n:'문서 보관함',sid:'DOC-1',i:'folder'}]},
+ {id:'doc-1',n:'자료 보관함',sid:'DOC-1',i:'folder'},
  {k:'보고',g:'보고서',i:'chart',items:[
    {id:'rep-1',n:'임대인 보고서',sid:'REP-1',i:'chart'}]},
  {k:'이력',g:'이력 관리',i:'hist',items:[
@@ -4541,7 +4540,7 @@ function ncFrom(){
 }
 /* 자료 카테고리 10종 → 3.1 */
 const DOC_CAT=['계약서','사업자등록증·신분증','보증금관련','청구납부관련','요청수리내역','시설관련','건물서류','임차인커뮤니케이션','보고서','기타'];
-/* 귀속 대상마다 고를 수 있는 카테고리 — 문서 보관함 필터는 10종 전부 → 3.1 · DOC-3 */
+/* 귀속 대상마다 고를 수 있는 카테고리 — 자료 보관함 필터는 10종 전부 → 3.1 · DOC-3 */
 const DOC_CAT_OF={건물:['건물서류','계약서','시설관련','보고서','기타'],
   계약:['계약서','사업자등록증·신분증','보증금관련','청구납부관련','요청수리내역','임차인커뮤니케이션','기타']};
 function ncRow(list,i,f,v){nc[list][i][f]=v;render(true);}
@@ -4631,7 +4630,7 @@ function CTR2(){
         <thead><tr><th>제목</th><th>카테고리</th><th class="c">더보기</th></tr></thead>
         <tbody>${nc.files.map((f,i)=>`<tr><td><div class="c1">${f.t}</div><div class="c2">${f.file}</div></td><td><span class="bd mu">${f.c}</span></td>
           <td class="c"><span class="more" onclick="nc.files.splice(${i},1);render(true)">삭제</span></td></tr>`).join('')}</tbody></table></div>`
-        :'<div class="c2" style="margin:-4px 0 10px">계약서·사업자등록증 등을 한 번에 하나씩 올립니다. 계약 상세의 자료보관 탭과 문서 보관함에서 찾을 수 있습니다</div>')
+        :'<div class="c2" style="margin:-4px 0 10px">계약서·사업자등록증 등을 한 번에 하나씩 올립니다. 계약 상세의 자료보관 탭과 자료 보관함에서 찾을 수 있습니다</div>')
       +`<button class="btn sm" onclick="upOpen(nc.b,true)">+ 파일 업로드</button>`)
     +card('메모',`<textarea rows="3" placeholder="이 계약에 대해 남길 말" style="width:100%;border:1px solid var(--line);border-radius:var(--r-sm);padding:8px;font:inherit;font-size:12.5px"
         onchange="nc.memo=this.value">${nc.memo}</textarea>`);
