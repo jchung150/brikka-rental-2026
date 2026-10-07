@@ -4964,7 +4964,7 @@ function termOpen(k){const t=TERMS[k]||{};tm={k,type:t.type||'중도 해지(합�
 function termSet(f,v){tm[f]=v;render(true);}
 function termSave(){if(!tm.out||!tm.why.trim()) return;
   const c=CTRS.find(x=>ckey(x)===tm.k);
-  TERMS[tm.k]={type:tm.type,out:tm.out,why:tm.why.trim(),pen:numOf(tm.pen),rest:numOf(tm.rest)};
+  TERMS[tm.k]={at:`${TODAY_S} ${new Date().toTimeString().slice(0,5)}`,type:tm.type,out:tm.out,why:tm.why.trim(),pen:numOf(tm.pen),rest:numOf(tm.rest)};
   unbilled(c,tm.out).forEach(u=>{const a=numOf(tm.est[u.code]); if(!a) return;
     ONCE.rows.push({k:tm.k,ref:null,n:`${u.n} 퇴거 예상분 (${u.from.slice(5).replace('-','.')}~${u.to.slice(5).replace('-','.')})`,amt:a,doc:u.doc,memo:'퇴거 예상분',at:TODAY_S});});
   DRAWER=null;tm=null;render(true);}
@@ -5129,17 +5129,21 @@ CLOG['b1본관801호']=[{at:'2026-07-22 14:05',by:'김관리',kind:'계약',type
   {at:'2026-03-04 10:30',by:'슈퍼관리자',kind:'계약',type:'수정',sum:'냉난방기 구분 입력 — 임차인 설치',why:'입주 점검 때 확인',chg:[['냉난방기','미입력','임차인 설치']]}];
 CLOG['b1별관301호']=[{at:'2026-06-25 16:20',by:'슈퍼관리자',kind:'계약',type:'수정',sum:'연체이자율 8% → 12%',why:'계약서 특약 반영',chg:[['연체이자율','연 8%','연 12%']]}];
 const HKIND={'관리비 설정':['건물 관리비 설정','수정'],'운영 상태':['건물','상태변경'],'자료':['문서','등록']};
+/* 시각 — 원장 거래에는 날짜만 있다. 은행 입금은 입금 시각을 쓰고, 나머지는 목업 예시 시각(업무 시간 안에서 고정값)을 붙인다 */
+function hTime(seed){let h=0;for(const ch of seed) h=(h*31+ch.charCodeAt(0))>>>0;
+  return `${String(9+h%9).padStart(2,'0')}:${String((h>>>4)%60).padStart(2,'0')}`;}
+const withT=(date,seed,src)=>{const m=/^(\d\d:\d\d):\d\d /.exec(src||'');return `${date} ${m?m[1]:hTime(date+seed)}`;};
 function histC(c){
   const k=ckey(c), nm=`${c.no} ${c.ten}`, out=[], G={}, at=o=>{o.k=k;return o;};
   ledgerOf(k).rows.forEach(r=>{const key=r.g+'|'+r.date;(G[key]=G[key]||{r,items:[]}).items.push(r);});
   Object.values(G).forEach(({r,items})=>{const sum=x=>items.reduce((a,i)=>a+(i.inc||0)+(i.dec||0),0);
-    if(r.type==='청구') out.push({at:r.date,by:'김관리',kind:'청구',name:nm,type:'등록',sum:r.ttl||`${r.ym.slice(2).replace('-','.')}월분 청구서 발행 · ${items.length}건 · ${won(sum())}`});
-    else if(r.type==='수납') out.push({at:r.date,by:'김관리',kind:'수납',name:nm,type:'등록',sum:`${r.src&&r.src!=='이전 입금'?r.src.replace(/^\d\d:\d\d:\d\d /,'')+' 입금':'입금'} ${won(sum())} · ${items.length}건에 배분`});
-    else if(r.type==='감액') out.push({at:r.date,by:'슈퍼관리자',kind:'청구',name:nm,type:'감액',sum:r.item});
-    else if(r.type==='환불') out.push({at:r.date,by:'김관리',kind:'수납',name:nm,type:'등록',sum:`${r.item} ${won(sum())}`});
-    else if(r.type==='보증금 차감') out.push({at:r.date,by:'김관리',kind:'수납',name:nm,type:'등록',sum:`보증금상계 ${won(sum())}`});});
-  out.push({at:c.base,by:'김관리',kind:'계약',name:nm,type:'등록',sum:`계약 등록 · ${c.base.replace(/-/g,'.')} - ${ctrEnd(c).replace(/-/g,'.')}`});
-  if(TERMS[k]) out.push({at:TODAY_S,by:'슈퍼관리자',kind:'계약',name:nm,type:'상태변경',sum:`해지 — ${TERMS[k].type} · 해지일 ${TERMS[k].out.replace(/-/g,'.')}`,why:TERMS[k].why});
+    if(r.type==='청구') out.push({at:withT(r.date,'bill'+k),by:'김관리',kind:'청구',name:nm,type:'등록',sum:r.ttl||`${r.ym.slice(2).replace('-','.')}월분 청구서 발행 · ${items.length}건 · ${won(sum())}`});
+    else if(r.type==='수납') out.push({at:withT(r.date,'pay'+r.g+k,r.src),by:'김관리',kind:'수납',name:nm,type:'등록',sum:`${r.src&&r.src!=='이전 입금'?r.src.replace(/^\d\d:\d\d:\d\d /,'')+' 입금':'입금'} ${won(sum())} · ${items.length}건에 배분`});
+    else if(r.type==='감액') out.push({at:withT(r.date,'cut'+r.g+k),by:'슈퍼관리자',kind:'청구',name:nm,type:'감액',sum:r.item});
+    else if(r.type==='환불') out.push({at:withT(r.date,'rf'+r.g+k),by:'김관리',kind:'수납',name:nm,type:'등록',sum:`${r.item} ${won(sum())}`});
+    else if(r.type==='보증금 차감') out.push({at:withT(r.date,'dd'+r.g+k),by:'김관리',kind:'수납',name:nm,type:'등록',sum:`보증금상계 ${won(sum())}`});});
+  out.push({at:withT(c.base,'ctr'+k),by:'김관리',kind:'계약',name:nm,type:'등록',sum:`계약 등록 · ${c.base.replace(/-/g,'.')} - ${ctrEnd(c).replace(/-/g,'.')}`});
+  if(TERMS[k]) out.push({at:TERMS[k].at||withT(TODAY_S,'term'+k),by:'슈퍼관리자',kind:'계약',name:nm,type:'상태변경',sum:`해지 — ${TERMS[k].type} · 해지일 ${TERMS[k].out.replace(/-/g,'.')}`,why:TERMS[k].why});
   (CLOG[k]||[]).forEach(x=>out.push({...x,name:nm}));
   return out.map(at);
 }
