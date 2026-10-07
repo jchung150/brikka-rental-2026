@@ -1293,6 +1293,7 @@ function drawerHTML(){
   if(DRAWER==='upl') return upHTML();
   if(DRAWER==='bop') return bopHTML();
   if(DRAWER==='c3x') return cx3HTML();
+  if(DRAWER==='hdet') return hdHTML();
   if(DRAWER==='over') return overHTML();
   if(DRAWER==='pay') return payHTML();
   if(DRAWER==='mclose') return mcHTML();
@@ -5129,39 +5130,70 @@ CLOG['b1본관801호']=[{at:'2026-07-22 14:05',by:'김관리',kind:'계약',type
 CLOG['b1별관301호']=[{at:'2026-06-25 16:20',by:'슈퍼관리자',kind:'계약',type:'수정',sum:'연체이자율 8% → 12%',why:'계약서 특약 반영',chg:[['연체이자율','연 8%','연 12%']]}];
 const HKIND={'관리비 설정':['건물 관리비 설정','수정'],'운영 상태':['건물','상태변경'],'자료':['문서','등록']};
 function histC(c){
-  const k=ckey(c), nm=`${c.no} ${c.ten}`, out=[], G={};
+  const k=ckey(c), nm=`${c.no} ${c.ten}`, out=[], G={}, at=o=>{o.k=k;return o;};
   ledgerOf(k).rows.forEach(r=>{const key=r.g+'|'+r.date;(G[key]=G[key]||{r,items:[]}).items.push(r);});
-  Object.values(G).forEach(({r,items})=>{const sum=x=>items.reduce((a,i)=>a+(i.inc||0)+(i.dec||0),0);
+  Object.values(G).forEach(({r,items})=>{const sum=x=>items.reduce((a,i)=>a+(i.inc||0)+(i.dec||0),0), led=items.map(i=>[r.date,i.item,(i.inc||0)+(i.dec||0)]);
+    const out0=out.length;
     if(r.type==='청구') out.push({at:r.date,by:'김관리',kind:'청구',name:nm,type:'등록',sum:r.ttl||`${r.ym.slice(2).replace('-','.')}월분 청구서 발행 · ${items.length}건 · ${won(sum())}`});
     else if(r.type==='수납') out.push({at:r.date,by:'김관리',kind:'수납',name:nm,type:'등록',sum:`${r.src&&r.src!=='이전 입금'?r.src.replace(/^\d\d:\d\d:\d\d /,'')+' 입금':'입금'} ${won(sum())} · ${items.length}건에 배분`});
     else if(r.type==='감액') out.push({at:r.date,by:'슈퍼관리자',kind:'청구',name:nm,type:'감액',sum:r.item});
     else if(r.type==='환불') out.push({at:r.date,by:'김관리',kind:'수납',name:nm,type:'등록',sum:`${r.item} ${won(sum())}`});
-    else if(r.type==='보증금 차감') out.push({at:r.date,by:'김관리',kind:'수납',name:nm,type:'등록',sum:`보증금상계 ${won(sum())}`});});
+    else if(r.type==='보증금 차감') out.push({at:r.date,by:'김관리',kind:'수납',name:nm,type:'등록',sum:`보증금상계 ${won(sum())}`});
+    if(out.length>out0) out[out.length-1].led=led;});
   out.push({at:c.base,by:'김관리',kind:'계약',name:nm,type:'등록',sum:`계약 등록 · ${c.base.replace(/-/g,'.')} - ${ctrEnd(c).replace(/-/g,'.')}`});
   if(TERMS[k]) out.push({at:TODAY_S,by:'슈퍼관리자',kind:'계약',name:nm,type:'상태변경',sum:`해지 — ${TERMS[k].type} · 해지일 ${TERMS[k].out.replace(/-/g,'.')}`,why:TERMS[k].why});
   (CLOG[k]||[]).forEach(x=>out.push({...x,name:nm}));
-  return out;
+  return out.map(at);
 }
 function histB(b){
   const out=(BLOG[b.id]||[]).map(x=>{const [kind,type]=HKIND[x.what]||['건물','수정'];
-    return {at:x.at,by:x.by,kind,name:b.name,type,sum:`${x.what} — ${x.det}`,why:x.why||''};});
+    return {at:x.at,by:x.by,kind,name:b.name,type,sum:`${x.what} — ${x.det}`,why:x.why||'',b:b.id};});
   Object.entries(MC[b.id]||{}).forEach(([ym,m])=>{const L=MC_LOG[`${b.id}|${ym}`]||[{at:m.at,by:m.by,act:'마감'}];
-    L.forEach(x=>out.push({at:'2026-'+x.at,by:x.by,kind:'월 마감',name:`${b.name} ${+ym.slice(5)}월분`,type:x.act.replace(' ',''),sum:`${+ym.slice(5)}월분 ${x.act}`,why:x.why||''}));});
+    L.forEach(x=>out.push({at:'2026-'+x.at,by:x.by,kind:'월 마감',name:`${b.name} ${+ym.slice(5)}월분`,type:x.act.replace(' ',''),sum:`${+ym.slice(5)}월분 ${x.act}`,why:x.why||'',b:b.id,ym}));});
   return out.concat(...CTRS.filter(c=>c.b===b.id).map(histC));
 }
-let fh={kind:'',type:'',q:''}, hx={};
+let fh={kind:'',type:'',q:''}, hd=null;
+const HROWS={};
 const hp={};
 const HPER=10;
 const setFh=(f,v)=>{fh[f]=v;Object.keys(hp).forEach(k=>delete hp[k]);render(true);};
 /* 페이지 나누기 — 이전 · 번호 · 다음. 페이지가 하나면 보이지 않는다 */
 function pagerHTML(n,cur,go){const N=Math.ceil(n/HPER); if(N<=1) return '';
   return `<div class="pgr"><button ${cur<=1?'disabled':''} onclick="${go}(${cur-1})">‹</button>${Array.from({length:N},(_,i)=>`<button class="${i+1===cur?'on':''}" onclick="${go}(${i+1})">${i+1}</button>`).join('')}<button ${cur>=N?'disabled':''} onclick="${go}(${cur+1})">›</button></div>`;}
+/* 이력 상세 — 줄을 누르면 오른쪽 패널(REC-2와 같은 내용). 기본 정보 · 변경 항목(전/후) · 관련 원장 거래 · 해당 화면으로 이동 → 3.8 */
+function hdOpen(scope,i){hd=HROWS[scope][i];DRAWER='hdet';render(true);}
+function hdHTML(){
+  if(DRAWER!=='hdet'||!hd) return '';
+  const r=hd, Rw=(k,v)=>`<div class="fr"><span class="fk">${k}</span><span class="fv">${v}</span></div>`, d=a=>a.replace(/-/g,'.');
+  const c=r.k&&CTRS.find(x=>ckey(x)===r.k);
+  const go=r.ym?[`월 마감으로 이동`,`s11={b:'${r.b}',ym:'${r.ym}'};DRAWER=null;go('pay-11')`]
+    :r.led?[`원장에서 보기`,`tab3c='원장';DRAWER=null;go('ctr-3/${r.k}')`]
+    :c?[`계약 상세로 이동`,`tab3c='요약';DRAWER=null;go('ctr-3/${r.k}')`]
+    :r.b?[`건물 상세로 이동`,`tab3='요약';DRAWER=null;go('pro-3/${r.b}')`]:null;
+  return `<div class="dro"><div class="ov" onclick="closeDrawer()"></div><div class="pn">
+    <div class="dh"><div><div class="t">이력 상세</div><div class="s">${r.name}</div></div>
+      <button class="x" onclick="closeDrawer()">✕</button></div>
+    <div class="db">
+      <div class="fg"><div class="fl">기본 정보</div>
+        ${Rw('일시',d(r.at))}${Rw('대상 종류',`<span class="bd mu">${r.kind}</span>`)}${Rw('대상 이름',r.name)}${Rw('변경 유형',r.type)}
+        ${Rw('변경 요약',r.sum)}${Rw('처리자',r.by)}${Rw('사유',r.why||'—')}</div>
+      ${r.chg&&r.chg.length?`<div class="fg"><div class="fl">변경 항목</div>
+        <div class="tw" style="border:1px solid var(--line);border-radius:var(--r-sm)"><table><thead><tr><th>항목</th><th>변경 전</th><th>변경 후</th></tr></thead>
+        <tbody>${r.chg.map(([f,a,b])=>`<tr><td>${f}</td><td class="c2" style="margin:0">${a}</td><td><b>${b}</b></td></tr>`).join('')}</tbody></table></div></div>`:''}
+      ${r.led&&r.led.length?`<div class="fg"><div class="fl">관련 원장 거래 · ${r.led.length}건</div>
+        <div class="tw" style="border:1px solid var(--line);border-radius:var(--r-sm)"><table><thead><tr><th>날짜</th><th>내용</th><th class="n">금액</th></tr></thead>
+        <tbody>${r.led.map(([dt,t,a])=>`<tr><td style="white-space:nowrap">${d(dt).slice(2)}</td><td>${t}</td><td class="n">${won(a)}</td></tr>`).join('')}</tbody></table></div></div>`:''}
+    </div>
+    <div class="df"><button class="btn" onclick="closeDrawer()">닫기</button>${go?`<button class="btn pri" onclick="${go[1]}">${go[0]}</button>`:''}</div>
+  </div></div>`;
+}
 function histHTML(rows,scope){
   const S=(f,opts,lab)=>`<select onchange="setFh('${f}',this.value)"><option value="">${lab}</option>${opts.map(v=>`<option ${fh[f]===v?'selected':''}>${v}</option>`).join('')}</select>`;
   const q=fh.q.trim();
   const R=rows.filter(r=>(!fh.kind||r.kind===fh.kind)&&(!fh.type||r.type===fh.type)&&(!q||[r.name,r.sum,r.why,r.by].join(' ').includes(q)))
     .sort((p,q)=>p.at<q.at?1:p.at>q.at?-1:0);
   const N=Math.max(1,Math.ceil(R.length/HPER)), cur=Math.min(hp[scope]||1,N), P=R.slice((cur-1)*HPER,cur*HPER);
+  HROWS[scope]=R;
   const d=a=>a.replace(/-/g,'.');
   return `<div class="card"><div class="ct">이력</div>
     <div class="fbar" style="padding:0 16px 10px;margin:0">
@@ -5169,13 +5201,10 @@ function histHTML(rows,scope){
     </div>
     ${R.length?`<div class="tw"><table>
       <thead><tr><th>일시</th><th>대상 종류</th><th>대상 이름</th><th>변경 유형</th><th>변경 요약</th><th>처리자</th></tr></thead>
-      <tbody>${P.map((r,i)=>{const id=`${scope}|${r.at}|${(cur-1)*HPER+i}`, op=hx[id], ex=r.chg&&r.chg.length;
-        return `<tr ${ex?`style="cursor:pointer" onclick="hx['${id}']=!hx['${id}'];render(true)"`:''}>
-          <td style="white-space:nowrap">${ex?`<span class="tg ${op?'op':''}" style="display:inline-block;vertical-align:middle">${ic('chev',14)}</span>`:''}${d(r.at)}</td>
+      <tbody>${P.map((r,i)=>`<tr style="cursor:pointer" onclick="hdOpen('${scope}',${(cur-1)*HPER+i})">
+          <td style="white-space:nowrap">${d(r.at)}</td>
           <td><span class="bd mu">${r.kind}</span></td><td style="white-space:nowrap">${r.name}</td><td>${r.type}</td>
-          <td>${r.sum}${r.why?`<div class="c2">사유: ${r.why}</div>`:''}</td><td style="white-space:nowrap">${r.by}</td></tr>`
-        +(ex&&op?`<tr class="sub"><td></td><td colspan="5"><table style="width:auto"><thead><tr><th>항목</th><th>변경 전</th><th>변경 후</th></tr></thead>
-          <tbody>${r.chg.map(([f,a,b])=>`<tr><td>${f}</td><td class="c2" style="margin:0">${a}</td><td><b>${b}</b></td></tr>`).join('')}</tbody></table></td></tr>`:'');}).join('')}</tbody></table>
+          <td>${r.sum}${r.why?`<div class="c2">사유: ${r.why}</div>`:''}</td><td style="white-space:nowrap">${r.by}</td></tr>`).join('')}</tbody></table>
       ${pagerHTML(R.length,cur,`(p=>{hp['${scope}']=p;render(true);})`)}</div>`
     :'<div class="cc"><div class="c2" style="margin:0">조건에 맞는 이력이 없습니다.</div></div>'}</div>`;
 }
