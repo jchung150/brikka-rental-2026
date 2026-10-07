@@ -1522,8 +1522,8 @@ function PRO2(){
       '<div class="c2" style="margin:-4px 0 10px">등기부등본 기준. 없으면 비워 둡니다</div>'
       +R('은행 · 지점',T('bb','예: 국민은행 서교동지점'))+R('연락처',T('bt'))
       +R('채권최고금액',N('bmax'))+R('실제채권금액',N('bnow')));
-  /* 설정 탭(PRO-3)과 같은 카드 — 청구 규칙 · 건물관리자 · 위탁운영계약 */
-  const rules=card('청구 규칙',`
+  /* 건물 상세(PRO-3)와 같은 카드 — 청구 정보 · 건물관리자 · 위탁운영계약 */
+  const rules=card('청구 정보',`
       ${R('청구일',`<select onchange="nbSet('bm',this.value)" style="flex:none;width:76px">${['전월','당월'].map(o=>`<option ${nb.bm===o?'selected':''}>${o}</option>`).join('')}</select>
           <select onchange="nbSet('bd',this.value)" style="flex:none;width:90px"><option value="">선택</option>${DAY_OPTS.map(o=>`<option ${nb.bd===o?'selected':''}>${o}</option>`).join('')}</select>`,1)}
       ${R('납부마감일',`<select onchange="nbSet('dm',this.value)" style="flex:none;width:76px">${['당월','익월'].map(o=>`<option ${nb.dm===o?'selected':''}>${o}</option>`).join('')}</select>
@@ -1538,10 +1538,6 @@ function PRO2(){
       `<label class="ck"><input type="checkbox" ${nb.mg?'checked':''} onchange="nbSet('mg',this.checked)">위탁운영계약 있음</label>
        <div class="c2" style="margin:6px 0 10px">건물주가 직접 관리하는 건물은 비워 둡니다</div>`
       +(nb.mg?R('기간',D('ms')+'<span class="c2" style="margin:0">~</span>'+D('me'),1)
-        +R('관리 수수료',`<select onchange="nbSet('fk',this.value)" style="flex:none;width:84px">${['요율','정액'].map(v=>`<option ${nb.fk===v?'selected':''}>${v}</option>`).join('')}</select>
-            <input type="text" inputmode="decimal" value="${nb.fv}" placeholder="${nb.fk==='요율'?'임대료의 %':'월 금액'}" onchange="nbSet('fv',this.value)" style="max-width:120px">
-            <span class="c2" style="margin:0">${nb.fk==='요율'?'%':'원'}</span>`)
-        +R('운영방식',`<span class="fv">임대인 직수취 <span class="lock">위탁사 수취 후 정산은 2차</span></span>`)
         +R('위탁운영계약서','<span class="fv c2">등록 후 자료보관 탭에 올립니다</span>'):''));
   return `<div class="nbw">
   <div class="ph"><h1>새로운 건물 등록</h1><span class="sid">PRO-2</span></div>
@@ -1794,10 +1790,14 @@ function vehHTML(){
   </div></div>`;
 }
 /* ═══ 설정 탭 — 이 건물을 어떻게 운영하는지. 일반 관리자도 보고, 바꾸는 것은 슈퍼관리자만 → PRO-3 · 3.7
-   건물관리자 · 위탁운영계약 · 청구 규칙 · 운영 상태(운영 중지 · 건물 삭제) · 변경 이력 ═══ */
+   위탁운영계약 · 운영 상태(운영 중지 · 건물 삭제) · 변경 이력 ═══ */
 /* 건물 변경 이력 — 목업 예시값과 이 화면에서 바꾼 것. 실제는 이력(REC-1)을 이 건물로 거른 것 → 3.6 */
 const BLOG={b1:[{at:'2026-08-01 10:12',by:'슈퍼관리자',what:'관리비 설정',det:'전기요금 배분 기준 사용량 → 사용량 (계량기 보유 13개 유닛)'},
-  {at:'2026-03-02 09:40',by:'슈퍼관리자',what:'건물관리자',det:'박현장 추가'},{at:'2025-03-01 14:20',by:'슈퍼관리자',what:'위탁운영계약',det:'2025-03-01 ~ 2027-02-28 등록'}]};
+  {at:'2026-07-20 15:30',by:'김관리',what:'임대인 정보',det:'관리비 납부 계좌 예금주 표기 수정'},
+  {at:'2026-05-12 11:02',by:'슈퍼관리자',what:'관리비 설정',det:'정화조청소비 반복주기 연1회 → 반기'},
+  {at:'2026-03-02 09:40',by:'슈퍼관리자',what:'건물관리자',det:'박현장 추가'},
+  {at:'2026-01-08 16:10',by:'박현장',what:'자료',det:'2026년 화재보험증권 올림'},
+  {at:'2025-03-01 14:20',by:'슈퍼관리자',what:'위탁운영계약',det:'2025-03-01 ~ 2027-02-28 등록'}]};
 const blog=(id,what,det,why)=>{(BLOG[id]=BLOG[id]||[]).unshift({at:`${TODAY_S} ${new Date().toTimeString().slice(0,5)}`,by:'슈퍼관리자',what,det,why:why||''});};
 /* 설정 탭의 바꾸기는 모두 오른쪽 패널에서 한다(추가 · 수정 · 삭제 = 패널) → 3.8 */
 let sp=null;
@@ -1812,7 +1812,7 @@ function spSave(){const b=BUILDINGS.find(x=>x.id===sp.id);
     if(add.length||del.length) blog(b.id,'건물관리자',[...add.map(n=>`${n} 추가`),...del.map(n=>`${n} 빼기`)].join(' · '));
     b.mgrs=BMGRS.map(x=>x.n).filter(n=>sp.pick.includes(n)); b.mgr=b.mgrs[0]||'';}
   else if(sp.mode==='rule'){if(spRuleBad()) return; const bill=`${sp.bm} ${sp.bd}`, due=`${sp.dm} ${sp.dd}`;
-    if(bill!==b.billDay||due!==b.dueDay) blog(b.id,'청구 규칙',`${b.billDay} · ${b.dueDay} → ${bill} · ${due}`);
+    if(bill!==b.billDay||due!==b.dueDay) blog(b.id,'청구 정보',`${b.billDay} · ${b.dueDay} → ${bill} · ${due}`);
     b.billDay=bill; b.dueDay=due;}
   else if(sp.mode==='del'){if(!bCanDel(b)) return; DRAWER=null; sp=null; bDel(b.id); go('pro-1'); return;}
   DRAWER=null; sp=null; render(true);}
@@ -1829,10 +1829,11 @@ function spHTML(){
         onchange="sp.pick=this.checked?[...sp.pick,'${x.n}']:sp.pick.filter(v=>v!=='${x.n}');render(true)"><b style="font-weight:500">${x.n}</b><span class="c2" style="margin:0 0 0 6px">${x.co} · ${x.tel}${x.st==='차단됨'?' · 차단됨':''}</span></label>`).join('')}</div>
       <div class="c2" style="white-space:normal">사용자 관리에 등록된 관리자입니다. 고른 관리자에게 이 건물이 담당 건물로 배정됩니다. 슈퍼관리자는 모든 건물을 보므로 목록에 없습니다.<br>
         관리자 정보(회사 · 연락처 · 이메일)는 사용자 관리에서 고칩니다. 차단된 관리자는 이 건물을 볼 수 없습니다.</div>`;}
-  else if(sp.mode==='rule'){t='청구 규칙'; dis=spRuleBad();
-    body=`<div class="fg"><div class="fl">청구일</div><div style="display:flex;gap:6px">${sel('bm',['전월','당월'])}${sel('bd',days)}</div></div>
-      <div class="fg"><div class="fl">납부마감일</div><div style="display:flex;gap:6px">${sel('dm',['당월','익월'])}${sel('dd',[...days,'말일'])}</div></div>
-      ${sp.bd&&sp.dd?`<div class="c2" style="margin:-6px 0 12px">예: 8월분 청구서 → ${ruleEx(`${sp.bm} ${sp.bd}`,'2026-08')} 청구 · ${ruleEx(`${sp.dm} ${sp.dd}`,'2026-08')}까지 납부</div>`:''}
+  else if(sp.mode==='rule'){t='청구 정보'; dis=spRuleBad();
+    const sl=(f,opts,w)=>`<select onchange="sp.${f}=this.value;render(true)" style="${inp};width:${w}px;flex:none">${opts.map(v=>`<option ${sp[f]===v?'selected':''}>${v}</option>`).join('')}</select>`;
+    body=`<div class="fr"><span class="fk">청구일</span>${sl('bm',['전월','당월'],80)}${sl('bd',days,84)}</div>
+      <div class="fr"><span class="fk">납부마감일</span>${sl('dm',['당월','익월'],80)}${sl('dd',[...days,'말일'],84)}</div>
+      ${sp.bd&&sp.dd?`<div class="prev" style="margin:6px 0 12px"><div class="pt">예: 8월분 청구서</div>${ruleEx(`${sp.bm} ${sp.bd}`,'2026-08')} 청구 · ${ruleEx(`${sp.dm} ${sp.dd}`,'2026-08')}까지 납부</div>`:''}
       ${dis&&sp.bd&&sp.dd?'<div class="fnd wa3" style="margin:0 0 12px"><span class="h">납부마감일은 청구일보다 뒤여야 합니다</span></div>':''}
       <div class="c2" style="white-space:normal">바꾸면 이 건물의 모든 계약에 적용됩니다. 이미 발행한 청구서의 날짜는 바뀌지 않습니다. 운영 방식이 크게 바뀌면 건물을 새로 등록하는 것도 방법입니다.</div>`;}
   else {t='건물 삭제'; ok='건물 삭제'; dis=!bCanDel(b);
@@ -1845,8 +1846,8 @@ function spHTML(){
     <div class="df"><button class="btn pri" ${dis?'disabled':''} onclick="spSave()">${ok}</button></div>
   </div></div>`;
 }
-function t설정(b){
-  const d=dday(b.mgmtEnd), op=bOp(b.id), o=BOP[b.id], canDel=bCanDel(b);
+/* 요약 탭 아래쪽 — 청구 정보 · 건물관리자. 바꾸기는 오른쪽 패널(spOpen) → PRO-3 */
+function bInfoCards(b){
   const card=(t,body,act)=>`<div class="card"><div class="ct">${t}${act?`<span class="ca">${act}</span>`:''}</div><div class="cc">${body}</div></div>`;
   const edit=mode=>`<button class="btn sm" title="슈퍼관리자만" onclick="spOpen('${b.id}','${mode}')">수정</button>`;
   /* 건물관리자 — 사용자 관리(USER-2)의 관리자 정보를 그대로 보인다. 고치는 곳은 사용자 관리 */
@@ -1857,14 +1858,18 @@ function t설정(b){
         <td class="c">${m.st==='차단됨'?'<span class="bd da">차단됨</span>':'<span class="bd ok">정상</span>'}<div class="c2">${m.last?`접속 ${m.last.slice(5,10).replace('-','.')}`:''}</div></td></tr>`;}).join('')}</tbody></table></div>
 `
       :'<div class="c2" style="margin:0">지정된 건물관리자가 없습니다. 슈퍼관리자만 이 건물을 봅니다</div>',edit('mgr'));
-  const rule=card('청구 규칙',`<dl class="dl"><dt>청구일</dt><dd>${b.billDay}<span class="lock">예: 8월분 → ${ruleEx(b.billDay,'2026-08')}</span></dd>
+  const rule=card('청구 정보',`<dl class="dl"><dt>청구일</dt><dd>${b.billDay}<span class="lock">예: 8월분 → ${ruleEx(b.billDay,'2026-08')}</span></dd>
       <dt>납부마감일</dt><dd>${b.dueDay}<span class="lock">예: 8월분 → ${ruleEx(b.dueDay,'2026-08')}</span></dd></dl>`,edit('rule'));
+  return `<div class="two">${rule}${mgr}</div>`;
+}
+function t설정(b){
+  const d=dday(b.mgmtEnd), op=bOp(b.id), o=BOP[b.id], canDel=bCanDel(b);
+  const card=(t,body,act)=>`<div class="card"><div class="ct">${t}${act?`<span class="ca">${act}</span>`:''}</div><div class="cc">${body}</div></div>`;
+  const edit=mode=>`<button class="btn sm" title="슈퍼관리자만" onclick="spOpen('${b.id}','${mode}')">수정</button>`;
   const mgmt=!b.mgmtEnd?card('위탁운영계약','<div style="padding:6px 0;color:var(--muted)">위탁운영계약이 없습니다. 건물주가 직접 관리합니다.</div>',`<button class="btn sm" title="슈퍼관리자만" onclick="beOpen('${b.id}','mgmt')">수정</button>`)
     :`<div class="card" style="${d<=90?'border-color:var(--warn)':''}">
     <div class="ct">위탁운영계약<span class="ca"><button class="btn sm" title="슈퍼관리자만" onclick="beOpen('${b.id}','mgmt')">수정</button></span></div>
     <div class="cc"><dl class="dl"><dt>기간</dt><dd>${b.mgmtStart} ~ ${b.mgmtEnd}<span class="lock">${dday(b.mgmtEnd)>=0?`${num(dday(b.mgmtEnd))}일 남음`:'만료됨'}</span></dd>
-        <dt>관리 수수료</dt><dd>${b.fee}</dd>
-        <dt>운영방식</dt><dd>${b.mode}<span class="lock">위탁사 수취 후 정산은 2차</span></dd>
         <dt>위탁운영계약서</dt><dd>${b.docs.some(x=>/위탁운영계약서/.test(x.t))?'<span style="color:var(--pri);cursor:pointer">위탁운영계약서_카리나빌딩_2025.pdf</span>':'<span style="color:var(--muted)">자료보관에 없음</span>'}</dd>
         <dt>임대인</dt><dd>${b.owners[0].n}${b.owners.length>1?` 외 ${b.owners.length-1}`:''}</dd></dl>
       ${d<=90?`<div class="hint" style="color:var(--warn)">만료 90일 이내입니다. 갱신하지 않으면 이 건물의 관리 권한이 소멸합니다.</div>`:''}</div>
@@ -1885,10 +1890,9 @@ function t설정(b){
       <tbody>${BLOG[b.id].slice(0,5).map(x=>`<tr><td style="white-space:nowrap">${x.at.replace(/-/g,'.')}</td><td><span class="bd mu">${x.what}</span></td>
         <td>${x.det}${x.why?`<div class="c2">${x.why}</div>`:''}</td><td>${x.by}</td></tr>`).join('')}</tbody></table></div>`
       :'<div class="c2" style="margin:0">기록된 변경이 없습니다</div>',
-      `<span class="more" onclick="go('rec-1')">전체 이력 보기 →</span>`);
-  /* 자주 보는 것이 위 — 건물관리자 | 위탁운영계약 · 청구 규칙 | 운영 상태 · 변경 이력(한 줄 전체) */
-  const two=(x,y)=>`<div class="two">${x}${y}</div>`;   /* 나란한 카드는 높이를 맞춘다 */
-  return two(mgr,mgmt)+two(rule,opc)+log;
+      `<button class="btn sm" onclick="go('rec-1')">전체 이력</button>`);
+  /* 위탁운영계약 | 운영 상태 · 변경 이력(한 줄 전체). 청구 정보 · 건물관리자는 요약 탭 아래쪽 */
+  return `<div class="two">${mgmt}${opc}</div>`+log;
 }
 /* ═══ 건물 정보 수정 — 요약 탭 카드마다 「수정」 → 오른쪽 패널. 카드 단위로 고친다 → PRO-3 · 3.8 ═══ */
 let be=null;
@@ -1921,7 +1925,7 @@ function beSave(){be.tried=true; if(beMissing().length){render(true);return;}
     b.acct=f.acct.trim();b.acctName=f.an.trim();b.feeAcct=f.same?b.acct:f.fa.trim();b.feeAcctName=f.same?b.acctName:f.fn.trim();}
   if(be.card==='bond') Object.assign(b,{bondBank:f.bb.trim(),bondTel:f.bt.trim(),bondMax:numOf(f.max),bondNow:numOf(f.now)});
   if(be.card==='fac') b.fac.push(f.n.trim());
-  if(be.card==='mgmt'){Object.assign(b,{mgmtStart:f.ms,mgmtEnd:f.me,fee:f.fee.trim()||'—'}); blog(b.id,'위탁운영계약',`${f.ms} ~ ${f.me}`);}
+  if(be.card==='mgmt'){Object.assign(b,{mgmtStart:f.ms,mgmtEnd:f.me}); blog(b.id,'위탁운영계약',`${f.ms} ~ ${f.me}`);}
   DRAWER=null;be=null;render(true);}
 function beHTML(){
   if(DRAWER!=='bed'||!be) return '';
@@ -1959,8 +1963,7 @@ function beHTML(){
   if(be.card==='bond') body=R('은행 · 지점',T('bb'))+R('연락처',T('bt','',160))+R('채권최고금액',T('max','원',160))+R('실제채권금액',T('now','원',160))
     +'<div class="c2" style="margin:0">등기부등본 기준. 등기 변동 시 고칩니다</div>';
   if(be.card==='fac') body=R('공용시설',T('n','예: 회의실'))+`<div class="c2" style="margin:0">지우려면 공용시설 태그의 ✕를 누릅니다</div>`;
-  if(be.card==='mgmt') body=R('시작일',D('ms'))+R('종료일',D('me'))+R('관리 수수료',T('fee','예: 임대료의 5%'))
-    +R('운영방식','<span class="fv">임대인 직수취 <span class="lock">위탁사 수취 후 정산은 2차</span></span>')
+  if(be.card==='mgmt') body=R('시작일',D('ms'))+R('종료일',D('me'))
     +'<div class="c2" style="margin:0">위탁운영계약서는 자료보관 탭에 올립니다</div>';
   return `<div class="dro"><div class="ov" onclick="closeDrawer()"></div><div class="pn">
     <div class="dh"><div><div class="t">${TITLE}</div><div class="s">${b.name}</div></div>
@@ -2014,6 +2017,7 @@ function t요약(b){
       ${b.fac.map(f=>`<span class="tag">${f}<span class="x" style="cursor:pointer" onclick="facDel('${b.id}','${f}')">✕</span></span>`).join('')||'<span style="color:var(--muted)">등록된 공용시설이 없습니다.</span>'}
     </div></div>
   </div>
+  ${bInfoCards(b)}
 `;
 }
 
