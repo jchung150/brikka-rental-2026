@@ -679,8 +679,8 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
 /* 자료보관 줄을 누르면 상세 · 요약 탭 건물관리자에 회사·연락처·이메일·계정상태 */
 { const DM = new Function(stub + bare + '; return {PRO3,set tab3(v){tab3=v;}};')();
   DM.tab3 = '자료보관'; const hd = DM.PRO3('b1'); DM.tab3 = '요약'; const hs = DM.PRO3('b1');
-  r6.push(['자료보관 줄 클릭 → 상세 · 요약 탭 건물관리자에 회사 · 연락처 · 이메일 · 계정상태',
-    /<tr class="" style="cursor:pointer" onclick="docOpen\('b1',0\)">/.test(hd) && /\(주\)테온하우스/.test(hs) && /kim@teonhaus.kr/.test(hs) && /계정상태/.test(hs)]); }
+  r6.push(['자료보관 줄 클릭 → 상세 · 요약 탭 건물관리자(카드 목록, 표 아님)에 회사 · 연락처 · 이메일 · 계정상태',
+    /<tr class="" style="cursor:pointer" onclick="docOpen\('b1',0\)">/.test(hd) && /\(주\)테온하우스/.test(hs) && /kim@teonhaus.kr/.test(hs) && /정상 · 마지막 접속 08.10/.test(hs) && !/<th>이름 · 회사/.test(hs)]); }
 /* 수납 내역 더보기 — 받을 돈이 있는 계약(비씨에이전시)만 수납 처리가 눌리고, 다 받은 계약(에스씨케이컴퍼니)은 흐림 · 원장 보기는 모두 */
 { const MV = new Function(stub + bare + '; seedJuly(); return {PAY6,RC,MORE};')();
   MV.RC.f = {b:'b1', ym:'2026-07', st:''}; MV.MORE.length = 0; const h = MV.PAY6();
