@@ -5,7 +5,7 @@ Attachment A, Statement of Work (the "**SOW**")
 
 **Between:** THEONHOUSE INC. (the "**Client**") and POSITIVE THINKING PRESS INC. (the "**Developer**")
 
-**Effective Date of this Change Order:** October 10, 2026
+**Effective Date of this Change Order:** October 12, 2026
 
 Issued under Section 4 (Change in Specifications) of the Agreement and Section 1.4
 (Scope Adjustment Clause) of the SOW. Capitalized terms not defined here have the meanings
@@ -190,16 +190,3 @@ documentation for accounting and tax purposes in its own jurisdiction.
 Except as expressly amended by this Change Order, all terms of the Agreement and the SOW remain in
 full force and effect, including Agreement §2.2 (deemed acceptance), §5 (intellectual property),
 §7 (confidentiality), §8 (liquidated damages) and §10 (governing law and jurisdiction).
-
----
-
-**IN WITNESS WHEREOF**, the parties have executed this Change Order as of the Effective Date written
-above.
-
-| CLIENT | DEVELOPER |
-|---|---|
-| THEONHOUSE INC. | POSITIVE THINKING PRESS INC. |
-| Signature: ______________________ | Signature: ______________________ |
-| Name: JUAN CHUNG | Name: JUAN CHUNG |
-| Title: Chief Executive Officer | Title: Chief Executive Officer |
-| Date: ____________________ | Date: ____________________ |
