@@ -682,21 +682,40 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   DM.tab3 = '자료보관'; const hd = DM.PRO3('b1'); DM.tab3 = '요약'; const hs = DM.PRO3('b1');
   r6.push(['자료보관 줄 클릭 → 상세 · 요약 탭 건물관리자(카드 목록, 표 아님)에 이름 · 연락처 · 이메일',
     /<tr class="" style="cursor:pointer" onclick="docOpen\('b1',0\)">/.test(hd) && /<dt>김관리<\/dt>/.test(hs) && /kim@teonhaus.kr/.test(hs) && !/마지막 접속/.test(hs) && !/<th>이름 · 회사/.test(hs)]); }
-/* 계약 상세 요약 — 기본정보(건물 · 건물주 · 이 달 청구일 · 납부마감일) · 사업자구분 · 계약유형 · 렌트프리 · 기산일 · 보증금 3칸 · 중개사 · 메모 · 수정 패널이 저장됨 */
+/* 계약 상세 요약 — 기본정보(건물 · 건물주 · 이 달 청구일 · 납부마감일) · 사업자구분 · 렌트프리 · 기산일 · 보증금 3칸 · 중개사 · 메모 · 수정 패널이 저장됨 */
 { const CS = new Function(stub + bare + '; seedJuly(); return {CTR3,cx3Open,cx3Save,cx3HTML,CTRS,get cx3(){return cx3;},set tab3c(v){tab3c=v;}};')();
   CS.tab3c = '요약'; const h = CS.CTR3('b1본관101호'), h8 = CS.CTR3('b1본관801호'), h4 = CS.CTR3('b1본관401호');
   const cards = ['계약정보','임대정보','보증금 정보','주차정보','냉난방기','중개사','메모'].every(t => h.includes(`<div class="ct">${t}`)) && !h.includes('<div class="ct">기본정보') && h.indexOf('<div class="ct">계약정보') < h.indexOf('<div class="two">') && !/<dt>건물주<\/dt>/.test(h) && !/미납 잔액|보증금 납부마감일|일 남음|건물 설정 ·|수정 불가|대표임차인|억원/.test(h) && /<dt>임차인<\/dt>/.test(h)
     && /<dt>청구일<\/dt><dd>당월 \d+일<\/dd>/.test(h) && h.indexOf('<dt>납부마감일') < h.indexOf('<dt>기산일');
   const vals = /<dt>사업자구분<\/dt><dd>법인/.test(h) && /있음 · 2025.08.01 - 2025.09.30/.test(h) && /<dt>기산일<\/dt><dd>2025.10.01/.test(h)
-    && /보증금 반환예정일/.test(h) && /마포센트럴공인중개사사무소/.test(h8) && /확정기간후자동갱신/.test(h4) && !/예시값입니다/.test(h);
+    && /보증금 반환예정일/.test(h) && /마포센트럴공인중개사사무소/.test(h8) && !/계약유형|확정기간/.test(h4) && !/예시값입니다/.test(h);
   const c = CS.CTRS.find(x => x.no === '본관101호');
-  CS.cx3Open('b1본관101호', 'ctr'); const hp = CS.cx3HTML(); CS.cx3.type = '확정기간후자동갱신'; CS.cx3Save();
+  CS.cx3Open('b1본관101호', 'ctr'); const hp = CS.cx3HTML(); CS.cx3Save();
   CS.cx3Open('b1본관101호', 'dep'); CS.cx3.dep = '50000000'; CS.cx3.depRet = '2027-07-31'; CS.cx3.rf.ra = '999-99'; CS.cx3Save(); const rf = /999-99/.test(CS.CTR3('b1본관101호')) && /<dt>환불계좌<\/dt><dd><span style="color:var\(--warn\)">미입력/.test(CS.CTR3('b1본관401호'));
   CS.cx3Open('b1본관101호', 'ag'); const agp = !/중개사가 있음/.test(CS.cx3HTML()); CS.cx3.an = '시험중개'; CS.cx3Save();
   CS.cx3Open('b1본관101호', 'memo'); CS.cx3.memo = '시험 메모'; CS.cx3Save();
   const ag2 = /여의도빌딩중개법인|합정역|서교부동산|홍대오피스|상수타워|망원상가/.test(h) && /<dt>중개 수수료율<\/dt>/.test(h8) && /0\.9%/.test(h8);
   r6.push(['계약 상세 요약 — 계약정보가 첫 카드(폭 전체) · 남은 일수 없음 · 기본정보 없음 · 임대정보(미납 잔액 없음 · 청구일 · 납부마감일 · 기산일) · 보증금 정보(납부마감일 없음) · 보증금 · 주차 · 냉난방기 · 중개사 · 메모 · 청구일은 건물 설정의 실제 날짜 · 렌트프리 · 기산일 · 사업자구분은 패널에서 잠김 · 환불계좌는 보증금 정보(미입력 강조) · 수정 패널 4종 저장',
-    cards && vals && ag2 && agp && /해지 처리로 바뀝니다/.test(hp) && /사업자구분<\/span><span class="fv">법인 <span class="c2" style="margin:0">임차인 관리에서 고칩니다/.test(hp) && !c.kind && c.type === '확정기간후자동갱신' && c.dep === 5e7 && rf && c.depRet === '2027-07-31' && c.ag.n === '시험중개' && c.memo === '시험 메모']); }
+    cards && vals && ag2 && agp && /해지 처리로 바뀝니다/.test(hp) && /사업자구분<\/span><span class="fv">법인 <span class="c2" style="margin:0">임차인 관리에서 고칩니다/.test(hp) && !c.kind && !c.type && !/계약유형/.test(hp) && c.dep === 5e7 && rf && c.depRet === '2027-07-31' && c.ag.n === '시험중개' && c.memo === '시험 메모']); }
+/* 재계약(명세변경 01) — 복사 후 수정 · 시작일 고정 · 인상 예약만 복사 안 함 · 기산일 유지 · 준비중 · 이전/다음 계약 · 재계약 취소 · 재계약하는 달 일할 */
+{ const RN = new Function(stub + bare + '; seedJuly(); return {CTR3,CTR1,rnwOpen,rnwSave,rnwHTML,rnxOpen,rnxSave,rnwMonth,CTRS,CPPL,CHVAC,ctrEnd,itemFrom,vehOf,histC,get rn(){return rn;},get rx(){return rx;},set tab3c(v){tab3c=v;}};')();
+  const a = RN.rnwMonth(7000000, 7350000, '2026-09-15'), same = RN.rnwMonth(7000000, 7000000, '2026-09-15'), first = RN.rnwMonth(7000000, 7350000, '2026-10-01');
+  const calc = a.split && a.lines[0].amt === 3266666 && a.lines[1].amt === 3920000 && a.tot === 7186666 && !same.split && same.tot === 7000000 && !first.split && first.tot === 7350000;
+  const k = 'b1본관801호', c = RN.CTRS.find(x => x.no === '본관801호'); c.adj = [{d:'2027-03-01', rent:9900000}];
+  const end = RN.ctrEnd(c), nx = new Date(Date.parse(end + 'T00:00:00Z') + 864e5).toISOString().slice(0, 10), from0 = RN.itemFrom(c, '임대료'), nv = RN.vehOf(k).length;
+  RN.tab3c = '요약'; const h0 = RN.CTR3(k), l0 = RN.CTR1();
+  RN.rnwOpen(k); const p = RN.rnwHTML(), opened = RN.rn.start === nx && /복사하지 않음/.test(p) && /임대료 인상 예약/.test(p) && /변경 01/.test(p) && !/type="date" value="\d{4}-\d\d-\d\d" onchange="rn.start/.test(p);
+  RN.rn.rent = '9,999,000'; RN.rnwSave();
+  const n = RN.CTRS.find(x => x.prev === k), nk = n && n.key;
+  const made = n && n.st === '준비중' && n.base === nx && nk === k + '@' + nx && c.next === nk && n.adj.length === 0 && RN.itemFrom(n, '임대료') === from0
+    && RN.CPPL[nk] && RN.CHVAC[nk].length === 2 && n.vehP.length === nv && RN.vehOf(nk).length === 0 && c.end === end;
+  const hn = RN.CTR3(nk), ho = RN.CTR3(k);
+  const links = /<dt>이전 계약<\/dt>/.test(hn) && /<dt>다음 계약<\/dt>/.test(ho) && /준비중/.test(ho) && !/<dt>계약유형/.test(ho);
+  RN.rnwOpen(k); const once = !RN.rn;
+  RN.rnxOpen(nk); RN.rx.why = '임차인 사정 변경'; RN.rnxSave();
+  const undone = !RN.CTRS.includes(n) && !c.next && RN.histC(c).some(x => /재계약 취소/.test(x.sum) && x.why === '임차인 사정 변경');
+  r6.push(['재계약 — 시작일 = 기존 종료일 다음 날(고정) · 정보 복사 · 인상 예약만 비움 · 기산일 유지 · 차량은 시작일에 적용 · 준비중 · 이전/다음 계약 링크 · 한 번만 · 재계약 취소(사유) · 재계약하는 달 7,186,666 / 동결·1일 시작은 일할 없음 · 계약유형 없음',
+    calc && opened && made && links && once && undone && !/계약유형/.test(l0) && />더보기</.test(l0) && /⋮/.test(h0)]); }
 /* 계약 상세 탭 4개 · 임대정보 수정 패널(두 항목 · 연체이자율 · 대납) · 담당자 · 계약자 · 대리인 */
 { const RT = new Function(stub + bare + '; seedJuly(); return {CTR3,ciOpen,ciSave,ciHTML,cx3Open,cx3Save,ISSUE,CTRS,CPPL,CPARTY,get ci(){return ci;},get cx3(){return cx3;},set tab3c(v){tab3c=v;}};')();
   RT.tab3c = '요약'; const h = RT.CTR3('b1본관801호'), hb = RT.CTR3('b1본관301호');
