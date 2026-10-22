@@ -5430,7 +5430,8 @@ function render(keep){
   $('#crumb').innerHTML=crumb;$('#view').innerHTML=html+drawerHTML();
   if(keep) window.scrollTo(0,y); else if(!DRAWER) window.scrollTo(0,0);
 }
-addEventListener('hashchange',render);
+/* 화면을 옮기면 맨 위부터 보인다 — 이벤트 객체가 keep으로 들어가지 않게 감싼다 */
+addEventListener('hashchange',()=>render());
 /* 7/19 7월 청구서 발행 — 6월에 생긴 과납이 7월 청구에서 빠진다. 7월 입금보다 먼저다 */
 applyCredits('2026-07','2026-07-19');
 seedJuly();paintOp();paintFold();render();
