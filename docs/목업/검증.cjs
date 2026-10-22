@@ -697,25 +697,26 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   const ag2 = /여의도빌딩중개법인|합정역|서교부동산|홍대오피스|상수타워|망원상가/.test(h) && /<dt>중개 수수료율<\/dt>/.test(h8) && /0\.9%/.test(h8);
   r6.push(['계약 상세 요약 — 계약정보가 첫 카드(폭 전체) · 남은 일수 없음 · 기본정보 없음 · 임대정보(미납 잔액 없음 · 청구일 · 납부마감일 · 기산일) · 보증금 정보(납부마감일 없음) · 보증금 · 주차 · 냉난방기 · 중개사 · 메모 · 청구일은 건물 설정의 실제 날짜 · 렌트프리 · 기산일 · 사업자구분은 패널에서 잠김 · 환불계좌는 보증금 정보(미입력 강조) · 수정 패널 4종 저장',
     cards && vals && ag2 && agp && /해지 처리로 바뀝니다/.test(hp) && /사업자구분<\/span><span class="fv">법인 <span class="c2" style="margin:0">임차인 관리에서 고칩니다/.test(hp) && !c.kind && !c.type && !/계약유형/.test(hp) && c.dep === 5e7 && rf && c.depRet === '2027-07-31' && c.ag.n === '시험중개' && c.memo === '시험 메모']); }
-/* 재계약(명세변경 01) — 복사 후 수정 · 시작일 고정 · 인상 예약만 복사 안 함 · 기산일 유지 · 준비중 · 이전/다음 계약 · 재계약 취소 · 재계약하는 달 일할 */
-{ const RN = new Function(stub + bare + '; seedJuly(); return {CTR3,CTR1,rnwOpen,rnwSave,rnwHTML,rnxOpen,rnxSave,rnwMonth,CTRS,CPPL,CHVAC,ctrEnd,itemFrom,vehOf,histC,get rn(){return rn;},get rx(){return rx;},set tab3c(v){tab3c=v;}};')();
+/* 재계약(명세변경 01) — 계약 등록과 같은 전체 화면(CTR-4) · 정보 복사 · 시작일 · 임차인 · 기산일 잠금 · 인상 예약만 비움 · 준비중 · 이전/다음 계약 · 재계약 취소 · 재계약하는 달 일할 */
+{ const RN = new Function(stub + bare + '; seedJuly(); return {CTR3,CTR1,CTR2,rnwOpen,rnwInit,ncSave,rnxOpen,rnxSave,rnwMonth,CTRS,CPPL,CHVAC,ctrEnd,itemFrom,vehOf,histC,get nc(){return nc;},get rx(){return rx;},set tab3c(v){tab3c=v;}};')();
   const a = RN.rnwMonth(7000000, 7350000, '2026-09-15'), same = RN.rnwMonth(7000000, 7000000, '2026-09-15'), first = RN.rnwMonth(7000000, 7350000, '2026-10-01');
   const calc = a.split && a.lines[0].amt === 3266666 && a.lines[1].amt === 3920000 && a.tot === 7186666 && !same.split && same.tot === 7000000 && !first.split && first.tot === 7350000;
   const k = 'b1본관801호', c = RN.CTRS.find(x => x.no === '본관801호'); c.adj = [{d:'2027-03-01', rent:9900000}];
   const end = RN.ctrEnd(c), nx = new Date(Date.parse(end + 'T00:00:00Z') + 864e5).toISOString().slice(0, 10), from0 = RN.itemFrom(c, '임대료'), nv = RN.vehOf(k).length;
   RN.tab3c = '요약'; const h0 = RN.CTR3(k), l0 = RN.CTR1();
-  RN.rnwOpen(k); const p = RN.rnwHTML(), opened = RN.rn.start === nx && /복사하지 않음/.test(p) && /임대료 인상 예약/.test(p) && /변경 01/.test(p) && !/type="date" value="\d{4}-\d\d-\d\d" onchange="rn.start/.test(p);
-  RN.rn.rent = '9,999,000'; RN.rnwSave();
+  const p = RN.CTR2(k), nc = RN.nc;
+  const opened = nc.rnw === k && nc.start === nx && nc.adj.length === 0 && nc.ten === c.ten && /CTR-4/.test(p) && /재계약/.test(p) && /기존 계약의 인상 예약은 복사하지 않습니다/.test(p)
+    && !/onchange="ncSet\('start'/.test(p) && !/중복 조회/.test(p) && /재계약 등록/.test(p) && !/웰컴 메일/.test(p) && /정하늘/.test(p) && /시스템에어컨/.test(p) && !/변경 01/.test(p);
+  nc.rent = '9,999,000'; RN.ncSave(false);
   const n = RN.CTRS.find(x => x.prev === k), nk = n && n.key;
   const made = n && n.st === '준비중' && n.base === nx && nk === k + '@' + nx && c.next === nk && n.adj.length === 0 && RN.itemFrom(n, '임대료') === from0
-    && RN.CPPL[nk] && RN.CHVAC[nk].length === 2 && n.vehP.length === nv && RN.vehOf(nk).length === 0 && c.end === end;
+    && RN.CPPL[nk] && RN.CPPL[nk].length === 2 && RN.CHVAC[nk].length === 2 && n.vehP.length === nv && RN.vehOf(nk).length === 0 && c.end === end && n.ten === c.ten;
   const hn = RN.CTR3(nk), ho = RN.CTR3(k);
   const links = /<dt>이전 계약<\/dt>/.test(hn) && /<dt>다음 계약<\/dt>/.test(ho) && /준비중/.test(ho) && !/<dt>계약유형/.test(ho);
-  RN.rnwOpen(k); const once = !RN.rn;
   RN.rnxOpen(nk); RN.rx.why = '임차인 사정 변경'; RN.rnxSave();
   const undone = !RN.CTRS.includes(n) && !c.next && RN.histC(c).some(x => /재계약 취소/.test(x.sum) && x.why === '임차인 사정 변경');
-  r6.push(['재계약 — 시작일 = 기존 종료일 다음 날(고정) · 정보 복사 · 인상 예약만 비움 · 기산일 유지 · 차량은 시작일에 적용 · 준비중 · 이전/다음 계약 링크 · 한 번만 · 재계약 취소(사유) · 재계약하는 달 7,186,666 / 동결·1일 시작은 일할 없음 · 계약유형 없음',
-    calc && opened && made && links && once && undone && !/계약유형/.test(l0) && />더보기</.test(l0) && /⋮/.test(h0)]); }
+  r6.push(['재계약 — 계약 등록과 같은 전체 화면(CTR-4) · 시작일 = 기존 종료일 다음 날(잠금) · 임차인 잠금 · 정보 복사(담당자 · 냉난방기 · 차량) · 인상 예약만 비움 · 기산일 유지 · 차량은 시작일에 적용 · 준비중 · 이전/다음 계약 링크 · 재계약 취소(사유) · 재계약하는 달 7,186,666 / 동결·1일 시작은 일할 없음 · 계약유형 없음',
+    calc && opened && made && links && undone && !/계약유형/.test(l0) && />더보기</.test(l0) && /⋮/.test(h0)]); }
 /* 계약 상세 탭 4개 · 임대정보 수정 패널(두 항목 · 연체이자율 · 대납) · 담당자 · 계약자 · 대리인 */
 { const RT = new Function(stub + bare + '; seedJuly(); return {CTR3,ciOpen,ciSave,ciHTML,cx3Open,cx3Save,ISSUE,CTRS,CPPL,CPARTY,get ci(){return ci;},get cx3(){return cx3;},set tab3c(v){tab3c=v;}};')();
   RT.tab3c = '요약'; const h = RT.CTR3('b1본관801호'), hb = RT.CTR3('b1본관301호');
