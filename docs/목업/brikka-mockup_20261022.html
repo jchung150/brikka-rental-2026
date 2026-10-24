@@ -4484,7 +4484,7 @@ function ncInit(){
       kind:'법인',biz:'',found:null,ten:'',ceo:'',addr:'',item:'',alias:'',
       pn:'',pt:'',ptel:'',pmail:'',diff:false,cn:'',cbiz:'',cceo:'',ctel:'',cmail:'',caddr:'',rbank:'',racct:'',rname:'',
       proxy:false,xn:'',xtel:'',xmail:'',xaddr:'',an:'',aceo:'',ano:'',atel:'',aaddr:'',
-      dep:'',depRet:'',park:'0',hvs:[],rent:'',mgmt:'',rentCy:'매월',mgmtCy:'매월',late:false,lateD:'',rf:'',rfM:'',rfEnd:'',rfRent:true,rfMgmt:false,rfVar:false,
+      dep:'',depRet:'',park:'0',hvs:[],rent:'',mgmt:'',rentCy:'매월',mgmtCy:'매월',late:false,lateD:'',rf:'없음',rfM:'',rfEnd:'',rfRent:true,rfMgmt:false,
       adj:[],files:[],memo:'',tried:false};
 }
 function ncSet(f,v){
@@ -4534,7 +4534,7 @@ function ncSave(welcome){
     ag:nc.an.trim()?{n:nc.an.trim(),ceo:nc.aceo,no:nc.ano,tel:nc.atel,addr:nc.aaddr,fee:String(nc.afee||'').trim()}:null,fresh:true,
     /* 기산일 — 렌트프리면 체크한 항목만 기산일부터, 나머지는 계약시작일부터 청구한다 */
     from:ncFrom()!==nc.start?ncFrom():null,
-    adj:nc.adj.filter(x=>x.d&&(numOf(x.rent)||numOf(x.mgmt))).map(x=>({d:x.d,rent:numOf(x.rent)||null,mgmt:numOf(x.mgmt)||null})),rf:nc.rf==='있음'?{end:nc.rfEnd,rent:nc.rfRent,mgmt:nc.rfMgmt,vars:nc.rfVar}:null,
+    adj:nc.adj.filter(x=>x.d&&(numOf(x.rent)||numOf(x.mgmt))).map(x=>({d:x.d,rent:numOf(x.rent)||null,mgmt:numOf(x.mgmt)||null})),rf:nc.rf==='있음'?{end:nc.rfEnd,rent:nc.rfRent,mgmt:nc.rfMgmt,vars:false}:null,
     it:[['임대료',ncSup(numOf(nc.rent))],['고정관리비',ncSup(numOf(nc.mgmt))]]};   /* 정산 항목은 건물을 따른다 */
   if(CTRS.some(x=>x.b===c.b&&x.no===c.no)) c.key=`${c.b}${c.no}@${c.base}`;
   if(nc.rnw) rnwLink(c);
@@ -4656,8 +4656,7 @@ function CTR2(rk){
         +(nc.rf==='있음'?R('기간',`${T('rfM','',60)}<span class="c2" style="margin:0">개월</span>
               <span class="c2" style="margin:0 2px">또는 끝나는 날</span>${D('rfEnd')}`,1)
           +`<div class="c2" style="margin:-4px 0 9px 114px">${!nc.start?'계약시작일을 먼저 넣으세요':rfTo?(rfDays>0?`${d8(nc.start)} ~ ${d8(rfTo)} · <b style="color:var(--ink)">${rfDays}일</b>`:'<b style="color:var(--warn)">끝나는 날이 계약시작일보다 앞입니다</b>'):'개월(1.5 가능)을 넣거나 끝나는 날을 직접 고르세요'}</div>`
-          +R('대상',`<div style="display:flex;gap:14px;flex-wrap:wrap">${C('rfRent','임대료')}${C('rfMgmt','고정관리비')}${C('rfVar','전기·수도 등 청구항목')}</div>`)
-          +'<div class="c2" style="margin:0 0 10px;white-space:normal">체크한 항목은 렌트프리 기간에 청구하지 않고 기산일부터 청구합니다. 체크하지 않은 항목은 계약시작일부터 청구합니다.</div>':'')
+          +R('대상',`<div style="display:flex;gap:14px;flex-wrap:wrap">${C('rfRent','임대료')}${C('rfMgmt','고정관리비')}</div>`):'')
         +(nc.rf!=='있음'?R('',RW?'<label class="ck" style="cursor:default;color:var(--faint)"><input type="checkbox" disabled>기산일을 따로 정하기 (소급 등)</label><span class="c2" style="margin:0">재계약은 기존 계약에서 이어집니다</span>'
             :C('late','기산일을 따로 정하기 (소급 등)')):'')
         +(nc.rf!=='있음'&&nc.late&&!RW?R('기산일 지정',D('lateD')):'')

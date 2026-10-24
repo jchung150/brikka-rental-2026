@@ -315,11 +315,11 @@ const blk = K.ncClash() && K.ncClash().block;
 K.nc.biz = '211-86-40519'; K.ncLookup(); K.ncSet('pmail', 'a@b.kr'); K.ncSet('rent', '3300000'); K.ncSet('mgmt', '550000');
 const n0 = K.CTRS.length; K.ncSave(false); const kept2 = K.CTRS.length === n0;
 K.ncSet('start', '2026-11-01'); const endAuto = K.nc.end === '2028-10-31';
-K.ncSave(false); const needRf = K.CTRS.length === n0;
+const needRf = K.nc.rf === '없음' && !/전기·수도 등 청구항목|체크한 항목은/.test((K.ncSet('rf', '있음'), K.CTR2()));
 K.ncSet('rf', '있음'); K.ncSet('rfM', '1.5'); const r15 = K.nc.rfEnd === '2026-12-15';
 K.ncSet('rfEnd', '2026-12-05'); const d35 = K.nc.rfEnd === '2026-12-05' && K.nc.rfM === '';
 K.ncSave(false); const nw = K.CTRS[K.CTRS.length - 1];
-r6.push(['계약 등록 — 겹침 차단 · 렌트프리 여부 필수 · 렌트프리 1.5개월 → 12/15 · 끝나는 날 12/5 직접 → 기산일 2026.12.06 · 부가세 포함 330만 → 공급가액 300만',
+r6.push(['계약 등록 — 겹침 차단 · 렌트프리 기본 없음 · 대상은 임대료 · 고정관리비만 · 렌트프리 1.5개월 → 12/15 · 끝나는 날 12/5 직접 → 기산일 2026.12.06 · 부가세 포함 330만 → 공급가액 300만',
   blk && kept2 && endAuto && needRf && r15 && d35 && nw.from === '2026-12-06' && nw.rf.end === '2026-12-05' && nw.it[0][1] === 3000000 && nw.it[1][1] === 500000 && K.CTRS.length === n0 + 1 && nw.st === '준비중' && nw.ten === '(주)비씨에이전시'
   && K.ctrEnd(nw) === '2028-10-31' && nw.key === 'b1본관302호@2026-11-01' && !K.ledgerOf(nw.key).rows.some(r => r.type === '보증금 예치')
   && K.ledgerOf('b1본관302호').rows.some(r => r.type === '보증금 예치')]);
