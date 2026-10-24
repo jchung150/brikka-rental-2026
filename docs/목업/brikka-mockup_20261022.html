@@ -209,6 +209,7 @@ tr.vacr td{background:var(--warn-bg)}
 .fr select,.fr input[type=text],.fr input[type=date]{flex:1;border:1px solid var(--line);
   background:var(--bg);padding:6px 9px;border-radius:var(--r-sm);font-size:12.5px;font-family:inherit}
 .fr .fv{flex:1}
+.fr input:disabled,.fr select:disabled{background:var(--side-hov);color:var(--ink-2);cursor:not-allowed;opacity:1}
 .fr .kw{min-width:92px;color:var(--ink-2);font-size:12.5px;white-space:nowrap}
 .ck{display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-size:12.5px}
 .fr .fk b{font-weight:600}
@@ -4596,34 +4597,33 @@ function CTR2(rk){
   const R=(k,body,req)=>`<div class="fr"><span class="fk">${k}${req?' <b style="color:var(--warn)">*</b>':''}</span>${body}</div>`;
   const d8=d=>d?d.replace(/-/g,'.'):'';
   const card=(t,body,sub)=>`<div class="card" style="margin:0 0 16px"><div class="ct">${t}${sub?`<span class="sub">${sub}</span>`:''}</div><div class="cc">${body}</div></div>`;
+  /* 재계약은 계약 등록과 같은 칸 · 같은 순서. 기존 계약에서 이어지는 칸만 잠근다 */
+  const LK=(v,ty)=>`<input type="${ty||'text'}" value="${v||''}" disabled>`, LS=v=>`<select disabled><option>${v}</option></select>`;
   const left=
-    card('기본 정보',RW?
-      R('건물',FV(bd.name))+R('유닛',FV(nc.no))+R('계약상태',FV('준비중','시작일에 진행중이 됩니다'))
-      +R('계약시작일',FV(d8(nc.start),'기존 종료일 다음 날'))
-      +R('계약종료일',D('end'),1)+R('연체이자율',`${T('rate','',70)}<span class="c2">연 %</span>`):
-      R('건물',`<select onchange="ncSet('b',this.value)">${BUILDINGS.map(x=>bOp(x.id)==='비운영중'
+    card('기본 정보',
+      R('건물',RW?LS(bd.name):`<select onchange="ncSet('b',this.value)">${BUILDINGS.map(x=>bOp(x.id)==='비운영중'
           ?`<option value="${x.id}" disabled>${x.name} (비운영중)</option>`:`<option value="${x.id}" ${nc.b===x.id?'selected':''}>${x.name}</option>`).join('')}</select>`,1)
-      +R('유닛',U.length?S('no',[['','유닛 선택'],...U.map(u=>{const on=CTRS.find(c=>c.b===nc.b&&c.no===u.no&&c.st==='진행중');
+      +R('유닛',RW?LS(nc.no):U.length?S('no',[['','유닛 선택'],...U.map(u=>{const on=CTRS.find(c=>c.b===nc.b&&c.no===u.no&&c.st==='진행중');
           return [u.no,`${u.no} · ${u.st==='비운영중'?'비운영중':on?`${on.ten} (${d8(ctrEnd(on))} 종료)`:'공실'}`];})])
           :'<span class="c2" style="margin:0">목업의 유닛 자료는 카리나빌딩뿐입니다</span>',1)
-      +(cl?`<div class="prev ${cl.block?'warn2':''}" style="margin:0 0 10px"><div class="pt">${cl.block?'기간이 겹치는 진행중 계약이 있습니다':'기간이 겹치는 준비중 계약이 있습니다'}</div>
+      +(cl&&!RW?`<div class="prev ${cl.block?'warn2':''}" style="margin:0 0 10px"><div class="pt">${cl.block?'기간이 겹치는 진행중 계약이 있습니다':'기간이 겹치는 준비중 계약이 있습니다'}</div>
           ${cl.c.ten} · ${d8(cl.c.base)} - ${d8(cl.end)}.
           ${cl.block?`계약시작일을 <b>${d8(new Date((dnum(cl.end)+1)*864e5).toISOString().slice(0,10))}</b> 이후로 정해야 등록할 수 있습니다.`:'저장은 할 수 있습니다.'}</div>`:'')
-      +R('계약상태',S('st',['준비중','진행중']))
-      +R('계약시작일',D('start'),1)
-      +R('계약종료일',D('end'))
+      +R('계약상태',RW?LS('준비중')+'<span class="c2" style="margin:0">시작일에 진행중</span>':S('st',['준비중','진행중']))
+      +R('계약시작일',RW?LK(nc.start,'date')+'<span class="c2" style="margin:0">기존 종료일 다음 날</span>':D('start'),1)
+      +R('계약종료일',D('end'),RW?1:0)
       +R('연체이자율',`${T('rate','',70)}<span class="c2">연 %</span>`))
-    +(RW?card('임차인 정보','<div class="c2" style="margin:-4px 0 10px">재계약은 같은 임차인과 맺습니다. 임차인 정보는 임차인 관리에서 고칩니다</div>'
-      +R('사업자등록번호',FV(nc.biz||'—'))+R('사업자구분',FV(nc.kind))+R('상호',FV(nc.ten))+R('대표자명',FV(nc.ceo||'—'))+R('입금자명',FV(nc.alias||'—'))):'')
-    +(RW?'':card('임차인 정보','<div class="c2" style="margin:-4px 0 10px">사업자등록번호로 이 시스템에 이미 등록된 임차인인지 확인합니다</div>'
-      +R('사업자등록번호',`<input type="text" value="${nc.biz}" placeholder="000-00-00000" onchange="nc.biz=this.value;nc.found=null;render(true)">
+    +card('임차인 정보',(RW?'<div class="c2" style="margin:-4px 0 10px">재계약은 같은 임차인과 맺습니다. 임차인 정보는 임차인 관리에서 고칩니다</div>'
+        :'<div class="c2" style="margin:-4px 0 10px">사업자등록번호로 이 시스템에 이미 등록된 임차인인지 확인합니다</div>')
+      +R('사업자등록번호',RW?LK(nc.biz)+'<button class="btn sm" disabled>중복 조회</button>'
+        :`<input type="text" value="${nc.biz}" placeholder="000-00-00000" onchange="nc.biz=this.value;nc.found=null;render(true)">
           <button class="btn sm" onclick="ncLookup()">중복 조회</button>`,1)
-      +(nc.found?`<div class="prev" style="margin:0 0 10px"><div class="pt">${nc.found==='기존'?'이미 등록된 임차인입니다':'처음 등록하는 임차인입니다'}</div>
+      +(nc.found&&!RW?`<div class="prev" style="margin:0 0 10px"><div class="pt">${nc.found==='기존'?'이미 등록된 임차인입니다':'처음 등록하는 임차인입니다'}</div>
           ${nc.found==='기존'?'이 임차인의 정보와 입금자명을 불러왔습니다. 같은 임차인을 두 번 만들지 않습니다.':'저장하면 임차인 목록에 새로 추가됩니다.'}</div>`:'')
-      +R('사업자구분',S('kind',['법인','개인사업자']))+R('상호',T('ten','예: (주)한빛'),1)+R('대표자명',T('ceo'))
-      +R('사업장주소',T('addr'))+R('업태 · 종목',T('item','예: 서비스 · 광고대행'))
-      +R('입금자명',T('alias','통장에 찍히는 이름. 쉼표로 여러 개'))
-      +'<div class="c2" style="margin:0">입금자명을 등록해 두면 입금 매칭에서 자동으로 이 임차인에게 연결됩니다</div>'))
+      +R('사업자구분',RW?LS(nc.kind):S('kind',['법인','개인사업자']))+R('상호',RW?LK(nc.ten):T('ten','예: (주)한빛'),1)+R('대표자명',RW?LK(nc.ceo):T('ceo'))
+      +R('사업장주소',RW?LK(nc.addr):T('addr'))+R('업태 · 종목',RW?LK(nc.item):T('item','예: 서비스 · 광고대행'))
+      +R('입금자명',RW?LK(nc.alias):T('alias','통장에 찍히는 이름. 쉼표로 여러 개'))
+      +'<div class="c2" style="margin:0">입금자명을 등록해 두면 입금 매칭에서 자동으로 이 임차인에게 연결됩니다</div>')
     +card('담당자 정보',R('담당자명',T('pn'))+R('직위',T('pt'))+R('연락처',T('ptel'))+R('이메일',T('pmail','청구서를 받는 주소'),1),'청구서 수신 · 요청 응대 창구')
     +card('계약자 · 대리인 · 중개사',
       C('diff','임차인과 계약자가 다름')
@@ -4633,32 +4633,39 @@ function CTR2(rk){
       +(nc.proxy?`<div style="margin-top:10px">${R('대리인 이름',T('xn'))+R('연락처',T('xtel'))+R('이메일',T('xmail'))+R('주소',T('xaddr'))}</div>`:'')
       +`<div class="fl" style="margin-top:14px">중개사</div>`
       +`<div style="margin-top:6px">${R('중개사무소',T('an'))+R('대표자명',T('aceo'))+R('등록번호',T('ano'))+R('연락처',T('atel'))+R('소재지',T('aaddr'))+R('중개 수수료율',`${T('afee','',70)}<span class="c2" style="margin:0">% · 몰라도 됩니다. 나중에 계약 상세에서 넣습니다</span>`)}</div>`);
+  const cy=f=>`<select title="반복 주기" onchange="ncSet('${f}',this.value)" style="flex:none;width:84px">${ITEM_CYCLES.map(o=>`<option ${nc[f]===o?'selected':''}>${o}</option>`).join('')}</select>`;
   const right=
-    card('임대료 · 관리비','<div class="c2" style="margin:-4px 0 10px">부가세를 포함한 금액을 넣고, 오른쪽에서 반복 주기를 고릅니다(보통 매월)</div>'
-      +R('임대료',N('rent','금액 (부가세 포함)')+`<select title="반복 주기" onchange="ncSet('rentCy',this.value)" style="flex:none;width:84px">${ITEM_CYCLES.map(o=>`<option ${nc.rentCy===o?'selected':''}>${o}</option>`).join('')}</select>`,1)
-      +R('고정관리비',N('mgmt','받지 않으면 0')+`<select title="반복 주기" onchange="ncSet('mgmtCy',this.value)" style="flex:none;width:84px">${ITEM_CYCLES.map(o=>`<option ${nc.mgmtCy===o?'selected':''}>${o}</option>`).join('')}</select>`,1)
+    card('임대료 · 관리비',(RW?'<div class="c2" style="margin:-4px 0 10px">기존 금액을 복사해 두었습니다. 바뀌었으면 새 금액을 넣습니다(부가세 포함)</div>'
+        +R('기존 임대료',LK(won(Math.round(ctrAmt(RW,'임대료')*1.1)))+LS(itemCycle(RW,'임대료')).replace('<select','<select style="flex:none;width:84px"'))
+        +R('기존 고정관리비',LK(won(Math.round(ctrAmt(RW,'고정관리비')*1.1)))+LS(itemCycle(RW,'고정관리비')).replace('<select','<select style="flex:none;width:84px"'))
+        :'<div class="c2" style="margin:-4px 0 10px">부가세를 포함한 금액을 넣고, 오른쪽에서 반복 주기를 고릅니다(보통 매월)</div>')
+      +R(RW?'새 임대료':'임대료',N('rent','금액 (부가세 포함)')+cy('rentCy'),1)
+      +R(RW?'새 고정관리비':'고정관리비',N('mgmt','받지 않으면 0')+cy('mgmtCy'),1)
       +R('청구일 · 마감일',`<span class="fv">${bd.billDay} · ${bd.dueDay} <span class="c2">건물 설정</span></span>`)
-      +(RW?`<div class="c2" style="margin:0 0 8px 114px">기존 임대료 ${won(Math.round(ctrAmt(RW,'임대료')*1.1))} · 고정관리비 ${won(Math.round(ctrAmt(RW,'고정관리비')*1.1))}</div>`:''))
-    +(RW?card('기산일',R('기산일',FV(d8(nc.rfrom)))
-        +(nc.mfrom!==nc.rfrom?R('',FV(`고정관리비 ${d8(nc.mfrom)}`)):'')):'')
-    +(RW?'':card('렌트프리 · 기산일',(()=>{
+      +(()=>{
       const from=ncFrom(), rfTo=nc.rf==='있음'?nc.rfEnd:'', rfDays=rfTo&&nc.start?dnum(rfTo)-dnum(nc.start)+1:0;
-      return R('렌트프리',`<label class="ck"><input type="radio" name="rf" ${nc.rf==='있음'?'checked':''} onchange="ncSet('rf','있음')">있음</label>
+      /* 기산일은 항목마다 — 렌트프리 대상이면 끝난 다음 날, 아니면 재계약은 기존 계약의 기산일 · 새 계약은 계약시작일(따로 정했으면 그 날) */
+      const fromOf=(on,old)=>{
+        if(nc.rf==='있음'&&on) return `<b>${from?d8(from):'—'}</b> <span class="c2">렌트프리가 끝난 다음 날</span>`;
+        if(RW) return `<b>${d8(old)}</b>`;
+        if(nc.late) return `<b>${nc.lateD?d8(nc.lateD):'—'}</b> <span class="c2">${nc.lateD&&nc.start&&dnum(nc.lateD)<dnum(nc.start)?'소급':'따로 정한 날'}</span>`;
+        return `<b>${nc.start?d8(nc.start):'—'}</b> <span class="c2">계약시작일과 같음</span>`;};
+      return `<div class="fl" style="margin-top:14px">렌트프리 · 기산일</div><div style="margin-top:6px"></div>`
+        +R('렌트프리',`<label class="ck"><input type="radio" name="rf" ${nc.rf==='있음'?'checked':''} onchange="ncSet('rf','있음')">있음</label>
             <label class="ck" style="margin-left:14px"><input type="radio" name="rf" ${nc.rf==='없음'?'checked':''} onchange="ncSet('rf','없음')">없음</label>`,1)
         +(nc.rf==='있음'?R('기간',`${T('rfM','',60)}<span class="c2" style="margin:0">개월</span>
               <span class="c2" style="margin:0 2px">또는 끝나는 날</span>${D('rfEnd')}`,1)
           +`<div class="c2" style="margin:-4px 0 9px 114px">${!nc.start?'계약시작일을 먼저 넣으세요':rfTo?(rfDays>0?`${d8(nc.start)} ~ ${d8(rfTo)} · <b style="color:var(--ink)">${rfDays}일</b>`:'<b style="color:var(--warn)">끝나는 날이 계약시작일보다 앞입니다</b>'):'개월(1.5 가능)을 넣거나 끝나는 날을 직접 고르세요'}</div>`
           +R('대상',`<div style="display:flex;gap:14px;flex-wrap:wrap">${C('rfRent','임대료')}${C('rfMgmt','고정관리비')}${C('rfVar','전기·수도 등 청구항목')}</div>`)
           +'<div class="c2" style="margin:0 0 10px;white-space:normal">체크한 항목은 렌트프리 기간에 청구하지 않고 기산일부터 청구합니다. 체크하지 않은 항목은 계약시작일부터 청구합니다.</div>':'')
-        +R('기산일',nc.rf==='있음'
-            ?`<span class="fv"><b>${from?d8(from):'—'}</b> <span class="c2">렌트프리가 끝난 다음 날</span></span>`
-            :nc.late?D('lateD')+`<span class="c2" style="white-space:nowrap">${nc.lateD&&nc.start&&dnum(nc.lateD)<dnum(nc.start)?'소급':''}</span>`
-            :`<span class="fv">${nc.start?d8(nc.start):'—'} <span class="c2">계약시작일과 같음</span></span>`)
-        +(nc.rf!=='있음'?R('',C('late','기산일을 따로 정하기 (소급 등)')):'');})()))
+        +(nc.rf!=='있음'?R('',RW?'<label class="ck" style="cursor:default;color:var(--faint)"><input type="checkbox" disabled>기산일을 따로 정하기 (소급 등)</label><span class="c2" style="margin:0">재계약은 기존 계약에서 이어집니다</span>'
+            :C('late','기산일을 따로 정하기 (소급 등)')):'')
+        +(nc.rf!=='있음'&&nc.late&&!RW?R('기산일 지정',D('lateD')):'')
+        +R('임대료 기산일',`<span class="fv">${fromOf(nc.rfRent,nc.rfrom)}</span>`)
+        +R('관리비 기산일',`<span class="fv">${fromOf(nc.rfMgmt,nc.mfrom)}</span>`);})())
     +card('보증금',R('보증금',N('dep','약정액'))+R('반환예정일',D('depRet'))+R('환불계좌',`${T('rbank','은행',90)}${T('racct','계좌번호')}${T('rname','예금주',90)}`))
     +card('주차',R('무료 주차',`${T('park','',70)}<span class="c2" style="margin:0">대</span>`)
-      +(RW?'<div class="c2" style="margin:0">등록 차량은 그대로 복사됩니다. 저장한 뒤 계약 상세의 주차정보에서 추가 · 수정 · 삭제합니다</div>'
-        :'<div class="c2" style="margin:0">등록 차량은 저장한 뒤 계약 상세의 주차정보에서 넣습니다</div>'))
+      +(RW?'':'<div class="c2" style="margin:0">등록 차량은 저장한 뒤 계약 상세의 주차정보에서 넣습니다</div>'))
     +card('냉난방기',nc.hvs.map((x,i)=>`<div style="display:flex;gap:6px;align-items:center;margin-bottom:8px">
         <input type="text" value="${x.n}" placeholder="종류 (예: 시스템에어컨)" onchange="nc.hvs[${i}].n=this.value" style="flex:1;min-width:0">
         <input type="text" inputmode="numeric" value="${x.q}" onchange="nc.hvs[${i}].q=this.value" style="width:50px;text-align:right"><span class="c2" style="margin:0">대</span>
@@ -4864,9 +4871,11 @@ function rnwInit(k){
 function rnwLink(n){
   const k=nc.rnw, c=CTRS.find(x=>ckey(x)===k), d8=d=>d.replace(/-/g,'.');
   c.end=ctrEnd(c);   /* 기존 계약 종료일을 굳힌다 */
-  Object.assign(n,{st:'준비중',kind:ctrKind(c),prev:k,key:`${c.b}${c.no}@${n.base}`,from:nc.rfrom,rf:null,
+  const rfF=nc.rf==='있음'?ncFrom():null;   /* 재계약에도 렌트프리를 줄 수 있다. 대상 항목만 끝난 다음 날부터, 나머지는 기존 기산일 */
+  Object.assign(n,{st:'준비중',kind:ctrKind(c),prev:k,key:`${c.b}${c.no}@${n.base}`,from:rfF||nc.rfrom,
     vehP:vehOf(k).map(v=>({...v}))});
-  if(nc.mfrom!==nc.rfrom) itemMeta(n,'고정관리비').from=nc.mfrom;
+  itemMeta(n,'임대료').from=rfF&&nc.rfRent?rfF:nc.rfrom;
+  itemMeta(n,'고정관리비').from=rfF&&nc.rfMgmt?rfF:nc.mfrom;
   if(c.payTo) n.payTo=c.payTo;
   c.next=n.key;
   const same=numOf(nc.rent)===Math.round(ctrAmt(c,'임대료')*1.1)&&numOf(nc.mgmt)===Math.round(ctrAmt(c,'고정관리비')*1.1);
