@@ -705,7 +705,7 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   const end = RN.ctrEnd(c), nx = new Date(Date.parse(end + 'T00:00:00Z') + 864e5).toISOString().slice(0, 10), from0 = RN.itemFrom(c, '임대료'), nv = RN.vehOf(k).length;
   RN.tab3c = '요약'; const h0 = RN.CTR3(k), l0 = RN.CTR1();
   const p = RN.CTR2(k), nc = RN.nc;
-  const opened = nc.rnw === k && nc.start === nx && nc.adj.length === 0 && nc.ten === c.ten && /CTR-4/.test(p) && /재계약/.test(p) && /기존 계약의 인상 예약은 복사하지 않습니다/.test(p)
+  const opened = nc.rnw === k && nc.start === nx && nc.adj.length === 0 && nc.ten === c.ten && /CTR-4/.test(p) && /재계약/.test(p) && !/복사하지 않습니다|합의서에서 바뀐|하루라도 비면|월분 청구서|0000년 00월/.test(p) && /등록 차량은 그대로 복사됩니다/.test(p)
     && !/onchange="ncSet\('start'/.test(p) && !/중복 조회/.test(p) && /재계약 등록/.test(p) && !/웰컴 메일/.test(p) && /정하늘/.test(p) && /시스템에어컨/.test(p) && !/변경 01/.test(p);
   nc.rent = '9,999,000'; RN.ncSave(false);
   const n = RN.CTRS.find(x => x.prev === k), nk = n && n.key;

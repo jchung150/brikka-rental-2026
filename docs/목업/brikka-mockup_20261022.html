@@ -4599,7 +4599,7 @@ function CTR2(rk){
   const left=
     card('기본 정보',RW?
       R('건물',FV(bd.name))+R('유닛',FV(nc.no))+R('계약상태',FV('준비중','시작일에 진행중이 됩니다'))
-      +R('계약시작일',FV(d8(nc.start),'기존 종료일 다음 날 · 고칠 수 없습니다. 하루라도 비면 재계약이 아니라 새 계약입니다'))
+      +R('계약시작일',FV(d8(nc.start),'기존 종료일 다음 날'))
       +R('계약종료일',D('end'),1)+R('연체이자율',`${T('rate','',70)}<span class="c2">연 %</span>`):
       R('건물',`<select onchange="ncSet('b',this.value)">${BUILDINGS.map(x=>bOp(x.id)==='비운영중'
           ?`<option value="${x.id}" disabled>${x.name} (비운영중)</option>`:`<option value="${x.id}" ${nc.b===x.id?'selected':''}>${x.name}</option>`).join('')}</select>`,1)
@@ -4638,14 +4638,8 @@ function CTR2(rk){
       +R('임대료',N('rent','금액 (부가세 포함)')+`<select title="반복 주기" onchange="ncSet('rentCy',this.value)" style="flex:none;width:84px">${ITEM_CYCLES.map(o=>`<option ${nc.rentCy===o?'selected':''}>${o}</option>`).join('')}</select>`,1)
       +R('고정관리비',N('mgmt','받지 않으면 0')+`<select title="반복 주기" onchange="ncSet('mgmtCy',this.value)" style="flex:none;width:84px">${ITEM_CYCLES.map(o=>`<option ${nc.mgmtCy===o?'selected':''}>${o}</option>`).join('')}</select>`,1)
       +R('청구일 · 마감일',`<span class="fv">${bd.billDay} · ${bd.dueDay} <span class="c2">건물 설정</span></span>`)
-      +(RW?(()=>{const oR=Math.round(ctrAmt(RW,'임대료')*1.1), oM=Math.round(ctrAmt(RW,'고정관리비')*1.1);
-        const mR=rnwMonth(oR,numOf(nc.rent),nc.start), mM=rnwMonth(oM,numOf(nc.mgmt),nc.start);
-        const pv=(n,M)=>M.lines.map(l=>`<div style="display:flex;gap:8px"><span>${n} ${l.lb}</span>${l.r?`<span class="c2" style="margin:0">일할 ${l.r}</span>`:''}<span style="margin-left:auto">${won(l.amt)}</span></div>`).join('');
-        return `<div class="c2" style="margin:0 0 8px 114px">기존 임대료 ${won(oR)} · 고정관리비 ${won(oM)}</div>
-        <div class="prev" style="margin:0"><div class="pt">${nc.start.slice(2,7).replace('-','.')}월분 청구서 (청구일 ${bd.billDay}) — 한 장</div>
-        ${pv('임대료',mR)}${oM||numOf(nc.mgmt)?pv('고정관리비',mM):''}
-        <div class="c2" style="margin:6px 0 0;white-space:normal">${mR.split||mM.split?'금액이 바뀐 항목만 새 계약 시작일 기준으로 일할합니다.':'금액이 그대로이거나 1일 시작이라 일할하지 않습니다.'}</div></div>`;})():''))
-    +(RW?card('기산일',R('기산일',FV(d8(nc.rfrom),'기존 계약 그대로 · 처음 청구를 시작한 날이라 재계약해도 바뀌지 않습니다'))
+      +(RW?`<div class="c2" style="margin:0 0 8px 114px">기존 임대료 ${won(Math.round(ctrAmt(RW,'임대료')*1.1))} · 고정관리비 ${won(Math.round(ctrAmt(RW,'고정관리비')*1.1))}</div>`:''))
+    +(RW?card('기산일',R('기산일',FV(d8(nc.rfrom)))
         +(nc.mfrom!==nc.rfrom?R('',FV(`고정관리비 ${d8(nc.mfrom)}`)):'')):'')
     +(RW?'':card('렌트프리 · 기산일',(()=>{
       const from=ncFrom(), rfTo=nc.rf==='있음'?nc.rfEnd:'', rfDays=rfTo&&nc.start?dnum(rfTo)-dnum(nc.start)+1:0;
@@ -4663,8 +4657,7 @@ function CTR2(rk){
         +(nc.rf!=='있음'?R('',C('late','기산일을 따로 정하기 (소급 등)')):'');})()))
     +card('보증금',R('보증금',N('dep','약정액'))+R('반환예정일',D('depRet'))+R('환불계좌',`${T('rbank','은행',90)}${T('racct','계좌번호')}${T('rname','예금주',90)}`))
     +card('주차',R('무료 주차',`${T('park','',70)}<span class="c2" style="margin:0">대</span>`)
-      +(RW?R('등록 차량',(V=>V.length?`<span class="fv" style="display:flex;flex-direction:column;gap:4px">${V.map(v=>`<label class="ck"><input type="checkbox" ${nc.veh[v.id]?'checked':''} onchange="nc.veh[${v.id}]=this.checked">${v.plate} · ${v.own||'—'}</label>`).join('')}
-          <span class="c2" style="margin:0">체크한 차량을 시작일에 연장 계약으로 옮깁니다. 새 차량은 저장한 뒤 넣습니다</span></span>`:FV('없음'))(vehOf(RW?ckey(RW):'')))
+      +(RW?'<div class="c2" style="margin:0">등록 차량은 그대로 복사됩니다. 저장한 뒤 계약 상세의 주차정보에서 추가 · 수정 · 삭제합니다</div>'
         :'<div class="c2" style="margin:0">등록 차량은 저장한 뒤 계약 상세의 주차정보에서 넣습니다</div>'))
     +card('냉난방기',nc.hvs.map((x,i)=>`<div style="display:flex;gap:6px;align-items:center;margin-bottom:8px">
         <input type="text" value="${x.n}" placeholder="종류 (예: 시스템에어컨)" onchange="nc.hvs[${i}].n=this.value" style="flex:1;min-width:0">
@@ -4674,8 +4667,7 @@ function CTR2(rk){
         <button class="btn sm" style="color:var(--danger)" onclick="nc.hvs.splice(${i},1);render(true)">삭제</button></div>`).join('')
       +`<button class="btn sm" onclick="nc.hvs.push({n:'',q:'1',t:'',m:''});render(true)">+ 냉난방기 추가</button>`)
     +card('임대료 인상 예약',
-      (RW?`<div class="prev" style="margin:-4px 0 10px"><div class="pt">기존 계약의 인상 예약은 복사하지 않습니다</div>인상 예약은 한 계약 안에서만 씁니다. 연장 계약에 필요하면 새로 넣습니다.</div>`:'')
-      +'<div class="c2" style="margin:-4px 0 10px;white-space:normal">계약서에 「0000년 00월 00일부터 임대료·관리비 얼마」가 있으면 넣습니다. <b>적용일부터 새 금액으로 자동 청구</b>합니다. 30일 전에 알려 드립니다.</div>'
+      (RW?'':'<div class="c2" style="margin:-4px 0 10px;white-space:normal">계약서에 「0000년 00월 00일부터 임대료·관리비 얼마」가 있으면 넣습니다. <b>적용일부터 새 금액으로 자동 청구</b>합니다. 30일 전에 알려 드립니다.</div>')
       +nc.adj.map((x,i)=>{const K=(f,ph)=>`<input type="text" inputmode="numeric" value="${x[f]?numOf(x[f]).toLocaleString('ko-KR'):''}" placeholder="${ph}"
           oninput="kwLive(this)" onchange="ncRow('adj',${i},'${f}',this.value)" style="text-align:right"><span class="kw">${korWon(numOf(x[f]))}</span>`;
         return `<div style="border:1px solid var(--line);border-radius:var(--r-sm);padding:10px 12px 2px;margin-bottom:10px">
@@ -4696,7 +4688,7 @@ function CTR2(rk){
   return `
   <div class="ph"><h1>${RW?`재계약`:'새로운 계약 등록'}</h1><span class="sid">${RW?'CTR-4':'CTR-2'}</span>
 </div>
-  ${RW?`<div class="c2" style="margin:-6px 0 14px;white-space:normal">${cname(bd.alias,RW.no,RW.ten)} · 기존 계약 ${d8(RW.base)} - ${d8(ctrEnd(RW))}의 정보를 복사했습니다. 합의서에서 바뀐 부분만 고치세요. 금액이 동결이면 그대로 저장합니다.</div>`:''}
+  ${RW?`<div class="c2" style="margin:-6px 0 14px;white-space:normal">${cname(bd.alias,RW.no,RW.ten)} · 기존 계약 ${d8(RW.base)} - ${d8(ctrEnd(RW))}의 정보를 복사했습니다.</div>`:''}
   <div class="two" style="align-items:start;grid-template-columns:minmax(0,1fr) minmax(0,1fr)">${'<div>'+left+'</div><div>'+right+'</div>'}</div>
   ${miss.length||(nc.tried&&cl&&cl.block)?`<div class="fnd wa3" style="margin-bottom:12px"><span class="h">저장할 수 없습니다</span>
     ${miss.length?`빠진 항목: <b>${miss.join(' · ')}</b>`:''}${cl&&cl.block?`${miss.length?'<br>':''}같은 유닛의 진행중 계약과 기간이 겹칩니다.`:''}</div>`:''}
@@ -4866,14 +4858,14 @@ function rnwInit(k){
     rent:String(Math.round(ctrAmt(c,'임대료')*1.1)),mgmt:String(Math.round(ctrAmt(c,'고정관리비')*1.1)),
     rentCy:itemCycle(c,'임대료'),mgmtCy:itemCycle(c,'고정관리비'),rf:'없음',
     rfrom:itemFrom(c,'임대료'),mfrom:itemFrom(c,'고정관리비'),
-    adj:[],files:[],memo:c.memo||'',veh:Object.fromEntries(vehOf(k).map(v=>[v.id,true]))});
+    adj:[],files:[],memo:c.memo||''});
 }
 /* ncSave가 만든 새 계약을 연장 계약으로 잇는다 */
 function rnwLink(n){
   const k=nc.rnw, c=CTRS.find(x=>ckey(x)===k), d8=d=>d.replace(/-/g,'.');
   c.end=ctrEnd(c);   /* 기존 계약 종료일을 굳힌다 */
   Object.assign(n,{st:'준비중',kind:ctrKind(c),prev:k,key:`${c.b}${c.no}@${n.base}`,from:nc.rfrom,rf:null,
-    vehP:vehOf(k).filter(v=>nc.veh[v.id]).map(v=>({...v}))});
+    vehP:vehOf(k).map(v=>({...v}))});
   if(nc.mfrom!==nc.rfrom) itemMeta(n,'고정관리비').from=nc.mfrom;
   if(c.payTo) n.payTo=c.payTo;
   c.next=n.key;
