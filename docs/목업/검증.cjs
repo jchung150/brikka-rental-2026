@@ -709,18 +709,18 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
     && !/onchange="ncSet\('start'/.test(p) && /재계약 등록/.test(p) && !/웰컴 메일/.test(p) && /정하늘/.test(p) && /시스템에어컨/.test(p) && !/변경 01/.test(p);
   nc.rent = '9,999,000'; RN.ncSave(false);
   const n = RN.CTRS.find(x => x.prev === k), nk = n && n.key;
-  const made = n && n.st === '준비중' && n.base === nx && nk === k + '@' + nx && c.next === nk && n.adj.length === 0 && RN.itemFrom(n, '임대료') === from0
+  const made = n && n.st === '준비중' && n.base === nx && nk === k + '@' + nx && c.next === nk && n.adj.length === 0 && RN.itemFrom(n, '임대료') === nx && RN.itemFrom(n, '고정관리비') === nx
     && RN.CPPL[nk] && RN.CPPL[nk].length === 2 && RN.CHVAC[nk].length === 2 && n.vehP.length === nv && RN.vehOf(nk).length === 0 && c.end === end && n.ten === c.ten;
   const hn = RN.CTR3(nk), ho = RN.CTR3(k);
   const links = /<dt>이전 계약<\/dt>/.test(hn) && /<dt>다음 계약<\/dt>/.test(ho) && /준비중/.test(ho) && !/<dt>계약유형/.test(ho);
   RN.rnxOpen(nk); RN.rx.why = '임차인 사정 변경'; RN.rnxSave();
   const undone = !RN.CTRS.includes(n) && !c.next && RN.histC(c).some(x => /재계약 취소/.test(x.sum) && x.why === '임차인 사정 변경');
   const addD = (d, n) => new Date(Date.parse(d + 'T00:00:00Z') + n * 864e5).toISOString().slice(0, 10);
-  /* 재계약 렌트프리 — 대상(임대료)만 끝난 다음 날부터, 고정관리비는 기존 기산일 그대로 */
+  /* 재계약 렌트프리 — 대상(임대료)만 끝난 다음 날부터, 고정관리비는 계약시작일부터 */
   RN.CTR2(k); Object.assign(RN.nc, {rf:'있음', rfEnd:addD(nx, 30), rfRent:true, rfMgmt:false}); RN.ncSave(false);
-  const n2 = RN.CTRS.find(x => x.prev === k), rf2 = n2 && n2.rf && RN.itemFrom(n2, '임대료') === addD(nx, 31) && RN.itemFrom(n2, '고정관리비') === RN.itemFrom(c, '고정관리비');
+  const n2 = RN.CTRS.find(x => x.prev === k), rf2 = n2 && n2.rf && RN.itemFrom(n2, '임대료') === addD(nx, 31) && RN.itemFrom(n2, '고정관리비') === nx;
   if (n2) { RN.rnxOpen(n2.key); RN.rx.why = '시험'; RN.rnxSave(); }
-  r6.push(['재계약 — 계약 등록과 같은 전체 화면(CTR-4) · 시작일 = 기존 종료일 다음 날(잠금) · 임차인 잠금 · 정보 복사(담당자 · 냉난방기 · 차량) · 인상 예약만 비움 · 기산일 유지 · 차량은 시작일에 적용 · 준비중 · 이전/다음 계약 링크 · 재계약 취소(사유) · 렌트프리(대상만 기산일 이동) · 재계약하는 달 7,186,666 / 동결·1일 시작은 일할 없음 · 계약유형 없음',
+  r6.push(['재계약 — 계약 등록과 같은 전체 화면(CTR-4) · 시작일 = 기존 종료일 다음 날(잠금) · 임차인 잠금 · 정보 복사(담당자 · 냉난방기 · 차량) · 인상 예약만 비움 · 기산일 = 계약시작일 · 차량은 시작일에 적용 · 준비중 · 이전/다음 계약 링크 · 재계약 취소(사유) · 렌트프리(대상만 기산일 이동) · 재계약하는 달 7,186,666 / 동결·1일 시작은 일할 없음 · 계약유형 없음',
     calc && opened && made && links && undone && rf2 && !/계약유형/.test(l0) && />더보기</.test(l0) && /⋮/.test(h0)]); }
 /* 계약 상세 탭 4개 · 임대정보 수정 패널(두 항목 · 연체이자율 · 대납) · 담당자 · 계약자 · 대리인 */
 { const RT = new Function(stub + bare + '; seedJuly(); return {CTR3,ciOpen,ciSave,ciHTML,cx3Open,cx3Save,ISSUE,CTRS,CPPL,CPARTY,get ci(){return ci;},get cx3(){return cx3;},set tab3c(v){tab3c=v;}};')();
