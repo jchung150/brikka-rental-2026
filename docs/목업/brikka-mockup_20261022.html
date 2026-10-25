@@ -393,6 +393,12 @@ tr.off td:not(:last-child):not(:nth-last-child(2)){opacity:.5}
 .dl dt:last-of-type,.dl dd:last-of-type{border-bottom:0}
 .hint{color:var(--muted);font-size:12px;margin-top:10px;line-height:1.6}
 .lock{color:var(--faint);font-size:11.5px;margin-left:6px}
+/* 항목 설명은 칸 옆 캡션 대신 이름 옆 ⓘ에 둔다 — 화면마다 칸 폭이 달라지지 않게. 설명 상자는 카드 밖으로도 보이도록 화면 기준(fixed)으로 띄운다 */
+.tip{display:inline-flex;align-items:center;justify-content:center;width:13px;height:13px;margin-left:4px;border:1px solid var(--faint);border-radius:50%;
+  color:var(--faint);font:italic 600 9px/1 Georgia,serif;cursor:help;vertical-align:1px}
+.tip:hover{border-color:var(--pri);color:var(--pri)}
+#tipbox{position:fixed;z-index:999;max-width:260px;padding:7px 10px;border-radius:var(--r-sm);background:var(--ink);color:var(--bg);
+  font-size:12px;line-height:1.45;word-break:keep-all;pointer-events:none;display:none;box-shadow:0 4px 14px rgba(0,0,0,.18)}
 .two{display:grid;grid-template-columns:1fr 1fr;gap:16px}
 @media(max-width:1080px){.two{grid-template-columns:1fr}}
 
@@ -551,6 +557,7 @@ table.nowr th,table.nowr td{white-space:nowrap}
   </div>
 </div>
 
+<div id="tipbox"></div>
 <script>
 /* ═══ 아이콘 ═══ */
 const I={
@@ -4614,7 +4621,7 @@ function CTR2(rk){
   const S=(f,opts)=>`<select onchange="ncSet('${f}',this.value)">${opts.map(o=>{const [v,t]=Array.isArray(o)?o:[o,o];
     return `<option value="${v}" ${String(nc[f])===String(v)?'selected':''}>${t}</option>`;}).join('')}</select>`;
   const C=(f,t)=>`<label class="ck"><input type="checkbox" ${nc[f]?'checked':''} onchange="ncSet('${f}',this.checked)">${t}</label>`;
-  const R=(k,body,req)=>`<div class="fr"><span class="fk">${k}${req?' <b style="color:var(--warn)">*</b>':''}</span>${body}</div>`;
+  const R=(k,body,req,tip)=>`<div class="fr"><span class="fk">${k}${req?' <b style="color:var(--warn)">*</b>':''}${tip?`<i class="tip" data-tip="${tip}">i</i>`:''}</span>${body}</div>`;
   const d8=d=>d?d.replace(/-/g,'.'):'';
   const card=(t,body,sub)=>`<div class="card" style="margin:0 0 16px"><div class="ct">${t}${sub?`<span class="sub">${sub}</span>`:''}</div><div class="cc">${body}</div></div>`;
   /* 재계약은 계약 등록과 같은 칸 · 같은 순서. 기존 계약에서 이어지는 칸만 잠근다 */
@@ -4629,8 +4636,8 @@ function CTR2(rk){
       +(cl&&!RW?`<div class="prev ${cl.block?'warn2':''}" style="margin:0 0 10px"><div class="pt">${cl.block?'기간이 겹치는 진행중 계약이 있습니다':'기간이 겹치는 준비중 계약이 있습니다'}</div>
           ${cl.c.ten} · ${d8(cl.c.base)} - ${d8(cl.end)}.
           ${cl.block?`계약시작일을 <b>${d8(new Date((dnum(cl.end)+1)*864e5).toISOString().slice(0,10))}</b> 이후로 정해야 등록할 수 있습니다.`:'저장은 할 수 있습니다.'}</div>`:'')
-      +R('계약상태',RW?LS('준비중')+'<span class="c2" style="margin:0">시작일에 진행중</span>':S('st',['준비중','진행중']))
-      +R('계약시작일',RW?LK(nc.start,'date')+'<span class="c2" style="margin:0">기존 종료일 다음 날</span>':D('start'),1)
+      +R('계약상태',RW?LS('준비중'):S('st',['준비중','진행중']),0,RW?'준비중으로 등록되고 계약시작일에 진행중이 됩니다':'')
+      +R('계약시작일',RW?LK(nc.start,'date'):D('start'),1,RW?'기존 계약종료일 다음 날입니다. 고칠 수 없습니다':'')
       +R('계약종료일',D('end'),RW?1:0)
       +R('연체이자율',`${T('rate','',70)}<span class="c2">연 %</span>`))
     +card('임차인 정보',(RW?'<div class="c2" style="margin:-4px 0 10px">재계약은 같은 임차인과 맺습니다. 임차인 정보는 임차인 관리에서 고칩니다</div>'
@@ -4642,8 +4649,7 @@ function CTR2(rk){
           ${nc.found==='기존'?'이 임차인의 정보와 입금자명을 불러왔습니다. 같은 임차인을 두 번 만들지 않습니다.':'저장하면 임차인 목록에 새로 추가됩니다.'}</div>`:'')
       +R('사업자구분',RW?LS(nc.kind):S('kind',['법인','개인사업자']))+R('상호',RW?LK(nc.ten):T('ten','예: (주)한빛'),1)+R('대표자명',RW?LK(nc.ceo):T('ceo'))
       +R('사업장주소',RW?LK(nc.addr):T('addr'))+R('업태 · 종목',RW?LK(nc.item):T('item','예: 서비스 · 광고대행'))
-      +R('입금자명',RW?LK(nc.alias):T('alias','통장에 찍히는 이름. 쉼표로 여러 개'))
-      +'<div class="c2" style="margin:0">입금자명을 등록해 두면 입금 매칭에서 자동으로 이 임차인에게 연결됩니다</div>')
+      +R('입금자명',RW?LK(nc.alias):T('alias','통장에 찍히는 이름. 쉼표로 여러 개'),0,'입금자명을 등록해 두면 입금 매칭에서 자동으로 이 임차인에게 연결됩니다'))
     +card('담당자 정보',R('담당자명',T('pn'))+R('직위',T('pt'))+R('연락처',T('ptel'))+R('이메일',T('pmail','청구서를 받는 주소'),1),'청구서 수신 · 요청 응대 창구')
     +card('계약자 · 대리인 · 중개사',
       C('diff','임차인과 계약자가 다름')
@@ -4652,7 +4658,7 @@ function CTR2(rk){
       +`<div style="margin-top:10px">${C('proxy','대리인이 있음')}</div>`
       +(nc.proxy?`<div style="margin-top:10px">${R('대리인 이름',T('xn'))+R('연락처',T('xtel'))+R('이메일',T('xmail'))+R('주소',T('xaddr'))}</div>`:'')
       +`<div class="fl" style="margin-top:14px">중개사</div>`
-      +`<div style="margin-top:6px">${R('중개사무소',T('an'))+R('대표자명',T('aceo'))+R('등록번호',T('ano'))+R('연락처',T('atel'))+R('소재지',T('aaddr'))+R('중개 수수료율',`${T('afee','',70)}<span class="c2" style="margin:0">% · 몰라도 됩니다. 나중에 계약 상세에서 넣습니다</span>`)}</div>`);
+      +`<div style="margin-top:6px">${R('중개사무소',T('an'))+R('대표자명',T('aceo'))+R('등록번호',T('ano'))+R('연락처',T('atel'))+R('소재지',T('aaddr'))+R('중개 수수료율',`${T('afee','',70)}<span class="c2" style="margin:0">%</span>`,0,'몰라도 됩니다. 나중에 계약 상세에서 넣습니다')}</div>`);
   const cy=f=>`<select title="반복 주기" onchange="ncSet('${f}',this.value)" style="flex:none;width:84px">${ITEM_CYCLES.map(o=>`<option ${nc[f]===o?'selected':''}>${o}</option>`).join('')}</select>`;
   const right=
     card('임대료 · 관리비',(RW?'<div class="c2" style="margin:-4px 0 10px">기존 금액을 복사해 두었습니다. 바뀌었으면 새 금액을 넣습니다(부가세 포함)</div>'
@@ -4661,14 +4667,15 @@ function CTR2(rk){
         :'<div class="c2" style="margin:-4px 0 10px">부가세를 포함한 금액을 넣고, 오른쪽에서 반복 주기를 고릅니다(보통 매월)</div>')
       +R(RW?'새 임대료':'임대료',N('rent','금액 (부가세 포함)')+cy('rentCy'),1)
       +R(RW?'새 고정관리비':'고정관리비',N('mgmt','받지 않으면 0')+cy('mgmtCy'),1)
-      +R('청구일 · 마감일',`<span class="fv">${bd.billDay} · ${bd.dueDay} <span class="c2">건물 설정</span></span>`)
+      +R('청구일 · 마감일',`<span class="fv">${bd.billDay} · ${bd.dueDay}</span>`,0,'건물 설정에서 정합니다')
       +(()=>{
       const from=ncFrom();
       /* 기산일은 항목마다 — 렌트프리 대상이면 끝난 다음 날, 아니면 계약시작일(따로 정했으면 그 날). 재계약도 같다 */
-      const fromOf=on=>{
-        if(nc.rf==='있음'&&on) return `<b>${from?d8(from):'—'}</b> <span class="c2">렌트프리가 끝난 다음 날</span>`;
-        if(nc.late) return `<b>${nc.lateD?d8(nc.lateD):'—'}</b> <span class="c2">${nc.lateD&&nc.start&&dnum(nc.lateD)<dnum(nc.start)?'소급':'따로 정한 날'}</span>`;
-        return `<b>${nc.start?d8(nc.start):'—'}</b> <span class="c2">계약시작일과 같음</span>`;};
+      /* 날짜만 칸에 두고, 그 날짜가 나온 근거는 ⓘ 설명으로 */
+      const fromOf=on=>nc.rf==='있음'&&on?[from,'렌트프리가 끝난 다음 날']
+        :nc.late?[nc.lateD,nc.lateD&&nc.start&&dnum(nc.lateD)<dnum(nc.start)?'따로 정한 날 · 계약시작일보다 앞선 소급':'따로 정한 날']
+        :[nc.start,'계약시작일과 같음'];
+      const FR=(k,on)=>{const [d,why]=fromOf(on);return R(k,`<span class="fv"><b>${d?d8(d):'—'}</b></span>`,0,why);};
       return `<div class="fl" style="margin-top:14px">렌트프리 · 기산일</div><div style="margin-top:6px"></div>`
         +R('렌트프리',`<label class="ck"><input type="radio" name="rf" ${nc.rf==='있음'?'checked':''} onchange="ncSet('rf','있음')">있음</label>
             <label class="ck" style="margin-left:14px"><input type="radio" name="rf" ${nc.rf==='없음'?'checked':''} onchange="ncSet('rf','없음')">없음</label>`,1)
@@ -4677,8 +4684,8 @@ function CTR2(rk){
           +R('대상',`<div style="display:flex;gap:14px;flex-wrap:wrap">${C('rfRent','임대료')}${C('rfMgmt','고정관리비')}</div>`):'')
         +(nc.rf!=='있음'?R('',C('late','기산일을 따로 정하기 (소급 등)')):'')
         +(nc.rf!=='있음'&&nc.late?R('기산일 지정',D('lateD')):'')
-        +R('임대료 기산일',`<span class="fv">${fromOf(nc.rfRent)}</span>`)
-        +R('관리비 기산일',`<span class="fv">${fromOf(nc.rfMgmt)}</span>`);})())
+        +FR('임대료 기산일',nc.rfRent)
+        +FR('관리비 기산일',nc.rfMgmt);})())
     +card('보증금',R('보증금',N('dep','약정액'))+R('환불계좌',`${T('rbank','은행',90)}${T('racct','계좌번호')}${T('rname','예금주',90)}`))
     +card('주차',R('무료 주차',`${T('park','',70)}<span class="c2" style="margin:0">대</span>`)
       +(RW?'':'<div class="c2" style="margin:0">등록 차량은 저장한 뒤 계약 상세의 주차정보에서 넣습니다</div>'))
@@ -5444,6 +5451,11 @@ function render(keep){
 }
 /* 화면을 옮기면 맨 위부터 보인다 — 이벤트 객체가 keep으로 들어가지 않게 감싼다 */
 addEventListener('hashchange',()=>render());
+/* ⓘ 설명 상자 — 마우스를 올리면 ⓘ 바로 아래에 띄운다 */
+document.addEventListener('mouseover',e=>{const t=e.target.closest&&e.target.closest('.tip'),bx=document.querySelector('#tipbox');
+  if(!t){bx.style.display='none';return;}
+  const r=t.getBoundingClientRect();bx.textContent=t.dataset.tip;bx.style.display='block';
+  bx.style.left=Math.max(8,Math.min(r.left-6,innerWidth-bx.offsetWidth-8))+'px';bx.style.top=(r.bottom+6)+'px';});
 /* 7/19 7월 청구서 발행 — 6월에 생긴 과납이 7월 청구에서 빠진다. 7월 입금보다 먼저다 */
 applyCredits('2026-07','2026-07-19');
 seedJuly();paintOp();paintFold();render();
