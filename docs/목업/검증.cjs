@@ -697,7 +697,7 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   const ag2 = /여의도빌딩중개법인|합정역|서교부동산|홍대오피스|상수타워|망원상가/.test(h) && /<dt>중개 수수료율<\/dt>/.test(h8) && /0\.9%/.test(h8);
   r6.push(['계약 상세 요약 — 계약정보가 첫 카드(폭 전체) · 남은 일수 없음 · 기본정보 없음 · 임대정보(미납 잔액 없음 · 청구일 · 납부마감일 · 기산일) · 보증금 정보(납부마감일 없음) · 보증금 · 주차 · 냉난방기 · 중개사 · 메모 · 청구일은 건물 설정의 실제 날짜 · 렌트프리 · 기산일 · 사업자구분은 패널에서 잠김 · 환불계좌는 보증금 정보(미입력 강조) · 수정 패널 4종 저장',
     cards && vals && ag2 && agp && /해지 처리로 바뀝니다/.test(hp) && /사업자구분<\/span><span class="fv">법인 <span class="c2" style="margin:0">임차인 관리에서 고칩니다/.test(hp) && !c.kind && !c.type && !/계약유형/.test(hp) && c.dep === 5e7 && rf && !c.depRet && c.ag.n === '시험중개' && c.memo === '시험 메모']); }
-/* 재계약(명세변경 01) — 계약 등록과 같은 전체 화면(CTR-4) · 정보 복사 · 시작일 · 임차인 · 기산일 잠금 · 인상 예약만 비움 · 준비중 · 이전/다음 계약 · 재계약 취소 · 재계약하는 달 일할 */
+/* 재계약(명세변경 1) — 계약 등록과 같은 전체 화면(CTR-4) · 정보 복사 · 시작일 · 임차인 · 기산일 잠금 · 인상 예약만 비움 · 준비중 · 이전/다음 계약 · 재계약 취소 · 재계약하는 달 일할 */
 { const RN = new Function(stub + bare + '; seedJuly(); return {CTR3,CTR1,CTR2,rnwOpen,rnwInit,ncSave,rnxOpen,rnxSave,rnwMonth,CTRS,CPPL,CHVAC,ctrEnd,itemFrom,vehOf,histC,get nc(){return nc;},get rx(){return rx;},set tab3c(v){tab3c=v;}};')();
   const a = RN.rnwMonth(7000000, 7350000, '2026-09-15'), same = RN.rnwMonth(7000000, 7000000, '2026-09-15'), first = RN.rnwMonth(7000000, 7350000, '2026-10-01');
   const calc = a.split && a.lines[0].amt === 3266666 && a.lines[1].amt === 3920000 && a.tot === 7186666 && !same.split && same.tot === 7000000 && !first.split && first.tot === 7350000;

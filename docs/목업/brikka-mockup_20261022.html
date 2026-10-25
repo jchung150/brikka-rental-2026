@@ -4859,7 +4859,7 @@ function CTR3adj(c,k){
     :'<div class="cc"><div class="c2" style="margin:0">예약된 인상이 없습니다.</div></div>'}</div>`;
 }
 
-/* ═══ 재계약(CTR-4) — 기존 계약을 복사해 연장 계약을 미리 등록한다 → 명세변경 01
+/* ═══ 재계약(CTR-4) — 기존 계약을 복사해 연장 계약을 미리 등록한다 → 명세변경 1
    시작일은 기존 종료일 다음 날로 고정. 시작 전에는 준비중이며 재계약 취소로 지울 수 있다.
    임대료 인상 예약만 복사하지 않는다. 보증금 승계 · 등록 차량 적용은 시작일에 한다 ═══ */
 const rnAdd=(d,n)=>{const x=new Date(d+'T00:00:00Z');x.setUTCDate(x.getUTCDate()+n);return x.toISOString().slice(0,10);};
