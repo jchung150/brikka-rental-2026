@@ -4675,9 +4675,8 @@ function CTR2(rk){
         +(nc.rf==='있음'?R('기간',`${T('rfM','',60)}<span class="c2" style="margin:0">개월</span>
               <span class="c2" style="margin:0 2px">또는 끝나는 날</span>${D('rfEnd')}`,1)
           +R('대상',`<div style="display:flex;gap:14px;flex-wrap:wrap">${C('rfRent','임대료')}${C('rfMgmt','고정관리비')}</div>`):'')
-        +(nc.rf!=='있음'?R('',RW?'<label class="ck" style="cursor:default;color:var(--faint)"><input type="checkbox" disabled>기산일을 따로 정하기 (소급 등)</label><span class="c2" style="margin:0">재계약은 기존 계약에서 이어집니다</span>'
-            :C('late','기산일을 따로 정하기 (소급 등)')):'')
-        +(nc.rf!=='있음'&&nc.late&&!RW?R('기산일 지정',D('lateD')):'')
+        +(nc.rf!=='있음'?R('',C('late','기산일을 따로 정하기 (소급 등)')):'')
+        +(nc.rf!=='있음'&&nc.late?R('기산일 지정',D('lateD')):'')
         +R('임대료 기산일',`<span class="fv">${fromOf(nc.rfRent)}</span>`)
         +R('관리비 기산일',`<span class="fv">${fromOf(nc.rfMgmt)}</span>`);})())
     +card('보증금',R('보증금',N('dep','약정액'))+R('환불계좌',`${T('rbank','은행',90)}${T('racct','계좌번호')}${T('rname','예금주',90)}`))
@@ -4717,14 +4716,13 @@ function CTR2(rk){
   ${miss.length||(nc.tried&&cl&&cl.block)?`<div class="fnd wa3" style="margin-bottom:12px"><span class="h">저장할 수 없습니다</span>
     ${miss.length?`빠진 항목: <b>${miss.join(' · ')}</b>`:''}${cl&&cl.block?`${miss.length?'<br>':''}같은 유닛의 진행중 계약과 기간이 겹칩니다.`:''}</div>`:''}
   <div style="display:flex;gap:8px;justify-content:flex-end;align-items:center;padding:14px 0;border-top:1px solid var(--line)">
-    <span class="c2" style="margin-right:auto"><b style="color:var(--warn)">*</b> 필수 · 저장하면 계약 상세로 이동합니다</span>
+    ${RW?'':'<span class="c2" style="margin-right:auto"><b style="color:var(--warn)">*</b> 필수 · 저장하면 계약 상세로 이동합니다</span>'}
     ${RW?`<button class="btn" onclick="tab3c='요약';go('ctr-3/${nc.rnw}');nc=null">취소</button>
     <button class="btn pri" onclick="ncSave(false)">재계약 등록</button></div>`
     :`<button class="btn" onclick="nc=null;go('ctr-1')">취소</button>
     <button class="btn" onclick="ncSave(false)">저장 (웰컴 메일 안 보냄)</button>
     <button class="btn pri" onclick="ncSave(true)">저장 및 웰컴 메일 보내기</button>`}</div>
-  ${RW?`<div class="hint">저장하면 연장 계약이 준비중으로 등록되고 ${d8(nc.start)}에 진행중이 됩니다. 시작 전에는 연장 계약 상세의 ⋮ 에서 재계약 취소로 지울 수 있습니다.<br>
-    재계약 안내 메일은 보내지 않습니다. 보증금 승계와 미납 · 과납 잔액은 시작일 이후 처리됩니다.</div>`:`<div class="hint">
+  ${RW?'':`<div class="hint">
     유닛을 고르면 지금 쓰는 임차인과 계약 종료일이 함께 보입니다. 진행중 계약과 기간이 겹치면 등록할 수 없고, 끝나는 다음 날부터는 새 계약을 미리 등록할 수 있습니다.<br>
     사업자등록번호로 조회합니다. 목업에서는 <b>211-86-40519</b>(비씨에이전시)가 기존 사업자이고, 다른 번호는 새 사업자입니다.<br>
     웰컴 메일을 보내도 기존 임차인의 비밀번호는 바뀌지 않습니다. 새 임차인에게는 로그인 링크만 보냅니다.</div>`}`;
