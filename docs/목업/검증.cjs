@@ -688,15 +688,15 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   const cards = ['계약정보','임대정보','보증금 정보','주차정보','냉난방기','중개사','메모'].every(t => h.includes(`<div class="ct">${t}`)) && !h.includes('<div class="ct">기본정보') && h.indexOf('<div class="ct">계약정보') < h.indexOf('<div class="two">') && !/<dt>건물주<\/dt>/.test(h) && !/미납 잔액|보증금 납부마감일|일 남음|건물 설정 ·|수정 불가|대표임차인|억원/.test(h) && /<dt>임차인<\/dt>/.test(h)
     && /<dt>청구일<\/dt><dd>당월 \d+일<\/dd>/.test(h) && h.indexOf('<dt>납부마감일') < h.indexOf('<dt>기산일');
   const vals = /<dt>사업자구분<\/dt><dd>법인/.test(h) && /있음 · 2025.08.01 - 2025.09.30/.test(h) && /<dt>기산일<\/dt><dd>2025.10.01/.test(h)
-    && /보증금 반환예정일/.test(h) && /마포센트럴공인중개사사무소/.test(h8) && !/계약유형|확정기간/.test(h4) && !/예시값입니다/.test(h);
+    && /보증금 반환일<\/dt><dd>[\d.]+<span class="lock">계약종료일/.test(h) && !/반환예정일/.test(h) && /마포센트럴공인중개사사무소/.test(h8) && !/계약유형|확정기간/.test(h4) && !/예시값입니다/.test(h);
   const c = CS.CTRS.find(x => x.no === '본관101호');
   CS.cx3Open('b1본관101호', 'ctr'); const hp = CS.cx3HTML(); CS.cx3Save();
-  CS.cx3Open('b1본관101호', 'dep'); CS.cx3.dep = '50000000'; CS.cx3.depRet = '2027-07-31'; CS.cx3.rf.ra = '999-99'; CS.cx3Save(); const rf = /999-99/.test(CS.CTR3('b1본관101호')) && /<dt>환불계좌<\/dt><dd><span style="color:var\(--warn\)">미입력/.test(CS.CTR3('b1본관401호'));
+  CS.cx3Open('b1본관101호', 'dep'); CS.cx3.dep = '50000000'; CS.cx3.rf.ra = '999-99'; CS.cx3Save(); const rf = /999-99/.test(CS.CTR3('b1본관101호')) && /<dt>환불계좌<\/dt><dd><span style="color:var\(--warn\)">미입력/.test(CS.CTR3('b1본관401호'));
   CS.cx3Open('b1본관101호', 'ag'); const agp = !/중개사가 있음/.test(CS.cx3HTML()); CS.cx3.an = '시험중개'; CS.cx3Save();
   CS.cx3Open('b1본관101호', 'memo'); CS.cx3.memo = '시험 메모'; CS.cx3Save();
   const ag2 = /여의도빌딩중개법인|합정역|서교부동산|홍대오피스|상수타워|망원상가/.test(h) && /<dt>중개 수수료율<\/dt>/.test(h8) && /0\.9%/.test(h8);
   r6.push(['계약 상세 요약 — 계약정보가 첫 카드(폭 전체) · 남은 일수 없음 · 기본정보 없음 · 임대정보(미납 잔액 없음 · 청구일 · 납부마감일 · 기산일) · 보증금 정보(납부마감일 없음) · 보증금 · 주차 · 냉난방기 · 중개사 · 메모 · 청구일은 건물 설정의 실제 날짜 · 렌트프리 · 기산일 · 사업자구분은 패널에서 잠김 · 환불계좌는 보증금 정보(미입력 강조) · 수정 패널 4종 저장',
-    cards && vals && ag2 && agp && /해지 처리로 바뀝니다/.test(hp) && /사업자구분<\/span><span class="fv">법인 <span class="c2" style="margin:0">임차인 관리에서 고칩니다/.test(hp) && !c.kind && !c.type && !/계약유형/.test(hp) && c.dep === 5e7 && rf && c.depRet === '2027-07-31' && c.ag.n === '시험중개' && c.memo === '시험 메모']); }
+    cards && vals && ag2 && agp && /해지 처리로 바뀝니다/.test(hp) && /사업자구분<\/span><span class="fv">법인 <span class="c2" style="margin:0">임차인 관리에서 고칩니다/.test(hp) && !c.kind && !c.type && !/계약유형/.test(hp) && c.dep === 5e7 && rf && !c.depRet && c.ag.n === '시험중개' && c.memo === '시험 메모']); }
 /* 재계약(명세변경 01) — 계약 등록과 같은 전체 화면(CTR-4) · 정보 복사 · 시작일 · 임차인 · 기산일 잠금 · 인상 예약만 비움 · 준비중 · 이전/다음 계약 · 재계약 취소 · 재계약하는 달 일할 */
 { const RN = new Function(stub + bare + '; seedJuly(); return {CTR3,CTR1,CTR2,rnwOpen,rnwInit,ncSave,rnxOpen,rnxSave,rnwMonth,CTRS,CPPL,CHVAC,ctrEnd,itemFrom,vehOf,histC,get nc(){return nc;},get rx(){return rx;},set tab3c(v){tab3c=v;}};')();
   const a = RN.rnwMonth(7000000, 7350000, '2026-09-15'), same = RN.rnwMonth(7000000, 7000000, '2026-09-15'), first = RN.rnwMonth(7000000, 7350000, '2026-10-01');
@@ -722,6 +722,14 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   if (n2) { RN.rnxOpen(n2.key); RN.rx.why = '시험'; RN.rnxSave(); }
   r6.push(['재계약 — 계약 등록과 같은 전체 화면(CTR-4) · 시작일 = 기존 종료일 다음 날(잠금) · 임차인 잠금 · 정보 복사(담당자 · 냉난방기 · 차량) · 인상 예약만 비움 · 기산일 = 계약시작일 · 차량은 시작일에 적용 · 준비중 · 이전/다음 계약 링크 · 재계약 취소(사유) · 렌트프리(대상만 기산일 이동) · 재계약하는 달 7,186,666 / 동결·1일 시작은 일할 없음 · 계약유형 없음',
     calc && opened && made && links && undone && rf2 && !/계약유형/.test(l0) && />더보기</.test(l0) && /⋮/.test(h0)]); }
+/* 건물 상세 계약 탭 — 요약과 유닛 사이 · 계약 목록과 같은 표 · 그 건물 계약만 · 등록 버튼은 건물을 골라 둔 채 · 냉난방기 칸은 다른 카드와 같은 줄 모양 */
+{ const BT = new Function(stub + bare + '; seedJuly(); return {PRO3,CTR1,CTR2,CTRS,BUILDINGS,set tab3(v){tab3=v;},set nc(v){nc=v;}};')();
+  BT.tab3 = '요약'; const h0 = BT.PRO3('b1'); BT.tab3 = '계약'; const h1 = BT.PRO3('b1'), h2 = BT.PRO3('b2');
+  const order = h0.indexOf('>요약<') < h0.indexOf('>계약<') && h0.indexOf('>계약<') < h0.indexOf('>유닛<');
+  const n1 = BT.CTRS.filter(c => c.b === 'b1' && c.st === '진행중').length, rowsOf = h => (h.match(/<tr onclick="tab3c='요약';go\('ctr-3\//g) || []).length;
+  const only = rowsOf(h1) === n1 && !/뉴진스\|/.test(h1) && rowsOf(h2) === BT.CTRS.filter(c => c.b === 'b2' && c.st === '진행중').length && !/>전체 건물</.test(h1);
+  BT.nc = null; const p = BT.CTR2(), hv = /<span class="fk">종류<\/span>/.test(p) || /냉난방기/.test(p) && !/placeholder="종류 \(예/.test(p);
+  r6.push(['건물 상세 계약 탭 — 요약 · 계약 · 유닛 순서 · 계약 목록과 같은 표 · 그 건물 계약만(건물 필터 없음) · 냉난방기 카드는 종류 · 대수 · 소유 · 메모 줄', order && only && hv && /\+ 새로운 계약 등록/.test(h1)]); }
 /* 계약 상세 탭 4개 · 임대정보 수정 패널(두 항목 · 연체이자율 · 대납) · 담당자 · 계약자 · 대리인 */
 { const RT = new Function(stub + bare + '; seedJuly(); return {CTR3,ciOpen,ciSave,ciHTML,cx3Open,cx3Save,ISSUE,CTRS,CPPL,CPARTY,get ci(){return ci;},get cx3(){return cx3;},set tab3c(v){tab3c=v;}};')();
   RT.tab3c = '요약'; const h = RT.CTR3('b1본관801호'), hb = RT.CTR3('b1본관301호');
