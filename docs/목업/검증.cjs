@@ -728,6 +728,16 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   if (n3) { RN.rnxOpen(n3.key); RN.rx.why = '시험'; RN.rnxSave(); }
   r6.push(['재계약 — 계약 등록과 같은 전체 화면(CTR-4) · 시작일 = 기존 종료일 다음 날(잠금) · 칸 설명은 ⓘ · 임차인 잠금 · 정보 복사(담당자 · 냉난방기 · 차량) · 인상 예약만 비움 · 기산일 = 계약시작일 · 차량은 시작일에 적용 · 준비중 · 이전/다음 계약 링크 · 재계약 취소(사유) · 렌트프리(대상만 기산일 이동) · 기산일 따로 정하기(소급) · 재계약하는 달 7,186,666 / 동결·1일 시작은 일할 없음 · 계약유형 없음',
     calc && opened && made && links && undone && rf2 && late3 && !/계약유형/.test(l0) && />더보기</.test(l0) && /⋮/.test(h0)]); }
+/* 은행 거래내역 업로드 — 계좌 선택 · 계좌가 하나면 잠김 · 같은 계좌 같은 파일은 막고, 다른 계좌면 올라간다 → PAY-13 */
+{ const BK = new Function(stub + bare + '; seedJuly(); return {PAY13,bkOpen,bkSave,bkHTML,bkMissing,BKUP,RC,setRC,get bk(){return bk;},set DRAWER(v){DRAWER=v;}};')();
+  BK.setRC('ym', '2026-07'); const p0 = BK.PAY13(); BK.bkOpen(); const one = BK.bk.a === '국민은행 812-01-0455-118' && /<select disabled/.test(BK.bkHTML());
+  const shown = /올린 거래내역/.test(p0) && /입금 계좌 국민은행 812-01-0455-118/.test(p0) && !/alert\('은행 거래내역/.test(p0);
+  BK.setRC('b', 'b2'); BK.bkOpen(); const two = BK.bk.a === '' && /임대료 계좌 · 신한은행 140-012-772301/.test(BK.bkHTML()) && /관리비 계좌 · 신한은행 140-012-772415/.test(BK.bkHTML());
+  BK.bkSave(); const need = BK.bkMissing().join() === '입금 계좌,파일';
+  Object.assign(BK.bk, {a:'신한은행 140-012-772301', file:'뉴진스_7월.xlsx'}); BK.bkSave(); const n1 = BK.BKUP.length;
+  BK.bkOpen(); Object.assign(BK.bk, {a:'신한은행 140-012-772301', file:'뉴진스_7월.xlsx'}); BK.bkSave(); const dup = BK.BKUP.length === n1 && BK.bkMissing().some(m => /이미 올렸습니다/.test(m));
+  Object.assign(BK.bk, {a:'신한은행 140-012-772415'}); BK.bkSave(); const other = BK.BKUP.length === n1 + 1;
+  r6.push(['은행 거래내역 업로드 — 오른쪽 패널 · 입금 계좌 선택(계좌 하나면 잠김) · 같은 계좌 같은 파일만 중복으로 막음 · 입금마다 입금 계좌 표시', one && shown && two && need && dup && other]); }
 /* 건물 상세 계약 탭 — 요약과 유닛 사이 · 계약 목록과 같은 표 · 그 건물 계약만 · 등록 버튼은 건물을 골라 둔 채 · 냉난방기 칸은 다른 카드와 같은 줄 모양 */
 { const BT = new Function(stub + bare + '; seedJuly(); return {PRO3,CTR1,CTR2,CTRS,BUILDINGS,set tab3(v){tab3=v;},set nc(v){nc=v;}};')();
   BT.tab3 = '요약'; const h0 = BT.PRO3('b1'); BT.tab3 = '계약'; const h1 = BT.PRO3('b1'), h2 = BT.PRO3('b2');
