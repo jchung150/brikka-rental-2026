@@ -4551,15 +4551,15 @@ function ncInit(){
       kind:'법인',biz:'',found:null,ten:'',ceo:'',addr:'',item:'',alias:'',
       pn:'',pt:'',ptel:'',pmail:'',diff:false,cn:'',cbiz:'',cceo:'',ctel:'',cmail:'',caddr:'',rbank:'',racct:'',rname:'',
       proxy:false,xn:'',xtel:'',xmail:'',xaddr:'',an:'',aceo:'',ano:'',atel:'',aaddr:'',
-      dep:'',park:'0',hvs:[],rent:'',mgmt:'',rentCy:'매월',mgmtCy:'매월',late:false,lateD:'',rf:'없음',rfM:'',rfEnd:'',rfRent:true,rfMgmt:false,
+      dep:'',park:'0',hvs:[],rent:'',mgmt:'',rentCy:'매월',mgmtCy:'매월',late:false,lateD:'',rf:'없음',rfD:'',rfEnd:'',rfRent:true,rfMgmt:false,
       adj:[],files:[],memo:'',tried:false};
 }
 function ncSet(f,v){
   nc[f]=v;
   if(f==='b'){nc.no='';}
-  if(f==='start'){nc.end=ncEnd(v);if(nc.rfM) nc.rfEnd=rfEndOf(v,nc.rfM);}
-  if(f==='rfM') nc.rfEnd=rfEndOf(nc.start,v);
-  if(f==='rfEnd') nc.rfM='';
+  if(f==='start'){nc.end=ncEnd(v);if(nc.rfD) nc.rfEnd=rfEndOf(v,nc.rfD);}
+  if(f==='rfD') nc.rfEnd=rfEndOf(nc.start,v);
+  if(f==='rfEnd') nc.rfD=rfDaysOf(nc.start,v);
   render(true);
 }
 /* 사업자등록번호 중복 확인 — 이 시스템에 이미 있는 임차인인지 본다(국세청 조회가 아니다).
@@ -4618,13 +4618,12 @@ function ncSave(welcome){
   if(nc.rnw) CPPL[k]=[{n:nc.pn,t:nc.pt,tel:nc.ptel,mail:nc.pmail},...pplOf(CTRS.find(x=>ckey(x)===nc.rnw)).slice(1).map(x=>({...x}))];
   nc=null; tab3c='요약'; go('ctr-3/'+k);
 }
-/* 렌트프리 끝나는 날 — N개월(소수는 30일 기준 날짜로). 1.5개월 = 1개월 + 15일. 끝나는 날은 직접 고칠 수 있다 */
-function rfEndOf(start,m){
-  const v=parseFloat(m); if(!start||!(v>0)) return '';
-  const w=Math.floor(v), d=new Date(start+'T00:00:00Z');
-  d.setUTCMonth(d.getUTCMonth()+w); d.setUTCDate(d.getUTCDate()+Math.round((v-w)*30)-1);
-  return d.toISOString().slice(0,10);
+/* 렌트프리 기간은 일수로 받는다 — 계약시작일 포함 N일. 11/1부터 30일 → 11/30까지. 끝나는 날을 직접 고치면 일수가 따라 바뀐다 */
+function rfEndOf(start,n){
+  const v=parseInt(String(n).replace(/[^0-9]/g,''),10); if(!start||!(v>0)) return '';
+  return new Date((dnum(start)+v-1)*864e5).toISOString().slice(0,10);
 }
+const rfDaysOf=(start,end)=>start&&end&&dnum(end)>=dnum(start)?String(dnum(end)-dnum(start)+1):'';
 /* 입력하는 동안 옆의 읽기 쉬운 금액을 바로 바꾼다 — 화면 전체를 다시 그리지 않는다 */
 function kwLive(el){const k=el.parentNode.querySelector('.kw');if(k) k.textContent=korWon(numOf(el.value));}
 /* 금액을 읽기 쉽게 — 5000000 → 500만원, 100000000 → 1억원, 123456789 → 1억 2,345만 6,789원 */
@@ -4636,7 +4635,7 @@ function korWon(n){
 }
 /* 공급가액 역산 — 정수로 계산한다(1.1로 나누면 소수 오차가 난다) */
 const ncSup=n=>Math.floor(n*10/11);
-/* 기산일 — 렌트프리가 있으면 계약시작일 + N개월, 없으면 계약시작일(따로 정했으면 그 날) */
+/* 기산일 — 렌트프리가 있으면 끝나는 날 다음 날, 없으면 계약시작일(따로 정했으면 그 날) */
 function ncFrom(){
   if(!nc.start) return '';
   if(nc.rf==='있음') return nc.rfEnd&&dnum(nc.rfEnd)>=dnum(nc.start)?new Date((dnum(nc.rfEnd)+1)*864e5).toISOString().slice(0,10):'';
@@ -4718,7 +4717,7 @@ function CTR2(rk){
       return `<div class="fl" style="margin-top:14px">렌트프리 · 기산일</div><div style="margin-top:6px"></div>`
         +R('렌트프리',`<label class="ck"><input type="radio" name="rf" ${nc.rf==='있음'?'checked':''} onchange="ncSet('rf','있음')">있음</label>
             <label class="ck" style="margin-left:14px"><input type="radio" name="rf" ${nc.rf==='없음'?'checked':''} onchange="ncSet('rf','없음')">없음</label>`,1)
-        +(nc.rf==='있음'?R('기간',`${T('rfM','',60)}<span class="c2" style="margin:0">개월</span>
+        +(nc.rf==='있음'?R('기간',`${T('rfD','예: 30',70)}<span class="c2" style="margin:0">일</span>
               <span class="c2" style="margin:0 2px">또는 끝나는 날</span>${D('rfEnd')}`,1)
           +R('대상',`<div style="display:flex;gap:14px;flex-wrap:wrap">${C('rfRent','임대료')}${C('rfMgmt','고정관리비')}</div>`):'')
         +(nc.rf!=='있음'?R('',C('late','기산일을 따로 정하기 (소급 등)')):'')
@@ -4855,7 +4854,7 @@ function ciHTML(){
         ${R('청구일',`<span class="fv">${bd.billDay} <span class="c2" style="margin:0">건물에서 정합니다</span></span>`)}
         ${R('납부마감일',`<span class="fv">${bd.dueDay} <span class="c2" style="margin:0">건물에서 정합니다</span></span>`)}
         ${R('연체이자율',`<input type="text" inputmode="decimal" value="${ci.rate}" onchange="ci.rate=this.value" style="max-width:70px;text-align:right"><span class="c2" style="margin:0">% (연)</span>`)}
-        ${R('렌트프리',`<span class="fv">${c.rf?`있음 · ${c.base.replace(/-/g,'.')} - ${c.rf.end.replace(/-/g,'.')}`:'없음'} <span class="c2" style="margin:0">계약 등록 때 정합니다</span></span>`)}</div>
+        ${R('렌트프리',`<span class="fv">${c.rf?`있음 · ${c.base.replace(/-/g,'.')} - ${c.rf.end.replace(/-/g,'.')} · ${rfDaysOf(c.base,c.rf.end)}일`:'없음'} <span class="c2" style="margin:0">계약 등록 때 정합니다</span></span>`)}</div>
       <div class="fg"><div class="fl">정산액 대납</div>
         ${R('대신 낼 계약',`<select onchange="ci.payTo=this.value"><option value="">없음 (이 계약이 낸다)</option>
         ${CTRS.filter(x=>x.b===c.b&&x!==c&&(x.st==='진행중'||x.st==='준비중')).map(x=>`<option value="${x.no}" ${ci.payTo===x.no?'selected':''}>${x.no} · ${x.ten}</option>`).join('')}</select>`)}
@@ -5196,7 +5195,7 @@ function CTR3sum(c,k){
       <dt>납부마감일</dt><dd>${bn.dueDay}</dd>
       <dt>기산일</dt><dd>${d8(fR)}${fM!==fR?`<span class="lock">고정관리비 ${d8(fM)}</span>`:''}</dd>
       <dt>연체이자율</dt><dd>연 ${rateOf(k)}%</dd>
-      <dt>렌트프리</dt><dd>${rfx?`있음 · ${d8(c.base)} - ${d8(c.rf.end)}<span class="lock">${rfIt}</span>`:'없음'}</dd>
+      <dt>렌트프리</dt><dd>${rfx?`있음 · ${d8(c.base)} - ${d8(c.rf.end)} · ${rfDaysOf(c.base,c.rf.end)}일<span class="lock">${rfIt}</span>`:'없음'}</dd>
       <dt>정산액 대납</dt><dd>${pay?`${pay.no} · ${pay.ten}<span class="lock">이 유닛 정산액을 그 계약이 냄</span>`:'없음'}</dd></dl>`,
     `<button class="btn sm" onclick="ciOpen('${k}','rent')">수정</button>`);
   const P=pplOf(c);
