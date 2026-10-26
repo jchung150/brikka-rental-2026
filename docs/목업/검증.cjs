@@ -257,7 +257,7 @@ r6.push(['보증금상계 100만 — 미납 1,146,472 · 보증금 잔액 100만
   left('b1별관301호') === 1146472 && LD.bal.매출채권 === 1146472 && LD.bal.임대보증금 === dep0 - 1000000
   && LD.rows.some(r => r.type === '보증금 상계' && r.dec === 1000000)]);
 /* 보증금 반환 — 계약 중에도 쓴다. 잔액보다 많이 · 사유 없이는 확정되지 않는다 */
-{ const B = new Function(stub + bare + '; seedJuly(); return {ledgerOf,openDepRet,drSet,drConfirm,drHTML,canOffset,TERMS,get dr(){return dr;}};')();
+{ const B = new Function(stub + bare + '; seedJuly(); return {ledgerOf,openDepRet,drSet,drConfirm,drHTML,canOffset,TERMS,openDepIn,diSet,diConfirm,ledBtns,get dr(){return dr;},get di(){return di;}};')();
   const k = 'b1본관801호', bal0 = B.ledgerOf(k).bal.임대보증금;
   B.openDepRet(k); const amt0 = B.dr.amt; B.drSet('amt', bal0 + 1); B.dr.why = '보증금 더 받음'; B.drConfirm();
   const over = B.ledgerOf(k).bal.임대보증금 === bal0;
@@ -266,6 +266,11 @@ r6.push(['보증금상계 100만 — 미납 1,146,472 · 보증금 잔액 100만
   B.dr.why = '보증금 더 받음'; const html = B.drHTML(); B.drConfirm();
   const L = B.ledgerOf(k);
   B.TERMS[k] = {type: '만기 종료', out: '2026-08-31', why: '검증'}; B.openDepRet(k); const full = B.dr.amt === L.bal.임대보증금;
+  B.openDepIn(k); const left0 = B.di.amt; B.diSet('amt', 2000000); B.diConfirm();
+  const L2 = B.ledgerOf(k), btn = B.ledBtns('b1별관301호', B.ledgerOf('b1별관301호'));
+  r6.push(['보증금 예치 — 원장 탭에서 200만 더 받음 · 원장 「보증금 예치」 · 버튼은 「청구 · 수납 ▾」「보증금 ▾」 두 묶음',
+    left0 === 9000000 && L2.bal.임대보증금 === L.bal.임대보증금 + 2000000 && L2.rows.some(r => r.type === '보증금 예치' && r.inc === 2000000)
+    && /청구 · 수납 ▾/.test(btn) && /보증금 ▾/.test(btn)]);
   r6.push(['보증금 반환 — 진행중 계약에서 900만 · 잔액 초과 · 사유 없음은 막힘 · 원장 「보증금 반환」 · 퇴거 계약은 잔액 전부가 기본값',
     amt0 === 0 && over && noWhy && L.bal.임대보증금 === bal0 - 9000000
     && L.rows.some(r => r.type === '보증금 반환' && r.dec === 9000000 && /보증금 더 받음/.test(r.item)) && /반환할 금액/.test(html) && full]); }
@@ -418,7 +423,7 @@ r6.push(['임대정보 · 임대료 인상 예약(요약 탭) — 분기 · 기�
   r6.push(['공용분 빼기 = 배율 0 — 2층 공용분 0 · 개별분은 청구 · 비율 합 1 · 1층 몫 증가 · 합계 = 고지서',
     r2.common === 0 && r2.amt > 0 && Math.abs(ratioSum - 1) < 1e-9 && after > before && R.diff === 0]); }
 /* 감액 · 과납 — 8/7 본관101호 7월 수도요금 18,000 감액. 7월분은 07.31에 완납이라 과납 18,000이 된다 → CTR-3 · 4.3.4 */
-{ const OV = new Function(stub + bare + '; const pre=ctrPay("b1본관101호","2026-07"); seedJuly(); addCut("2026-07|본관101호|수도요금",18000,"2026-08-07","7월 수도 검침값 입력 오류"); return {pre,ctrPay,overOf,ledgerOf,CTRS,PAY1,CTR3,ISSUE,mcChecks,openRefund,ovSet,ovConfirm,cutOpen,cutSet,cutConfirm,set tab3c(v){tab3c=v;}};')();
+{ const OV = new Function(stub + bare + '; const pre=ctrPay("b1본관101호","2026-07"); seedJuly(); addCut("2026-07|본관101호|수도요금",18000,"2026-08-07","7월 수도 검침값 입력 오류"); return {pre,ctrPay,overOf,ledgerOf,CTRS,PAY1,CTR3,ISSUE,mcChecks,openRefund,ovSet,ovConfirm,cutOpen,cutSet,cutConfirm,MORE,set tab3c(v){tab3c=v;}};')();
   const k = 'b1본관101호', L = OV.ledgerOf(k), cut = L.rows.find(r => r.type === '감액');
   const post = OV.ctrPay(k, '2026-07'), item = post.it.find(i => i.n === '수도요금');
   const mv = L.rows.filter(r => r.g === cut.g);
@@ -428,14 +433,16 @@ r6.push(['임대정보 · 임대료 인상 예약(요약 탭) — 분기 · 기�
     && L.bal.매출채권 === -18000 && OV.overOf(k) === 18000
     && post.bill === OV.pre.bill && post.paid === post.bill && item.paid === 1337087 && item.st === '완납' && post.over === 0 && post.st === '완납'
     && shown && OV.mcChecks('b1', '2026-07').every(x => x.ok)]);
-  OV.tab3c = '원장'; const btnOn = !/disabled title="돌려줄 과납이 없습니다"/.test(OV.CTR3(k));
+  /* 환불은 원장 탭 「청구 · 수납 ▾」 메뉴 안에 있다. 과납이 없으면 흐리게 잠긴다 */
+  const rfOff = () => { OV.CTR3(k); const m = OV.MORE.filter(a => a.some(i => i.t === '환불')).pop(); return !!m.find(i => i.t === '환불').off; };
+  OV.tab3c = '원장'; const btnOn = !rfOff();
   OV.openRefund(k); OV.ovSet('amt', '20000'); OV.ovConfirm(); const over1 = OV.overOf(k) === 18000;
   OV.ovSet('amt', '10000'); OV.ovSet('acct', '기업 123-45'); OV.ovConfirm(); const part = OV.overOf(k) === 8000;
   OV.openRefund(k); OV.ovConfirm();
   const L2 = OV.ledgerOf(k), rfs = L2.rows.filter(r => r.type === '환불');
   r6.push(['원장 환불 — 과납보다 많으면 막힘 · 10,000 일부 환불 → 과납 8,000 · 나머지 8,000 환불 → 잔액 0 · 환불 거래 2건 · 그 뒤 환불 버튼 잠김',
     btnOn && over1 && part && rfs.length === 2 && rfs.reduce((a, r) => a + r.inc, 0) === 18000 && L2.bal.매출채권 === 0
-    && /disabled title="돌려줄 과납이 없습니다"/.test(OV.CTR3(k))]);
+    && rfOff()]);
   /* 감액 패널 — 남은 청구액을 넘으면 막고, 사유가 없으면 막는다 */
   OV.cutOpen('2026-07|본관101호|전기요금'); OV.cutSet('amt', '99999999'); OV.cutSet('why', '시험'); OV.cutConfirm();
   const blocked = !OV.ledgerOf(k).rows.some(r => r.type === '감액' && r.dec === 99999999);

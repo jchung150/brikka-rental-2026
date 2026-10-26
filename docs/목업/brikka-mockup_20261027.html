@@ -1306,6 +1306,7 @@ function drawerHTML(){
   if(DRAWER==='hdet') return hdHTML();
   if(DRAWER==='over') return overHTML();
   if(DRAWER==='depret') return drHTML();
+  if(DRAWER==='depin') return diHTML();
   if(DRAWER==='bank') return bkHTML();
   if(DRAWER==='pay') return payHTML();
   if(DRAWER==='mclose') return mcHTML();
@@ -4288,6 +4289,53 @@ const cutOpenK=k=>fixOpen(k,'cut');
 const extraOpen=k=>fixOpen(k,'add','__new');
 const cutSet=fxSet, cutConfirm=fxConfirm, extraSave=fxConfirm;
 const extraSet=(f,v)=>fxSet(f==='n'?'name':f==='memo'?'why':f,v);
+/* ═══ 원장 탭 버튼 — 계정마다 하나로 묶는다: 매출채권(청구 · 수납) ▾ · 임대보증금 ▾. 할 수 없는 일은 흐리게, 이유는 마우스를 올리면 → 3.8 ═══ */
+function menuBtn(t,items){const id=MORE.push(items)-1;
+  return `<button class="btn" onclick="event.stopPropagation();moreOpen(${id},this)">${t} ▾</button>`;}
+function ledBtns(k,L){
+  return menuBtn('청구 · 수납',[
+      {t:'수납 처리',go:`openPay('${k}')`},
+      {t:'청구 정정',go:`fixOpen('${k}')`},
+      {t:'환불',go:`openRefund('${k}')`,off:overOf(k)?'':'돌려줄 과납이 없습니다'}])
+    +menuBtn('보증금',[
+      {t:'보증금 예치',go:`openDepIn('${k}')`},
+      {t:'보증금 상계',go:`openOffset('${k}')`,off:!canOffset(k)?'퇴거할 때만 씁니다. 해지일이 있거나 종료됨 · 파기됨인 계약입니다'
+        :!(L.bal.임대보증금>0)?'보증금 잔액이 없습니다':!(L.bal.매출채권>0)?'정리할 미납이 없습니다':''},
+      {t:'보증금 반환',go:`openDepRet('${k}')`,off:L.bal.임대보증금>0?'':'돌려줄 보증금이 없습니다'}]);
+}
+/* 보증금 상계 — 수납 처리 패널을 결제수단 보증금상계로 연다. 같은 패널 · 같은 배분 규칙 */
+function openOffset(k){if(!canOffset(k)) return; openPay(k); pm.how='보증금상계'; pm.amt=Math.min(pm.amt,ledgerOf(k).bal.임대보증금); render(true);}
+/* ═══ 보증금 예치 — 받은 보증금. 덜 들어와 더 받을 때도 쓴다. 반환 패널과 같은 모양 ═══ */
+const DEP_IN=[];
+let di=null;
+function openDepIn(k){const c=CTRS.find(x=>ckey(x)===k), left=Math.max(0,ctrDeposit(c)-ledgerOf(k).bal.임대보증금);
+  di={k,amt:left,date:TODAY_S,memo:''};DRAWER='depin';render(true);}
+function diSet(f,v){di[f]=f==='amt'?numOf(v):v;render(true);}
+function diConfirm(){if(!(di.amt>0)) return;
+  DEP_IN.push({k:di.k,amt:di.amt,date:di.date,memo:di.memo.trim(),sq:++paySeq});
+  DRAWER=null;di=null;render(true);}
+function diHTML(){
+  if(DRAWER!=='depin'||!di) return '';
+  const c=CTRS.find(x=>ckey(x)===di.k), bd=BUILDINGS.find(x=>x.id===c.b)||BUILDINGS[0], bal=ledgerOf(di.k).bal.임대보증금, agr=ctrDeposit(c);
+  const R=(k,b,tip)=>`<div class="fr"><span class="fk">${k}${tip?`<i class="tip" data-tip="${tip}">i</i>`:''}</span>${b}</div>`;
+  return `<div class="dro"><div class="ov" onclick="closeDrawer()"></div><div class="pn">
+    <div class="dh"><div><div class="t">보증금 예치</div><div class="s">${cname(bd.alias,c.no,c.ten)}</div></div>
+      <button class="x" onclick="closeDrawer()">✕</button></div>
+    <div class="db">
+      <div class="fg"><div class="fl">받은 돈</div>
+        ${R('보증금 약정액',`<span class="fv">${won(agr)}</span>`)}
+        ${R('보증금 잔액',`<b style="color:var(--pri)">${won(bal)}</b>`)}
+        ${R('예치할 금액',`<input type="text" inputmode="numeric" value="${di.amt?num(di.amt):''}" oninput="kwLive(this)" onchange="diSet('amt',this.value)" style="text-align:right"><span class="kw">${korWon(di.amt)}</span>`,
+          '약정액에서 아직 받지 않은 금액이 미리 들어갑니다')}
+        ${bal+di.amt>agr?`<div class="c2" style="margin:-4px 0 9px 114px;color:var(--warn)">약정액보다 ${won(bal+di.amt-agr)} 많습니다. 더 받은 돈은 보증금 반환으로 돌려줍니다</div>`:''}
+        ${R('받은 날',`<input type="date" value="${di.date}" max="${TODAY_S}" onchange="diSet('date',this.value)">`)}
+        ${R('메모',`<input type="text" value="${di.memo}" placeholder="예: 보증금 잔금" onchange="diSet('memo',this.value)">`)}
+        <div class="c2" style="margin:2px 0 0;white-space:normal">원장에 보증금 예치가 기록되고 그만큼 보증금 잔액이 늘어납니다.</div></div>
+    </div>
+    <div class="df"><button class="btn" onclick="closeDrawer()">취소</button>
+      <button class="btn pri" ${di.amt>0?'':'disabled'} onclick="diConfirm()">예치 확정</button></div>
+  </div></div>`;
+}
 /* ═══ 보증금 반환 — 원장 탭. 환불 패널과 같은 모양. 계약 중에도 쓴다(예: 1억 1백만원 받을 것을 1억 1천만원 받음 → 9백만원 반환).
    퇴거 때는 수납 처리의 보증금상계로 미납을 먼저 정리하고 남은 잔액을 돌려준다. 보증금에서 빠지는 길은 상계와 반환 둘뿐이다 ═══ */
 const DEP_RET=[];
@@ -5067,7 +5115,7 @@ function CTR3month(c,k){
   </div>
   <div class="hint">달마다 청구액·수납액·미납액을 봅니다. 줄을 누르면 항목별로 펼쳐집니다. 미납이나 연체료가 있는 달은 더보기의 <b>상세</b>로 그 달의 내역을 봅니다.<br>
     합계의 미납액은 지금 남은 받을 돈(원장 잔액)입니다. 마감한 달의 미납은 다음 달 전월 미납액으로 넘어가므로 달별 미납액을 더한 값과 다를 수 있습니다.<br>
-    돈을 기록하는 일(수납 처리 · 환불 · 보증금 반환 · 청구 정정)은 원장 탭에서 합니다.</div>`;
+    돈을 기록하는 일(청구 · 수납, 보증금)은 원장 탭에서 합니다.</div>`;
 }
 /* CTR-3 요약 탭 — 계약·임대 정보. 잔액은 원장에서 */
 /* 계약의 주차 약정 · 냉난방기 구분 — 목업 예시값. 등록 차량은 건물 주차 탭과 같은 기록(VEH) → CTR-3 · PRO-3 */
@@ -5324,6 +5372,9 @@ function ledgerOf(k){
   /* 보증금상계 — 같은 돈이 임대보증금에서 빠지고(차변) 매출채권을 채운다(대변) */
   MANUAL_DEP.filter(m=>m.k===k).forEach(m=>rows.push({date:m.date,type:'보증금 상계',acc:'임대보증금',
     memo:'미납 청구에 상계',item:'미납 청구에 상계',g:'dd'+m.dep,dec:m.amt,sup:null,vat:null,ord:2,sq:m.sq}));
+  /* 보증금 예치 — 원장 탭에서 기록한 받은 보증금(임대보증금 대변) */
+  DEP_IN.filter(x=>x.k===k).forEach(x=>{const t=`보증금 예치${x.memo?' — '+x.memo:''}`;
+    rows.push({date:x.date,type:'보증금 예치',acc:'임대보증금',memo:t,item:t,g:'di'+x.sq,inc:x.amt,sup:null,vat:null,ord:1.5,sq:x.sq});});
   /* 보증금 반환 — 돌려준 보증금(임대보증금 차변). 계약 중에도 쓴다(더 받은 보증금) · 퇴거 때는 상계하고 남은 잔액 */
   DEP_RET.filter(x=>x.k===k).forEach(x=>{const t=`보증금 반환 — ${x.why}${x.acct?' · '+x.acct:''}`;
     rows.push({date:x.date,type:'보증금 반환',acc:'임대보증금',memo:t,item:t,why:x.why,g:'dr'+x.sq,dec:x.amt,sup:null,vat:null,ord:3,sq:x.sq});});
@@ -5358,6 +5409,7 @@ function histC(c){
     else if(r.type==='감액') out.push({at:withT(r.date,'cut'+r.g+k),by:'슈퍼관리자',kind:'청구',name:nm,type:'감액',sum:r.item});
     else if(r.type==='환불') out.push({at:withT(r.date,'rf'+r.g+k),by:'김관리',kind:'수납',name:nm,type:'등록',sum:`${r.item} ${won(sum())}`});
     else if(r.type==='보증금 상계') out.push({at:withT(r.date,'dd'+r.g+k),by:'김관리',kind:'수납',name:nm,type:'등록',sum:`보증금상계 ${won(sum())}`});
+    else if(r.type==='보증금 예치'&&r.g.startsWith('di')) out.push({at:withT(r.date,'di'+r.g+k),by:'김관리',kind:'수납',name:nm,type:'등록',sum:`${r.item} ${won(sum())}`});
     else if(r.type==='보증금 반환') out.push({at:withT(r.date,'dr'+r.g+k),by:'김관리',kind:'수납',name:nm,type:'등록',sum:`${r.item} ${won(sum())}`,why:r.why});});
   if(!c.prev) out.push({at:withT(c.base,'ctr'+k),by:'김관리',kind:'계약',name:nm,type:'등록',sum:`계약 등록 · ${c.base.replace(/-/g,'.')} - ${ctrEnd(c).replace(/-/g,'.')}`});
   if(TERMS[k]) out.push({at:TERMS[k].at||withT(TODAY_S,'term'+k),by:'슈퍼관리자',kind:'계약',name:nm,type:'상태변경',sum:`해지 — ${TERMS[k].type} · 해지일 ${TERMS[k].out.replace(/-/g,'.')}`,why:TERMS[k].why});
@@ -5453,10 +5505,7 @@ function CTR3(k){
       ${[['','전체 계정'],['매출채권','매출채권 (청구·수납)'],['임대보증금','임대보증금']].map(([v,t])=>`<option value="${v}" ${f3.acc===v?'selected':''}>${t}</option>`).join('')}
     </select>
     <span style="margin-left:auto;display:flex;gap:6px">   <!-- 돈을 다루는 버튼은 원장 탭에만 둔다 -->
-      <button class="btn" onclick="openPay('${k}')">수납 처리</button>
-      <button class="btn" ${overOf(k)?'':'disabled title="돌려줄 과납이 없습니다"'} onclick="openRefund('${k}')">환불</button>
-      <button class="btn" ${L.bal.임대보증금>0?'':'disabled title="돌려줄 보증금이 없습니다"'} onclick="openDepRet('${k}')">보증금 반환</button>
-      <button class="btn" onclick="fixOpen('${k}')">청구 정정</button>
+      ${ledBtns(k,L)}
       <button class="btn pri" onclick="alert('원장 출력 — 선택한 기간·계정의 원장을 거래내역서 PDF로 내려받거나 임차인 담당자에게 보낸다')">원장 출력</button></span>
   </div>
   ${(()=>{
@@ -5486,7 +5535,6 @@ function CTR3(k){
         <div class="n c2" style="margin:0">${r.cr?won(r.cr):''}</div>
         <div></div></div>`).join(''));}).join('');   /* 항목 줄은 같은 순간이라 잔액을 적지 않는다 */
     return `<div style="display:flex;align-items:center;gap:18px;margin:-6px 0 8px;font-size:12.5px">
-      <span><span class="c2" style="margin:0 6px 0 0">보증금</span><b>${won(L.bal.임대보증금)}</b></span>
       <span style="margin-left:auto">${G.length?`<button class="btn sm" onclick="g3All=${anyOp?'false':'true'};g3={};render(true)">${anyOp?'전체 접기':'전체 펼치기'}</button>`:''}</span></div>
     <div class="tbl schl">
       <div class="schr led hd"><div>날짜</div><div>거래유형</div><div>계정</div><div>내용</div>
@@ -5497,7 +5545,7 @@ function CTR3(k){
     이 계약의 모든 돈 거래입니다. 청구서 한 장, 입금 한 건을 한 줄로 묶었습니다. 펼치면 항목별로 보입니다.<br>
     최근 거래가 위에 있고, 잔액은 그 거래 직후의 금액입니다. 매출채권(받을 돈)과 임대보증금(돌려줄 돈)의 잔액은 따로 셉니다.<br>
     원장은 고치지 않습니다. 잘못된 거래는 취소 거래를 추가해 바로잡습니다. 연체료는 수납 처리에서 받기로 한 금액만 청구로 올라옵니다.<br>
-    잔액을 바꾸지 않는 안쪽 옮김(미납 이월 · 전월 과납액 배분 · 감액으로 넘친 수납)은 적지 않습니다. 잔액이 0보다 작으면 <b>과납</b>이며, 돌려줄 때는 위의 <b>환불</b>을 누릅니다.<br>
+    잔액을 바꾸지 않는 안쪽 옮김(미납 이월 · 전월 과납액 배분 · 감액으로 넘친 수납)은 적지 않습니다. 잔액이 0보다 작으면 <b>과납</b>이며, 돌려줄 때는 위의 <b>청구 · 수납 › 환불</b>을 씁니다.<br>
     받은 돈·돌려준 돈·청구 정정(덜 받기 = 감액 · 더 받기 = 추가 청구)은 이 탭 위쪽 버튼으로 기록합니다.</div>`;
 }
 
