@@ -4091,7 +4091,8 @@ function PAY6(){
 /* ═══ 수납 처리 — 현금·카드로 받았거나 보증금에서 뺀 돈. 은행 입금은 입금 매칭(PAY-13)에서 → PAY-2 · CTR-3 ═══ */
 let pm=null, pmSeq=0;
 const MANUAL_DEP=[];   /* 보증금상계 — 원장의 임대보증금에서 뺀다 */
-const PAY_HOW=['현금','카드','계좌이체','보증금상계'];
+/* 수납 처리는 실제로 들어온 돈만. 보증금상계는 원장 탭 보증금 ▾ 메뉴의 보증금 상계 패널에서(슈퍼관리자 · 퇴거할 때) */
+const PAY_HOW=['현금','카드','계좌이체'];
 /* 보증금상계는 퇴거할 때만 — 해지일 또는 계약종료일 당일부터(종료됨 · 파기됨 포함).
    이사하는 날 빈 공간을 확인하고 그 자리에서 정리하므로 날짜가 지나기를 기다리지 않는다. 해지일이 아직 오지 않았으면 잠근다 */
 const offsetFrom=k=>{const c=CTRS.find(x=>ckey(x)===k);return c?(TERMS[k]?TERMS[k].out:ctrEnd(c)):'';};
@@ -4167,8 +4168,9 @@ function payHTML(){
   /* 보증금상계를 할 수 없는 계약 — 패널은 열고, 이유와 먼저 할 일을 보여 준다 */
   const offNo=pm.how==='보증금상계'&&!canOffset(pm.k), offD=offsetFrom(pm.k).replace(/-/g,'.');
   const ok=((pm.amt>0&&pl.lines.length)||pm.feeOn)&&!over&&!offNo;
+  const isOff=pm.how==='보증금상계';
   return `<div class="dro"><div class="ov" onclick="closeDrawer()"></div><div class="pn">
-    <div class="dh"><div><div class="t">수납 처리</div>
+    <div class="dh"><div><div class="t">${isOff?'보증금 상계':'수납 처리'}</div>
       <div class="s">${cname(bn.alias,c.no,c.ten)}</div></div>
       <button class="x" onclick="closeDrawer()">✕</button></div>
     <div class="db">
@@ -4185,22 +4187,31 @@ function payHTML(){
           <b style="font-size:15px">${won(need)}</b><span class="c2">${pm.feeFull&&pm.feeOn?'미납 + 연체료':'미납'}</span>
           ${pm.amt!==need?`<button class="btn sm" style="margin-left:auto" onclick="setPm('amt','${need}')">이 금액으로</button>`:''}</div>
       </div>
-      <div class="fg"><div class="fl">받은 돈</div>
+      ${isOff?`<div class="fg"><div class="fl">보증금에서 뺄 돈</div>
+        <div class="fr"><span class="fk">보증금 잔액</span><b style="color:var(--pri)">${won(depBal)}</b></div>
+        <div class="fr"><span class="fk">상계일</span>
+          <input type="date" value="${pm.date}" max="${TODAY_S}" onchange="setPm('date',this.value)"></div>
+        <div class="fr"><span class="fk">상계 금액<i class="tip" data-tip="미납 합계와 보증금 잔액 중 작은 쪽이 미리 들어갑니다. 이 계약의 미납에만 씁니다">i</i></span>
+          <input type="text" inputmode="numeric" value="${pm.amt.toLocaleString('ko-KR')}" oninput="kwLive(this)" onchange="setPm('amt',this.value)" style="text-align:right"><span class="kw">${korWon(pm.amt)}</span></div>
+        <div class="fr"><span class="fk">메모</span>
+          <input type="text" value="${pm.memo}" oninput="pm.memo=this.value"></div>
+        ${offNo?`<div class="prev warn2" style="margin:8px 0 0"><div class="pt">아직 보증금상계를 할 수 없습니다</div>
+          보증금상계는 퇴거할 때 씁니다. ${TERMS[pm.k]?`해지일 <b>${offD}</b>부터 쓸 수 있습니다.`
+            :`먼저 계약을 해지하세요. 해지하지 않으면 계약종료일 <b>${offD}</b>부터 쓸 수 있습니다.`}
+          ${!TERMS[pm.k]&&c.st==='진행중'?`<div style="margin-top:8px"><button class="btn sm" onclick="closeDrawer();termOpen('${pm.k}')">계약 해지 →</button></div>`:''}</div>`
+          :`<div class="c2" style="margin:2px 0 0;white-space:normal">상계 후 남는 보증금 <b>${won(Math.max(0,depBal-pm.amt))}</b>. 남은 보증금은 보증금 ▾ › 보증금 반환으로 돌려줍니다.</div>`}
+      </div>`
+      :`<div class="fg"><div class="fl">받은 돈</div>
         <div class="fr"><span class="fk">받은 날</span>
           <input type="date" value="${pm.date}" max="${TODAY_S}" onchange="setPm('date',this.value)"></div>
-        <div class="fr"><span class="fk">결제수단<i class="tip" data-tip="보증금상계는 퇴거할 때만, 슈퍼관리자만 쓸 수 있습니다. 해지일 또는 계약종료일 당일부터 쓸 수 있습니다">i</i></span>
+        <div class="fr"><span class="fk">결제수단</span>
           <select onchange="setPm('how',this.value)">${PAY_HOW.map(h=>`<option ${h===pm.how?'selected':''}>${h}</option>`).join('')}</select></div>
         <div class="fr"><span class="fk">받은 금액</span>
           <input type="text" inputmode="numeric" value="${pm.amt.toLocaleString('ko-KR')}" oninput="kwLive(this)" onchange="setPm('amt',this.value)" style="text-align:right"><span class="kw">${korWon(pm.amt)}</span></div>
         <div class="fr"><span class="fk">메모</span>
           <input type="text" value="${pm.memo}" placeholder="예: 카드 승인번호, 영수증 번호" oninput="pm.memo=this.value"></div>
-        ${pm.how==='보증금상계'&&!offNo?`<div class="c2" style="margin:2px 0 0;white-space:normal">보증금 잔액 ${won(depBal)}. 이 계약의 미납에만 씁니다.</div>`:''}
-        ${offNo?`<div class="prev warn2" style="margin:8px 0 0"><div class="pt">아직 보증금상계를 할 수 없습니다</div>
-          보증금상계는 퇴거할 때 씁니다. ${TERMS[pm.k]?`해지일 <b>${offD}</b>부터 쓸 수 있습니다.`
-            :`먼저 계약을 해지하세요. 해지하지 않으면 계약종료일 <b>${offD}</b>부터 쓸 수 있습니다.`}
-          ${!TERMS[pm.k]&&c.st==='진행중'?`<div style="margin-top:8px"><button class="btn sm" onclick="closeDrawer();termOpen('${pm.k}')">계약 해지 →</button></div>`:''}</div>`:''}
-      </div>
-      ${leftDue||(pm.feeOn&&leftFee)?`<div class="prev warn2" style="margin:-4px 0 18px"><div class="pt">${won(pm.amt)}을 받으면</div>
+      </div>`}
+      ${leftDue||(pm.feeOn&&leftFee)?`<div class="prev warn2" style="margin:-4px 0 18px"><div class="pt">${won(pm.amt)}을 ${isOff?'상계하면':'받으면'}</div>
         남는 미납 <b>${won(leftDue)}</b>${pm.feeFull&&pm.feeOn?` · 남는 연체료 <b>${won(leftFee)}</b>`:''}</div>`:''}
       <div class="fg"><div class="fl">배분 미리보기</div>
         <div class="tbl" style="margin:0"><div class="schr rcp hd"><div>청구항목</div><div class="n">미납액</div><div class="n">이번 수납액</div><div>결과</div></div>
@@ -4210,14 +4221,14 @@ function payHTML(){
           ||'<div class="empty">미납 청구가 없습니다</div>'}
         ${pl.all.length?`<div class="schr rcp sum"><div>합계</div><div class="n">${won(tot)}</div><div class="n"><b>${won(payT)}</b></div><div class="c2" style="margin:0">남는 미납 ${won(tot-payT)}</div></div>`:''}
         </div>
-        ${pl.rest>0?`<div class="prev warn2" style="margin-top:10px"><div class="pt">남는 금액 ${won(pl.rest)}</div>합계보다 많이 받았습니다. 금액을 합계에 맞추세요.</div>`:''}
+        ${pl.rest>0?`<div class="prev warn2" style="margin-top:10px"><div class="pt">남는 금액 ${won(pl.rest)}</div>합계보다 많습니다. 금액을 합계에 맞추세요.</div>`:''}
         ${over?`<div class="prev warn2" style="margin-top:10px"><div class="pt">보증금보다 많습니다</div>보증금 잔액 ${won(depBal)}까지만 뺄 수 있습니다.</div>`:''}
       </div>
-      <div class="c2" style="margin:0;white-space:normal">전월 미납액부터, 같은 달 안에서는 배분 우선순위대로 채웁니다. 연체료는 맨 나중입니다. 확정하면 원장에 수납으로 기록됩니다.</div>
+      <div class="c2" style="margin:0;white-space:normal">전월 미납액부터, 같은 달 안에서는 배분 우선순위대로 채웁니다. 연체료는 맨 나중입니다. ${isOff?'확정하면 원장에 보증금 상계(임대보증금)와 수납(매출채권)이 함께 기록됩니다.':'확정하면 원장에 수납으로 기록됩니다.'}</div>
     </div>
     <div class="df">
       <button class="btn" onclick="closeDrawer()">취소</button>
-      <button class="btn pri" ${ok&&!pl.rest?'':'disabled'} onclick="payConfirm()">수납 확정</button></div>
+      <button class="btn pri" ${ok&&!pl.rest?'':'disabled'} onclick="payConfirm()">${isOff?'상계 확정':'수납 확정'}</button></div>
   </div></div>`;
 }
 
@@ -4311,8 +4322,8 @@ function ledBtns(k,L){
       {t:'보증금 반환',go:`openDepRet('${k}')`,off:L.bal.임대보증금>0?'':'돌려줄 보증금이 없습니다'}],
       '슈퍼관리자만 — 관리자는 매달 도는 청구 · 수납만 다룬다');
 }
-/* 보증금 상계 — 수납 처리 패널을 결제수단 보증금상계로 연다. 같은 패널 · 같은 배분 규칙 */
-function openOffset(k){openPay(k); pm.how='보증금상계'; pm.amt=Math.min(pm.amt,ledgerOf(k).bal.임대보증금); render(true);}
+/* 보증금 상계 — 자기 패널(제목 · 칸이 다르다). 배분 계산은 수납 처리와 같다. 원장에는 보증금 상계 + 결제수단 보증금상계인 수납 */
+function openOffset(k){openPay(k); pm.how='보증금상계'; pm.memo='퇴거 정산'; pm.amt=Math.min(pm.amt,ledgerOf(k).bal.임대보증금); render(true);}
 /* ═══ 보증금 예치 — 받은 보증금. 덜 들어와 더 받을 때도 쓴다. 반환 패널과 같은 모양 ═══ */
 const DEP_IN=[];
 let di=null;
@@ -4548,7 +4559,7 @@ function PAY2(){
   <div class="hint">
     미납이 있는 계약을 모았습니다. 청구액을 다 냈어도 연체료가 남았으면 미납입니다. 계약 줄을 누르면 달별 미납이 펼쳐지고, 달별 줄의 <b>상세</b>를 누르면 그 달의 미납 내역이 오른쪽에 열립니다.<br>
     다 냈어도 늦게 냈다면 연체료가 남습니다.<br>
-    현금·카드로 받았거나 보증금에서 빼면 계약 줄 더보기의 <b>수납</b>을 누르세요. 은행 입금은 입금 매칭에서 처리합니다.<br>
+    현금·카드로 받았으면 계약 줄 더보기의 <b>수납</b>을 누르세요. 은행 입금은 입금 매칭에서 처리합니다. 보증금 상계는 계약 상세 원장 탭의 <b>보증금</b> 메뉴에서 합니다(슈퍼관리자 · 퇴거할 때).<br>
     연체료는 수납할 때 정리합니다. 전액 받기 · 50% 감면 · 직접 입력 · 전액 감면 중에서 고릅니다.</div>`;
 }
 
@@ -4578,12 +4589,23 @@ const refTx=k=>{const r=CREF[k];return r?`${r.rb} ${r.ra} (${r.rn})`:'';};
 const CPROXY={'b1본관601호':{n:'윤서아',tel:'010-7714-2208',mail:'proxy@sample.kr',addr:'서울특별시 용산구 한강대로 100'}};
 const man=n=>n>=1e8?(n/1e8).toFixed(n%1e8?1:0)+'억':n>=1e4?num(Math.round(n/1e4))+'만':num(n);
 
+/* 잔액 남음 — 끝난 계약(종료됨 · 파기됨)인데 원장 잔액이 남은 것. 계약상태가 아니라 원장 잔액으로 계산한 표시다.
+   보증금을 아직 돌려주지 않았거나, 미납 · 과납이 남았다. 둘 다 0이 되면 사라진다 */
+function leftOf(c){
+  if(c.st!=='종료됨'&&c.st!=='파기됨') return null;
+  const L=ledgerOf(ckey(c)), dep=L.bal.임대보증금, ar=L.bal.매출채권;
+  return dep||ar?{dep,ar}:null;
+}
+function leftTag(c){const x=leftOf(c); if(!x) return '';
+  const t=[x.dep?`보증금 ${won(x.dep)}`:'',x.ar>0?`미납 ${won(x.ar)}`:x.ar<0?`과납 ${won(-x.ar)}`:''].filter(Boolean).join(' · ');
+  return `<span class="bd wa" style="margin-left:6px" title="${t}">잔액 남음</span>`;}
+
 /* ═══ CTR-1 계약 목록 ═══ */
 let f1c={b:'',st:'진행중',dd:''};
 const setF1c=(k,v)=>{f1c[k]=v;render();};
 /* 계약 표 — 계약 목록(CTR-1)과 건물 상세의 계약 탭이 같은 표 · 같은 필터를 쓴다. 건물 탭은 그 건물만 */
 function ctrRowsOf(f,b){
-  return CTRS.filter(c=>(!b||c.b===b)&&(!f.st||c.st===f.st)).map(c=>({c,end:ctrEnd(c),dd:dday(ctrEnd(c))}))
+  return CTRS.filter(c=>(!b||c.b===b)&&(!f.st||(f.st==='잔액남음'?!!leftOf(c):c.st===f.st))).map(c=>({c,end:ctrEnd(c),dd:dday(ctrEnd(c))}))
     .filter(x=>!f.dd||(f.dd==='0'?x.dd<0:x.dd>=0&&x.dd<=+f.dd)).sort((a,b)=>a.dd-b.dd);
 }
 function ctrFbar(f,set,withB){
@@ -4591,7 +4613,7 @@ function ctrFbar(f,set,withB){
     ${withB?`<select onchange="${set}('b',this.value)"><option value="">전체 건물</option>
       ${BUILDINGS.map(b=>`<option value="${b.id}" ${f.b===b.id?'selected':''}>${b.name}</option>`).join('')}</select>`:''}
     <select onchange="${set}('st',this.value)">
-      ${[['','전체 계약상태'],['준비중','준비중'],['진행중','진행중'],['종료됨','종료됨'],['파기됨','파기됨']].map(([v,t])=>`<option value="${v}" ${f.st===v?'selected':''}>${t}</option>`).join('')}</select>
+      ${[['','전체 계약상태'],['준비중','준비중'],['진행중','진행중'],['종료됨','종료됨'],['파기됨','파기됨'],['잔액남음','종료 · 잔액 남음']].map(([v,t])=>`<option value="${v}" ${f.st===v?'selected':''}>${t}</option>`).join('')}</select>
     <select onchange="${set}('dd',this.value)">
       ${[['','만료 남은 일수 전체'],['0','만료됨'],['30','30일 이하'],['90','90일 이하'],['180','180일 이하']].map(([v,t])=>`<option value="${v}" ${f.dd===v?'selected':''}>${t}</option>`).join('')}</select>
   </div>`;
@@ -4604,7 +4626,7 @@ function ctrTbl(rows){
     <tbody>${rows.map(({c,end,dd})=>`<tr onclick="tab3c='요약';go('ctr-3/${ckey(c)}')">
       <td>${c.st==='진행중'?ddBadge(end):'<span style="color:var(--faint)">—</span>'}</td>
       <td>${cnameHTML(BA(c.b),c.no,c.ten)}</td>
-      <td><span class="bd ${c.st==='진행중'?'ok':'mu'}">${c.st}</span></td>
+      <td><span class="bd ${c.st==='진행중'?'ok':'mu'}">${c.st}</span>${leftTag(c)}</td>
       <td>${d8(c.base)} - ${d8(end)} <span class="c2" style="margin:0 0 0 6px">보증금 ${man(ctrDeposit(c))} · 임대료 ${man(Math.round(ctrAmt(c,'임대료')*1.1))} · 관리비 ${ctrAmt(c,'고정관리비')?man(Math.round(ctrAmt(c,'고정관리비')*1.1)):'없음'}</span></td>
       <td class="c">${moreCell([{t:'계약 상세',go:`tab3c='요약';go('ctr-3/${ckey(c)}')`},
         {t:`재계약`,go:`rnwOpen('${ckey(c)}')`,off:c.st!=='진행중'?'진행중인 계약만 재계약할 수 있습니다':c.next?'이미 재계약을 등록했습니다':''},
@@ -5084,7 +5106,7 @@ function CTR3head(c,k){
   const grp=BUILDINGS.map(b=>({b,cs:CTRS.filter(x=>x.b===b.id&&(x.st==='진행중'||x.st==='준비중'))})).filter(g=>g.cs.length);
   return `
   <div class="ph"><div class="bsw">
-      <h1>${cnameHTML(bn.alias,c.no,c.ten).replace('class="cn"','class="cn" style="font-size:19px"')}</h1>
+      <h1>${cnameHTML(bn.alias,c.no,c.ten).replace('class="cn"','class="cn" style="font-size:19px"')}</h1>${leftTag(c)}
       <button class="bt2 ${CSW?'open':''}" onclick="event.stopPropagation();CSW=!CSW;render(true)" title="다른 계약으로 전환">계약 전환
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
           stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button>

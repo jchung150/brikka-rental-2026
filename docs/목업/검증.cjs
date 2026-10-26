@@ -90,7 +90,7 @@ run('PAY-11 마감 취소 패널', "mcOpen('undo');mcHTML()");
 run('PAY-6 8월 (발행 전)', "RC.f.ym='2026-08';PAY6()");
 run('PAY-13 7월 처리 완료', "seedJuly();PAY13()");
 run('수납 처리 패널', "openPay('b1별관301호');payHTML()");
-run('수납 처리 패널 보증금상계', "openPay('b1별관301호');setPm('how','보증금상계');payHTML()");
+run('보증금 상계 패널', "openOffset('b1별관301호');payHTML()");
 run('수납 처리 패널 초과', "openPay('b1별관301호');setPm('amt','99999999');payHTML()");
 run('수납 처리 패널 미납 없음', "openPay('b1본관801호');payHTML()");
 run('수납 처리 패널 연체료 낮춰 받기', "openPay('b1별관301호');setPm('feeOn','1');setPm('fee','50000');payHTML()");
@@ -178,7 +178,7 @@ for (const m of Z.MASTER) {
 if (orphan.length) fail = 1;
 console.log('⑤ 유닛 번호 정합성 ' + (orphan.length ? '✗ ' + orphan.join(', ') : 'OK'));
 /* ⑥ 수납 기록 — 6월 처리 후 7월 거래내역(8월 실제 거래내역을 옮긴 예시)으로 매칭·배분·미납을 검산한다 → 4.3 · 4.6 */
-const W = new Function(stub + bare + '; return {RC,ledgerOf,lateCalc,rcPreview,ctrPay,ctrDeps,rcRun,rcQueue,rcGuess,rcBiz,rcConfirm,rcIgnore,rcNext,rcOpenN,dueOf,normName,PAID,BILLS,openPay,setPm,payPlan,payConfirm,feeUntil,FEE_CUT,TERMS,canOffset,payHTML,get pm(){return pm;}};')();
+const W = new Function(stub + bare + '; return {RC,ledgerOf,lateCalc,rcPreview,ctrPay,ctrDeps,rcRun,rcQueue,rcGuess,rcBiz,rcConfirm,rcIgnore,rcNext,rcOpenN,dueOf,normName,PAID,BILLS,openPay,openOffset,setPm,payPlan,payConfirm,feeUntil,FEE_CUT,TERMS,canOffset,payHTML,get pm(){return pm;}};')();
 const P6 = W.RC.P;
 const r6 = [];
 r6.push(['거래 56 · 입금 14 · 출금 42', P6.rows.length === 56 && P6.dep.length === 14 && P6.wd.length === 42]);
@@ -245,16 +245,26 @@ r6.push(['현장 수납 현금 300만 — 오래된 달부터 · 미납 2,146,47
   && LC.bal.매출채권 === 2146472 && LC.rows.some(r => r.type === '수납' && r.hand && / 현금$/.test(r.src))]);
 const dep0 = LC.bal.임대보증금;
 /* 보증금상계는 퇴거할 때만 — 진행중이고 해지일이 없으면 고를 수 없다 */
-W.openPay('b1별관301호'); W.setPm('how', '보증금상계');
+W.openOffset('b1별관301호');
+const payNoOff = !/보증금상계/.test((W.openPay('b1별관301호'), W.payHTML()).match(/<select onchange="setPm\('how'[^]*?<\/select>/)[0]);   /* 수납 처리 결제수단에는 없다 */
+W.openOffset('b1별관301호');
 const dep1 = W.ledgerOf('b1별관301호').bal.임대보증금; W.setPm('amt', 1000000); const lockHtml = W.payHTML(); W.payConfirm();
-const offLocked = !W.canOffset('b1별관301호') && /아직 보증금상계를 할 수 없습니다/.test(lockHtml) && /계약 해지 →/.test(lockHtml)
+const offLocked = payNoOff && !W.canOffset('b1별관301호') && /아직 보증금상계를 할 수 없습니다/.test(lockHtml) && /계약 해지 →/.test(lockHtml)
+  && /<div class="t">보증금 상계<\/div>/.test(lockHtml) && /상계 확정/.test(lockHtml)
   && W.ledgerOf('b1별관301호').bal.임대보증금 === dep1;   /* 패널은 열리지만 확정되지 않는다 */
 W.TERMS['b1별관301호'] = {type: '중도 해지(합의)', out: '2026-08-11', why: '검증'};
 const offFuture = !W.canOffset('b1별관301호');   /* 해지일이 내일이면 아직 잠김 */
 W.TERMS['b1별관301호'].out = '2026-08-10';   /* 오늘 = 해지일 */
 const offOpen = W.canOffset('b1별관301호') && W.canOffset('b21501호');   /* 해지일을 넣은 계약 · 종료됨 계약 */
-W.openPay('b1별관301호'); W.setPm('how', '보증금상계'); W.setPm('amt', 1000000); W.payConfirm();
+W.openOffset('b1별관301호'); W.setPm('amt', 1000000); W.payConfirm();
 delete W.TERMS['b1별관301호'];
+/* 잔액 남음 — 끝난 계약인데 원장 잔액이 남음. 종료된 리틀브릿지(보증금 남음)에 붙고, 필터로 모인다 */
+{ const LT = new Function(stub + bare + '; seedJuly(); return {leftOf,leftTag,ctrRowsOf,CTRS};')();
+  const ended = LT.CTRS.find(c => c.b === 'b2' && c.no === '1501호'), on = LT.CTRS.find(c => c.st === '진행중');
+  const rows = LT.ctrRowsOf({st: '잔액남음', dd: ''}, '');
+  r6.push(['잔액 남음 — 종료된 계약에 보증금이 남으면 표시 · 진행중 계약엔 없음 · 필터 「종료 · 잔액 남음」은 끝난 계약만',
+    !!LT.leftOf(ended) && /잔액 남음/.test(LT.leftTag(ended)) && /보증금/.test(LT.leftTag(ended)) && !LT.leftOf(on)
+    && rows.length > 0 && rows.every(x => x.c.st === '종료됨' || x.c.st === '파기됨')]); }
 r6.push(['보증금상계는 퇴거할 때만 — 진행중 · 해지일 없음이면 잠김 · 해지일이 아직 안 왔으면 잠김 · 해지일 당일부터 · 종료됨 계약', offLocked && offFuture && offOpen]);
 const LD = W.ledgerOf('b1별관301호');
 r6.push(['보증금상계 100만 — 미납 1,146,472 · 보증금 잔액 100만 감소 · 보증금 상계 행',
