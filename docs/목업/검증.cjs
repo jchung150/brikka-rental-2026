@@ -246,7 +246,9 @@ r6.push(['현장 수납 현금 300만 — 오래된 달부터 · 미납 2,146,47
 const dep0 = LC.bal.임대보증금;
 /* 보증금상계는 퇴거할 때만 — 진행중이고 해지일이 없으면 고를 수 없다 */
 W.openPay('b1별관301호'); W.setPm('how', '보증금상계');
-const offLocked = W.pm.how === '현금' && !W.canOffset('b1별관301호') && /<option disabled>보증금상계|<option[^>]*disabled[^>]*>보증금상계/.test(W.payHTML());
+const dep1 = W.ledgerOf('b1별관301호').bal.임대보증금; W.setPm('amt', 1000000); const lockHtml = W.payHTML(); W.payConfirm();
+const offLocked = !W.canOffset('b1별관301호') && /아직 보증금상계를 할 수 없습니다/.test(lockHtml) && /계약 해지 →/.test(lockHtml)
+  && W.ledgerOf('b1별관301호').bal.임대보증금 === dep1;   /* 패널은 열리지만 확정되지 않는다 */
 W.TERMS['b1별관301호'] = {type: '중도 해지(합의)', out: '2026-08-11', why: '검증'};
 const offFuture = !W.canOffset('b1별관301호');   /* 해지일이 내일이면 아직 잠김 */
 W.TERMS['b1별관301호'].out = '2026-08-10';   /* 오늘 = 해지일 */

@@ -4116,7 +4116,6 @@ function setPm(f,v){
   else if(f==='feeOn') setFeeMode(v===true||v==='1'?'full':'later');
   else if(f==='feeMode') setFeeMode(v);
   else if(f==='date'){pm.date=v;pm.feeFull=feeUntil(pm.k,v);setFeeMode(pm.feeMode);}
-  else if(f==='how'&&v==='보증금상계'&&!canOffset(pm.k)) return;
   else pm[f]=v;
   if(f!=='amt') pm.amt=Math.max(0,pm.amt-was+(pm.feeOn?pm.fee:0));
   render(true);
@@ -4165,7 +4164,9 @@ function payHTML(){
   const dueN=pl.all.filter(l=>!l.fee).reduce((s,l)=>s+l.due,0), need=dueN+(pm.feeOn?pm.fee:0);
   const leftDue=dueN-pl.lines.filter(l=>!l.fee).reduce((s,l)=>s+l.pay,0);
   const leftFee=pm.feeOn?pm.fee-pl.lines.filter(l=>l.fee).reduce((s,l)=>s+l.pay,0):pm.feeFull;
-  const ok=((pm.amt>0&&pl.lines.length)||pm.feeOn)&&!over;
+  /* 보증금상계를 할 수 없는 계약 — 패널은 열고, 이유와 먼저 할 일을 보여 준다 */
+  const offNo=pm.how==='보증금상계'&&!canOffset(pm.k), offD=offsetFrom(pm.k).replace(/-/g,'.');
+  const ok=((pm.amt>0&&pl.lines.length)||pm.feeOn)&&!over&&!offNo;
   return `<div class="dro"><div class="ov" onclick="closeDrawer()"></div><div class="pn">
     <div class="dh"><div><div class="t">수납 처리</div>
       <div class="s">${cname(bn.alias,c.no,c.ten)}</div></div>
@@ -4188,12 +4189,16 @@ function payHTML(){
         <div class="fr"><span class="fk">받은 날</span>
           <input type="date" value="${pm.date}" max="${TODAY_S}" onchange="setPm('date',this.value)"></div>
         <div class="fr"><span class="fk">결제수단<i class="tip" data-tip="보증금상계는 퇴거할 때만, 슈퍼관리자만 쓸 수 있습니다. 해지일 또는 계약종료일 당일부터 쓸 수 있습니다">i</i></span>
-          <select onchange="setPm('how',this.value)">${PAY_HOW.map(h=>`<option ${h===pm.how?'selected':''}${h==='보증금상계'&&!canOffset(pm.k)?' disabled':''}>${h}</option>`).join('')}</select></div>
+          <select onchange="setPm('how',this.value)">${PAY_HOW.map(h=>`<option ${h===pm.how?'selected':''}>${h}</option>`).join('')}</select></div>
         <div class="fr"><span class="fk">받은 금액</span>
           <input type="text" inputmode="numeric" value="${pm.amt.toLocaleString('ko-KR')}" oninput="kwLive(this)" onchange="setPm('amt',this.value)" style="text-align:right"><span class="kw">${korWon(pm.amt)}</span></div>
         <div class="fr"><span class="fk">메모</span>
           <input type="text" value="${pm.memo}" placeholder="예: 카드 승인번호, 영수증 번호" oninput="pm.memo=this.value"></div>
-        ${pm.how==='보증금상계'?`<div class="c2" style="margin:2px 0 0;white-space:normal">보증금 잔액 ${won(depBal)}. 이 계약의 미납에만 씁니다.</div>`:''}
+        ${pm.how==='보증금상계'&&!offNo?`<div class="c2" style="margin:2px 0 0;white-space:normal">보증금 잔액 ${won(depBal)}. 이 계약의 미납에만 씁니다.</div>`:''}
+        ${offNo?`<div class="prev warn2" style="margin:8px 0 0"><div class="pt">아직 보증금상계를 할 수 없습니다</div>
+          보증금상계는 퇴거할 때 씁니다. ${TERMS[pm.k]?`해지일 <b>${offD}</b>부터 쓸 수 있습니다.`
+            :`먼저 계약을 해지하세요. 해지하지 않으면 계약종료일 <b>${offD}</b>부터 쓸 수 있습니다.`}
+          ${!TERMS[pm.k]&&c.st==='진행중'?`<div style="margin-top:8px"><button class="btn sm" onclick="closeDrawer();termOpen('${pm.k}')">계약 해지 →</button></div>`:''}</div>`:''}
       </div>
       ${leftDue||(pm.feeOn&&leftFee)?`<div class="prev warn2" style="margin:-4px 0 18px"><div class="pt">${won(pm.amt)}을 받으면</div>
         남는 미납 <b>${won(leftDue)}</b>${pm.feeFull&&pm.feeOn?` · 남는 연체료 <b>${won(leftFee)}</b>`:''}</div>`:''}
@@ -4302,13 +4307,12 @@ function ledBtns(k,L){
       {t:'환불',go:`openRefund('${k}')`,off:overOf(k)?'':'돌려줄 과납이 없습니다'}])
     +menuBtn('보증금',[
       {t:'보증금 예치',go:`openDepIn('${k}')`},
-      {t:'보증금 상계',go:`openOffset('${k}')`,off:!canOffset(k)?`퇴거할 때만 씁니다. ${TERMS[k]?'해지일':'계약종료일'} ${offsetFrom(k).replace(/-/g,'.')}부터 쓸 수 있습니다`
-        :!(L.bal.임대보증금>0)?'보증금 잔액이 없습니다':!(L.bal.매출채권>0)?'정리할 미납이 없습니다':''},
+      {t:'보증금 상계',go:`openOffset('${k}')`},   /* 늘 열린다. 할 수 없으면 패널이 이유와 할 일을 알려 준다 */
       {t:'보증금 반환',go:`openDepRet('${k}')`,off:L.bal.임대보증금>0?'':'돌려줄 보증금이 없습니다'}],
       '슈퍼관리자만 — 관리자는 매달 도는 청구 · 수납만 다룬다');
 }
 /* 보증금 상계 — 수납 처리 패널을 결제수단 보증금상계로 연다. 같은 패널 · 같은 배분 규칙 */
-function openOffset(k){if(!canOffset(k)) return; openPay(k); pm.how='보증금상계'; pm.amt=Math.min(pm.amt,ledgerOf(k).bal.임대보증금); render(true);}
+function openOffset(k){openPay(k); pm.how='보증금상계'; pm.amt=Math.min(pm.amt,ledgerOf(k).bal.임대보증금); render(true);}
 /* ═══ 보증금 예치 — 받은 보증금. 덜 들어와 더 받을 때도 쓴다. 반환 패널과 같은 모양 ═══ */
 const DEP_IN=[];
 let di=null;
