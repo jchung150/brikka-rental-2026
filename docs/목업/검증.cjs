@@ -247,11 +247,13 @@ const dep0 = LC.bal.임대보증금;
 /* 보증금상계는 퇴거할 때만 — 진행중이고 해지일이 없으면 고를 수 없다 */
 W.openPay('b1별관301호'); W.setPm('how', '보증금상계');
 const offLocked = W.pm.how === '현금' && !W.canOffset('b1별관301호') && /<option disabled>보증금상계|<option[^>]*disabled[^>]*>보증금상계/.test(W.payHTML());
-W.TERMS['b1별관301호'] = {type: '중도 해지(합의)', out: '2026-08-31', why: '검증'};
+W.TERMS['b1별관301호'] = {type: '중도 해지(합의)', out: '2026-08-11', why: '검증'};
+const offFuture = !W.canOffset('b1별관301호');   /* 해지일이 내일이면 아직 잠김 */
+W.TERMS['b1별관301호'].out = '2026-08-10';   /* 오늘 = 해지일 */
 const offOpen = W.canOffset('b1별관301호') && W.canOffset('b21501호');   /* 해지일을 넣은 계약 · 종료됨 계약 */
 W.openPay('b1별관301호'); W.setPm('how', '보증금상계'); W.setPm('amt', 1000000); W.payConfirm();
 delete W.TERMS['b1별관301호'];
-r6.push(['보증금상계는 퇴거할 때만 — 진행중 · 해지일 없음이면 잠김 · 해지일을 넣으면 쓸 수 있음', offLocked && offOpen]);
+r6.push(['보증금상계는 퇴거할 때만 — 진행중 · 해지일 없음이면 잠김 · 해지일이 아직 안 왔으면 잠김 · 해지일 당일부터 · 종료됨 계약', offLocked && offFuture && offOpen]);
 const LD = W.ledgerOf('b1별관301호');
 r6.push(['보증금상계 100만 — 미납 1,146,472 · 보증금 잔액 100만 감소 · 보증금 상계 행',
   left('b1별관301호') === 1146472 && LD.bal.매출채권 === 1146472 && LD.bal.임대보증금 === dep0 - 1000000
@@ -265,7 +267,7 @@ r6.push(['보증금상계 100만 — 미납 1,146,472 · 보증금 잔액 100만
   const noWhy = B.ledgerOf(k).bal.임대보증금 === bal0;
   B.dr.why = '보증금 더 받음'; const html = B.drHTML(); B.drConfirm();
   const L = B.ledgerOf(k);
-  B.TERMS[k] = {type: '만기 종료', out: '2026-08-31', why: '검증'}; B.openDepRet(k); const full = B.dr.amt === L.bal.임대보증금;
+  B.TERMS[k] = {type: '만기 종료', out: '2026-08-10', why: '검증'}; B.openDepRet(k); const full = B.dr.amt === L.bal.임대보증금;
   B.openDepIn(k); const left0 = B.di.amt; B.diSet('amt', 2000000); B.diConfirm();
   const L2 = B.ledgerOf(k), btn = B.ledBtns('b1별관301호', B.ledgerOf('b1별관301호'));
   r6.push(['보증금 예치 — 원장 탭에서 200만 더 받음 · 원장 「보증금 예치」 · 버튼은 「청구 · 수납 ▾」「보증금 ▾」 두 묶음',

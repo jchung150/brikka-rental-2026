@@ -4092,8 +4092,11 @@ function PAY6(){
 let pm=null, pmSeq=0;
 const MANUAL_DEP=[];   /* 보증금상계 — 원장의 임대보증금에서 뺀다 */
 const PAY_HOW=['현금','카드','계좌이체','보증금상계'];
-/* 보증금상계는 퇴거할 때만 — 해지일이 있거나 종료됨·파기됨인 계약. 실무에서 보증금은 나갈 때 쌓인 미납을 빼고 돌려준다 */
-const canOffset=k=>{const c=CTRS.find(x=>ckey(x)===k);return !!TERMS[k]||!!c&&(c.st==='종료됨'||c.st==='파기됨');};
+/* 보증금상계는 퇴거할 때만 — 해지일 또는 계약종료일 당일부터(종료됨 · 파기됨 포함).
+   이사하는 날 빈 공간을 확인하고 그 자리에서 정리하므로 날짜가 지나기를 기다리지 않는다. 해지일이 아직 오지 않았으면 잠근다 */
+const offsetFrom=k=>{const c=CTRS.find(x=>ckey(x)===k);return c?(TERMS[k]?TERMS[k].out:ctrEnd(c)):'';};
+const canOffset=k=>{const c=CTRS.find(x=>ckey(x)===k); if(!c) return false;
+  return c.st==='종료됨'||c.st==='파기됨'||!!offsetFrom(k)&&dnum(offsetFrom(k))<=dnum(TODAY_S);};
 /* 이 계약의 연체료 — 받은 날까지. 이미 청구한 연체료는 빼고 센다 */
 const feeUntil=(k,d)=>[...new Set(BILLS.filter(i=>i.k===k).map(i=>i.ym))].reduce((a,ym)=>a+lateCalc(k,ym,d).fee,0);
 function openPay(k){
@@ -4184,7 +4187,7 @@ function payHTML(){
       <div class="fg"><div class="fl">받은 돈</div>
         <div class="fr"><span class="fk">받은 날</span>
           <input type="date" value="${pm.date}" max="${TODAY_S}" onchange="setPm('date',this.value)"></div>
-        <div class="fr"><span class="fk">결제수단<i class="tip" data-tip="보증금상계는 퇴거할 때만, 슈퍼관리자만 쓸 수 있습니다. 해지일이 있거나 종료됨·파기됨인 계약입니다">i</i></span>
+        <div class="fr"><span class="fk">결제수단<i class="tip" data-tip="보증금상계는 퇴거할 때만, 슈퍼관리자만 쓸 수 있습니다. 해지일 또는 계약종료일 당일부터 쓸 수 있습니다">i</i></span>
           <select onchange="setPm('how',this.value)">${PAY_HOW.map(h=>`<option ${h===pm.how?'selected':''}${h==='보증금상계'&&!canOffset(pm.k)?' disabled':''}>${h}</option>`).join('')}</select></div>
         <div class="fr"><span class="fk">받은 금액</span>
           <input type="text" inputmode="numeric" value="${pm.amt.toLocaleString('ko-KR')}" oninput="kwLive(this)" onchange="setPm('amt',this.value)" style="text-align:right"><span class="kw">${korWon(pm.amt)}</span></div>
@@ -4299,7 +4302,7 @@ function ledBtns(k,L){
       {t:'환불',go:`openRefund('${k}')`,off:overOf(k)?'':'돌려줄 과납이 없습니다'}])
     +menuBtn('보증금',[
       {t:'보증금 예치',go:`openDepIn('${k}')`},
-      {t:'보증금 상계',go:`openOffset('${k}')`,off:!canOffset(k)?'퇴거할 때만 씁니다. 해지일이 있거나 종료됨 · 파기됨인 계약입니다'
+      {t:'보증금 상계',go:`openOffset('${k}')`,off:!canOffset(k)?`퇴거할 때만 씁니다. ${TERMS[k]?'해지일':'계약종료일'} ${offsetFrom(k).replace(/-/g,'.')}부터 쓸 수 있습니다`
         :!(L.bal.임대보증금>0)?'보증금 잔액이 없습니다':!(L.bal.매출채권>0)?'정리할 미납이 없습니다':''},
       {t:'보증금 반환',go:`openDepRet('${k}')`,off:L.bal.임대보증금>0?'':'돌려줄 보증금이 없습니다'}],
       '슈퍼관리자만 — 관리자는 매달 도는 청구 · 수납만 다룬다');
