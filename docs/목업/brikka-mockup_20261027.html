@@ -4093,11 +4093,9 @@ let pm=null, pmSeq=0;
 const MANUAL_DEP=[];   /* 보증금상계 — 원장의 임대보증금에서 뺀다 */
 /* 수납 처리는 실제로 들어온 돈만. 보증금상계는 원장 탭 보증금 ▾ 메뉴의 보증금 상계 패널에서(슈퍼관리자 · 퇴거할 때) */
 const PAY_HOW=['현금','카드','계좌이체'];
-/* 보증금상계는 퇴거할 때만 — 해지일 또는 계약종료일 당일부터(종료됨 · 파기됨 포함).
-   이사하는 날 빈 공간을 확인하고 그 자리에서 정리하므로 날짜가 지나기를 기다리지 않는다. 해지일이 아직 오지 않았으면 잠근다 */
-const offsetFrom=k=>{const c=CTRS.find(x=>ckey(x)===k);return c?(TERMS[k]?TERMS[k].out:ctrEnd(c)):'';};
-const canOffset=k=>{const c=CTRS.find(x=>ckey(x)===k); if(!c) return false;
-  return c.st==='종료됨'||c.st==='파기됨'||!!offsetFrom(k)&&dnum(offsetFrom(k))<=dnum(TODAY_S);};
+/* 퇴거하는 계약 — 해지 처리를 했거나 종료됨 · 파기됨. 보증금 반환 패널이 남은 잔액 전부를 미리 넣는 기준이다.
+   보증금 상계는 이와 상관없이 계약 중 언제든 할 수 있다(슈퍼관리자) */
+const isLeaving=k=>{const c=CTRS.find(x=>ckey(x)===k);return !!TERMS[k]||!!c&&(c.st==='종료됨'||c.st==='파기됨');};
 /* 이 계약의 연체료 — 받은 날까지. 이미 청구한 연체료는 빼고 센다 */
 const feeUntil=(k,d)=>[...new Set(BILLS.filter(i=>i.k===k).map(i=>i.ym))].reduce((a,ym)=>a+lateCalc(k,ym,d).fee,0);
 function openPay(k){
@@ -4145,7 +4143,7 @@ function payPlan(){
 }
 function payConfirm(){
   const pl=payPlan(); if(pl.rest>0||(!pl.lines.length&&!pm.feeOn)) return;
-  if(pm.how==='보증금상계'&&(!canOffset(pm.k)||pm.amt>ledgerOf(pm.k).bal.임대보증금)) return;
+  if(pm.how==='보증금상계'&&pm.amt>ledgerOf(pm.k).bal.임대보증금) return;
   const fb=feeBill(); if(fb) BILLS.push(fb);
   if(pm.feeOn) FEE_CUT[pm.k]=pm.date;   /* 받았든 깎았든 이날까지의 연체료는 정리됐다 */
   const dep='m'+(++pmSeq), src=`${pm.date.slice(5).replace('-','.')} ${pm.how}`;
@@ -4165,9 +4163,7 @@ function payHTML(){
   const dueN=pl.all.filter(l=>!l.fee).reduce((s,l)=>s+l.due,0), need=dueN+(pm.feeOn?pm.fee:0);
   const leftDue=dueN-pl.lines.filter(l=>!l.fee).reduce((s,l)=>s+l.pay,0);
   const leftFee=pm.feeOn?pm.fee-pl.lines.filter(l=>l.fee).reduce((s,l)=>s+l.pay,0):pm.feeFull;
-  /* 보증금상계를 할 수 없는 계약 — 패널은 열고, 이유와 먼저 할 일을 보여 준다 */
-  const offNo=pm.how==='보증금상계'&&!canOffset(pm.k), offD=offsetFrom(pm.k).replace(/-/g,'.');
-  const ok=((pm.amt>0&&pl.lines.length)||pm.feeOn)&&!over&&!offNo;
+  const ok=((pm.amt>0&&pl.lines.length)||pm.feeOn)&&!over;
   const isOff=pm.how==='보증금상계';
   return `<div class="dro"><div class="ov" onclick="closeDrawer()"></div><div class="pn">
     <div class="dh"><div><div class="t">${isOff?'보증금 상계':'수납 처리'}</div>
@@ -4195,11 +4191,7 @@ function payHTML(){
           <input type="text" inputmode="numeric" value="${pm.amt.toLocaleString('ko-KR')}" oninput="kwLive(this)" onchange="setPm('amt',this.value)" style="text-align:right"><span class="kw">${korWon(pm.amt)}</span></div>
         <div class="fr"><span class="fk">메모</span>
           <input type="text" value="${pm.memo}" oninput="pm.memo=this.value"></div>
-        ${offNo?`<div class="prev warn2" style="margin:8px 0 0"><div class="pt">아직 보증금상계를 할 수 없습니다</div>
-          보증금상계는 퇴거할 때 씁니다. ${TERMS[pm.k]?`해지일 <b>${offD}</b>부터 쓸 수 있습니다.`
-            :`먼저 계약을 해지하세요. 해지하지 않으면 계약종료일 <b>${offD}</b>부터 쓸 수 있습니다.`}
-          ${!TERMS[pm.k]&&c.st==='진행중'?`<div style="margin-top:8px"><button class="btn sm" onclick="closeDrawer();termOpen('${pm.k}')">계약 해지 →</button></div>`:''}</div>`
-          :`<div class="c2" style="margin:2px 0 0;white-space:normal">상계 후 남는 보증금 <b>${won(Math.max(0,depBal-pm.amt))}</b>. 남은 보증금은 보증금 ▾ › 보증금 반환으로 돌려줍니다.</div>`}
+        <div class="c2" style="margin:2px 0 0;white-space:normal">상계 후 남는 보증금 <b>${won(Math.max(0,depBal-pm.amt))}</b>. 돌려줄 때는 보증금 ▾ › 보증금 반환을 씁니다.</div>
       </div>`
       :`<div class="fg"><div class="fl">받은 돈</div>
         <div class="fr"><span class="fk">받은 날</span>
@@ -4323,7 +4315,7 @@ function ledBtns(k,L){
       '슈퍼관리자만 — 관리자는 매달 도는 청구 · 수납만 다룬다');
 }
 /* 보증금 상계 — 자기 패널(제목 · 칸이 다르다). 배분 계산은 수납 처리와 같다. 원장에는 보증금 상계 + 결제수단 보증금상계인 수납 */
-function openOffset(k){openPay(k); pm.how='보증금상계'; pm.memo='퇴거 정산'; pm.amt=Math.min(pm.amt,ledgerOf(k).bal.임대보증금); render(true);}
+function openOffset(k){openPay(k); pm.how='보증금상계'; pm.amt=Math.min(pm.amt,ledgerOf(k).bal.임대보증금); render(true);}
 /* ═══ 보증금 예치 — 받은 보증금. 덜 들어와 더 받을 때도 쓴다. 반환 패널과 같은 모양 ═══ */
 const DEP_IN=[];
 let di=null;
@@ -4360,7 +4352,7 @@ function diHTML(){
 const DEP_RET=[];
 let dr=null;
 function openDepRet(k){const bal=ledgerOf(k).bal.임대보증금;
-  dr={k,amt:canOffset(k)?bal:0,date:TODAY_S,acct:refTx(k),why:''};DRAWER='depret';render(true);}
+  dr={k,amt:isLeaving(k)?bal:0,date:TODAY_S,acct:refTx(k),why:''};DRAWER='depret';render(true);}
 function drSet(f,v){dr[f]=f==='amt'?numOf(v):v;render(true);}
 function drConfirm(){const bal=ledgerOf(dr.k).bal.임대보증금;
   if(!(dr.amt>0)||dr.amt>bal||!dr.why.trim()) return;
