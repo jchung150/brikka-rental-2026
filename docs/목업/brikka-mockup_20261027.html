@@ -4184,7 +4184,7 @@ function payHTML(){
       <div class="fg"><div class="fl">받은 돈</div>
         <div class="fr"><span class="fk">받은 날</span>
           <input type="date" value="${pm.date}" max="${TODAY_S}" onchange="setPm('date',this.value)"></div>
-        <div class="fr"><span class="fk">결제수단<i class="tip" data-tip="보증금상계는 퇴거할 때만 쓸 수 있습니다. 해지일이 있거나 종료됨·파기됨인 계약입니다">i</i></span>
+        <div class="fr"><span class="fk">결제수단<i class="tip" data-tip="보증금상계는 퇴거할 때만, 슈퍼관리자만 쓸 수 있습니다. 해지일이 있거나 종료됨·파기됨인 계약입니다">i</i></span>
           <select onchange="setPm('how',this.value)">${PAY_HOW.map(h=>`<option ${h===pm.how?'selected':''}${h==='보증금상계'&&!canOffset(pm.k)?' disabled':''}>${h}</option>`).join('')}</select></div>
         <div class="fr"><span class="fk">받은 금액</span>
           <input type="text" inputmode="numeric" value="${pm.amt.toLocaleString('ko-KR')}" oninput="kwLive(this)" onchange="setPm('amt',this.value)" style="text-align:right"><span class="kw">${korWon(pm.amt)}</span></div>
@@ -4289,9 +4289,9 @@ const cutOpenK=k=>fixOpen(k,'cut');
 const extraOpen=k=>fixOpen(k,'add','__new');
 const cutSet=fxSet, cutConfirm=fxConfirm, extraSave=fxConfirm;
 const extraSet=(f,v)=>fxSet(f==='n'?'name':f==='memo'?'why':f,v);
-/* ═══ 원장 탭 버튼 — 계정마다 하나로 묶는다: 매출채권(청구 · 수납) ▾ · 임대보증금 ▾. 할 수 없는 일은 흐리게, 이유는 마우스를 올리면 → 3.8 ═══ */
-function menuBtn(t,items){const id=MORE.push(items)-1;
-  return `<button class="btn" onclick="event.stopPropagation();moreOpen(${id},this)">${t} ▾</button>`;}
+/* ═══ 원장 탭 버튼 — 계정마다 하나로 묶는다: 매출채권(청구 · 수납) ▾ · 임대보증금 ▾(슈퍼관리자만 → 3.7). 할 수 없는 일은 흐리게, 이유는 마우스를 올리면 → 3.8 ═══ */
+function menuBtn(t,items,title){const id=MORE.push(items)-1;
+  return `<button class="btn" ${title?`title="${title}"`:''} onclick="event.stopPropagation();moreOpen(${id},this)">${t} ▾</button>`;}
 function ledBtns(k,L){
   return menuBtn('청구 · 수납',[
       {t:'수납 처리',go:`openPay('${k}')`},
@@ -4301,7 +4301,8 @@ function ledBtns(k,L){
       {t:'보증금 예치',go:`openDepIn('${k}')`},
       {t:'보증금 상계',go:`openOffset('${k}')`,off:!canOffset(k)?'퇴거할 때만 씁니다. 해지일이 있거나 종료됨 · 파기됨인 계약입니다'
         :!(L.bal.임대보증금>0)?'보증금 잔액이 없습니다':!(L.bal.매출채권>0)?'정리할 미납이 없습니다':''},
-      {t:'보증금 반환',go:`openDepRet('${k}')`,off:L.bal.임대보증금>0?'':'돌려줄 보증금이 없습니다'}]);
+      {t:'보증금 반환',go:`openDepRet('${k}')`,off:L.bal.임대보증금>0?'':'돌려줄 보증금이 없습니다'}],
+      '슈퍼관리자만 — 관리자는 매달 도는 청구 · 수납만 다룬다');
 }
 /* 보증금 상계 — 수납 처리 패널을 결제수단 보증금상계로 연다. 같은 패널 · 같은 배분 규칙 */
 function openOffset(k){if(!canOffset(k)) return; openPay(k); pm.how='보증금상계'; pm.amt=Math.min(pm.amt,ledgerOf(k).bal.임대보증금); render(true);}
