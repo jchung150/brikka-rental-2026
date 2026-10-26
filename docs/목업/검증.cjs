@@ -253,9 +253,22 @@ W.openPay('b1별관301호'); W.setPm('how', '보증금상계'); W.setPm('amt', 1
 delete W.TERMS['b1별관301호'];
 r6.push(['보증금상계는 퇴거할 때만 — 진행중 · 해지일 없음이면 잠김 · 해지일을 넣으면 쓸 수 있음', offLocked && offOpen]);
 const LD = W.ledgerOf('b1별관301호');
-r6.push(['보증금상계 100만 — 미납 1,146,472 · 보증금 잔액 100만 감소 · 보증금 차감 행',
+r6.push(['보증금상계 100만 — 미납 1,146,472 · 보증금 잔액 100만 감소 · 보증금 상계 행',
   left('b1별관301호') === 1146472 && LD.bal.매출채권 === 1146472 && LD.bal.임대보증금 === dep0 - 1000000
-  && LD.rows.some(r => r.type === '보증금 차감' && r.dec === 1000000)]);
+  && LD.rows.some(r => r.type === '보증금 상계' && r.dec === 1000000)]);
+/* 보증금 반환 — 계약 중에도 쓴다. 잔액보다 많이 · 사유 없이는 확정되지 않는다 */
+{ const B = new Function(stub + bare + '; seedJuly(); return {ledgerOf,openDepRet,drSet,drConfirm,drHTML,canOffset,TERMS,get dr(){return dr;}};')();
+  const k = 'b1본관801호', bal0 = B.ledgerOf(k).bal.임대보증금;
+  B.openDepRet(k); const amt0 = B.dr.amt; B.drSet('amt', bal0 + 1); B.dr.why = '보증금 더 받음'; B.drConfirm();
+  const over = B.ledgerOf(k).bal.임대보증금 === bal0;
+  B.openDepRet(k); B.drSet('amt', 9000000); B.drConfirm();
+  const noWhy = B.ledgerOf(k).bal.임대보증금 === bal0;
+  B.dr.why = '보증금 더 받음'; const html = B.drHTML(); B.drConfirm();
+  const L = B.ledgerOf(k);
+  B.TERMS[k] = {type: '만기 종료', out: '2026-08-31', why: '검증'}; B.openDepRet(k); const full = B.dr.amt === L.bal.임대보증금;
+  r6.push(['보증금 반환 — 진행중 계약에서 900만 · 잔액 초과 · 사유 없음은 막힘 · 원장 「보증금 반환」 · 퇴거 계약은 잔액 전부가 기본값',
+    amt0 === 0 && over && noWhy && L.bal.임대보증금 === bal0 - 9000000
+    && L.rows.some(r => r.type === '보증금 반환' && r.dec === 9000000 && /보증금 더 받음/.test(r.item)) && /반환할 금액/.test(html) && full]); }
 W.openPay('b1별관301호'); W.setPm('amt', 99999999); W.payConfirm();
 r6.push(['미납보다 많이 받으면 확정되지 않음', left('b1별관301호') === 1146472]);
 /* 연체료 — 받지 않으면 계속 쌓이고, 받으면 낮춘 금액만 청구·수납되고 그날까지는 다시 세지 않는다 → 4.4.3 */
@@ -571,7 +584,14 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   const row = TM.ONCE.rows.find(r => r.k === 'b1본관501호');
   r6.push(['계약 해지 — 해지일 8/20: 전기요금 08.10~08.20 11일 고지 전 · 수도요금 08.08~08.20 · 사유 없으면 안 됨 · 예상 180,000원은 「전기요금 퇴거 예상분 (08.10~08.20)」 추가 청구',
     noWhy && e && e.from === '2026-08-10' && e.days === 11 && w && w.from === '2026-08-08' && /아직 고지되지 않은 기간/.test(h)
-    && row && row.n === '전기요금 퇴거 예상분 (08.10~08.20)' && row.amt === 180000 && TM.TERMS['b1본관501호'].out === '2026-08-20']); }
+    && row && row.n === '전기요금 퇴거 예상분 (08.10~08.20)' && row.amt === 180000 && TM.TERMS['b1본관501호'].out === '2026-08-20']);
+  /* 위약금 · 원상복구비 — 보증금에서 바로 빼지 않고 추가 청구로. 다시 저장해도 한 번만 */
+  TM.termOpen('b1본관501호'); TM.tm.pen = '5000000'; TM.tm.rest = '3300000'; TM.termSave();
+  TM.termOpen('b1본관501호'); TM.termSave();
+  const P = TM.ONCE.rows.filter(r => r.k === 'b1본관501호' && (r.n === '위약금' || r.n === '원상복구비'));
+  r6.push(['계약 해지 — 위약금 500만(일반내역서) · 원상복구비 330만(세금계산서)은 추가 청구 · 다시 저장해도 한 줄씩',
+    P.length === 2 && P.some(r => r.n === '위약금' && r.amt === 5000000 && r.doc === '일반내역서')
+    && P.some(r => r.n === '원상복구비' && r.amt === 3300000 && r.doc === '세금계산서')]); }
 /* 유닛 등록 — 필수 빠지면 막힘 · 번호 중복 막힘 · 전용면적 > 임대면적 막힘 · 지하층 · 카드에 생김 */
 { const UN = new Function(stub + bare + '; return {unOpen,unSave,unMissing,unHTML,BUILDINGS,PRO3,get un(){return un;},set tab3(v){tab3=v;}};')();
   const b = UN.BUILDINGS[0], n0 = b.units.length;

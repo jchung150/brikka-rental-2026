@@ -1305,6 +1305,7 @@ function drawerHTML(){
   if(DRAWER==='rnwx') return rnxHTML();
   if(DRAWER==='hdet') return hdHTML();
   if(DRAWER==='over') return overHTML();
+  if(DRAWER==='depret') return drHTML();
   if(DRAWER==='bank') return bkHTML();
   if(DRAWER==='pay') return payHTML();
   if(DRAWER==='mclose') return mcHTML();
@@ -4287,6 +4288,41 @@ const cutOpenK=k=>fixOpen(k,'cut');
 const extraOpen=k=>fixOpen(k,'add','__new');
 const cutSet=fxSet, cutConfirm=fxConfirm, extraSave=fxConfirm;
 const extraSet=(f,v)=>fxSet(f==='n'?'name':f==='memo'?'why':f,v);
+/* ═══ 보증금 반환 — 원장 탭. 환불 패널과 같은 모양. 계약 중에도 쓴다(예: 1억 1백만원 받을 것을 1억 1천만원 받음 → 9백만원 반환).
+   퇴거 때는 수납 처리의 보증금상계로 미납을 먼저 정리하고 남은 잔액을 돌려준다. 보증금에서 빠지는 길은 상계와 반환 둘뿐이다 ═══ */
+const DEP_RET=[];
+let dr=null;
+function openDepRet(k){const bal=ledgerOf(k).bal.임대보증금;
+  dr={k,amt:canOffset(k)?bal:0,date:TODAY_S,acct:refTx(k),why:''};DRAWER='depret';render(true);}
+function drSet(f,v){dr[f]=f==='amt'?numOf(v):v;render(true);}
+function drConfirm(){const bal=ledgerOf(dr.k).bal.임대보증금;
+  if(!(dr.amt>0)||dr.amt>bal||!dr.why.trim()) return;
+  DEP_RET.push({k:dr.k,amt:dr.amt,date:dr.date,acct:dr.acct.trim(),why:dr.why.trim(),sq:++paySeq});
+  DRAWER=null;dr=null;render(true);}
+function drHTML(){
+  if(DRAWER!=='depret'||!dr) return '';
+  const c=CTRS.find(x=>ckey(x)===dr.k), bd=BUILDINGS.find(x=>x.id===c.b)||BUILDINGS[0], bal=ledgerOf(dr.k).bal.임대보증금;
+  const ok=dr.amt>0&&dr.amt<=bal&&dr.why.trim();
+  const R=(k,b,tip)=>`<div class="fr"><span class="fk">${k}${tip?`<i class="tip" data-tip="${tip}">i</i>`:''}</span>${b}</div>`;
+  return `<div class="dro"><div class="ov" onclick="closeDrawer()"></div><div class="pn">
+    <div class="dh"><div><div class="t">보증금 반환</div><div class="s">${cname(bd.alias,c.no,c.ten)}</div></div>
+      <button class="x" onclick="closeDrawer()">✕</button></div>
+    <div class="db">
+      <div class="fg"><div class="fl">돌려줄 돈</div>
+        ${R('보증금 잔액',`<b style="color:var(--pri)">${won(bal)}</b>`)}
+        ${R('반환할 금액',`<input type="text" inputmode="numeric" value="${dr.amt?num(dr.amt):''}" oninput="kwLive(this)" onchange="drSet('amt',this.value)" style="text-align:right"><span class="kw">${korWon(dr.amt)}</span>`,
+          '퇴거하는 계약은 남은 잔액 전부가 미리 들어갑니다. 미납이 있으면 먼저 수납 처리에서 보증금상계로 정리합니다')}
+        ${dr.amt>bal?'<div class="c2" style="margin:-4px 0 9px 114px;color:var(--danger)">보증금 잔액보다 많이 돌려줄 수 없습니다</div>':''}
+        ${R('사유 (필수)',`<input type="text" value="${dr.why}" placeholder="예: 보증금 더 받음 · 퇴거 정산" oninput="dr.why=this.value;document.getElementById('drok').disabled=!(this.value.trim()&&dr.amt>0&&dr.amt<=${bal})">`)}</div>
+      <div class="fg"><div class="fl">보낸 기록</div>
+        ${R('반환계좌',`<input type="text" value="${dr.acct}" placeholder="환불계좌 (계약 상세 › 보증금 정보)" onchange="drSet('acct',this.value)">`)}
+        ${R('보낸 날',`<input type="date" value="${dr.date}" max="${TODAY_S}" onchange="drSet('date',this.value)">`)}
+        <div class="c2" style="margin:2px 0 0;white-space:normal">원장에 보증금 반환이 기록되고 그만큼 보증금 잔액이 줄어듭니다.</div></div>
+    </div>
+    <div class="df"><button class="btn" onclick="closeDrawer()">취소</button>
+      <button class="btn pri" id="drok" ${ok?'':'disabled'} onclick="drConfirm()">반환 확정</button></div>
+  </div></div>`;
+}
 /* ═══ 환불 — 과납은 계약 원장에서, 오납은 입금 매칭에서. 과납은 따로 처리하지 않으면 다음 달로 넘어간다 → 4.3.4 · 4.3.5 ═══ */
 let ov=null;
 function openRefund(k){ov={k,amt:overOf(k),date:TODAY_S,acct:refTx(k),memo:''};DRAWER='over';render(true);}
@@ -5031,7 +5067,7 @@ function CTR3month(c,k){
   </div>
   <div class="hint">달마다 청구액·수납액·미납액을 봅니다. 줄을 누르면 항목별로 펼쳐집니다. 미납이나 연체료가 있는 달은 더보기의 <b>상세</b>로 그 달의 내역을 봅니다.<br>
     합계의 미납액은 지금 남은 받을 돈(원장 잔액)입니다. 마감한 달의 미납은 다음 달 전월 미납액으로 넘어가므로 달별 미납액을 더한 값과 다를 수 있습니다.<br>
-    돈을 기록하는 일(수납 처리 · 환불 · 청구 정정)은 원장 탭에서 합니다.</div>`;
+    돈을 기록하는 일(수납 처리 · 환불 · 보증금 반환 · 청구 정정)은 원장 탭에서 합니다.</div>`;
 }
 /* CTR-3 요약 탭 — 계약·임대 정보. 잔액은 원장에서 */
 /* 계약의 주차 약정 · 냉난방기 구분 — 목업 예시값. 등록 차량은 건물 주차 탭과 같은 기록(VEH) → CTR-3 · PRO-3 */
@@ -5137,6 +5173,10 @@ function termSet(f,v){tm[f]=v;render(true);}
 function termSave(){if(!tm.out||!tm.why.trim()) return;
   const c=CTRS.find(x=>ckey(x)===tm.k);
   TERMS[tm.k]={at:`${TODAY_S} ${new Date().toTimeString().slice(0,5)}`,type:tm.type,out:tm.out,why:tm.why.trim(),pen:numOf(tm.pen),rest:numOf(tm.rest)};
+  /* 위약금 · 원상복구비 — 보증금에서 바로 빼지 않는다. 추가 청구로 올리고 보증금상계로 받는다 */
+  ONCE.rows=ONCE.rows.filter(r=>!(r.k===tm.k&&(r.memo==='위약금'||r.memo==='원상복구비')));
+  [['pen','위약금','일반내역서'],['rest','원상복구비','세금계산서']].forEach(([f,n,doc])=>{const a=numOf(tm[f]); if(a)
+    ONCE.rows.push({k:tm.k,ref:null,n,amt:a,doc,memo:n,at:TODAY_S});});
   unbilled(c,tm.out).forEach(u=>{const a=numOf(tm.est[u.code]); if(!a) return;
     ONCE.rows.push({k:tm.k,ref:null,n:`${u.n} 퇴거 예상분 (${u.from.slice(5).replace('-','.')}~${u.to.slice(5).replace('-','.')})`,amt:a,doc:u.doc,memo:'퇴거 예상분',at:TODAY_S});});
   DRAWER=null;tm=null;render(true);}
@@ -5144,7 +5184,7 @@ function termHTML(){
   if(DRAWER!=='term'||!tm) return '';
   const c=CTRS.find(x=>ckey(x)===tm.k), bd=BUILDINGS.find(x=>x.id===c.b)||BUILDINGS[0], U=unbilled(c,tm.out);
   const inp='border:1px solid var(--line);border-radius:var(--r-sm);padding:7px 9px;font:inherit';
-  const R=(k,b)=>`<div class="fr"><span class="fk">${k}</span>${b}</div>`;
+  const R=(k,b,tip)=>`<div class="fr"><span class="fk">${k}${tip?`<i class="tip" data-tip="${tip}">i</i>`:''}</span>${b}</div>`;
   const N=f=>`<input type="text" inputmode="numeric" value="${tm[f]?num(numOf(tm[f])):''}" onchange="termSet('${f}',this.value)" style="${inp};text-align:right;max-width:140px"><span class="c2" style="margin:0">원</span>`;
   return `<div class="dro"><div class="ov" onclick="closeDrawer()"></div><div class="pn">
     <div class="dh"><div><div class="t">계약 해지</div><div class="s">${cname(bd.alias,c.no,c.ten)}</div></div>
@@ -5154,7 +5194,7 @@ function termHTML(){
         ${R('해지유형',`<select onchange="termSet('type',this.value)" style="${inp}">${TERM_TYPES.map(v=>`<option ${tm.type===v?'selected':''}>${v}</option>`).join('')}</select>`)}
         ${R('해지일 (명도일)',`<input type="date" value="${tm.out}" onchange="termSet('out',this.value)" style="${inp}">`)}
         ${R('해지사유 (필수)',`<input type="text" value="${tm.why}" oninput="tm.why=this.value;document.getElementById('tmok').disabled=!(this.value.trim()&&tm.out)" style="${inp};width:100%">`)}
-        ${R('위약금',N('pen'))}${R('원상복구비',N('rest'))}</div>
+        ${R('위약금',N('pen'),'마지막 청구서에 추가 청구로 붙습니다. 보증금에서 받을 때는 수납 처리의 보증금상계로 받습니다')}${R('원상복구비',N('rest'),'마지막 청구서에 추가 청구로 붙습니다. 보증금에서 받을 때는 수납 처리의 보증금상계로 받습니다')}</div>
       <div class="fg"><div class="fl">아직 고지되지 않은 기간</div>
         ${!tm.out?'<div class="c2" style="margin:0">해지일을 넣으면 정산 항목마다 고지서가 아직 나오지 않은 기간을 보여 줍니다</div>'
         :U.length?U.map(u=>`<div style="border:1px solid var(--line);border-radius:var(--r-sm);padding:9px 12px 1px;margin-bottom:8px">
@@ -5282,8 +5322,11 @@ function ledgerOf(k){
   REFUNDS.filter(x=>x.k===k).forEach(x=>rows.push({date:x.date,type:'환불',acc:'매출채권',memo:`과납 환불${x.acct?' · '+x.acct:''}`,item:`과납 환불${x.acct?' · '+x.acct:''}`,
     g:'rf'+x.sq,inc:x.amt,sup:null,vat:null,ord:3,sq:x.sq}));
   /* 보증금상계 — 같은 돈이 임대보증금에서 빠지고(차변) 매출채권을 채운다(대변) */
-  MANUAL_DEP.filter(m=>m.k===k).forEach(m=>rows.push({date:m.date,type:'보증금 차감',acc:'임대보증금',
+  MANUAL_DEP.filter(m=>m.k===k).forEach(m=>rows.push({date:m.date,type:'보증금 상계',acc:'임대보증금',
     memo:'미납 청구에 상계',item:'미납 청구에 상계',g:'dd'+m.dep,dec:m.amt,sup:null,vat:null,ord:2,sq:m.sq}));
+  /* 보증금 반환 — 돌려준 보증금(임대보증금 차변). 계약 중에도 쓴다(더 받은 보증금) · 퇴거 때는 상계하고 남은 잔액 */
+  DEP_RET.filter(x=>x.k===k).forEach(x=>{const t=`보증금 반환 — ${x.why}${x.acct?' · '+x.acct:''}`;
+    rows.push({date:x.date,type:'보증금 반환',acc:'임대보증금',memo:t,item:t,why:x.why,g:'dr'+x.sq,dec:x.amt,sup:null,vat:null,ord:3,sq:x.sq});});
   /* 청구서 안의 항목은 금액 순 — 화면은 최근이 위로 뒤집으므로 큰 금액이 위에 온다 */
   rows.sort((a,b)=>dnum(a.date)-dnum(b.date)||a.ord-b.ord||(a.sq||0)-(b.sq||0)
     ||(a.type==='청구'&&b.type==='청구'?(a.inc||0)-(b.inc||0):(a.pr||0)-(b.pr||0)));
@@ -5314,7 +5357,8 @@ function histC(c){
     else if(r.type==='수납') out.push({at:withT(r.date,'pay'+r.g+k,r.src),by:'김관리',kind:'수납',name:nm,type:'등록',sum:`${r.src&&r.src!=='이전 입금'?r.src.replace(/^\d\d:\d\d:\d\d /,'')+' 입금':'입금'} ${won(sum())} · ${items.length}건에 배분`});
     else if(r.type==='감액') out.push({at:withT(r.date,'cut'+r.g+k),by:'슈퍼관리자',kind:'청구',name:nm,type:'감액',sum:r.item});
     else if(r.type==='환불') out.push({at:withT(r.date,'rf'+r.g+k),by:'김관리',kind:'수납',name:nm,type:'등록',sum:`${r.item} ${won(sum())}`});
-    else if(r.type==='보증금 차감') out.push({at:withT(r.date,'dd'+r.g+k),by:'김관리',kind:'수납',name:nm,type:'등록',sum:`보증금상계 ${won(sum())}`});});
+    else if(r.type==='보증금 상계') out.push({at:withT(r.date,'dd'+r.g+k),by:'김관리',kind:'수납',name:nm,type:'등록',sum:`보증금상계 ${won(sum())}`});
+    else if(r.type==='보증금 반환') out.push({at:withT(r.date,'dr'+r.g+k),by:'김관리',kind:'수납',name:nm,type:'등록',sum:`${r.item} ${won(sum())}`,why:r.why});});
   if(!c.prev) out.push({at:withT(c.base,'ctr'+k),by:'김관리',kind:'계약',name:nm,type:'등록',sum:`계약 등록 · ${c.base.replace(/-/g,'.')} - ${ctrEnd(c).replace(/-/g,'.')}`});
   if(TERMS[k]) out.push({at:TERMS[k].at||withT(TODAY_S,'term'+k),by:'슈퍼관리자',kind:'계약',name:nm,type:'상태변경',sum:`해지 — ${TERMS[k].type} · 해지일 ${TERMS[k].out.replace(/-/g,'.')}`,why:TERMS[k].why});
   (CLOG[k]||[]).forEach(x=>out.push({...x,name:nm}));
@@ -5395,7 +5439,7 @@ function CTR3(k){
   const from=f3.per?new Date((dnum(TODAY_S)-({'1':30,'3':91,'12':365}[f3.per]))*864e5)
     .toISOString().slice(0,10):null;
   const rows=L.rows.filter(r=>(!f3.acc||r.acc===f3.acc)&&(!from||dnum(r.date)>=dnum(from))).slice().reverse();
-  const TP={'청구':'ac','청구 취소':'mu','수납':'ok','수납 취소':'mu','보증금 예치':'mu','보증금 차감':'wa','감액':'wa2','환불':'da'};
+  const TP={'청구':'ac','청구 취소':'mu','수납':'ok','수납 취소':'mu','보증금 예치':'mu','보증금 상계':'wa','보증금 반환':'da','감액':'wa2','환불':'da'};
   /* 매출채권 잔액이 0보다 작으면 과납이다 */
   const balTx=v=>won(v);
   const b0=L.bal.매출채권, late=arrears(c).due;
@@ -5411,6 +5455,7 @@ function CTR3(k){
     <span style="margin-left:auto;display:flex;gap:6px">   <!-- 돈을 다루는 버튼은 원장 탭에만 둔다 -->
       <button class="btn" onclick="openPay('${k}')">수납 처리</button>
       <button class="btn" ${overOf(k)?'':'disabled title="돌려줄 과납이 없습니다"'} onclick="openRefund('${k}')">환불</button>
+      <button class="btn" ${L.bal.임대보증금>0?'':'disabled title="돌려줄 보증금이 없습니다"'} onclick="openDepRet('${k}')">보증금 반환</button>
       <button class="btn" onclick="fixOpen('${k}')">청구 정정</button>
       <button class="btn pri" onclick="alert('원장 출력 — 선택한 기간·계정의 원장을 거래내역서 PDF로 내려받거나 임차인 담당자에게 보낸다')">원장 출력</button></span>
   </div>
