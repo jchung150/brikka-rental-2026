@@ -1,5 +1,5 @@
-<!-- BRIKKA 관리자 백오피스 목업 · 2026.10.25판 · 작업 중(미완성). 기준은 기능정의서 v1.5 + docs/명세변경 -->
-<title>BRIKKA 백오피스 · 목업 2026.10.25 (작업 중)</title>
+<!-- BRIKKA 관리자 백오피스 목업 · 2026.10.27판 · 작업 중(미완성). 기준은 기능정의서 v1.5 + docs/명세변경 -->
+<title>BRIKKA 백오피스 · 목업 2026.10.27 (작업 중)</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap">
 <style>
 :root{
@@ -550,7 +550,7 @@ table.nowr th,table.nowr td{white-space:nowrap}
     <header class="top">
       <div class="crumb" id="crumb"></div>
       <div class="sp"></div>
-      <div class="ver" title="목업 버전 — 아직 완성본이 아니다. 기능정의서가 정본">목업 2026.10.25판 · 작업 중</div>
+      <div class="ver" title="목업 버전 — 아직 완성본이 아니다. 기능정의서가 정본">목업 2026.10.27판 · 작업 중</div>
       <div class="today" title="오늘 — 목업의 기준 시점">2026년 8월 10일(월)</div>
     </header>
     <div class="wrap" id="view"></div>
@@ -4090,6 +4090,8 @@ function PAY6(){
 let pm=null, pmSeq=0;
 const MANUAL_DEP=[];   /* 보증금상계 — 원장의 임대보증금에서 뺀다 */
 const PAY_HOW=['현금','카드','계좌이체','보증금상계'];
+/* 보증금상계는 퇴거할 때만 — 해지일이 있거나 종료됨·파기됨인 계약. 실무에서 보증금은 나갈 때 쌓인 미납을 빼고 돌려준다 */
+const canOffset=k=>{const c=CTRS.find(x=>ckey(x)===k);return !!TERMS[k]||!!c&&(c.st==='종료됨'||c.st==='파기됨');};
 /* 이 계약의 연체료 — 받은 날까지. 이미 청구한 연체료는 빼고 센다 */
 const feeUntil=(k,d)=>[...new Set(BILLS.filter(i=>i.k===k).map(i=>i.ym))].reduce((a,ym)=>a+lateCalc(k,ym,d).fee,0);
 function openPay(k){
@@ -4109,6 +4111,7 @@ function setPm(f,v){
   else if(f==='feeOn') setFeeMode(v===true||v==='1'?'full':'later');
   else if(f==='feeMode') setFeeMode(v);
   else if(f==='date'){pm.date=v;pm.feeFull=feeUntil(pm.k,v);setFeeMode(pm.feeMode);}
+  else if(f==='how'&&v==='보증금상계'&&!canOffset(pm.k)) return;
   else pm[f]=v;
   if(f!=='amt') pm.amt=Math.max(0,pm.amt-was+(pm.feeOn?pm.fee:0));
   render(true);
@@ -4137,7 +4140,7 @@ function payPlan(){
 }
 function payConfirm(){
   const pl=payPlan(); if(pl.rest>0||(!pl.lines.length&&!pm.feeOn)) return;
-  if(pm.how==='보증금상계'&&pm.amt>ledgerOf(pm.k).bal.임대보증금) return;
+  if(pm.how==='보증금상계'&&(!canOffset(pm.k)||pm.amt>ledgerOf(pm.k).bal.임대보증금)) return;
   const fb=feeBill(); if(fb) BILLS.push(fb);
   if(pm.feeOn) FEE_CUT[pm.k]=pm.date;   /* 받았든 깎았든 이날까지의 연체료는 정리됐다 */
   const dep='m'+(++pmSeq), src=`${pm.date.slice(5).replace('-','.')} ${pm.how}`;
@@ -4179,8 +4182,8 @@ function payHTML(){
       <div class="fg"><div class="fl">받은 돈</div>
         <div class="fr"><span class="fk">받은 날</span>
           <input type="date" value="${pm.date}" max="${TODAY_S}" onchange="setPm('date',this.value)"></div>
-        <div class="fr"><span class="fk">결제수단</span>
-          <select onchange="setPm('how',this.value)">${PAY_HOW.map(h=>`<option ${h===pm.how?'selected':''}>${h}</option>`).join('')}</select></div>
+        <div class="fr"><span class="fk">결제수단<i class="tip" data-tip="보증금상계는 퇴거할 때만 쓸 수 있습니다. 해지일이 있거나 종료됨·파기됨인 계약입니다">i</i></span>
+          <select onchange="setPm('how',this.value)">${PAY_HOW.map(h=>`<option ${h===pm.how?'selected':''}${h==='보증금상계'&&!canOffset(pm.k)?' disabled':''}>${h}</option>`).join('')}</select></div>
         <div class="fr"><span class="fk">받은 금액</span>
           <input type="text" inputmode="numeric" value="${pm.amt.toLocaleString('ko-KR')}" oninput="kwLive(this)" onchange="setPm('amt',this.value)" style="text-align:right"><span class="kw">${korWon(pm.amt)}</span></div>
         <div class="fr"><span class="fk">메모</span>

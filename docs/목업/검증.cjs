@@ -178,7 +178,7 @@ for (const m of Z.MASTER) {
 if (orphan.length) fail = 1;
 console.log('⑤ 유닛 번호 정합성 ' + (orphan.length ? '✗ ' + orphan.join(', ') : 'OK'));
 /* ⑥ 수납 기록 — 6월 처리 후 7월 거래내역(8월 실제 거래내역을 옮긴 예시)으로 매칭·배분·미납을 검산한다 → 4.3 · 4.6 */
-const W = new Function(stub + bare + '; return {RC,ledgerOf,lateCalc,rcPreview,ctrPay,ctrDeps,rcRun,rcQueue,rcGuess,rcBiz,rcConfirm,rcIgnore,rcNext,rcOpenN,dueOf,normName,PAID,BILLS,openPay,setPm,payPlan,payConfirm,feeUntil,FEE_CUT,get pm(){return pm;}};')();
+const W = new Function(stub + bare + '; return {RC,ledgerOf,lateCalc,rcPreview,ctrPay,ctrDeps,rcRun,rcQueue,rcGuess,rcBiz,rcConfirm,rcIgnore,rcNext,rcOpenN,dueOf,normName,PAID,BILLS,openPay,setPm,payPlan,payConfirm,feeUntil,FEE_CUT,TERMS,canOffset,payHTML,get pm(){return pm;}};')();
 const P6 = W.RC.P;
 const r6 = [];
 r6.push(['거래 56 · 입금 14 · 출금 42', P6.rows.length === 56 && P6.dep.length === 14 && P6.wd.length === 42]);
@@ -244,7 +244,14 @@ r6.push(['현장 수납 현금 300만 — 오래된 달부터 · 미납 2,146,47
   pc.lines[0].ym <= pc.lines[pc.lines.length - 1].ym && pc.rest === 0 && left('b1별관301호') === 2146472
   && LC.bal.매출채권 === 2146472 && LC.rows.some(r => r.type === '수납' && r.hand && / 현금$/.test(r.src))]);
 const dep0 = LC.bal.임대보증금;
+/* 보증금상계는 퇴거할 때만 — 진행중이고 해지일이 없으면 고를 수 없다 */
+W.openPay('b1별관301호'); W.setPm('how', '보증금상계');
+const offLocked = W.pm.how === '현금' && !W.canOffset('b1별관301호') && /<option disabled>보증금상계|<option[^>]*disabled[^>]*>보증금상계/.test(W.payHTML());
+W.TERMS['b1별관301호'] = {type: '중도 해지(합의)', out: '2026-08-31', why: '검증'};
+const offOpen = W.canOffset('b1별관301호') && W.canOffset('b21501호');   /* 해지일을 넣은 계약 · 종료됨 계약 */
 W.openPay('b1별관301호'); W.setPm('how', '보증금상계'); W.setPm('amt', 1000000); W.payConfirm();
+delete W.TERMS['b1별관301호'];
+r6.push(['보증금상계는 퇴거할 때만 — 진행중 · 해지일 없음이면 잠김 · 해지일을 넣으면 쓸 수 있음', offLocked && offOpen]);
 const LD = W.ledgerOf('b1별관301호');
 r6.push(['보증금상계 100만 — 미납 1,146,472 · 보증금 잔액 100만 감소 · 보증금 차감 행',
   left('b1별관301호') === 1146472 && LD.bal.매출채권 === 1146472 && LD.bal.임대보증금 === dep0 - 1000000
