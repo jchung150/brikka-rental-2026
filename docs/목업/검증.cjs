@@ -246,7 +246,13 @@ r6.push(['현장 수납 현금 300만 — 오래된 달부터 · 미납 2,146,47
 const dep0 = LC.bal.임대보증금;
 /* 보증금 상계 — 계약 중 언제든(슈퍼관리자). 수납 처리 결제수단에는 없고, 보증금 ▾ 메뉴의 자기 패널에서 한다 */
 const payNoOff = !/보증금상계/.test((W.openPay('b1별관301호'), W.payHTML()).match(/<select onchange="setPm\('how'[^]*?<\/select>/)[0]);
-W.openOffset('b1별관301호'); const offHtml = W.payHTML();
+W.openOffset('b1별관301호'); const offHtml = W.payHTML(), offPm = {...W.pm};
+r6.push(['보증금 상계 패널 — 미납 → 연체료 → 연체료 처리(전액 받기 · 전액 감면 · 직접 입력, 기본 전액 받기) → 미납액 합계 · 미납 내역(달별 납부마감일 · 연체일수 · 항목) · 배분 미리보기 없음',
+  offPm.feeMode === 'full' && offPm.amt === 2146472 + 68433 && /전액 받기/.test(offHtml) && /전액 감면/.test(offHtml) && /직접 입력/.test(offHtml)
+  && !/이번엔 안 함/.test(offHtml) && !/50% 감면/.test(offHtml) && /미납액 합계/.test(offHtml) && /미납 내역/.test(offHtml)
+  && !/배분 미리보기/.test(offHtml) && offHtml.indexOf('>연체료<') < offHtml.indexOf('연체료 처리') && /26\.07월분/.test(offHtml)]);
+/* 아래 100만 상계 검산은 연체료를 건드리지 않는다(연체료는 뒤에서 따로 검산) */
+W.setPm('feeMode', 'later');
 r6.push(['보증금 상계 — 진행중 계약에서도 열림 · 경고 없음 · 제목 「보증금 상계」 · 상계 확정 · 수납 처리 결제수단엔 없음',
   payNoOff && /<div class="t">보증금 상계<\/div>/.test(offHtml) && /상계 확정/.test(offHtml) && !/할 수 없습니다/.test(offHtml)]);
 W.setPm('amt', 1000000); W.payConfirm();

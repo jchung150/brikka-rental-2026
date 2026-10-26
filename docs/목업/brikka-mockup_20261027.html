@@ -496,6 +496,8 @@ table.nowr th,table.nowr td{white-space:nowrap}
 .schr.led.sub .nm{padding-left:14px}
 .arr{grid-template-columns:minmax(300px,1.6fr) 210px 90px 100px 130px 76px}
 .rcp{grid-template-columns:minmax(120px,1fr) 92px 92px 58px;gap:0 8px;padding:9px 12px;font-size:12.5px}
+.unh{grid-template-columns:64px 74px 1fr 48px;gap:0 8px;padding:8px 12px 2px;font-size:12.5px}
+.unh.sub{padding:0 12px 8px;border-top:0}
 .schr.arr.mo{border-top:1px solid var(--line-2)}
 .rcx{padding:4px 14px 14px 46px;background:var(--soft);border-bottom:1px solid var(--line-2)}
 .rcx table{background:var(--bg);border:1px solid var(--line);border-radius:var(--r-sm)}
@@ -4120,6 +4122,8 @@ function setPm(f,v){
   render(true);
 }
 /* 연체료 처리 5가지 — 이번엔 정리 안 함 · 전액 받기 · 50% 감면 · 직접 입력 · 전액 감면 → 4.4.3 */
+/* 보증금 상계의 연체료 처리 — 상계는 남은 것을 정리하는 일이라 「이번엔 안 함」 · 50% 감면이 없다. 기본 전액 받기 */
+const OFF_FEE=[['full','전액 받기'],['waive','전액 감면'],['custom','직접 입력']];
 const FEE_MODES=[['later','이번엔 안 함'],['full','전액 받기'],['half','50% 감면'],['custom','직접 입력'],['waive','전액 감면']];
 function setFeeMode(m){
   pm.feeMode=m; pm.feeOn=m!=='later';
@@ -4164,13 +4168,25 @@ function payHTML(){
   const leftDue=dueN-pl.lines.filter(l=>!l.fee).reduce((s,l)=>s+l.pay,0);
   const leftFee=pm.feeOn?pm.fee-pl.lines.filter(l=>l.fee).reduce((s,l)=>s+l.pay,0):pm.feeFull;
   const ok=((pm.amt>0&&pl.lines.length)||pm.feeOn)&&!over;
-  const isOff=pm.how==='보증금상계';
+  const isOff=pm.how==='보증금상계', AR=isOff?arrears(c):null;
   return `<div class="dro"><div class="ov" onclick="closeDrawer()"></div><div class="pn">
     <div class="dh"><div><div class="t">${isOff?'보증금 상계':'수납 처리'}</div>
       <div class="s">${cname(bn.alias,c.no,c.ten)}</div></div>
       <button class="x" onclick="closeDrawer()">✕</button></div>
     <div class="db">
-      <div class="fg"><div class="fl">정리할 돈</div>
+${isOff?`      <div class="fg"><div class="fl">정리할 돈</div>
+        <div class="fr"><span class="fk">미납</span><b>${won(dueN)}</b></div>
+        ${pm.feeFull?`<div class="fr"><span class="fk">연체료</span>${pm.feeMode==='custom'
+            ?`<input type="text" inputmode="numeric" value="${pm.fee.toLocaleString('ko-KR')}" onchange="setPm('fee',this.value)" style="text-align:right;max-width:140px">`
+            :`<b>${won(pm.fee)}</b>`}
+          <span class="c2">${off?`${won(pm.feeFull)} 중 <b style="color:var(--warn)">${won(off)} 감면</b>`:`${pm.date.slice(5).replace('-','.')}까지 · 연 ${rateOf(pm.k)}%`}</span></div>
+        <div class="fr"><span class="fk">연체료 처리</span>
+          <div style="display:flex;flex-wrap:wrap;gap:6px">${OFF_FEE.map(([v,t])=>
+            `<button class="btn sm ${pm.feeMode===v?'pri':''}" onclick="setPm('feeMode','${v}')">${t}</button>`).join('')}</div></div>`:''}
+        <div class="fr" style="border-top:1px solid var(--line);padding-top:9px;margin-top:4px"><span class="fk"><b>미납액 합계</b></span>
+          <b style="font-size:15px">${won(need)}</b><span class="c2">${pm.feeFull?'미납 + 연체료':'미납'}</span>
+          ${pm.amt!==Math.min(need,depBal)?`<button class="btn sm" style="margin-left:auto" onclick="setPm('amt','${Math.min(need,depBal)}')">이 금액으로</button>`:''}</div>
+      </div>`:`      <div class="fg"><div class="fl">정리할 돈</div>
         <div class="fr"><span class="fk">미납</span><b>${won(dueN)}</b>${many?'<span class="c2">이 임차인의 이 건물 계약 전체</span>':''}</div>
         ${pm.feeFull?`<div class="fr" style="align-items:flex-start"><span class="fk" style="padding-top:5px">연체료 처리</span>
           <div style="display:flex;flex-wrap:wrap;gap:6px">${FEE_MODES.map(([v,t])=>
@@ -4182,7 +4198,7 @@ function payHTML(){
         <div class="fr" style="border-top:1px solid var(--line);padding-top:9px;margin-top:4px"><span class="fk"><b>합계</b></span>
           <b style="font-size:15px">${won(need)}</b><span class="c2">${pm.feeFull&&pm.feeOn?'미납 + 연체료':'미납'}</span>
           ${pm.amt!==need?`<button class="btn sm" style="margin-left:auto" onclick="setPm('amt','${need}')">이 금액으로</button>`:''}</div>
-      </div>
+      </div>`}
       ${isOff?`<div class="fg"><div class="fl">보증금에서 뺄 돈</div>
         <div class="fr"><span class="fk">보증금 잔액</span><b style="color:var(--pri)">${won(depBal)}</b></div>
         <div class="fr"><span class="fk">상계일</span>
@@ -4205,7 +4221,19 @@ function payHTML(){
       </div>`}
       ${leftDue||(pm.feeOn&&leftFee)?`<div class="prev warn2" style="margin:-4px 0 18px"><div class="pt">${won(pm.amt)}을 ${isOff?'상계하면':'받으면'}</div>
         남는 미납 <b>${won(leftDue)}</b>${pm.feeFull&&pm.feeOn?` · 남는 연체료 <b>${won(leftFee)}</b>`:''}</div>`:''}
-      <div class="fg"><div class="fl">배분 미리보기</div>
+${isOff?`      <div class="fg"><div class="fl">미납 내역 <span class="c2" style="margin:0 0 0 6px;font-weight:400">오래된 달부터 · 이 미납이 언제 생겼는지</span></div>
+        <div class="tbl" style="margin:0"><div class="schr unh hd" style="padding-bottom:8px"><div>청구년월</div><div>납부마감일</div><div class="n">미납액</div><div class="n">연체</div></div>
+        ${AR.months.filter(m=>m.due>0).slice().reverse().map(m=>`<div class="schr unh"><div class="nm">${m.ym.slice(2).replace('-','.')}월분</div>
+          <div>${dueStr(m.ym).slice(2).replace(/-/g,'.')}</div>
+          <div class="n"><b>${won(m.due)}</b></div>
+          <div class="n">${m.days?`${m.days}일`:'—'}</div></div>
+          <div class="schr unh sub"><div></div><div class="c2" style="grid-column:2/-1;margin:0;white-space:normal;line-height:1.6">그달 청구 ${won(m.bill)} · 낸 돈 ${m.paid?won(m.paid):'0원'}${m.pays.length?` (${m.pays.map(x=>x.date.slice(5).replace('-','.')).join(', ')})`:''}</div></div>`).join('')
+          ||'<div class="empty">미납 청구가 없습니다</div>'}
+        ${dueN?`<div class="schr unh sum" style="padding-bottom:8px"><div>합계</div><div></div><div class="n"><b>${won(dueN)}</b></div><div></div></div>`:''}
+        </div>
+        ${pl.rest>0?`<div class="prev warn2" style="margin-top:10px"><div class="pt">남는 금액 ${won(pl.rest)}</div>미납액 합계보다 많습니다. 금액을 미납액 합계에 맞추세요.</div>`:''}
+        ${over?`<div class="prev warn2" style="margin-top:10px"><div class="pt">보증금보다 많습니다</div>보증금 잔액 ${won(depBal)}까지만 뺄 수 있습니다.</div>`:''}
+      </div>`:`      <div class="fg"><div class="fl">배분 미리보기</div>
         <div class="tbl" style="margin:0"><div class="schr rcp hd"><div>청구항목</div><div class="n">미납액</div><div class="n">이번 수납액</div><div>결과</div></div>
         ${pl.all.map(l=>`<div class="schr rcp"><div class="nm">${many?`<span class="c2" style="margin:0 6px 0 0">${l.no}</span>`:''}<span class="c2" style="margin:0 6px 0 0">${l.ym.slice(2).replace('-','.')}월</span>${l.n}</div>
           <div class="n">${won(l.due)}</div><div class="n">${l.pay?won(l.pay):'—'}</div>
@@ -4215,7 +4243,7 @@ function payHTML(){
         </div>
         ${pl.rest>0?`<div class="prev warn2" style="margin-top:10px"><div class="pt">남는 금액 ${won(pl.rest)}</div>합계보다 많습니다. 금액을 합계에 맞추세요.</div>`:''}
         ${over?`<div class="prev warn2" style="margin-top:10px"><div class="pt">보증금보다 많습니다</div>보증금 잔액 ${won(depBal)}까지만 뺄 수 있습니다.</div>`:''}
-      </div>
+      </div>`}
       <div class="c2" style="margin:0;white-space:normal">전월 미납액부터, 같은 달 안에서는 배분 우선순위대로 채웁니다. 연체료는 맨 나중입니다. ${isOff?'확정하면 원장에 보증금 상계(임대보증금)와 수납(매출채권)이 함께 기록됩니다.':'확정하면 원장에 수납으로 기록됩니다.'}</div>
     </div>
     <div class="df">
@@ -4315,7 +4343,7 @@ function ledBtns(k,L){
       '슈퍼관리자만 — 관리자는 매달 도는 청구 · 수납만 다룬다');
 }
 /* 보증금 상계 — 자기 패널(제목 · 칸이 다르다). 배분 계산은 수납 처리와 같다. 원장에는 보증금 상계 + 결제수단 보증금상계인 수납 */
-function openOffset(k){openPay(k); pm.how='보증금상계'; pm.amt=Math.min(pm.amt,ledgerOf(k).bal.임대보증금); render(true);}
+function openOffset(k){openPay(k); pm.how='보증금상계'; setFeeMode('full'); pm.amt=arrears(CTRS.find(x=>ckey(x)===k)).due+pm.fee; pm.amt=Math.min(pm.amt,ledgerOf(k).bal.임대보증금); render(true);}
 /* ═══ 보증금 예치 — 받은 보증금. 덜 들어와 더 받을 때도 쓴다. 반환 패널과 같은 모양 ═══ */
 const DEP_IN=[];
 let di=null;
