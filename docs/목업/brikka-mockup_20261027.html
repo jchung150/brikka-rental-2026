@@ -496,8 +496,7 @@ table.nowr th,table.nowr td{white-space:nowrap}
 .schr.led.sub .nm{padding-left:14px}
 .arr{grid-template-columns:minmax(300px,1.6fr) 210px 90px 100px 130px 76px}
 .rcp{grid-template-columns:minmax(120px,1fr) 92px 92px 58px;gap:0 8px;padding:9px 12px;font-size:12.5px}
-.unh{grid-template-columns:64px 74px 1fr 48px;gap:0 8px;padding:8px 12px 2px;font-size:12.5px}
-.unh.sub{padding:0 12px 8px;border-top:0}
+.unh{grid-template-columns:70px 1fr 64px 1fr;gap:0 8px;padding:9px 12px;font-size:12.5px}
 .schr.arr.mo{border-top:1px solid var(--line-2)}
 .rcx{padding:4px 14px 14px 46px;background:var(--soft);border-bottom:1px solid var(--line-2)}
 .rcx table{background:var(--bg);border:1px solid var(--line);border-radius:var(--r-sm)}
@@ -4207,7 +4206,6 @@ ${isOff?`      <div class="fg"><div class="fl">정리할 돈</div>
           <input type="text" inputmode="numeric" value="${pm.amt.toLocaleString('ko-KR')}" oninput="kwLive(this)" onchange="setPm('amt',this.value)" style="text-align:right"><span class="kw">${korWon(pm.amt)}</span></div>
         <div class="fr"><span class="fk">메모</span>
           <input type="text" value="${pm.memo}" oninput="pm.memo=this.value"></div>
-        <div class="c2" style="margin:2px 0 0;white-space:normal">상계 후 남는 보증금 <b>${won(Math.max(0,depBal-pm.amt))}</b>. 돌려줄 때는 보증금 ▾ › 보증금 반환을 씁니다.</div>
       </div>`
       :`<div class="fg"><div class="fl">받은 돈</div>
         <div class="fr"><span class="fk">받은 날</span>
@@ -4221,15 +4219,12 @@ ${isOff?`      <div class="fg"><div class="fl">정리할 돈</div>
       </div>`}
       ${leftDue||(pm.feeOn&&leftFee)?`<div class="prev warn2" style="margin:-4px 0 18px"><div class="pt">${won(pm.amt)}을 ${isOff?'상계하면':'받으면'}</div>
         남는 미납 <b>${won(leftDue)}</b>${pm.feeFull&&pm.feeOn?` · 남는 연체료 <b>${won(leftFee)}</b>`:''}</div>`:''}
-${isOff?`      <div class="fg"><div class="fl">미납 내역 <span class="c2" style="margin:0 0 0 6px;font-weight:400">오래된 달부터 · 이 미납이 언제 생겼는지</span></div>
-        <div class="tbl" style="margin:0"><div class="schr unh hd" style="padding-bottom:8px"><div>청구년월</div><div>납부마감일</div><div class="n">미납액</div><div class="n">연체</div></div>
-        ${AR.months.filter(m=>m.due>0).slice().reverse().map(m=>`<div class="schr unh"><div class="nm">${m.ym.slice(2).replace('-','.')}월분</div>
-          <div>${dueStr(m.ym).slice(2).replace(/-/g,'.')}</div>
-          <div class="n"><b>${won(m.due)}</b></div>
-          <div class="n">${m.days?`${m.days}일`:'—'}</div></div>
-          <div class="schr unh sub"><div></div><div class="c2" style="grid-column:2/-1;margin:0;white-space:normal;line-height:1.6">그달 청구 ${won(m.bill)} · 낸 돈 ${m.paid?won(m.paid):'0원'}${m.pays.length?` (${m.pays.map(x=>x.date.slice(5).replace('-','.')).join(', ')})`:''}</div></div>`).join('')
+${isOff?`      <div class="fg"><div class="fl">미납 내역</div>
+        <div class="tbl" style="margin:0"><div class="schr unh hd"><div>청구년월</div><div class="n">미납액</div><div class="n">연체일수</div><div class="n">연체료</div></div>
+        ${AR.months.slice().reverse().map(m=>`<div class="schr unh"><div class="nm">${m.ym.slice(2).replace('-','.')}월분</div>
+          <div class="n"><b>${m.due?won(m.due):'—'}</b></div><div class="n">${m.days?`${m.days}일`:'—'}</div><div class="n">${m.fee?won(m.fee):'—'}</div></div>`).join('')
           ||'<div class="empty">미납 청구가 없습니다</div>'}
-        ${dueN?`<div class="schr unh sum" style="padding-bottom:8px"><div>합계</div><div></div><div class="n"><b>${won(dueN)}</b></div><div></div></div>`:''}
+        ${AR.months.length?`<div class="schr unh sum"><div>합계</div><div class="n"><b>${won(AR.due)}</b></div><div></div><div class="n"><b>${won(AR.fee)}</b></div></div>`:''}
         </div>
         ${pl.rest>0?`<div class="prev warn2" style="margin-top:10px"><div class="pt">남는 금액 ${won(pl.rest)}</div>미납액 합계보다 많습니다. 금액을 미납액 합계에 맞추세요.</div>`:''}
         ${over?`<div class="prev warn2" style="margin-top:10px"><div class="pt">보증금보다 많습니다</div>보증금 잔액 ${won(depBal)}까지만 뺄 수 있습니다.</div>`:''}
@@ -4244,7 +4239,7 @@ ${isOff?`      <div class="fg"><div class="fl">미납 내역 <span class="c2" st
         ${pl.rest>0?`<div class="prev warn2" style="margin-top:10px"><div class="pt">남는 금액 ${won(pl.rest)}</div>합계보다 많습니다. 금액을 합계에 맞추세요.</div>`:''}
         ${over?`<div class="prev warn2" style="margin-top:10px"><div class="pt">보증금보다 많습니다</div>보증금 잔액 ${won(depBal)}까지만 뺄 수 있습니다.</div>`:''}
       </div>`}
-      <div class="c2" style="margin:0;white-space:normal">전월 미납액부터, 같은 달 안에서는 배분 우선순위대로 채웁니다. 연체료는 맨 나중입니다. ${isOff?'확정하면 원장에 보증금 상계(임대보증금)와 수납(매출채권)이 함께 기록됩니다.':'확정하면 원장에 수납으로 기록됩니다.'}</div>
+      ${isOff?'':'<div class="c2" style="margin:0;white-space:normal">전월 미납액부터, 같은 달 안에서는 배분 우선순위대로 채웁니다. 연체료는 맨 나중입니다. 확정하면 원장에 수납으로 기록됩니다.</div>'}
     </div>
     <div class="df">
       <button class="btn" onclick="closeDrawer()">취소</button>
