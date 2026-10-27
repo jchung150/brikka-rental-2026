@@ -48,7 +48,7 @@ run('PAY-1 7월 마감 회차', "f1.ym='2026-07';PAY1()");
 run('PAY-1 6월 마감 취소 후 · 다른 건물', "delete MC.b1['2026-06'];f1.ym='2026-06';PAY1();f1.b='b2';PAY1()");
 run('PAY-13 7월 잠금', "seedJuly();RC.f.ym='2026-07';PAY13()");
 run('CTR-2 자료', "nc=null;CTR2();upOpen('b1',true);Object.assign(up.files[0],{t:'임대차계약서.pdf',sz:'1 MB',ttl:'임대차계약서',c:'계약서'});upHTML();upSave();CTR2()");
-run('CTR-3 비정기 청구 · 감액 패널', "seedJuly();fixOpen('b1본관101호','add');drawerHTML();fixOpen('b1본관101호','cut');drawerHTML();extraOpen('b1본관101호');drawerHTML();fixOpen('b1본관101호','cut');cutSet('id','2026-07|본관101호|전기요금');cutSet('amt','10000');drawerHTML()");
+run('CTR-3 청구 추가 · 청구 감액 패널', "seedJuly();fixOpen('b1본관101호','add');drawerHTML();fixOpen('b1본관101호','cut');drawerHTML();fxSet('item','__etc');fxSet('amt','10000');drawerHTML()");
 run('PAY-1 발행 · 취소 패널 · 메일', "f1.b='b2';PAY1();issue1(['b21203호']);PAY1();cancelOpen('b21203호');cancelHTML();cx1.why='약정 오기';cancelOK();mail1=false;PAY1()");
 run('CTR-2 변경 일정', "nc=null;CTR2();nc.adj.push({d:'2028-11-01',rent:'3465000',mgmt:''});CTR2()");
 run('PRO-1', 'PRO1()');
@@ -440,12 +440,12 @@ r6.push(['임대정보 · 임대료 인상 예약(요약 탭) — 분기 · 기�
   r6.push(['공용분 빼기 = 배율 0 — 2층 공용분 0 · 개별분은 청구 · 비율 합 1 · 1층 몫 증가 · 합계 = 고지서',
     r2.common === 0 && r2.amt > 0 && Math.abs(ratioSum - 1) < 1e-9 && after > before && R.diff === 0]); }
 /* 감액 · 과납 — 8/7 본관101호 7월 수도요금 18,000 감액. 7월분은 07.31에 완납이라 과납 18,000이 된다 → CTR-3 · 4.3.4 */
-{ const OV = new Function(stub + bare + '; const pre=ctrPay("b1본관101호","2026-07"); seedJuly(); addCut("2026-07|본관101호|수도요금",18000,"2026-08-07","7월 수도 검침값 입력 오류"); return {pre,ctrPay,overOf,ledgerOf,CTRS,PAY1,CTR3,ISSUE,mcChecks,openRefund,ovSet,ovConfirm,cutOpen,cutSet,cutConfirm,MORE,set tab3c(v){tab3c=v;}};')();
+{ const OV = new Function(stub + bare + '; const pre=ctrPay("b1본관101호","2026-07"); seedJuly(); addFreeCut("b1본관101호","수도요금","세금계산서",18000,"7월 수도 검침값 입력 오류","2026-08-07"); return {pre,ctrPay,overOf,ledgerOf,CTRS,PAY1,CTR3,ISSUE,mcChecks,openRefund,ovSet,ovConfirm,fixOpen,fxSet,fxConfirm,fixHTML,MORE,set tab3c(v){tab3c=v;}};')();
   const k = 'b1본관101호', L = OV.ledgerOf(k), cut = L.rows.find(r => r.type === '감액');
   const post = OV.ctrPay(k, '2026-07'), item = post.it.find(i => i.n === '수도요금');
   const mv = L.rows.filter(r => r.g === cut.g);
   const shown = OV.ISSUE().find(c => c.no === '본관101호').over === 18000 && /−18,000원/.test(OV.PAY1());
-  r6.push(['감액 — 본관101호 7월 수도 18,000 · 원장엔 08.07 감액 한 줄(넘친 수납을 과납으로 돌린 일은 적지 않음) · 원장 잔액 −18,000 = 과납 · 7월은 08.05 마감 모습 그대로(수도 1,337,087 받음 · 완납 · 과납액 없음) · 8월 청구서에 −18,000 · 7월 마감 확인 통과',
+  r6.push(['감액 — 본관101호 수도요금 18,000(월은 고르지 않음) · 원장엔 08.07 감액 한 줄 · 원장 잔액 −18,000 = 과납 · 7월은 08.05 마감 모습 그대로(수도 1,337,087 받음 · 완납 · 과납액 없음) · 8월 청구서에 −18,000 · 7월 마감 확인 통과',
     cut && cut.dec === 18000 && cut.date === '2026-08-07' && mv.length === 1 && !L.rows.some(r => r.type === '수납 취소')
     && L.bal.매출채권 === -18000 && OV.overOf(k) === 18000
     && post.bill === OV.pre.bill && post.paid === post.bill && item.paid === 1337087 && item.st === '완납' && post.over === 0 && post.st === '완납'
@@ -460,11 +460,10 @@ r6.push(['임대정보 · 임대료 인상 예약(요약 탭) — 분기 · 기�
   r6.push(['원장 환불 — 과납보다 많으면 막힘 · 10,000 일부 환불 → 과납 8,000 · 나머지 8,000 환불 → 잔액 0 · 환불 거래 2건 · 그 뒤 환불 버튼 잠김',
     btnOn && over1 && part && rfs.length === 2 && rfs.reduce((a, r) => a + r.inc, 0) === 18000 && L2.bal.매출채권 === 0
     && rfOff()]);
-  /* 감액 패널 — 남은 청구액을 넘으면 막고, 사유가 없으면 막는다 */
-  OV.cutOpen('2026-07|본관101호|전기요금'); OV.cutSet('amt', '99999999'); OV.cutSet('why', '시험'); OV.cutConfirm();
-  const blocked = !OV.ledgerOf(k).rows.some(r => r.type === '감액' && r.dec === 99999999);
-  OV.cutOpen('2026-07|본관101호|전기요금'); OV.cutSet('amt', '5000'); OV.cutConfirm(); const noWhy = OV.ledgerOf(k).rows.filter(r => r.type === '감액').length === 1;
-  r6.push(['감액 패널 — 청구액 초과 막힘 · 사유 없으면 막힘', blocked && noWhy]); }
+  /* 청구 감액 패널 — 사유가 없으면 막는다. 미납보다 많으면 과납이 된다고 미리 알린다 */
+  OV.fixOpen(k, 'cut'); OV.fxSet('amt', '5000'); OV.fxConfirm(); const noWhy = OV.ledgerOf(k).rows.filter(r => r.type === '감액').length === 1;
+  const warn = /과납/.test(OV.fixHTML());
+  r6.push(['청구 감액 패널 — 사유 없으면 막힘 · 미납보다 많으면 「과납이 됩니다」', noWhy && warn]); }
 /* 오납 — 7월 SK렌터카(주) 1,938,620 입금을 오납으로 → 7월 마감 확인에 걸림 · 입금 매칭에서 환불 기록하면 풀림. 원장에는 없다 → 4.3.5 */
 { const MS = new Function(stub + bare + '; seedJuly(); return {RC,rcUnignore,rcMis,rcOpenN,PAY13,mcChecks,openMis,ovSet,ovConfirm,ledgerOf};')();
   MS.RC.f.ym = '2026-07'; MS.rcUnignore(55); MS.rcMis(55); MS.RC.cur = 55;
@@ -487,7 +486,7 @@ run('환불 패널 · 오납 환불 패널', "seedJuly();openRefund('b1본관101
 run('PAY-6 과납 필터', "seedJuly();RC.f={b:'b1',ym:'2026-07',st:'과납'};g6All=true;PAY6()");
 run('PAY-13 감액으로 과납이 생긴 입금 · 남는 입금 미리보기', "seedJuly();RC.f.ym='2026-07';RC.cur=6;PAY13();RC.f.ym='2026-07';delete RC.dec[8];RC.cur=8;PAY13()");
 run('CTR-3 원장 감액 · 요약 과납', "seedJuly();tab3c='원장';g3All=true;CTR3('b1본관101호');tab3c='요약';CTR3('b1본관101호')");
-run('감액 패널', "seedJuly();cutOpen('2026-07|본관101호|전기요금');cutSet('amt','10000');fixHTML();cutSet('amt','99999999');fixHTML()");
+run('감액 패널', "seedJuly();fixOpen('b1별관301호','cut');cutSet('amt','10000');fixHTML();cutSet('amt','99999999');fixHTML()");
 run('PAY-1 과납', "seedJuly();g1All=true;PAY1()");
 run('PAY-11 8월 과납 확인', "seedJuly();s11={b:'b1',ym:'2026-08'};PAY11();mcOpen('close');mcHTML()");
 /* 미납 이월 — 6월 마감(07.03) 때 비씨에이전시 5,054,474가 미납액으로 · 7/31 입금은 미납액에 · 7월 마감(08.05) 때 54,474 + 5,091,998 → 4.3.6 */
@@ -529,30 +528,27 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   const d7 = PR.RC.dec[7].done;
   r6.push(['전월 과납액은 우선순위가 가장 낮은 수도요금(6)에 18,000을 채움 → 13,200,000 입금은 임대료 한 줄',
     d7.lines.length === 1 && d7.lines[0].n === '임대료' && d7.lines[0].pay === 13200000]); }
-/* 비정기 청구 · 감액 — 각자 패널(제목 · 버튼 · 내역이 다름), 칸은 같다(청구 항목 · 금액 · 사유) · 더 받기도 사유 필수 · 지난 청구를 더 받으면 「…월분 ○○ 정정」 */
-{ const FX = new Function(stub + bare + '; seedJuly(); return {fixOpen,fxSet,fxConfirm,fixHTML,BILLS,ISSUE,get fz(){return fz;}};')();
+/* 청구 추가 · 청구 감액 — 청구 추가는 새 항목만(항목명 · 발행 문서), 청구 감액은 청구항목(건물 설정 + 기타) · 월은 고르지 않음 · 내역 목록 없음 · 사유 필수 */
+{ const FX = new Function(stub + bare + '; seedJuly(); return {fixOpen,fxSet,fxConfirm,fixHTML,BILLS,ISSUE,ledgerOf,get fz(){return fz;}};')();
   FX.fixOpen('b1본관101호', 'cut'); const hc = FX.fixHTML();
   FX.fixOpen('b1본관101호', 'add'); const ha = FX.fixHTML();
-  const same = ['청구 항목', '금액', '사유'].every(t => hc.includes(t) && ha.includes(t))
-    && /<div class="t">청구 감액<\/div>/.test(hc) && /감액 확정/.test(hc) && /청구 감액 내역/.test(hc) && !/청구서 발행/.test(hc)
-    && /<div class="t">청구 추가<\/div>/.test(ha) && /청구서 발행/.test(ha) && /청구 추가 내역/.test(ha) && /항목명/.test(ha) && !/덜 받기/.test(ha + hc);
-  FX.fixOpen('b1본관101호', 'add');
-  FX.fxSet('id', '2026-07|본관101호|전기요금'); FX.fxSet('amt', '55000'); FX.fxConfirm(); const noWhy = !FX.BILLS.some(i => i.adhoc);
-  FX.fxSet('why', '7월 검침 누락'); FX.fxConfirm();
-  const r = FX.BILLS.find(i => i.adhoc), ln = FX.ISSUE().find(c => c.no === '본관101호').lines.find(l => /정정/.test(l.n));
-  r6.push(['비정기 청구 · 감액 — 각자 패널 · 같은 칸 · 사유 없으면 막힘 · 7월 전기요금 더 받기 55,000 → 비정기 청구서 「26.07월분 전기요금 정정」(세금계산서) · 정기 청구서엔 없음',
-    same && noWhy && r && r.n === '26.07월분 전기요금 정정' && r.doc === '세금계산서' && r.amt === 55000 && !ln]); }
-/* 실수 바로잡기 — 취소 버튼은 없다. 잘못 낸 비정기 청구는 청구 감액(전액)으로, 잘못 한 감액은 청구 추가로. 감액 목록에 정기 · 비정기 구분 */
-{ const MX = new Function(stub + bare + '; seedJuly(); return {issueAdhoc,adhocOf,addCut,ledgerOf,cutBills,fixOpen,fixHTML,CUTS};')();
+  const look = /<div class="t">청구 감액<\/div>/.test(hc) && /청구항목/.test(hc) && /기타 \(직접 입력\)/.test(hc) && /<option[^>]*>임대료<\/option>/.test(hc) && !/<option[^>]*>\d\d\.\d\d월분/.test(hc) && /감액 확정/.test(hc)
+    && /<div class="t">청구 추가<\/div>/.test(ha) && /항목명/.test(ha) && /발행 문서/.test(ha) && /청구서 발행/.test(ha) && !/새 항목 \(/.test(ha) && !/월분/.test(ha)
+    && !/내역<\/div>/.test(ha + hc);
+  FX.fxSet('name', '파손 수리비'); FX.fxSet('amt', '55000'); FX.fxConfirm(); const noWhy = !FX.BILLS.some(i => i.adhoc);
+  FX.fxSet('why', '출입문 파손'); FX.fxConfirm();
+  const r = FX.BILLS.find(i => i.adhoc), ln = FX.ISSUE().find(c => c.no === '본관101호').lines.find(l => l.n === '파손 수리비');
+  r6.push(['청구 추가 · 청구 감액 — 추가는 새 항목만 · 감액은 항목만 고르고 월은 안 고름 · 내역 목록 없음 · 사유 없으면 막힘 · 수리비 55,000 → 비정기 청구서 · 정기 청구서엔 없음',
+    look && noWhy && r && r.n === '파손 수리비' && r.doc === '세금계산서' && r.amt === 55000 && !ln]); }
+/* 실수 바로잡기 — 취소 버튼은 없다. 잘못 낸 비정기 청구는 청구 감액으로, 감액은 미납을 오래된 달부터 채운다 */
+{ const MX = new Function(stub + bare + '; seedJuly(); return {issueAdhoc,adhocOf,ledgerOf,fixOpen,fxSet,fxConfirm,fixHTML,paidNet:(id)=>paidNet(id),arrears,CTRS};')();
   const k = 'b1본관801호', bal0 = MX.ledgerOf(k).bal.매출채권;
   MX.issueAdhoc(k, '엘리베이터 사용료', 110000, '세금계산서', '이사'); const ad = MX.adhocOf(k)[0];
-  const inCut = MX.cutBills(k).some(i => i.id === ad.id);
-  MX.fixOpen(k, 'cut', ad.id); const hc = MX.fixHTML();
-  MX.addCut(ad.id, 110000, '2026-08-10', '잘못 발행');
-  const L = MX.ledgerOf(k), rows = L.rows.filter(r => /엘리베이터/.test(r.item));
-  r6.push(['실수 바로잡기 — 잘못 낸 비정기 청구 110,000을 청구 감액(전액)으로 · 원장 청구 + 감액 · 잔액 원래대로 · 감액 목록에 「비정기」 · 취소 버튼 없음',
-    inCut && /· 비정기 ·/.test(hc) && /· 정기 ·/.test(hc) && rows.some(r => r.type === '청구') && rows.some(r => r.type === '감액' && r.dec === 110000)
-    && L.bal.매출채권 === bal0 && !/취소 확정|취소됨/.test(hc)]); }
+  MX.fixOpen(k, 'cut'); MX.fxSet('item', '__etc'); MX.fxSet('name', '엘리베이터 사용료'); MX.fxSet('amt', '110000'); MX.fxSet('why', '잘못 발행'); MX.fxConfirm();
+  const L = MX.ledgerOf(k), cut = L.rows.find(r => r.type === '감액' && r.dec === 110000);
+  const due = MX.arrears(MX.CTRS.find(c => c.no === '본관801호' && c.b === 'b1')).due;
+  r6.push(['실수 바로잡기 — 잘못 낸 비정기 청구 110,000 → 청구 감액(기타 · 엘리베이터 사용료) · 원장 감액 한 줄(공급가액 100,000) · 수납 줄 없음 · 그 청구 미납 0 · 잔액 원래대로',
+    cut && cut.sup === 100000 && !L.rows.some(r => r.type === '수납' && r.date === '2026-08-10') && MX.paidNet(ad.id) === 110000 && due === 0 && L.bal.매출채권 === bal0]); }
 /* 청구서 발행 — 메일 체크박스·미납 조회 없음 · 발행을 누르면 메일 여부를 묻는다 · 더보기로 한 계약만 발행 */
 { const IA = new Function(stub + bare + '; seedJuly(); return {PAY1,issueAsk,issueGo,issueHTML,ISS,MORE,set f1b(v){f1.b=v;}};')();
   IA.f1b = 'b2'; IA.MORE.length = 0; const h = IA.PAY1();
