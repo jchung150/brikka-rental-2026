@@ -48,7 +48,7 @@ run('PAY-1 7월 마감 회차', "f1.ym='2026-07';PAY1()");
 run('PAY-1 6월 마감 취소 후 · 다른 건물', "delete MC.b1['2026-06'];f1.ym='2026-06';PAY1();f1.b='b2';PAY1()");
 run('PAY-13 7월 잠금', "seedJuly();RC.f.ym='2026-07';PAY13()");
 run('CTR-2 자료', "nc=null;CTR2();upOpen('b1',true);Object.assign(up.files[0],{t:'임대차계약서.pdf',sz:'1 MB',ttl:'임대차계약서',c:'계약서'});upHTML();upSave();CTR2()");
-run('CTR-3 청구 정정 패널(덜 받기 · 더 받기)', "seedJuly();fixOpen('b1본관101호');drawerHTML();extraOpen('b1본관101호');drawerHTML();fixOpen('b1본관101호');cutSet('id','2026-07|본관101호|전기요금');cutSet('amt','10000');drawerHTML()");
+run('CTR-3 추가 청구 · 감액 패널', "seedJuly();fixOpen('b1본관101호','add');drawerHTML();fixOpen('b1본관101호','cut');drawerHTML();extraOpen('b1본관101호');drawerHTML();fixOpen('b1본관101호','cut');cutSet('id','2026-07|본관101호|전기요금');cutSet('amt','10000');drawerHTML()");
 run('PAY-1 발행 · 취소 패널 · 메일', "f1.b='b2';PAY1();issue1(['b21203호']);PAY1();cancelOpen('b21203호');cancelHTML();cx1.why='약정 오기';cancelOK();mail1=false;PAY1()");
 run('CTR-2 변경 일정', "nc=null;CTR2();nc.adj.push({d:'2028-11-01',rent:'3465000',mgmt:''});CTR2()");
 run('PRO-1', 'PRO1()');
@@ -282,9 +282,9 @@ r6.push(['보증금상계 100만 — 미납 1,146,472 · 보증금 잔액 100만
   B.TERMS[k] = {type: '만기 종료', out: '2026-08-10', why: '검증'}; B.openDepRet(k); const full = B.dr.amt === L.bal.임대보증금;
   B.openDepIn(k); const left0 = B.di.amt; B.diSet('amt', 2000000); B.diConfirm();
   const L2 = B.ledgerOf(k), btn = B.ledBtns('b1별관301호', B.ledgerOf('b1별관301호'));
-  r6.push(['보증금 예치 — 원장 탭에서 200만 더 받음 · 원장 「보증금 예치」 · 버튼은 「청구 · 수납 ▾」「보증금 ▾」 두 묶음',
+  r6.push(['보증금 예치 — 원장 탭에서 200만 더 받음 · 원장 「보증금 예치」 · 버튼은 「청구 ▾」「수납 ▾」「보증금 ▾」 세 묶음',
     left0 === 9000000 && L2.bal.임대보증금 === L.bal.임대보증금 + 2000000 && L2.rows.some(r => r.type === '보증금 예치' && r.inc === 2000000)
-    && /청구 · 수납 ▾/.test(btn) && /보증금 ▾/.test(btn)]);
+    && /청구 ▾/.test(btn) && /수납 ▾/.test(btn) && /보증금 ▾/.test(btn) && !/청구 · 수납 ▾/.test(btn)]);
   r6.push(['보증금 반환 — 진행중 계약에서 900만 · 잔액 초과 · 사유 없음은 막힘 · 원장 「보증금 반환」 · 퇴거 계약은 잔액 전부가 기본값',
     amt0 === 0 && over && noWhy && L.bal.임대보증금 === bal0 - 9000000
     && L.rows.some(r => r.type === '보증금 반환' && r.dec === 9000000 && /보증금 더 받음/.test(r.item)) && /반환할 금액/.test(html) && full]); }
@@ -526,15 +526,18 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   const d7 = PR.RC.dec[7].done;
   r6.push(['전월 과납액은 우선순위가 가장 낮은 수도요금(6)에 18,000을 채움 → 13,200,000 입금은 임대료 한 줄',
     d7.lines.length === 1 && d7.lines[0].n === '임대료' && d7.lines[0].pay === 13200000]); }
-/* 청구 정정 — 덜 받기·더 받기가 같은 칸(청구 항목 · 금액 · 사유)과 같은 버튼(정정 확정) · 더 받기도 사유 필수 · 지난 청구를 더 받으면 「…월분 ○○ 정정」 */
+/* 추가 청구 · 감액 — 각자 패널(제목 · 버튼 · 내역이 다름), 칸은 같다(청구 항목 · 금액 · 사유) · 더 받기도 사유 필수 · 지난 청구를 더 받으면 「…월분 ○○ 정정」 */
 { const FX = new Function(stub + bare + '; seedJuly(); return {fixOpen,fxSet,fxConfirm,fixHTML,ONCE,ISSUE,get fz(){return fz;}};')();
   FX.fixOpen('b1본관101호', 'cut'); const hc = FX.fixHTML();
   FX.fixOpen('b1본관101호', 'add'); const ha = FX.fixHTML();
-  const same = ['청구 항목', '금액', '사유', '정정 확정', '정정 내역'].every(t => hc.includes(t) && ha.includes(t)) && !ha.includes('항목명');
+  const same = ['청구 항목', '금액', '사유'].every(t => hc.includes(t) && ha.includes(t))
+    && /<div class="t">감액<\/div>/.test(hc) && /감액 확정/.test(hc) && /감액 내역/.test(hc) && !/추가 청구 등록/.test(hc)
+    && /<div class="t">추가 청구<\/div>/.test(ha) && /추가 청구 등록/.test(ha) && /추가 청구 내역/.test(ha) && /항목명/.test(ha) && !/덜 받기/.test(ha + hc);
+  FX.fixOpen('b1본관101호', 'add');
   FX.fxSet('id', '2026-07|본관101호|전기요금'); FX.fxSet('amt', '55000'); FX.fxConfirm(); const noWhy = FX.ONCE.rows.length === 0;
   FX.fxSet('why', '7월 검침 누락'); FX.fxConfirm();
   const r = FX.ONCE.rows[0], ln = FX.ISSUE().find(c => c.no === '본관101호').lines.find(l => /정정/.test(l.n));
-  r6.push(['청구 정정 — 두 방향 같은 칸·같은 버튼 · 사유 없으면 막힘 · 7월 전기요금 더 받기 55,000 → 8월 청구서에 「26.07월분 전기요금 정정」(세금계산서)',
+  r6.push(['추가 청구 · 감액 — 각자 패널 · 같은 칸 · 사유 없으면 막힘 · 7월 전기요금 더 받기 55,000 → 8월 청구서에 「26.07월분 전기요금 정정」(세금계산서)',
     same && noWhy && r && r.n === '26.07월분 전기요금 정정' && r.doc === '세금계산서' && ln && ln.amt === 55000]); }
 /* 청구서 발행 — 메일 체크박스·미납 조회 없음 · 발행을 누르면 메일 여부를 묻는다 · 더보기로 한 계약만 발행 */
 { const IA = new Function(stub + bare + '; seedJuly(); return {PAY1,issueAsk,issueGo,issueHTML,ISS,MORE,set f1b(v){f1.b=v;}};')();
