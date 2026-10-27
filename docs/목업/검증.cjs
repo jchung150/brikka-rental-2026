@@ -36,7 +36,7 @@ for (const c of ['elec', 'water', 'gas', 'parking'])
   run('PAY-10 ' + c, "pCode='" + c + "';PAY10()");
 run('PAY-10 항목 없음', "Object.keys(BILL).forEach(k=>BILL[k].on=false);PAY10()");
 run('PAY-10 패널', "DRAWER='additem';dPick=['fund'];drawerHTML()");
-run('CTR-3 추가 청구 패널', "extraOpen('b1본관B201호');extraSet('n','엘리베이터 사용료');extraSet('amt','110000');extraSet('memo','이사');extraSave();drawerHTML();tab3c='요약';CTR3('b1본관B201호')");
+run('CTR-3 비정기 청구 패널', "extraOpen('b1본관B201호');extraSet('n','엘리베이터 사용료');extraSet('amt','110000');extraSet('memo','이사');extraSave();drawerHTML();tab3c='요약';CTR3('b1본관B201호')");
 run('PAY-10 배율 0', "BILL.elec.adj['본관201호']={mul:0};pCode='elec';PAY10()");
 run('건물 관리비 설정 패널', "openCS('elec');drawerHTML();openCS('rent');drawerHTML();openCS('parking');drawerHTML()");
 run('PAY-10 7월 마감 회차', "f10ym='2026-07';PAY10()");
@@ -48,7 +48,7 @@ run('PAY-1 7월 마감 회차', "f1.ym='2026-07';PAY1()");
 run('PAY-1 6월 마감 취소 후 · 다른 건물', "delete MC.b1['2026-06'];f1.ym='2026-06';PAY1();f1.b='b2';PAY1()");
 run('PAY-13 7월 잠금', "seedJuly();RC.f.ym='2026-07';PAY13()");
 run('CTR-2 자료', "nc=null;CTR2();upOpen('b1',true);Object.assign(up.files[0],{t:'임대차계약서.pdf',sz:'1 MB',ttl:'임대차계약서',c:'계약서'});upHTML();upSave();CTR2()");
-run('CTR-3 추가 청구 · 감액 패널', "seedJuly();fixOpen('b1본관101호','add');drawerHTML();fixOpen('b1본관101호','cut');drawerHTML();extraOpen('b1본관101호');drawerHTML();fixOpen('b1본관101호','cut');cutSet('id','2026-07|본관101호|전기요금');cutSet('amt','10000');drawerHTML()");
+run('CTR-3 비정기 청구 · 감액 패널', "seedJuly();fixOpen('b1본관101호','add');drawerHTML();fixOpen('b1본관101호','cut');drawerHTML();extraOpen('b1본관101호');drawerHTML();fixOpen('b1본관101호','cut');cutSet('id','2026-07|본관101호|전기요금');cutSet('amt','10000');drawerHTML()");
 run('PAY-1 발행 · 취소 패널 · 메일', "f1.b='b2';PAY1();issue1(['b21203호']);PAY1();cancelOpen('b21203호');cancelHTML();cx1.why='약정 오기';cancelOK();mail1=false;PAY1()");
 run('CTR-2 변경 일정', "nc=null;CTR2();nc.adj.push({d:'2028-11-01',rent:'3465000',mgmt:''});CTR2()");
 run('PRO-1', 'PRO1()');
@@ -366,12 +366,15 @@ run('CTR-3 새로 등록한 계약', "seedJuly();CTRS.push({b:'b1',no:'본관302
 const KW = new Function(stub + bare + '; return korWon;')();
 r6.push(['금액 읽기 — 500만원 · 1억원 · 1억 2,345만 6,789원 · 55만원',
   KW(5000000) === '500만원' && KW(100000000) === '1억원' && KW(123456789) === '1억 2,345만 6,789원' && KW(550000) === '55만원']);
-/* 추가 청구 — 계약 상세에서 넣으면 그 계약의 다음 청구서에 실린다 → CTR-3 · PAY-1 */
-const Q = new Function(stub + bare + '; return {extraOpen,extraSet,extraSave,ISSUE,ONCE};')();
-Q.extraOpen('b1본관B201호'); Q.extraSet('n', '엘리베이터 사용료'); Q.extraSet('amt', '110000'); Q.extraSet('memo', '이사'); Q.extraSave();
-const qb = Q.ISSUE().find(c => c.no === '본관B201호'), ql = qb && qb.lines.find(l => l.n === '엘리베이터 사용료');
-r6.push(['추가 청구 11만(계약 상세) → 루비뮤직 8월 청구서에 한 줄 · 공급가액 100,000 · 부가세 10,000',
-  Q.ONCE.rows.length === 1 && ql && ql.amt === 110000 && ql.supply === 100000 && ql.vat === 10000]);
+/* 비정기 청구 — 넣는 순간 비정기 청구서 한 장 · 원장에 오늘 날짜 청구 · 정기 청구서에는 안 실림 · 바로 현금 수납 가능 → CTR-3 · PAY-1 */
+{ const Q = new Function(stub + bare + '; seedJuly(); return {extraOpen,extraSet,extraSave,ISSUE,ledgerOf,BILLS,openPay,setPm,payConfirm,payPlan};')();
+  Q.extraOpen('b1본관B201호'); Q.extraSet('n', '엘리베이터 사용료'); Q.extraSet('amt', '110000'); Q.extraSet('memo', '이사'); Q.extraSave();
+  const qb = Q.ISSUE().find(c => c.no === '본관B201호'), inReg = qb && qb.lines.some(l => l.n === '엘리베이터 사용료');
+  const QL = Q.ledgerOf('b1본관B201호'), row = QL.rows.find(r => r.type === '청구' && r.item === '엘리베이터 사용료');
+  const bill = Q.BILLS.find(i => i.adhoc && i.n === '엘리베이터 사용료');
+  Q.openPay('b1본관B201호'); const pl = Q.payPlan(), hit = pl.all.find(l => l.id === bill.id);
+  r6.push(['비정기 청구 11만 → 비정기 청구서 바로 발행 · 원장 08.10 청구(공급가액 100,000 · 부가세 10,000) · 8월 정기 청구서엔 없음 · 수납 처리에 바로 올라옴(우선순위 98)',
+    !inReg && row && row.date === '2026-08-10' && row.sup === 100000 && row.vat === 10000 && /비정기 청구서/.test(row.ttl) && hit && hit.pr === 98]); }
 /* 항목별 저장 — 저장해야 ✓. 주차비는 저장 전이라 정산 확정 불가. 저장 후 고치면 다시 저장 전 → PAY-10 */
 const SV = new Function(stub + bare + '; return {PAY10,saveItem,setDirect,SAVED,set pCode(v){pCode=v;}};')();
 const lockRe = /disabled onclick="alert\('정산 확정/; const h0 = SV.PAY10(); const block0 = lockRe.test(h0) && !/저장 전/.test(h0);
@@ -526,19 +529,19 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   const d7 = PR.RC.dec[7].done;
   r6.push(['전월 과납액은 우선순위가 가장 낮은 수도요금(6)에 18,000을 채움 → 13,200,000 입금은 임대료 한 줄',
     d7.lines.length === 1 && d7.lines[0].n === '임대료' && d7.lines[0].pay === 13200000]); }
-/* 추가 청구 · 감액 — 각자 패널(제목 · 버튼 · 내역이 다름), 칸은 같다(청구 항목 · 금액 · 사유) · 더 받기도 사유 필수 · 지난 청구를 더 받으면 「…월분 ○○ 정정」 */
-{ const FX = new Function(stub + bare + '; seedJuly(); return {fixOpen,fxSet,fxConfirm,fixHTML,ONCE,ISSUE,get fz(){return fz;}};')();
+/* 비정기 청구 · 감액 — 각자 패널(제목 · 버튼 · 내역이 다름), 칸은 같다(청구 항목 · 금액 · 사유) · 더 받기도 사유 필수 · 지난 청구를 더 받으면 「…월분 ○○ 정정」 */
+{ const FX = new Function(stub + bare + '; seedJuly(); return {fixOpen,fxSet,fxConfirm,fixHTML,BILLS,ISSUE,get fz(){return fz;}};')();
   FX.fixOpen('b1본관101호', 'cut'); const hc = FX.fixHTML();
   FX.fixOpen('b1본관101호', 'add'); const ha = FX.fixHTML();
   const same = ['청구 항목', '금액', '사유'].every(t => hc.includes(t) && ha.includes(t))
-    && /<div class="t">감액<\/div>/.test(hc) && /감액 확정/.test(hc) && /감액 내역/.test(hc) && !/추가 청구 등록/.test(hc)
-    && /<div class="t">추가 청구<\/div>/.test(ha) && /추가 청구 등록/.test(ha) && /추가 청구 내역/.test(ha) && /항목명/.test(ha) && !/덜 받기/.test(ha + hc);
+    && /<div class="t">감액<\/div>/.test(hc) && /감액 확정/.test(hc) && /감액 내역/.test(hc) && !/청구서 발행/.test(hc)
+    && /<div class="t">비정기 청구<\/div>/.test(ha) && /청구서 발행/.test(ha) && /비정기 청구 내역/.test(ha) && /항목명/.test(ha) && !/덜 받기/.test(ha + hc);
   FX.fixOpen('b1본관101호', 'add');
-  FX.fxSet('id', '2026-07|본관101호|전기요금'); FX.fxSet('amt', '55000'); FX.fxConfirm(); const noWhy = FX.ONCE.rows.length === 0;
+  FX.fxSet('id', '2026-07|본관101호|전기요금'); FX.fxSet('amt', '55000'); FX.fxConfirm(); const noWhy = !FX.BILLS.some(i => i.adhoc);
   FX.fxSet('why', '7월 검침 누락'); FX.fxConfirm();
-  const r = FX.ONCE.rows[0], ln = FX.ISSUE().find(c => c.no === '본관101호').lines.find(l => /정정/.test(l.n));
-  r6.push(['추가 청구 · 감액 — 각자 패널 · 같은 칸 · 사유 없으면 막힘 · 7월 전기요금 더 받기 55,000 → 8월 청구서에 「26.07월분 전기요금 정정」(세금계산서)',
-    same && noWhy && r && r.n === '26.07월분 전기요금 정정' && r.doc === '세금계산서' && ln && ln.amt === 55000]); }
+  const r = FX.BILLS.find(i => i.adhoc), ln = FX.ISSUE().find(c => c.no === '본관101호').lines.find(l => /정정/.test(l.n));
+  r6.push(['비정기 청구 · 감액 — 각자 패널 · 같은 칸 · 사유 없으면 막힘 · 7월 전기요금 더 받기 55,000 → 비정기 청구서 「26.07월분 전기요금 정정」(세금계산서) · 정기 청구서엔 없음',
+    same && noWhy && r && r.n === '26.07월분 전기요금 정정' && r.doc === '세금계산서' && r.amt === 55000 && !ln]); }
 /* 청구서 발행 — 메일 체크박스·미납 조회 없음 · 발행을 누르면 메일 여부를 묻는다 · 더보기로 한 계약만 발행 */
 { const IA = new Function(stub + bare + '; seedJuly(); return {PAY1,issueAsk,issueGo,issueHTML,ISS,MORE,set f1b(v){f1.b=v;}};')();
   IA.f1b = 'b2'; IA.MORE.length = 0; const h = IA.PAY1();
@@ -599,21 +602,21 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   PR.prcOpen('elec', '본관701호'); PR.prc.amt = '0'; PR.prc.why = '퇴거 때 추정액으로 받음'; PR.prcApply();
   const R2 = PR.calc(m), r2 = R2.rows.find(r => r.no === '본관701호');
   r6.push(['일할 계산 — 금액을 직접 0원으로 고치면 그대로 · 사유 남음 · 검증 일치', r2.amt === 0 && r2.pro.why === '퇴거 때 추정액으로 받음' && R2.diff === 0]); }
-/* 계약 해지 — 해지일 8/20이면 전기요금 08.10~08.20(11일)이 고지 전 · 예상 금액은 추가 청구로 · 사유 없으면 안 됨 */
-{ const TM = new Function(stub + bare + '; seedJuly(); return {termOpen,termSave,unbilled,TERMS,ONCE,CTRS,termHTML,get tm(){return tm;}};')();
+/* 계약 해지 — 해지일 8/20이면 전기요금 08.10~08.20(11일)이 고지 전 · 예상 금액은 비정기 청구서로 · 사유 없으면 안 됨 */
+{ const TM = new Function(stub + bare + '; seedJuly(); return {termOpen,termSave,unbilled,TERMS,BILLS,CTRS,termHTML,get tm(){return tm;}};')();
   const c = TM.CTRS.find(x => x.no === '본관501호');
   TM.termOpen('b1본관501호'); TM.tm.out = '2026-08-20'; TM.termSave(); const noWhy = !TM.TERMS['b1본관501호'];
   const U = TM.unbilled(c, '2026-08-20'), e = U.find(u => u.code === 'elec'), w = U.find(u => u.code === 'water');
   TM.tm.why = '이전'; TM.tm.est.elec = '180000'; const h = TM.termHTML(); TM.termSave();
-  const row = TM.ONCE.rows.find(r => r.k === 'b1본관501호');
-  r6.push(['계약 해지 — 해지일 8/20: 전기요금 08.10~08.20 11일 고지 전 · 수도요금 08.08~08.20 · 사유 없으면 안 됨 · 예상 180,000원은 「전기요금 퇴거 예상분 (08.10~08.20)」 추가 청구',
+  const row = TM.BILLS.find(r => r.k === 'b1본관501호' && r.adhoc);
+  r6.push(['계약 해지 — 해지일 8/20: 전기요금 08.10~08.20 11일 고지 전 · 수도요금 08.08~08.20 · 사유 없으면 안 됨 · 예상 180,000원은 「전기요금 퇴거 예상분 (08.10~08.20)」 비정기 청구서',
     noWhy && e && e.from === '2026-08-10' && e.days === 11 && w && w.from === '2026-08-08' && /아직 고지되지 않은 기간/.test(h)
     && row && row.n === '전기요금 퇴거 예상분 (08.10~08.20)' && row.amt === 180000 && TM.TERMS['b1본관501호'].out === '2026-08-20']);
-  /* 위약금 · 원상복구비 — 보증금에서 바로 빼지 않고 추가 청구로. 다시 저장해도 한 번만 */
+  /* 위약금 · 원상복구비 — 보증금에서 바로 빼지 않고 비정기 청구서로. 다시 저장해도 한 번만 */
   TM.termOpen('b1본관501호'); TM.tm.pen = '5000000'; TM.tm.rest = '3300000'; TM.termSave();
   TM.termOpen('b1본관501호'); TM.termSave();
-  const P = TM.ONCE.rows.filter(r => r.k === 'b1본관501호' && (r.n === '위약금' || r.n === '원상복구비'));
-  r6.push(['계약 해지 — 위약금 500만(일반내역서) · 원상복구비 330만(세금계산서)은 추가 청구 · 다시 저장해도 한 줄씩',
+  const P = TM.BILLS.filter(r => r.k === 'b1본관501호' && r.adhoc && (r.n === '위약금' || r.n === '원상복구비'));
+  r6.push(['계약 해지 — 위약금 500만(일반내역서) · 원상복구비 330만(세금계산서)은 비정기 청구서 · 다시 저장해도 한 장씩',
     P.length === 2 && P.some(r => r.n === '위약금' && r.amt === 5000000 && r.doc === '일반내역서')
     && P.some(r => r.n === '원상복구비' && r.amt === 3300000 && r.doc === '세금계산서')]); }
 /* 유닛 등록 — 필수 빠지면 막힘 · 번호 중복 막힘 · 전용면적 > 임대면적 막힘 · 지하층 · 카드에 생김 */
