@@ -542,6 +542,26 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   const r = FX.BILLS.find(i => i.adhoc), ln = FX.ISSUE().find(c => c.no === '본관101호').lines.find(l => /정정/.test(l.n));
   r6.push(['비정기 청구 · 감액 — 각자 패널 · 같은 칸 · 사유 없으면 막힘 · 7월 전기요금 더 받기 55,000 → 비정기 청구서 「26.07월분 전기요금 정정」(세금계산서) · 정기 청구서엔 없음',
     same && noWhy && r && r.n === '26.07월분 전기요금 정정' && r.doc === '세금계산서' && r.amt === 55000 && !ln]); }
+/* 취소 — 비정기 청구 · 감액은 지우지 않고 취소 줄을 더한다. 사유 필수 · 입금 배분된 청구 · 마감한 달 기록은 막힘 */
+{ const CX = new Function(stub + bare + '; seedJuly(); return {issueAdhoc,addCut,cancelRec,cancelWhyNot,ledgerOf,BILLS,CUTS,CANCELS,cutOf,addPay,adhocOf,fixOpen,fixHTML};')();
+  const k = 'b1본관801호', bal0 = CX.ledgerOf(k).bal.매출채권;
+  CX.issueAdhoc(k, '엘리베이터 사용료', 110000, '세금계산서', '이사'); const ad = CX.adhocOf(k)[0];
+  const noWhy = !CX.cancelRec('adh', ad, '') && CX.BILLS.includes(ad);
+  CX.fixOpen(k, 'add'); const hOn = CX.fixHTML();
+  const ok1 = CX.cancelRec('adh', ad, '금액 오타');
+  const L1 = CX.ledgerOf(k), adhRows = L1.rows.filter(r => /엘리베이터/.test(r.item));
+  CX.fixOpen(k, 'add'); const hOff = CX.fixHTML();
+  CX.issueAdhoc(k, '수리비', 50000, '세금계산서', '파손'); const ad2 = CX.adhocOf(k)[0]; CX.addPay(ad2.id, 50000, '2026-08-10', '현금', 'm99');
+  const paidNo = !!CX.cancelWhyNot('adh', ad2);
+  const bid = '2026-07|본관801호|수도요금', c0 = CX.cutOf(bid);
+  CX.addCut(bid, 10000, '2026-08-10', '검침 오류'); const cut = CX.CUTS[CX.CUTS.length - 1];
+  const ok2 = CX.cancelRec('cut', cut, '잘못 넣음'), L2 = CX.ledgerOf(k), cBack = CX.cutOf(bid) === c0;
+  CX.addCut(bid, 5000, '2026-07-20', '7월 기록'); const cut7 = CX.CUTS[CX.CUTS.length - 1];
+  const closedNo = /마감/.test(CX.cancelWhyNot('cut', cut7));
+  r6.push(['취소 — 비정기 청구 · 감액은 원장에 취소 줄(청구 취소 · 감액 취소) · 잔액 원래대로 · 사유 필수 · 입금 배분된 청구 · 마감한 달 기록은 막힘 · 패널에 취소 버튼 · 취소됨 표시',
+    noWhy && ok1 && adhRows.length === 2 && adhRows.some(r => r.type === '청구 취소' && r.dec === 110000) && L1.bal.매출채권 === bal0
+    && /취소<\/button>/.test(hOn) && /취소됨/.test(hOff) && /금액 오타/.test(hOff) && paidNo
+    && ok2 && cBack && L2.rows.some(r => r.type === '감액 취소' && r.inc === 10000) && closedNo]); }
 /* 청구서 발행 — 메일 체크박스·미납 조회 없음 · 발행을 누르면 메일 여부를 묻는다 · 더보기로 한 계약만 발행 */
 { const IA = new Function(stub + bare + '; seedJuly(); return {PAY1,issueAsk,issueGo,issueHTML,ISS,MORE,set f1b(v){f1.b=v;}};')();
   IA.f1b = 'b2'; IA.MORE.length = 0; const h = IA.PAY1();
