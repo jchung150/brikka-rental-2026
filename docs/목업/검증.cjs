@@ -79,7 +79,7 @@ run('PAY-13', 'PAY13()');
 run('PAY-12 7월', "f12='2026-07';PAY12()");
 run('PAY-2 펼침', "seedJuly();g2All=true;PAY2()");
 run('PAY-11 테온하우스 (7월 마감 대기)', "seedJuly();mcBld('b2');PAY11()");
-run('수납 처리 패널 연체료 50% 감면', "seedJuly();openPay('b1별관301호');setPm('feeMode','half');payHTML()");
+run('수납 등록 패널 연체료 50% 감면', "seedJuly();openPay('b1별관301호');setPm('feeMode','half');payHTML()");
 run('PAY-11', "seedJuly();PAY11()");
 for (const [b, ym] of [['b2','2026-07'],['b1','2026-08'],['b4','2026-06'],['b4','2026-08']])
   run('PAY-11 ' + b + ' ' + ym, "seedJuly();s11={b:'" + b + "',ym:'" + ym + "'};PAY11()");
@@ -89,12 +89,12 @@ run('PAY-11 마감 패널', "s11={b:'b2',ym:'2026-07'};mcOpen('close');mcHTML()"
 run('PAY-11 마감 취소 패널', "mcOpen('undo');mcHTML()");
 run('PAY-6 8월 (발행 전)', "RC.f.ym='2026-08';PAY6()");
 run('PAY-13 7월 처리 완료', "seedJuly();PAY13()");
-run('수납 처리 패널', "openPay('b1별관301호');payHTML()");
+run('수납 등록 패널', "openPay('b1별관301호');payHTML()");
 run('보증금 상계 패널', "openOffset('b1별관301호');payHTML()");
-run('수납 처리 패널 초과', "openPay('b1별관301호');setPm('amt','99999999');payHTML()");
-run('수납 처리 패널 미납 없음', "openPay('b1본관801호');payHTML()");
-run('수납 처리 패널 연체료 낮춰 받기', "openPay('b1별관301호');setPm('feeOn','1');setPm('fee','50000');payHTML()");
-run('수납 처리 패널 연체료만', "openPay('b1본관B201호');setPm('feeOn','1');payHTML()");
+run('수납 등록 패널 초과', "openPay('b1별관301호');setPm('amt','99999999');payHTML()");
+run('수납 등록 패널 미납 없음', "openPay('b1본관801호');payHTML()");
+run('수납 등록 패널 연체료 낮춰 받기', "openPay('b1별관301호');setPm('feeOn','1');setPm('fee','50000');payHTML()");
+run('수납 등록 패널 연체료만', "openPay('b1본관B201호');setPm('feeOn','1');payHTML()");
 run('PAY-2', 'PAY2()');
 run('CTR-1', 'CTR1()');
 for (const f of ["f1c.st=''", "f1c.b='b2'", "f1c.dd='90'", "f1c.dd='0'"]) run('CTR-1 필터 ' + f, "f1c={b:'',st:'진행중',dd:''};" + f + ';CTR1()');
@@ -235,7 +235,7 @@ const left = k => W.ledgerOf(k).bal.매출채권;   /* 원장의 받을 돈 — 
 const all12 = ['본관801호','본관701호','본관601호','본관501호','본관401호','본관301호','본관302호','본관201호','본관101호','본관B201호','별관401호','별관201호'];
 r6.push(['미납 관리 — 비씨에이전시 5,146,472원만 남음 (루비뮤직 6월분 해소)', all12.every(n => left('b1' + n) === 0) && left('b1별관301호') === 5146472]);
 r6.push(['PAY-1 8월 발행 화면의 미납 잔액 — 7월까지의 미납', W.dueOf('b1별관301호').amt === 5146472 && W.dueOf('b1별관301호').from === '2026-06']);
-/* 현장 수납 — 입금 매칭을 다 끝낸 뒤 비씨에이전시가 현금 300만 원을 들고 왔다 → PAY-2 수납 처리 */
+/* 현장 수납 — 입금 매칭을 다 끝낸 뒤 비씨에이전시가 현금 300만 원을 들고 왔다 → PAY-2 수납 등록 */
 W.openPay('b1별관301호'); W.setPm('amt', 3000000);
 const pc = W.payPlan();
 W.payConfirm();
@@ -244,7 +244,7 @@ r6.push(['현장 수납 현금 300만 — 오래된 달부터 · 미납 2,146,47
   pc.lines[0].ym <= pc.lines[pc.lines.length - 1].ym && pc.rest === 0 && left('b1별관301호') === 2146472
   && LC.bal.매출채권 === 2146472 && LC.rows.some(r => r.type === '수납' && r.hand && / 현금$/.test(r.src))]);
 const dep0 = LC.bal.임대보증금;
-/* 보증금 상계 — 계약 중 언제든(슈퍼관리자). 수납 처리 결제수단에는 없고, 보증금 ▾ 메뉴의 자기 패널에서 한다 */
+/* 보증금 상계 — 계약 중 언제든(슈퍼관리자). 수납 등록 결제수단에는 없고, 보증금 ▾ 메뉴의 자기 패널에서 한다 */
 const payNoOff = !/보증금상계/.test((W.openPay('b1별관301호'), W.payHTML()).match(/<select onchange="setPm\('how'[^]*?<\/select>/)[0]);
 W.openOffset('b1별관301호'); const offHtml = W.payHTML(), offPm = {...W.pm};
 r6.push(['보증금 상계 패널 — 미납 → 연체료 → 연체료 처리(전액 받기 · 전액 감면 · 직접 입력, 기본 전액 받기) → 미납액 합계 · 미납 내역(달별 납부마감일 · 연체일수 · 항목) · 배분 미리보기 없음',
@@ -256,7 +256,7 @@ r6.push(['보증금 상계 패널 — 미납 → 연체료 → 연체료 처리(
   && !/상계 후 남는 보증금/.test(offHtml) && !/배분 우선순위대로/.test(offHtml) && !/언제 생겼는지/.test(offHtml)]);
 /* 아래 100만 상계 검산은 연체료를 건드리지 않는다(연체료는 뒤에서 따로 검산) */
 W.setPm('feeMode', 'later');
-r6.push(['보증금 상계 — 진행중 계약에서도 열림 · 경고 없음 · 제목 「보증금 상계」 · 상계 확정 · 수납 처리 결제수단엔 없음',
+r6.push(['보증금 상계 — 진행중 계약에서도 열림 · 경고 없음 · 제목 「보증금 상계」 · 상계 확정 · 수납 등록 결제수단엔 없음',
   payNoOff && /<div class="t">보증금 상계<\/div>/.test(offHtml) && /상계 확정/.test(offHtml) && !/할 수 없습니다/.test(offHtml)]);
 W.setPm('amt', 1000000); W.payConfirm();
 /* 잔액 남음 — 끝난 계약인데 원장 잔액이 남음. 종료된 리틀브릿지(보증금 남음)에 붙고, 필터로 모인다 */
@@ -373,7 +373,7 @@ r6.push(['금액 읽기 — 500만원 · 1억원 · 1억 2,345만 6,789원 · 55
   const QL = Q.ledgerOf('b1본관B201호'), row = QL.rows.find(r => r.type === '청구' && r.item === '엘리베이터 사용료');
   const bill = Q.BILLS.find(i => i.adhoc && i.n === '엘리베이터 사용료');
   Q.openPay('b1본관B201호'); const pl = Q.payPlan(), hit = pl.all.find(l => l.id === bill.id);
-  r6.push(['비정기 청구 11만 → 비정기 청구서 바로 발행 · 원장 08.10 청구(공급가액 100,000 · 부가세 10,000) · 8월 정기 청구서엔 없음 · 수납 처리에 바로 올라옴(우선순위 98)',
+  r6.push(['비정기 청구 11만 → 비정기 청구서 바로 발행 · 원장 08.10 청구(공급가액 100,000 · 부가세 10,000) · 8월 정기 청구서엔 없음 · 수납 등록에 바로 올라옴(우선순위 98)',
     !inReg && row && row.date === '2026-08-10' && row.sup === 100000 && row.vat === 10000 && row.ttl === '엘리베이터 사용료' && hit && hit.pr === 98]); }
 /* 항목별 저장 — 저장해야 ✓. 주차비는 저장 전이라 정산 확정 불가. 저장 후 고치면 다시 저장 전 → PAY-10 */
 const SV = new Function(stub + bare + '; return {PAY10,saveItem,setDirect,SAVED,set pCode(v){pCode=v;}};')();
@@ -451,7 +451,7 @@ r6.push(['임대정보 · 임대료 인상 예약(요약 탭) — 분기 · 기�
     && post.bill === OV.pre.bill && post.paid === post.bill && item.paid === 1337087 && item.st === '완납' && post.over === 0 && post.st === '완납'
     && shown && OV.mcChecks('b1', '2026-07').every(x => x.ok)]);
   /* 환불은 원장 탭 「청구 · 수납 ▾」 메뉴 안에 있다. 과납이 없으면 흐리게 잠긴다 */
-  const rfOff = () => { OV.CTR3(k); const m = OV.MORE.filter(a => a.some(i => i.t === '환불')).pop(); return !!m.find(i => i.t === '환불').off; };
+  const rfOff = () => { OV.CTR3(k); const m = OV.MORE.filter(a => a.some(i => i.t === '과납 환불')).pop(); return !!m.find(i => i.t === '과납 환불').off; };
   OV.tab3c = '원장'; const btnOn = !rfOff();
   OV.openRefund(k); OV.ovSet('amt', '20000'); OV.ovConfirm(); const over1 = OV.overOf(k) === 18000;
   OV.ovSet('amt', '10000'); OV.ovSet('acct', '기업 123-45'); OV.ovConfirm(); const part = OV.overOf(k) === 8000;
@@ -572,6 +572,21 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
     menu && !menu.find(i => i.t === '취소').off && /취소 사유/.test(h) && noWhy && rows.length === 2 && rows.some(r => r.type === '청구 취소' && r.dec === 220000)
     && L.bal.매출채권 === bal0 && gone && /취소됨/.test(lh) && !menu2
     && m2 && !!m2.find(i => i.t === '취소').off && m3 && /마감/.test(m3.find(i => i.t === '취소').off)]); }
+/* 수납 취소 — 수납 등록(현금 등) · 보증금 상계는 원장 ⋮ › 취소. 은행 입금은 입금 매칭에서(잠김). 취소하면 채웠던 청구는 다시 미납 */
+{ const PX = new Function(stub + bare + '; seedJuly(); return {openPay,openOffset,setPm,payConfirm,ledgerOf,arrears,CTRS,CTR3,MORE,LEDG,lcxOpen,lcxConfirm,lcxHTML,get lcx(){return lcx;},set tab3c(v){tab3c=v;}};')();
+  const k = 'b1별관301호', c = PX.CTRS.find(x => x.b === 'b1' && x.no === '별관301호'), due0 = PX.arrears(c).due, dep0 = PX.ledgerOf(k).bal.임대보증금;
+  PX.openPay(k); PX.setPm('amt', 1000000); PX.payConfirm();
+  PX.openOffset(k); PX.setPm('feeMode', 'later'); PX.setPm('amt', 500000); PX.payConfirm();
+  PX.tab3c = '원장'; PX.MORE.length = 0; PX.CTR3(k);
+  const keys = Object.keys(PX.LEDG).filter(x => x.startsWith('pay'));
+  const menuOf = key => PX.MORE.find(m => m.some(i => i.go === `lcxOpen('${key}')`));
+  const bankKey = keys.find(x => !x.startsWith('paym')), bankOff = menuOf(bankKey).find(i => i.t === '취소').off;
+  const manual = keys.filter(x => x.startsWith('paym'));
+  manual.forEach(key => { PX.lcxOpen(key); PX.lcx.why = '잘못 등록'; PX.lcxConfirm(); PX.MORE.length = 0; PX.CTR3(k); });
+  const L = PX.ledgerOf(k);
+  r6.push(['수납 취소 — 현금 100만 · 보증금 상계 50만을 원장 ⋮ › 취소 → 미납 원래대로 · 보증금 잔액 원래대로 · 원장에 수납 취소 · 보증금 상계 취소 줄 · 은행 입금은 「입금 매칭에서」로 잠김',
+    /입금 매칭/.test(bankOff) && manual.length === 2 && PX.arrears(c).due === due0 && L.bal.임대보증금 === dep0
+    && L.rows.some(r => r.type === '수납 취소' && r.inc === 1000000) && L.rows.some(r => r.type === '보증금 상계 취소' && r.inc === 500000)]); }
 /* 청구서 발행 — 메일 체크박스·미납 조회 없음 · 발행을 누르면 메일 여부를 묻는다 · 더보기로 한 계약만 발행 */
 { const IA = new Function(stub + bare + '; seedJuly(); return {PAY1,issueAsk,issueGo,issueHTML,ISS,MORE,set f1b(v){f1.b=v;}};')();
   IA.f1b = 'b2'; IA.MORE.length = 0; const h = IA.PAY1();
@@ -876,13 +891,13 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   DF.setFdoc('c', '계약서'); const fc = DF.PRO3('b1'); DF.setFdoc('c', ''); DF.setFdoc('per', '1'); const fp = DF.PRO3('b1'); DF.setFdoc('per', '');
   r6.push(['자료보관 — 건물 · 계약 같은 표 · 같은 필터 줄(카테고리 · 등록일시 기간) · 자료 없는 계약도 표 모양 · 카테고리 · 기간 필터가 걸러짐',
     same && empty && /임대차계약서/.test(fc) && !/등기부등본/.test(fc) && !/임대차계약서 본관801호/.test(fp)]); }
-/* 수납 내역 더보기 — 받을 돈이 있는 계약(비씨에이전시)만 수납 처리가 눌리고, 다 받은 계약(에스씨케이컴퍼니)은 흐림 · 원장 보기는 모두 */
+/* 수납 내역 더보기 — 받을 돈이 있는 계약(비씨에이전시)만 수납 등록가 눌리고, 다 받은 계약(에스씨케이컴퍼니)은 흐림 · 원장 보기는 모두 */
 { const MV = new Function(stub + bare + '; seedJuly(); return {PAY6,RC,MORE};')();
   MV.RC.f = {b:'b1', ym:'2026-07', st:''}; MV.MORE.length = 0; const h = MV.PAY6();
   const at = no => MV.MORE.find(m => m[0].go === `openPay('b1${no}')`);
   const bc = at('별관301호'), sc = at('본관101호');
-  r6.push(['수납 내역 더보기 — ⋮ 드롭다운 · 수납 처리/청구서 보기/원장 보기 · 비씨에이전시 수납 처리 눌림 · 에스씨케이컴퍼니 흐림',
-    /moreOpen\(/.test(h) && bc && sc && bc.map(i => i.t).join() === '수납 처리,청구서 보기,원장 보기'
+  r6.push(['수납 내역 더보기 — ⋮ 드롭다운 · 수납 등록/청구서 보기/원장 보기 · 비씨에이전시 수납 등록 눌림 · 에스씨케이컴퍼니 흐림',
+    /moreOpen\(/.test(h) && bc && sc && bc.map(i => i.t).join() === '수납 등록,청구서 보기,원장 보기'
     && !bc[0].off && !!sc[0].off && sc[2].go.includes(`go('ctr-3/b1본관101호')`)]); }
 { const DD = new Function(stub + bare + '; seedJuly(); return {PAY2,f2};')();
   DD.f2.dd = '30'; const h30 = DD.PAY2(); DD.f2.dd = '60'; const h60 = DD.PAY2();

@@ -3560,7 +3560,16 @@ function addCut(id,amt,date,why,sup,vat){
    막는 경우: 그 기록의 달을 마감했다 · 비정기 청구에 입금이 배분됐다 · 감액으로 생긴 과납을 이미 환불했거나 썼다.
    그때는 이번 달의 청구 추가 · 청구 감액으로 바로잡는다 */
 const CANCELS=[];   /* {kind:'adh'|'cut', rec, date, why} */
+/* 수납 — 원장의 한 입금(dep)이 여러 청구에 나뉘어 있다. 수납 등록(현금 · 카드 · 계좌이체)과 보증금 상계만 여기서 취소한다 */
+function payRec(dep){
+  const ev=[];Object.entries(PAYEV).forEach(([id,L])=>L.forEach(e=>{if(e.dep===dep) ev.push({id,...e});}));
+  if(!ev.length) return null;
+  const id0=ev[0].id, b=BILLS.find(i=>i.id===id0), k=b?b.k:id0.split('|')[1];
+  return {k,dep,date:ev[0].date,src:ev[0].src,ev,amt:ev.reduce((a,e)=>a+e.amt,0),md:MANUAL_DEP.find(m=>m.dep===dep)||null};
+}
 function cancelWhyNot(kind,rec){
+  if(kind==='pay'&&!rec.dep.startsWith('m')) return '은행 입금은 입금 매칭에서 무효 처리합니다';
+  if(kind==='pay'&&rec.ev.some(e=>e.id.startsWith('fee|'))) return '연체료를 함께 정리한 수납은 취소할 수 없습니다. 청구 감액으로 바로잡습니다';
   if(closedBy(bOfK(rec.k),rec.date.slice(0,7),TODAY_S)) return '마감한 달의 기록은 취소할 수 없습니다. 이번 달의 청구 추가 · 청구 감액으로 바로잡습니다';
   if(kind==='adh'&&paidNet(rec.id)>0) return '입금이 배분된 청구는 취소할 수 없습니다. 먼저 수납을 무효 처리합니다';
   if(kind==='adh'&&cutOf(rec.id)>0) return '감액한 청구는 취소할 수 없습니다. 먼저 감액을 취소합니다';
@@ -3570,6 +3579,8 @@ function cancelWhyNot(kind,rec){
 function cancelRec(kind,rec,why){
   if(!why||!why.trim()||cancelWhyNot(kind,rec)) return false;
   if(kind==='adh'){const ix=BILLS.indexOf(rec); if(ix<0) return false; BILLS.splice(ix,1);}
+  else if(kind==='pay'){rec.ev.forEach(e=>{PAYEV[e.id]=(PAYEV[e.id]||[]).filter(x=>x.dep!==rec.dep);PAID[e.id]-=e.amt;});
+    if(rec.md){const ix=MANUAL_DEP.indexOf(rec.md); if(ix>=0) MANUAL_DEP.splice(ix,1);}}
   else{const ix=CUTS.indexOf(rec); if(ix<0) return false; CUTS.splice(ix,1);
     if(rec.ex){REL[rec.id]-=rec.ex; const m=MOVES.findIndex(x=>x.sq===rec.sq); if(m>=0) MOVES.splice(m,1);}}
   CANCELS.push({kind,rec,date:TODAY_S,why:why.trim(),sq:++paySeq});
@@ -3627,7 +3638,7 @@ function ctrPay(k,ym){
    납부마감일 다음날부터 오늘까지를 수납이 들어올 때마다 끊고, 구간마다 그 동안의 미납액 × 연체이자율 × 일수 ÷ 365.
    구간마다 원 미만 절사 후 합한다. 내역서의 줄과 합계가 맞아야 하기 때문이다 */
 const rateOf=k=>{const c=CTRS.find(x=>ckey(x)===k);return (c&&c.rate)||8;};
-/* 연체료 정리일 — 수납 처리에서 연체료를 받았거나 깎아 준 날. 그날까지의 연체료는 다시 세지 않는다 → 4.4.3 */
+/* 연체료 정리일 — 수납 등록에서 연체료를 받았거나 깎아 준 날. 그날까지의 연체료는 다시 세지 않는다 → 4.4.3 */
 const FEE_CUT={};
 function lateCalc(k,ym,until){
   const end=until||TODAY_S, cutD=FEE_CUT[k];
@@ -4076,9 +4087,9 @@ function PAY6(){
   /* 그룹 행 — 들어온 미납액도 함께 더한다 */
   const T=rows.reduce((a,x)=>{const g=rcvSum(x);return {bill:a.bill+g.bill,paid:a.paid+g.paid,due:a.due+g.due};},{bill:0,paid:0,due:0});
   const dash='<span style="color:var(--faint)">—</span>';
-  /* 더보기 — 수납 처리는 받을 돈(미납·연체료)이 있는 계약만. 청구서 보기는 그 달 발행한 청구서. 원장 보기는 계약 상세 원장 탭으로 */
+  /* 더보기 — 수납 등록는 받을 돈(미납·연체료)이 있는 계약만. 청구서 보기는 그 달 발행한 청구서. 원장 보기는 계약 상세 원장 탭으로 */
   const more=x=>{const owe=arrears(x.c).due+feeUntil(x.k,TODAY_S)>0;
-    return moreCell([{t:'수납 처리',go:`openPay('${x.k}')`,off:owe?'':'받을 돈이 없습니다'},
+    return moreCell([{t:'수납 등록',go:`openPay('${x.k}')`,off:owe?'':'받을 돈이 없습니다'},
       {t:'청구서 보기',go:`billView('${x.k}','${RC.f.ym}')`},
       {t:'원장 보기',go:`tab3c='원장';go('ctr-3/${x.k}')`}]);};
   const body=rows.map(x=>rcvRow(x,{cls:'ctr',op:g6Open(x.k),tog:`g6Tog('${x.k}')`,label:cnameHTML(bn.alias,x.c.no,x.c.ten),ym:RC.f.ym,more:more(x)})).join('');
@@ -4114,16 +4125,16 @@ function PAY6(){
   </div>`}
   <div class="hint">
     선택한 달의 청구를 계약별로 다 받았는지 봅니다. 금액은 부가세 포함입니다.<br>
-    밀린 달 전부의 미납과 미납 안내는 미납 관리에서, 입금 한 건 한 건은 입금 매칭에서 봅니다. 현금·카드로 받은 돈은 더보기의 <b>수납 처리</b>로 기록합니다.<br>
+    밀린 달 전부의 미납과 미납 안내는 미납 관리에서, 입금 한 건 한 건은 입금 매칭에서 봅니다. 현금·카드로 받은 돈은 더보기의 <b>수납 등록</b>로 기록합니다.<br>
     <b>전월 미납액</b>은 지난달 마감 때 다 받지 못해 넘어온 돈, <b>전월 과납액</b>은 더 받아 넘어온 돈입니다(이 달 청구에서 먼저 빠짐). 마감한 달은 그 뒤로 바뀌지 않고, 들어온 돈은 전월 미납액부터 줄입니다.<br>
     <b>과납액</b>은 그 달 청구를 다 받고 남은 돈입니다. 입금은 우선순위대로 배분되므로 어느 항목의 돈이라고 할 수 없어 따로 한 줄로 둡니다.
     다음 달로 넘어가 다음 청구서를 발행할 때 먼저 배분되어 낼 돈이 줍니다. 청구항목이 아닌 줄(전월 미납액 · 전월 과납액 · 과납액)은 연한 배경으로 구분합니다.</div>`;
 }
 
-/* ═══ 수납 처리 — 현금·카드로 받았거나 보증금에서 뺀 돈. 은행 입금은 입금 매칭(PAY-13)에서 → PAY-2 · CTR-3 ═══ */
+/* ═══ 수납 등록 — 현금·카드로 받았거나 보증금에서 뺀 돈. 은행 입금은 입금 매칭(PAY-13)에서 → PAY-2 · CTR-3 ═══ */
 let pm=null, pmSeq=0;
 const MANUAL_DEP=[];   /* 보증금상계 — 원장의 임대보증금에서 뺀다 */
-/* 수납 처리는 실제로 들어온 돈만. 보증금상계는 원장 탭 보증금 ▾ 메뉴의 보증금 상계 패널에서(슈퍼관리자 · 퇴거할 때) */
+/* 수납 등록는 실제로 들어온 돈만. 보증금상계는 원장 탭 보증금 ▾ 메뉴의 보증금 상계 패널에서(슈퍼관리자 · 퇴거할 때) */
 const PAY_HOW=['현금','카드','계좌이체'];
 /* 퇴거하는 계약 — 해지 처리를 했거나 종료됨 · 파기됨. 보증금 반환 패널이 남은 잔액 전부를 미리 넣는 기준이다.
    보증금 상계는 이와 상관없이 계약 중 언제든 할 수 있다(슈퍼관리자) */
@@ -4200,7 +4211,7 @@ function payHTML(){
   const ok=((pm.amt>0&&pl.lines.length)||pm.feeOn)&&!over;
   const isOff=pm.how==='보증금상계', AR=isOff?arrears(c):null;
   return `<div class="dro"><div class="ov" onclick="closeDrawer()"></div><div class="pn">
-    <div class="dh"><div><div class="t">${isOff?'보증금 상계':'수납 처리'}</div>
+    <div class="dh"><div><div class="t">${isOff?'보증금 상계':'수납 등록'}</div>
       <div class="s">${cname(bn.alias,c.no,c.ten)}</div></div>
       <button class="x" onclick="closeDrawer()">✕</button></div>
     <div class="db">
@@ -4274,7 +4285,7 @@ ${isOff?`      <div class="fg"><div class="fl">미납 내역</div>
     </div>
     <div class="df">
       <button class="btn" onclick="closeDrawer()">취소</button>
-      <button class="btn pri" ${ok&&!pl.rest?'':'disabled'} onclick="payConfirm()">${isOff?'상계 확정':'수납 확정'}</button></div>
+      <button class="btn pri" ${ok&&!pl.rest?'':'disabled'} onclick="payConfirm()">${isOff?'상계 확정':'수납 등록'}</button></div>
   </div></div>`;
 }
 
@@ -4345,7 +4356,7 @@ function fixHTML(){
 const extraOpen=k=>fixOpen(k,'add');
 const cutSet=fxSet, cutConfirm=fxConfirm, extraSave=fxConfirm;
 const extraSet=(f,v)=>fxSet(f==='n'?'name':f==='memo'?'why':f,v);
-/* ═══ 원장 탭 버튼 — 청구 ▾(청구 추가 · 청구 감액) · 수납 ▾(수납 처리 · 환불) · 보증금 ▾(슈퍼관리자만 → 3.7). 할 수 없는 일은 흐리게, 이유는 마우스를 올리면 → 3.8 ═══ */
+/* ═══ 원장 탭 버튼 — 청구 ▾(청구 추가 · 청구 감액) · 수납 ▾(수납 등록 · 과납 환불) · 보증금 ▾(슈퍼관리자만 → 3.7). 할 수 없는 일은 흐리게, 이유는 마우스를 올리면 → 3.8 ═══ */
 function menuBtn(t,items,title){const id=MORE.push(items)-1;
   return `<button class="btn" ${title?`title="${title}"`:''} onclick="event.stopPropagation();moreOpen(${id},this)">${t} ▾</button>`;}
 function ledBtns(k,L){
@@ -4353,15 +4364,15 @@ function ledBtns(k,L){
       {t:'청구 추가',go:`fixOpen('${k}','add')`},
       {t:'청구 감액',go:`fixOpen('${k}','cut')`,off:cutBills(k).length?'':'줄일 청구가 없습니다'}])
     +menuBtn('수납',[
-      {t:'수납 처리',go:`openPay('${k}')`},
-      {t:'환불',go:`openRefund('${k}')`,off:overOf(k)?'':'돌려줄 과납이 없습니다'}])
+      {t:'수납 등록',go:`openPay('${k}')`},
+      {t:'과납 환불',go:`openRefund('${k}')`,off:overOf(k)?'':'돌려줄 과납이 없습니다'}])
     +menuBtn('보증금',[
       {t:'보증금 예치',go:`openDepIn('${k}')`},
       {t:'보증금 상계',go:`openOffset('${k}')`},   /* 늘 열린다. 할 수 없으면 패널이 이유와 할 일을 알려 준다 */
       {t:'보증금 반환',go:`openDepRet('${k}')`,off:L.bal.임대보증금>0?'':'돌려줄 보증금이 없습니다'}],
       '슈퍼관리자만 — 관리자는 매달 도는 청구 · 수납만 다룬다');
 }
-/* 보증금 상계 — 자기 패널(제목 · 칸이 다르다). 배분 계산은 수납 처리와 같다. 원장에는 보증금 상계 + 결제수단 보증금상계인 수납 */
+/* 보증금 상계 — 자기 패널(제목 · 칸이 다르다). 배분 계산은 수납 등록와 같다. 원장에는 보증금 상계 + 결제수단 보증금상계인 수납 */
 function openOffset(k){openPay(k); pm.how='보증금상계'; setFeeMode('full'); pm.amt=arrears(CTRS.find(x=>ckey(x)===k)).due+pm.fee; pm.amt=Math.min(pm.amt,ledgerOf(k).bal.임대보증금); render(true);}
 /* ═══ 보증금 예치 — 받은 보증금. 덜 들어와 더 받을 때도 쓴다. 반환 패널과 같은 모양 ═══ */
 const DEP_IN=[];
@@ -4395,7 +4406,7 @@ function diHTML(){
   </div></div>`;
 }
 /* ═══ 보증금 반환 — 원장 탭. 환불 패널과 같은 모양. 계약 중에도 쓴다(예: 1억 1백만원 받을 것을 1억 1천만원 받음 → 9백만원 반환).
-   퇴거 때는 수납 처리의 보증금상계로 미납을 먼저 정리하고 남은 잔액을 돌려준다. 보증금에서 빠지는 길은 상계와 반환 둘뿐이다 ═══ */
+   퇴거 때는 수납 등록의 보증금상계로 미납을 먼저 정리하고 남은 잔액을 돌려준다. 보증금에서 빠지는 길은 상계와 반환 둘뿐이다 ═══ */
 const DEP_RET=[];
 let dr=null;
 function openDepRet(k){const bal=ledgerOf(k).bal.임대보증금;
@@ -4417,7 +4428,7 @@ function drHTML(){
       <div class="fg"><div class="fl">돌려줄 돈</div>
         ${R('보증금 잔액',`<b style="color:var(--pri)">${won(bal)}</b>`)}
         ${R('반환할 금액',`<input type="text" inputmode="numeric" value="${dr.amt?num(dr.amt):''}" oninput="kwLive(this)" onchange="drSet('amt',this.value)" style="text-align:right"><span class="kw">${korWon(dr.amt)}</span>`,
-          '퇴거하는 계약은 남은 잔액 전부가 미리 들어갑니다. 미납이 있으면 먼저 수납 처리에서 보증금상계로 정리합니다')}
+          '퇴거하는 계약은 남은 잔액 전부가 미리 들어갑니다. 미납이 있으면 먼저 수납 등록에서 보증금상계로 정리합니다')}
         ${dr.amt>bal?'<div class="c2" style="margin:-4px 0 9px 114px;color:var(--danger)">보증금 잔액보다 많이 돌려줄 수 없습니다</div>':''}
         ${R('사유 (필수)',`<input type="text" value="${dr.why}" placeholder="예: 보증금 더 받음 · 퇴거 정산" oninput="dr.why=this.value;document.getElementById('drok').disabled=!(this.value.trim()&&dr.amt>0&&dr.amt<=${bal})">`)}</div>
       <div class="fg"><div class="fl">보낸 기록</div>
@@ -4447,7 +4458,7 @@ function overHTML(){
   const max=md?md.amt:overOf(ov.k), amt=md?md.amt:ov.amt, ok=md?true:amt>0&&amt<=max;
   const R=(k,b)=>`<div class="fr"><span class="fk">${k}</span>${b}</div>`;
   return `<div class="dro"><div class="ov" onclick="closeDrawer()"></div><div class="pn">
-    <div class="dh"><div><div class="t">${md?'오납 환불':'환불'}</div><div class="s">${md?md.name:cname(bd.alias,c.no,c.ten)}</div></div>
+    <div class="dh"><div><div class="t">${md?'오납 환불':'과납 환불'}</div><div class="s">${md?md.name:cname(bd.alias,c.no,c.ten)}</div></div>
       <button class="x" onclick="closeDrawer()">✕</button></div>
     <div class="db">
       <div class="fg"><div class="fl">돌려줄 돈</div>
@@ -4498,7 +4509,7 @@ function dueHTML(){
       </div>`;}).join('')}
     </div>
     <div class="df"><button class="btn" onclick="closeDrawer()">닫기</button>
-      <button class="btn pri" onclick="openPay('${dk}')">수납 처리</button></div>
+      <button class="btn pri" onclick="openPay('${dk}')">수납 등록</button></div>
   </div></div>`;
 }
 /* ═══ PAY-2 미납 관리 — 미납이 있는 계약을 따로 관리한다. 계약별로 지금까지 쌓인 미납액 전부. 청구년월로 자르지 않는다 ═══ */
@@ -4554,7 +4565,7 @@ function PAY2(){
       <div class="n">${a.days?`${a.days}일`:dash}</div>
       <div class="n">연 ${a.rate}%</div>
       <div class="n">${a.fee?won(a.fee):dash}</div>
-      <div class="c">${a.due||a.fee?`<span class="more" onclick="event.stopPropagation();openPay('${a.k}')">수납</span>`:''}</div>
+      <div class="c">${moreCell([{t:'수납 등록',go:`openPay('${a.k}')`,off:a.due||a.fee?'':'받을 돈이 없습니다'}])}</div>
     </div>`+(!op?'':a.months.map(m=>`
     <div class="schr arr sub mo" style="cursor:default">
       <div class="nm">${m.ym.replace('-','년 ')}월분</div>
@@ -4598,7 +4609,7 @@ function PAY2(){
   <div class="hint">
     미납이 있는 계약을 모았습니다. 청구액을 다 냈어도 연체료가 남았으면 미납입니다. 계약 줄을 누르면 달별 미납이 펼쳐지고, 달별 줄의 <b>상세</b>를 누르면 그 달의 미납 내역이 오른쪽에 열립니다.<br>
     다 냈어도 늦게 냈다면 연체료가 남습니다.<br>
-    현금·카드로 받았으면 계약 줄 더보기의 <b>수납</b>을 누르세요. 은행 입금은 입금 매칭에서 처리합니다. 보증금 상계는 계약 상세 원장 탭의 <b>보증금</b> 메뉴에서 합니다(슈퍼관리자 · 퇴거할 때).<br>
+    현금·카드로 받았으면 계약 줄 더보기의 <b>수납 등록</b>을 누르세요. 은행 입금은 입금 매칭에서 처리합니다. 보증금 상계는 계약 상세 원장 탭의 <b>보증금</b> 메뉴에서 합니다(슈퍼관리자 · 퇴거할 때).<br>
     연체료는 수납할 때 정리합니다. 전액 받기 · 50% 감면 · 직접 입력 · 전액 감면 중에서 고릅니다.</div>`;
 }
 
@@ -5443,7 +5454,15 @@ function ledgerOf(k){
   MANUAL_DEP.filter(m=>m.k===k).forEach(m=>rows.push({date:m.date,type:'보증금 상계',acc:'임대보증금',
     memo:'미납 청구에 상계',item:'미납 청구에 상계',g:'dd'+m.dep,dec:m.amt,sup:null,vat:null,ord:2,sq:m.sq}));
   /* 취소한 비정기 청구 · 감액 — 원래 줄은 그대로 두고(취소됨 표시) 취소 줄을 더한다. 잔액은 서로 지워진다 */
-  CANCELS.filter(x=>x.rec.k===k).forEach(x=>{const r=x.rec;
+  CANCELS.filter(x=>x.kind==='pay').forEach(x=>{const r=x.rec;
+    r.ev.forEach(e=>{const b=BILLS.find(i=>i.id===e.id), kk=b?b.k:e.id.split('|')[1]; if(kk!==k) return;
+      const it=b?(b.fee?'연체료':b.adhoc?b.n:`${b.ym.slice(2).replace('-','.')}월분 ${b.n}`):'전월 미납액';
+      rows.push({date:e.date,type:'수납',acc:'매출채권',memo:`${it} ← ${e.src}`,item:it,src:e.src,g:'pay'+r.dep,dec:e.amt,sup:null,vat:null,ord:2,hand:true,sq:e.sq,cxd:x});
+      rows.push({date:x.date,type:'수납 취소',acc:'매출채권',memo:`${it} 수납 취소`,item:`${it} 수납 취소`,why:x.why,g:'cx'+x.sq,inc:e.amt,sup:null,vat:null,ord:2.3,sq:x.sq});});
+    if(r.md&&r.md.k===k){
+      rows.push({date:r.md.date,type:'보증금 상계',acc:'임대보증금',memo:'미납 청구에 상계',item:'미납 청구에 상계',g:'dd'+r.dep,dec:r.md.amt,sup:null,vat:null,ord:2,sq:r.md.sq,cxd:x});
+      rows.push({date:x.date,type:'보증금 상계 취소',acc:'임대보증금',memo:'보증금 상계 취소',item:'보증금 상계 취소',why:x.why,g:'cxd'+x.sq,inc:r.md.amt,sup:null,vat:null,ord:2.3,sq:x.sq});}});
+  CANCELS.filter(x=>x.kind!=='pay'&&x.rec.k===k).forEach(x=>{const r=x.rec;
     if(x.kind==='adh'){
       rows.push({date:r.date,type:'청구',acc:'매출채권',memo:r.n,item:r.n,ttl:r.n,why:r.memo,g:'adh'+r.id,ym:r.ym,inc:r.amt,sup:r.sup,vat:r.vat,ord:1,pr:98,cxd:x});
       rows.push({date:x.date,type:'청구 취소',acc:'매출채권',memo:`${r.n} 취소`,item:`${r.n} 취소`,why:x.why,g:'cx'+x.sq,dec:r.amt,sup:r.sup,vat:r.vat,ord:2.3,sq:x.sq});}
@@ -5484,6 +5503,7 @@ function histC(c){
   Object.values(G).forEach(({r,items})=>{const sum=x=>items.reduce((a,i)=>a+(i.inc||0)+(i.dec||0),0);
     if(r.type==='청구') out.push({at:withT(r.date,'bill'+k),by:'김관리',kind:'청구',name:nm,type:'등록',sum:r.ttl||`${r.ym.slice(2).replace('-','.')}월분 청구서 발행 · ${items.length}건 · ${won(sum())}`});
     else if(r.type==='수납') out.push({at:withT(r.date,'pay'+r.g+k,r.src),by:'김관리',kind:'수납',name:nm,type:'등록',sum:`${r.src&&r.src!=='이전 입금'?r.src.replace(/^\d\d:\d\d:\d\d /,'')+' 입금':'입금'} ${won(sum())} · ${items.length}건에 배분`});
+    else if(r.type==='수납 취소'||r.type==='보증금 상계 취소') out.push({at:withT(r.date,'cx'+r.g+k),by:'슈퍼관리자',kind:'수납',name:nm,type:'취소',sum:r.item,why:r.why});
     else if(r.type==='청구 취소'||r.type==='감액 취소') out.push({at:withT(r.date,'cx'+r.g+k),by:'슈퍼관리자',kind:'청구',name:nm,type:'취소',sum:r.item,why:r.why});
     else if(r.type==='감액') out.push({at:withT(r.date,'cut'+r.g+k),by:'슈퍼관리자',kind:'청구',name:nm,type:'감액',sum:r.item});
     else if(r.type==='환불') out.push({at:withT(r.date,'rf'+r.g+k),by:'김관리',kind:'수납',name:nm,type:'등록',sum:`${r.item} ${won(sum())}`});
@@ -5570,7 +5590,7 @@ function CTR3(k){
   const from=f3.per?new Date((dnum(TODAY_S)-({'1':30,'3':91,'12':365}[f3.per]))*864e5)
     .toISOString().slice(0,10):null;
   const rows=L.rows.filter(r=>(!f3.acc||r.acc===f3.acc)&&(!from||dnum(r.date)>=dnum(from))).slice().reverse();
-  const TP={'청구':'ac','청구 취소':'mu','수납':'ok','수납 취소':'mu','보증금 예치':'mu','보증금 상계':'wa','보증금 반환':'da','감액':'wa2','감액 취소':'mu','환불':'da'};
+  const TP={'청구':'ac','청구 취소':'mu','수납':'ok','수납 취소':'mu','보증금 예치':'mu','보증금 상계':'wa','보증금 반환':'da','감액':'wa2','감액 취소':'mu','보증금 상계 취소':'mu','환불':'da'};
   /* 매출채권 잔액이 0보다 작으면 과납이다 */
   const balTx=v=>won(v);
   const b0=L.bal.매출채권, late=arrears(c).due;
@@ -5625,19 +5645,20 @@ function CTR3(k){
   <div class="hint">
     이 계약의 모든 돈 거래입니다. 청구서 한 장, 입금 한 건을 한 줄로 묶었습니다. 펼치면 항목별로 보입니다. 사유 · 공급가액 · 부가세는 더보기의 <b>상세</b>에서 봅니다.<br>
     최근 거래가 위에 있고, 잔액은 그 거래 직후의 금액입니다. 매출채권(받을 돈)과 임대보증금(돌려줄 돈)의 잔액은 따로 셉니다.<br>
-    원장은 고치지 않습니다. 잘못 넣은 청구 추가 · 청구 감액은 더보기의 <b>취소</b>로 취소 줄을 더합니다(마감 전 · 입금 전). 연체료는 수납 처리에서 받기로 한 금액만 청구로 올라옵니다.<br>
-    잔액을 바꾸지 않는 안쪽 옮김(미납 이월 · 전월 과납액 배분 · 감액으로 넘친 수납)은 적지 않습니다. 잔액이 0보다 작으면 <b>과납</b>이며, 돌려줄 때는 위의 <b>수납 › 환불</b>을 씁니다.<br>
+    원장은 고치지 않습니다. 잘못 넣은 청구 추가 · 청구 감액 · 수납 등록 · 보증금 상계는 더보기의 <b>취소</b>로 취소 줄을 더합니다(마감 전). 은행 입금은 입금 매칭에서 무효 처리합니다. 연체료는 수납 등록에서 받기로 한 금액만 청구로 올라옵니다.<br>
+    잔액을 바꾸지 않는 안쪽 옮김(미납 이월 · 전월 과납액 배분 · 감액으로 넘친 수납)은 적지 않습니다. 잔액이 0보다 작으면 <b>과납</b>이며, 돌려줄 때는 위의 <b>수납 › 과납 환불</b>을 씁니다.<br>
     받을 돈을 바꾸는 일(청구 추가 · 청구 감액)은 <b>청구</b>, 받은 돈 · 돌려준 돈은 <b>수납</b> 메뉴에서 기록합니다.</div>`;
 }
 
 /* 원장 거래 상세 — 더보기 › 상세. 목록에는 사유를 적지 않고 여기서 본다 → CTR-3 */
 const LEDG={};
 let ldk=null, lcx=null;
-/* 원장 줄의 기록 — 비정기 청구 · 감액만 취소할 수 있다 */
+/* 원장 줄의 기록 — 비정기 청구 · 감액 · 수납(수납 등록 · 보증금 상계)을 여기서 취소한다. 은행 입금은 입금 매칭에서 */
 function ledRec(x){
   if(x.items[0].cxd) return null;
   if(x.g.startsWith('adh')){const r=BILLS.find(i=>'adh'+i.id===x.g);return r?{kind:'adh',rec:r}:null;}
   if(x.g.startsWith('cut')){const r=CUTS.find(c=>'cut'+c.sq===x.g);return r?{kind:'cut',rec:r}:null;}
+  if(x.type==='수납'&&x.g.startsWith('pay')){const r=payRec(x.g.slice(3));return r?{kind:'pay',rec:r}:null;}
   return null;
 }
 function ledMore(x){const R=ledRec(x), m=[{t:'상세',go:`ledOpen('${x.key}')`}];
@@ -5648,16 +5669,16 @@ function lcxConfirm(){const x=LEDG[lcx.key], R=x&&ledRec(x); if(!R) return;
   if(cancelRec(R.kind,R.rec,lcx.why)){DRAWER=null;lcx=null;render(true);}}
 function lcxHTML(){
   if(DRAWER!=='lcx'||!lcx||!LEDG[lcx.key]) return '';
-  const x=LEDG[lcx.key], R=ledRec(x), r0=x.items[0], adh=R&&R.kind==='adh', F=(k,b)=>`<div class="fr"><span class="fk">${k}</span>${b}</div>`;
+  const x=LEDG[lcx.key], R=ledRec(x), r0=x.items[0], adh=R&&R.kind==='adh', pay=R&&R.kind==='pay', nm=pay?'수납 취소':adh?'청구 취소':'감액 취소', F=(k,b)=>`<div class="fr"><span class="fk">${k}</span>${b}</div>`;
   return `<div class="dro"><div class="ov" onclick="closeDrawer()"></div><div class="pn">
-    <div class="dh"><div><div class="t">${adh?'청구 취소':'감액 취소'}</div><div class="s">${x.date.replace(/-/g,'.')} · ${x.title}</div></div>
+    <div class="dh"><div><div class="t">${nm}</div><div class="s">${x.date.replace(/-/g,'.')} · ${x.title}</div></div>
       <button class="x" onclick="closeDrawer()">✕</button></div>
     <div class="db">
       <div class="fg"><div class="fl">취소할 거래</div>
         ${F('날짜',x.date.replace(/-/g,'.'))}${F('거래유형',x.type)}${F('내용',x.title)}${F('금액',`<b>${won(x.dr||x.cr)}</b>`)}${r0.why?F('원래 사유',r0.why):''}</div>
       <div class="fg"><div class="fl">취소</div>
         ${F('취소 사유',`<input type="text" value="${lcx.why}" placeholder="필수. 예: 금액 잘못 입력" oninput="lcx.why=this.value;document.getElementById('lcxok').disabled=!this.value.trim()">`)}</div>
-      <div class="prev"><div class="pt">취소 확정하면</div>원장에 <b>${adh?'청구 취소':'감액 취소'} ${won(x.dr||x.cr)}</b>이 오늘(${TODAY_S.slice(5).replace('-','.')}) 날짜로 더해지고, 원래 줄은 「취소됨」으로 남습니다. 잔액은 처음으로 돌아갑니다.${adh?' 청구·수납 탭에서 이 청구는 빠집니다.':''}</div>
+      <div class="prev"><div class="pt">취소 확정하면</div>원장에 <b>${nm} ${won(x.dr||x.cr)}</b>이 오늘(${TODAY_S.slice(5).replace('-','.')}) 날짜로 더해지고, 원래 줄은 「취소됨」으로 남습니다. 잔액은 처음으로 돌아갑니다.${adh?' 청구·수납 탭에서 이 청구는 빠집니다.':''}${pay?` 이 돈으로 채웠던 청구는 다시 미납이 됩니다.${R.rec.md?' 보증금 상계도 함께 취소되어 보증금 잔액이 돌아옵니다.':''}`:''}</div>
     </div>
     <div class="df"><button class="btn" onclick="closeDrawer()">닫기</button>
       <button class="btn pri" id="lcxok" ${lcx.why.trim()?'':'disabled'} onclick="lcxConfirm()">취소 확정</button></div>
