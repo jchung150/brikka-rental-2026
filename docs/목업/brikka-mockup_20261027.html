@@ -3548,9 +3548,9 @@ const originDue=(k,ym)=>Math.max(0,BILLS.filter(i=>i.k===k&&i.ym===ym).reduce((a
 /* 수납 일자 — 청구 건별 [{date,amt}]. 연체료 구간 계산에 쓴다 → 4.4 */
 const PAYEV={};
 let paySeq=0;   /* 기록 순서 — 같은 날 여러 건이면 기록한 순서대로 원장에 쌓는다 */
-function addCut(id,amt,date,why){
+function addCut(id,amt,date,why,sup,vat){
   const i=BILLS.find(x=>x.id===id); if(!i||!(amt>0)||cutOf(id)+amt>i.amt) return false;
-  const sq=++paySeq, rec={id,k:i.k,no:i.no,n:i.n,ym:i.ym,amt,date,why,sq}; CUTS.push(rec);
+  const sq=++paySeq, rec={id,k:i.k,no:i.no,n:i.n,ym:i.ym,amt,date,why,sq,sup,vat}; CUTS.push(rec);
   const ex=paidNet(id)-(i.amt-cutOf(id));
   if(ex>0){rec.ex=ex; REL[id]=(REL[id]||0)+ex; const ev=PAYEV[id]||[];
     MOVES.push({id,k:i.k,ym:i.ym,n:i.n,amt:ex,date,dep:(ev[ev.length-1]||{}).dep||'',sq});}
@@ -3587,21 +3587,21 @@ function ctrPay(k,ym){
   const b=bOfK(k), closed=closedBy(b,ym,TODAY_S), D=closed?closeOn(b,ym):null;
   const by=(L,id)=>L.filter(x=>x.id===id&&dnum(x.date)<=dnum(D)).reduce((a,x)=>a+x.amt,0);
   /* 마감한 달은 마감일의 모습 그대로 — 그 뒤의 감액은 다음 달의 전월 잔액을 바꾼다 → 4.3.6 */
-  /* 청구 감액이 채운 몫(PAYEV의 dep 'fc…')은 받은 돈이 아니라 감액이다 */
-  const fcOf=id=>(PAYEV[id]||[]).filter(e=>e.dep.startsWith('fc')&&(!D||dnum(e.date)<=dnum(D))).reduce((a,e)=>a+e.amt,0);
-  const it=BILLS.filter(i=>i.k===k&&i.ym===ym).map(i=>{const fc=fcOf(i.id), cut=(D?by(CUTS,i.id):cutOf(i.id))+fc;
-    const raw=(D?paidBy(i.id,D)-by(MOVES,i.id):paidNet(i.id))-fc, net=i.amt-cut, due=Math.max(0,net-raw);
-    return {...i,cut,paid:Math.min(raw,i.amt),due,st:closed&&due>0?'미납':raw>net?'과납':payState(net,raw,ym)};});
+  /* 다 감액한 청구는 납부상태가 「감액」이다 — 받을 돈이 없다 */
+  const it=BILLS.filter(i=>i.k===k&&i.ym===ym).map(i=>{const cut=D?by(CUTS,i.id):cutOf(i.id);
+    const raw=D?paidBy(i.id,D)-by(MOVES,i.id):paidNet(i.id), net=i.amt-cut, due=Math.max(0,net-raw);
+    return {...i,cut,paid:Math.min(raw,i.amt),due,st:net===0&&!raw?'감액':closed&&due>0?'미납':raw>net?'과납':payState(net,raw,ym)};});
   /* 지난달 마감 때 넘어온 미납액 */
-  const pv=ymPrev(ym), ca=closeOn(b,pv)?carryAmt(k,pv):0, cfc=ca?fcOf(carryId(k,pv)):0, cp=ca?(PAID[carryId(k,pv)]||0)-cfc:0;
-  const carry=ca?{id:carryId(k,pv),from:pv,amt:ca,cut:cfc,paid:cp,due:Math.max(0,ca-cfc-cp)}:null;
+  const pv=ymPrev(ym), ca=closeOn(b,pv)?carryAmt(k,pv):0, cp=ca?(PAID[carryId(k,pv)]||0):0;
+  const carry=ca?{id:carryId(k,pv),from:pv,amt:ca,paid:cp,due:Math.max(0,ca-cp)}:null;
   const bill=it.reduce((a,i)=>a+i.amt,0), paid=it.reduce((a,i)=>a+i.paid,0), due=it.reduce((a,i)=>a+i.due,0), cut=it.reduce((a,i)=>a+(i.cut||0),0);
   const net=it.reduce((a,i)=>a+i.amt-(D?by(CUTS,i.id):cutOf(i.id)),0), over=it.length?overMonth(k,ym,D):0;
   /* 수납액에는 과납액도 들어간다 — 실제로 받은 돈이다 */
   const dAll=due+(carry?carry.due:0), nAll=net+(carry?carry.amt:0);
   /* 전월 과납액 — 이 달 청구에 먼저 배분된 지난달 과납 */
   const credit=CREDITS.filter(x=>x.k===k&&x.ym===ym).reduce((a,x)=>a+x.amt,0);
-  return {it,bill,cut,paid:paid+over,due,over,carry,credit,st:!it.length?null:dAll>0?(closed?'미납':payState(nAll,nAll-dAll,ym)):over>0?'과납':'완납'};
+  const allCut=it.length&&it.every(i=>i.st==='감액')&&!carry;
+  return {it,bill,cut,paid:paid+over,due,over,carry,credit,st:!it.length?null:allCut?'감액':dAll>0?(closed?'미납':payState(nAll,nAll-dAll,ym)):over>0?'과납':'완납'};
 }
 /* 연체료(예상) — 구간별로 계산한다 → 4.4
    납부마감일 다음날부터 오늘까지를 수납이 들어올 때마다 끊고, 구간마다 그 동안의 미납액 × 연체이자율 × 일수 ÷ 365.
@@ -3629,7 +3629,7 @@ function lateCalc(k,ym,until){
 /* 이 계약에 배분된 입금 — 입금 하나가 여러 계약에 나뉘면 자기 몫만 */
 const ctrDeps=(k,ym)=>RC.P.dep.filter(d=>(RC.dec[d.no]||{}).done)
   .map(d=>({d,pay:RC.dec[d.no].done.lines.filter(l=>l.k===k&&(!ym||l.ym===ym)).reduce((a,l)=>a+l.pay,0)})).filter(x=>x.pay>0);
-const PST={'완납':'ok','부분납':'wa','납부전':'mu','미납':'da','과납':'ac'};
+const PST={'완납':'ok','부분납':'wa','납부전':'mu','미납':'da','과납':'ac','감액':'mu'};
 
 /* 사업자 — 같은 사업자의 계약은 입금 1건으로 함께 낼 수 있다 */
 function rcBiz(){
@@ -4262,57 +4262,61 @@ ${isOff?`      <div class="fg"><div class="fl">미납 내역</div>
 
 /* ═══ 청구 추가 · 청구 감액 — 원장 탭 청구 ▾ 메뉴에서 각자 패널로 연다. 칸 순서는 같다 → CTR-3 ═══
    청구 추가: 항목명 · 발행 문서 · 금액 · 사유 → [청구서 발행]. 비정기 청구서 한 장(오늘 날짜 청구)
-   청구 감액: 청구항목(건물에 설정된 항목 + 기타) · 금액 · 사유 → [감액 확정]. 몇 월분인지 고르지 않는다(사유에 적는다).
-     감액은 돈이 들어오지 않은 수납처럼 미납을 채운다 — 전월 미납부터, 오래된 달부터(4.3.1). 줄일 미납이 없으면 과납.
+   청구 감액: 청구항목 → 그 항목의 청구(청구년월) → 금액 · 사유 → [감액 확정]. 고른 청구 건을 줄인다.
+     목록이 길어지지 않게 항목을 먼저 고르고, 그 항목의 청구만 보인다. 남은 금액이 있는 청구만 오른다
    실수는 지우지 않고 반대 방향으로 바로잡는다 — 잘못 낸 청구는 청구 감액, 잘못 한 감액은 청구 추가 */
 let fz=null;
-/* 감액 기록 — 계약 · 항목 · 금액. 미납을 채운 몫은 PAYEV에 dep 'fc…'로 남긴다(원장에는 감액 한 줄) */
-const FREE_CUTS=[];
-const cutItems=k=>{const c=CTRS.find(x=>ckey(x)===k), bd=BUILDINGS.find(x=>x.id===c.b)||{};
-  return [...new Set([...(c.it||[]).filter(x=>itemCalc(x[0])==='고정액').map(x=>x[0]),...(bd.charge||[]).filter(x=>x.use).map(x=>x.it)])];};
+/* 감액할 수 있는 청구 — 이 계약의 발행한 청구 중 남은 금액이 있는 것(정기 · 비정기). 연체료 청구는 뺀다 */
+const cutBills=k=>BILLS.filter(i=>i.k===k&&!i.fee&&i.amt-cutOf(i.id)>0).sort((a,b)=>a.ym<b.ym?1:a.ym>b.ym?-1:(b.date||'')<(a.date||'')?-1:1);
+const itemOfBill=i=>i.adhoc?i.n:i.n.split(' ')[0];
+const cutItems=k=>[...new Set(cutBills(k).map(itemOfBill))];
+const billsOfItem=(k,n)=>cutBills(k).filter(i=>itemOfBill(i)===n);
+const billLabel=i=>`${i.ym.slice(2).replace('-','.')}월분 ${i.n}`;
 function fixOpen(k,mode){
-  const m=mode||'add';
-  fz={k,mode:m,item:m==='cut'?cutItems(k)[0]:'',name:'',doc:'세금계산서',amt:0,why:''};DRAWER='fix';render(true);
+  const m=mode||'add', it=m==='cut'?cutItems(k)[0]:'';
+  if(m==='cut'&&!it) return;
+  fz={k,mode:m,item:it,id:m==='cut'?billsOfItem(k,it)[0].id:'',name:'',doc:'세금계산서',amt:0,why:''};DRAWER='fix';render(true);
 }
-function fxSet(f,v){fz[f]=f==='amt'?numOf(v):v;render(true);}
-const fxEtc=()=>fz.mode==='cut'&&fz.item==='__etc';
-const fxName=()=>fz.mode==='add'||fxEtc()?fz.name.trim():fz.item;
-const fxDoc=()=>fz.mode==='add'||fxEtc()?fz.doc:itemDoc(CTRS.find(c=>ckey(c)===fz.k),fz.item);
-function fxOK(){return fz.amt>0&&!!fz.why.trim()&&!!fxName();}
-function addFreeCut(k,n,doc,amt,why,date,sup,vat){
-  const d=date||TODAY_S, sq=++paySeq, dep='fc'+sq, pl=rcPlan(amt,[k],PAID,[],d);
-  pl.lines.forEach(l=>addPay(l.id,l.pay,d,'감액',dep));
-  const s0=sup!=null?sup:doc==='세금계산서'?Math.floor(amt*10/11):amt;
-  FREE_CUTS.push({k,n,doc,amt,date:d,why,sq,dep,rest:pl.rest,sup:s0,vat:vat!=null?vat:amt-s0});
-}
+function fxSet(f,v){fz[f]=f==='amt'?numOf(v):v;
+  if(f==='item'){const b=billsOfItem(fz.k,v)[0];fz.id=b?b.id:'';fz.amt=0;}
+  if(f==='id') fz.amt=0;
+  render(true);}
+const fxBill=()=>BILLS.find(x=>x.id===fz.id);
+const fxName=()=>fz.mode==='add'?fz.name.trim():fz.item;
+const fxDoc=()=>{if(fz.mode==='add') return fz.doc; const i=fxBill(); return !i?'세금계산서':i.adhoc?i.doc:itemDoc(CTRS.find(c=>ckey(c)===fz.k),itemOfBill(i));};
+const fxLeft=()=>{const i=fxBill();return i?i.amt-cutOf(i.id):0;};
+function fxOK(){const V=vatSplit(fz.amt,fxDoc());
+  return fz.amt>0&&!!fz.why.trim()&&!!fxName()&&(fz.mode==='add'||!!fxBill()&&V.amt<=fxLeft());}
 function fxConfirm(){if(!fxOK()) return; const V=vatSplit(fz.amt,fxDoc());
-  if(fz.mode==='cut') addFreeCut(fz.k,fxName(),fxDoc(),V.amt,fz.why.trim(),null,V.sup,V.vat);
+  if(fz.mode==='cut') addCut(fz.id,V.amt,TODAY_S,fz.why.trim(),V.sup,V.vat);
   else issueAdhoc(fz.k,fxName(),V.amt,fz.doc,fz.why.trim(),null,V.sup,V.vat);
   DRAWER=null;fz=null;render(true);}
 function fixHTML(){
   if(DRAWER!=='fix'||!fz) return '';
   const c=CTRS.find(x=>ckey(x)===fz.k), bd=BUILDINGS.find(x=>x.id===c.b)||BUILDINGS[0], cut=fz.mode==='cut';
   const R=(k,b,tip)=>`<div class="fr"><span class="fk">${k}${tip?`<i class="tip" data-tip="${tip}">i</i>`:''}</span>${b}</div>`;
-  const nameRow=R('항목명',`<input type="text" value="${fz.name}" placeholder="예: ${cut?'엘리베이터 사용료':'엘리베이터 사용료, 파손 수리비'}" onchange="fxSet('name',this.value)">`);
-  const docRow=R('발행 문서',`<select onchange="fxSet('doc',this.value)">${ONCE_DOC.map(d=>`<option ${fz.doc===d?'selected':''}>${d}</option>`).join('')}</select>`,'세금계산서면 금액의 1/11이 부가세입니다');
-  const V=vatSplit(fz.amt,fxDoc()), tax=fxDoc()==='세금계산서';
-  const owe=Math.max(0,ledgerOf(fz.k).bal.매출채권), over=cut?Math.max(0,V.amt-owe):0;
+  const V=vatSplit(fz.amt,fxDoc()), tax=fxDoc()==='세금계산서', I=cut?fxBill():null, left=cut?fxLeft():0;
+  const paid=I?paidNet(I.id):0, over=I?Math.max(0,paid-Math.max(0,left-V.amt))-Math.max(0,paid-left):0;
+  const list=cut?billsOfItem(fz.k,fz.item):[];
   return `<div class="dro"><div class="ov" onclick="closeDrawer()"></div><div class="pn">
     <div class="dh"><div><div class="t">${cut?'청구 감액':'청구 추가'}</div><div class="s">${cname(bd.alias,c.no,c.ten)}</div></div>
       <button class="x" onclick="closeDrawer()">✕</button></div>
     <div class="db">
       <div class="fg"><div class="fl">청구</div>
-        ${cut?R('청구항목',`<select onchange="fxSet('item',this.value)">${cutItems(fz.k).map(n=>`<option ${fz.item===n?'selected':''}>${n}</option>`).join('')}
-            <option value="__etc" ${fxEtc()?'selected':''}>기타 (직접 입력)</option></select>`,'몇 월분인지는 고르지 않습니다. 필요하면 사유에 적습니다')
-          +(fxEtc()?nameRow+docRow:R('발행 문서',`<span class="fv">${fxDoc()}</span>`))
-          :nameRow+docRow}</div>
+        ${cut?R('청구항목',`<select onchange="fxSet('item',this.value)">${cutItems(fz.k).map(n=>`<option ${fz.item===n?'selected':''}>${n}</option>`).join('')}</select>`,'남은 금액이 있는 청구의 항목만 보입니다')
+          +R('청구',list.length>1?`<select onchange="fxSet('id',this.value)">${list.map(i=>`<option value="${i.id}" ${i.id===fz.id?'selected':''}>${i.ym.slice(2).replace('-','.')}월분 · ${i.adhoc?'비정기':'정기'} · ${won(i.amt-cutOf(i.id))}</option>`).join('')}</select>`
+            :`<span class="fv">${I?`${I.ym.slice(2).replace('-','.')}월분 · ${I.adhoc?'비정기':'정기'}`:''}</span>`)
+          +(I?R('청구액',won(I.amt)+(cutOf(I.id)?` <span class="c2">감액 ${won(cutOf(I.id))}</span>`:''))+R('낸 금액',won(paid))+R('발행 문서',`<span class="fv">${fxDoc()}</span>`):'')
+          :R('항목명',`<input type="text" value="${fz.name}" placeholder="예: 엘리베이터 사용료, 파손 수리비" onchange="fxSet('name',this.value)">`)
+            +R('발행 문서',`<select onchange="fxSet('doc',this.value)">${ONCE_DOC.map(d=>`<option ${fz.doc===d?'selected':''}>${d}</option>`).join('')}</select>`,'세금계산서면 공급가액에 부가세 10%가 붙습니다')}</div>
       <div class="fg"><div class="fl">${cut?'줄일 돈':'받을 돈'}</div>
         ${R(tax?'공급가액':'금액',`<input type="text" inputmode="numeric" value="${fz.amt?num(fz.amt):''}" placeholder="${tax?'부가세 제외':'부가세 없음'}" oninput="kwLive(this)" onchange="fxSet('amt',this.value)" style="text-align:right"><span class="kw">${korWon(fz.amt)}</span>`,
           tax?'세금계산서 항목은 공급가액을 넣습니다. 부가세 10%가 자동으로 붙습니다':'계산서 · 일반내역서 항목은 부가세가 없습니다')}
         ${tax&&fz.amt?R('부가세',`<span class="fv">${won(V.vat)}</span>`)+R('합계',`<b>${won(V.amt)}</b>`):''}
         ${R('사유',`<input type="text" value="${fz.why}" placeholder="필수. 예: ${cut?'7월 검침값 입력 오류':'이사 · 엘리베이터 사용'}" onchange="fxSet('why',this.value)">`)}</div>
-      ${fz.amt?`<div class="prev ${over?'warn2':''}"><div class="pt">${cut?'감액 확정하면':'발행하면'}</div>${cut
-          ?`오늘(${TODAY_S.slice(5).replace('-','.')}) 날짜로 원장에 <b>감액 ${won(V.amt)}</b>이 기록됩니다. 미납을 오래된 달부터 줄입니다.${over?` 지금 미납은 ${won(owe)}이라 <b>${won(over)}은 과납</b>이 되고, 다음 청구서를 발행할 때 먼저 빠집니다.`:''}`
+      ${cut&&I&&V.amt>left?`<div class="prev warn2"><div class="pt">청구액보다 많이 줄일 수 없습니다</div>남은 청구액 ${won(left)}까지 줄일 수 있습니다.</div>`
+       :fz.amt?`<div class="prev"><div class="pt">${cut?'감액 확정하면':'발행하면'}</div>${cut
+          ?`오늘(${TODAY_S.slice(5).replace('-','.')}) 날짜로 원장에 <b>${I?billLabel(I):''} 감액 ${won(V.amt)}</b>이 기록됩니다.${over>0?` 이미 낸 돈이 있어 <b>과납 ${won(over)}</b>이 생기고, 다음 청구서를 발행할 때 먼저 빠집니다.`:''}`
           :`「${fz.name||'새 항목'}」 ${won(V.amt)}의 <b>비정기 청구서</b>가 바로 발행되고, 오늘(${TODAY_S.slice(5).replace('-','.')}) 날짜로 원장에 청구가 기록됩니다. 납부마감일 <b>${dueStr(adYm()).replace(/-/g,'.')}</b>.`}</div>`:''}
     </div>
     <div class="df"><button class="btn" onclick="closeDrawer()">닫기</button>
@@ -4329,7 +4333,7 @@ function menuBtn(t,items,title){const id=MORE.push(items)-1;
 function ledBtns(k,L){
   return menuBtn('청구',[
       {t:'청구 추가',go:`fixOpen('${k}','add')`},
-      {t:'청구 감액',go:`fixOpen('${k}','cut')`}])
+      {t:'청구 감액',go:`fixOpen('${k}','cut')`,off:cutBills(k).length?'':'줄일 청구가 없습니다'}])
     +menuBtn('수납',[
       {t:'수납 처리',go:`openPay('${k}')`},
       {t:'환불',go:`openRefund('${k}')`,off:overOf(k)?'':'돌려줄 과납이 없습니다'}])
@@ -5394,14 +5398,14 @@ function ledgerOf(k){
     const tax=i.adhoc?i.doc==='세금계산서':isTaxItem(i.n), sup=i.sup!=null?i.sup:tax?Math.floor(i.amt*10/11):i.amt;
     const ymL=i.ym.slice(2).replace('-','.')+'월분';
     rows.push({date:i.date||billOn(i.ym),type:'청구',acc:'매출채권',memo:i.adhoc?i.n:i.memo||`${ymL} ${i.n}`,item:i.adhoc?i.n:i.memo||`${ymL} ${i.n}`,bid:i.fee?null:i.id,
-      g:i.fee?'fee'+i.id:i.adhoc?'adh'+i.id:'bill'+i.ym,ym:i.ym,ttl:i.adhoc?`비정기 청구서 · ${i.n}`:i.memo,why:i.adhoc?i.memo:'',
+      g:i.fee?'fee'+i.id:i.adhoc?'adh'+i.id:'bill'+i.ym,ym:i.ym,ttl:i.adhoc?i.n:i.memo,why:i.adhoc?i.memo:'',
       inc:i.amt,sup,vat:i.vat!=null?i.vat:i.amt-sup,ord:1,pr:prioOf(i.n.split(' ')[0])});
-    (PAYEV[i.id]||[]).filter(e=>!e.dep.startsWith('cr')&&!e.dep.startsWith('fc')).forEach(e=>rows.push({date:e.date,type:'수납',acc:'매출채권',
+    (PAYEV[i.id]||[]).filter(e=>!e.dep.startsWith('cr')).forEach(e=>rows.push({date:e.date,type:'수납',acc:'매출채권',
       memo:`${i.fee?'연체료':ymL+' '+i.n} ← ${e.src}`,item:i.fee?'연체료':`${ymL} ${i.n}`,src:e.src,g:'pay'+e.dep,dec:e.amt,sup:null,vat:null,ord:2,pr:prioOf(i.n.split(' ')[0]),
       hand:e.dep.startsWith('m'),sq:e.sq}));
   });
   /* 감액 — 받을 돈을 줄인다(대변). 이미 낸 청구라면 잔액이 0보다 작아져 과납이 된다 → CTR-3 */
-  CUTS.filter(x=>x.k===k).forEach(x=>{const tax=isTaxItem(x.n), sup=tax?Math.floor(x.amt*10/11):x.amt, t=`${x.ym.slice(2).replace('-','.')}월분 ${x.n} 감액`;
+  CUTS.filter(x=>x.k===k).forEach(x=>{const b=BILLS.find(y=>y.id===x.id)||{}, tax=b.adhoc?b.doc==='세금계산서':isTaxItem(x.n), sup=x.sup!=null?x.sup:tax?Math.floor(x.amt*10/11):x.amt, t=`${x.ym.slice(2).replace('-','.')}월분 ${x.n} 감액`;
     /* 넘친 수납을 과납으로 돌리는 일은 잔액을 바꾸지 않으므로 원장에 적지 않는다 → 2.7 */
     rows.push({date:x.date,type:'감액',acc:'매출채권',memo:t,item:t,why:x.why,g:'cut'+x.sq,dec:x.amt,sup,vat:x.amt-sup,ord:2.2,sq:x.sq});});
   /* 남은 입금 — 청구 건 없이 이 계약에 수납으로 기록한다(과납) → 4.3.4 */
@@ -5410,7 +5414,7 @@ function ledgerOf(k){
       g:'payd'+no,dec:d.rest,sup:null,vat:null,ord:2,sq:1e9});});
   /* 전월 미납액에 들어온 수납 — 실제로 들어온 돈이라 원장에 적는다 → 4.3.6 */
   MC_YMS.filter(v=>closeOn(c.b,v)).forEach(v=>{const vL=v.slice(2).replace('-','.')+'월분';
-    (PAYEV[carryId(k,v)]||[]).filter(e=>!e.dep.startsWith('fc')).forEach(e=>rows.push({date:e.date,type:'수납',acc:'매출채권',memo:`전월 미납액 ← ${e.src}`,item:'전월 미납액',src:e.src,
+    (PAYEV[carryId(k,v)]||[]).forEach(e=>rows.push({date:e.date,type:'수납',acc:'매출채권',memo:`전월 미납액 ← ${e.src}`,item:'전월 미납액',src:e.src,
       g:'pay'+e.dep,dec:e.amt,sup:null,vat:null,ord:2,pr:0,hand:e.dep.startsWith('m'),sq:e.sq}));
     /* 미납 이월 자체는 잔액을 바꾸지 않으므로 원장에 적지 않는다 → 2.7 */});
   /* 전월 과납액을 새 청구에 배분한 일은 잔액을 바꾸지 않으므로 원장에 적지 않는다(아래 PAYEV에서도 뺀다) → 2.7 */
@@ -5420,9 +5424,6 @@ function ledgerOf(k){
   /* 보증금상계 — 같은 돈이 임대보증금에서 빠지고(차변) 매출채권을 채운다(대변) */
   MANUAL_DEP.filter(m=>m.k===k).forEach(m=>rows.push({date:m.date,type:'보증금 상계',acc:'임대보증금',
     memo:'미납 청구에 상계',item:'미납 청구에 상계',g:'dd'+m.dep,dec:m.amt,sup:null,vat:null,ord:2,sq:m.sq}));
-  /* 청구 감액 — 한 줄. 미납을 채운 몫은 수납 줄로 보이지 않는다(감액이 곧 그 줄이다). 남은 몫은 과납 */
-  FREE_CUTS.filter(x=>x.k===k).forEach(x=>{const t=`${x.n} 감액`;
-    rows.push({date:x.date,type:'감액',acc:'매출채권',memo:t,item:t,why:x.why,g:'fc'+x.sq,dec:x.amt,sup:x.sup,vat:x.vat,ord:2.2,sq:x.sq});});
   /* 보증금 예치 — 원장 탭에서 기록한 받은 보증금(임대보증금 대변) */
   DEP_IN.filter(x=>x.k===k).forEach(x=>{const t=`보증금 예치${x.memo?' — '+x.memo:''}`;
     rows.push({date:x.date,type:'보증금 예치',acc:'임대보증금',memo:t,item:t,g:'di'+x.sq,inc:x.amt,sup:null,vat:null,ord:1.5,sq:x.sq});});
