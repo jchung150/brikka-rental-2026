@@ -4039,12 +4039,10 @@ function rcvRow(x,o){
       <div class="c"><span class="bd ${PST[x.st]}">${x.st}</span></div>${o.more!==undefined?`<div class="c">${o.more}</div>`:''}</div>`+(pre?sub.replace(/(<div class="nm">[^<]*<\/div>)/g,'$1'+pre):sub);
 }
 
-/* ═══ 더보기 — 표 맨 오른쪽 칸. 할 일이 하나면 링크, 둘 이상이면 ⋮ 드롭다운 → 3.8
+/* ═══ 더보기 — 표 맨 오른쪽 칸. 할 일이 하나여도 늘 ⋮ 드롭다운이다(모양을 하나로) → 3.8
    할 수 없는 일은 흐린 글씨로 두고 이유는 마우스를 올리면 보인다. items: [{t, go, off}] ═══ */
 const MORE=[];
 function moreCell(items){
-  if(items.length===1){const i=items[0];
-    return i.off?`<span class="more off" title="${i.off}">${i.t}</span>`:`<span class="more" onclick="event.stopPropagation();${i.go}">${i.t}</span>`;}
   const id=MORE.push(items)-1;
   return `<span class="more mtg" title="더보기" onclick="event.stopPropagation();moreOpen(${id},this)">⋮</span>`;
 }
