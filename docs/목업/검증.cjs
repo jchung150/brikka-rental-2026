@@ -572,7 +572,7 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
     menu && !menu.find(i => i.t === '취소').off && /취소 사유/.test(h) && noWhy && rows.length === 2 && rows.some(r => r.type === '청구 취소' && r.dec === 220000)
     && L.bal.매출채권 === bal0 && gone && /취소됨/.test(lh) && !menu2
     && m2 && !!m2.find(i => i.t === '취소').off && m3 && /마감/.test(m3.find(i => i.t === '취소').off)]); }
-/* 수납 취소 — 수납 등록(현금 등) · 보증금 상계는 원장 ⋮ › 취소. 은행 입금은 입금 매칭에서(잠김). 취소하면 채웠던 청구는 다시 미납 */
+/* 수납 취소 — 수납 등록(현금 등) · 보증금 상계는 원장 ⋮ › 취소. 은행 입금 줄에는 취소 메뉴가 없다. 취소하면 채웠던 청구는 다시 미납 */
 { const PX = new Function(stub + bare + '; seedJuly(); return {openPay,openOffset,setPm,payConfirm,ledgerOf,arrears,CTRS,CTR3,MORE,LEDG,lcxOpen,lcxConfirm,lcxHTML,get lcx(){return lcx;},set tab3c(v){tab3c=v;}};')();
   const k = 'b1별관301호', c = PX.CTRS.find(x => x.b === 'b1' && x.no === '별관301호'), due0 = PX.arrears(c).due, dep0 = PX.ledgerOf(k).bal.임대보증금;
   PX.openPay(k); PX.setPm('amt', 1000000); PX.payConfirm();
@@ -580,12 +580,12 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   PX.tab3c = '원장'; PX.MORE.length = 0; PX.CTR3(k);
   const keys = Object.keys(PX.LEDG).filter(x => x.startsWith('pay'));
   const menuOf = key => PX.MORE.find(m => m.some(i => i.go === `lcxOpen('${key}')`));
-  const bankKey = keys.find(x => !x.startsWith('paym')), bankOff = menuOf(bankKey).find(i => i.t === '취소').off;
+  const bankKey = keys.find(x => !x.startsWith('paym')), bankNo = !PX.MORE.some(m => m.some(i => i.go === `lcxOpen('${bankKey}')`));
   const manual = keys.filter(x => x.startsWith('paym'));
   manual.forEach(key => { PX.lcxOpen(key); PX.lcx.why = '잘못 등록'; PX.lcxConfirm(); PX.MORE.length = 0; PX.CTR3(k); });
   const L = PX.ledgerOf(k);
-  r6.push(['수납 취소 — 현금 100만 · 보증금 상계 50만을 원장 ⋮ › 취소 → 미납 원래대로 · 보증금 잔액 원래대로 · 원장에 수납 취소 · 보증금 상계 취소 줄 · 은행 입금은 「입금 매칭에서」로 잠김',
-    /입금 매칭/.test(bankOff) && manual.length === 2 && PX.arrears(c).due === due0 && L.bal.임대보증금 === dep0
+  r6.push(['수납 취소 — 현금 100만 · 보증금 상계 50만을 원장 ⋮ › 취소 → 미납 원래대로 · 보증금 잔액 원래대로 · 원장에 수납 취소 · 보증금 상계 취소 줄 · 은행 입금 줄은 ⋮에 상세만',
+    bankKey && bankNo && manual.length === 2 && PX.arrears(c).due === due0 && L.bal.임대보증금 === dep0
     && L.rows.some(r => r.type === '수납 취소' && r.inc === 1000000) && L.rows.some(r => r.type === '보증금 상계 취소' && r.inc === 500000)]); }
 /* 청구서 발행 — 메일 체크박스·미납 조회 없음 · 발행을 누르면 메일 여부를 묻는다 · 더보기로 한 계약만 발행 */
 { const IA = new Function(stub + bare + '; seedJuly(); return {PAY1,issueAsk,issueGo,issueHTML,ISS,MORE,set f1b(v){f1.b=v;}};')();

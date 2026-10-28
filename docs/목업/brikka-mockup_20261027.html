@@ -3568,7 +3568,6 @@ function payRec(dep){
   return {k,dep,date:ev[0].date,src:ev[0].src,ev,amt:ev.reduce((a,e)=>a+e.amt,0),md:MANUAL_DEP.find(m=>m.dep===dep)||null};
 }
 function cancelWhyNot(kind,rec){
-  if(kind==='pay'&&!rec.dep.startsWith('m')) return '은행 입금은 입금 매칭에서 무효 처리합니다';
   if(kind==='pay'&&rec.ev.some(e=>e.id.startsWith('fee|'))) return '연체료를 함께 정리한 수납은 취소할 수 없습니다. 청구 감액으로 바로잡습니다';
   if(closedBy(bOfK(rec.k),rec.date.slice(0,7),TODAY_S)) return '마감한 달의 기록은 취소할 수 없습니다. 이번 달의 청구 추가 · 청구 감액으로 바로잡습니다';
   if(kind==='adh'&&paidNet(rec.id)>0) return '입금이 배분된 청구는 취소할 수 없습니다. 먼저 수납을 무효 처리합니다';
@@ -5653,12 +5652,12 @@ function CTR3(k){
 /* 원장 거래 상세 — 더보기 › 상세. 목록에는 사유를 적지 않고 여기서 본다 → CTR-3 */
 const LEDG={};
 let ldk=null, lcx=null;
-/* 원장 줄의 기록 — 비정기 청구 · 감액 · 수납(수납 등록 · 보증금 상계)을 여기서 취소한다. 은행 입금은 입금 매칭에서 */
+/* 원장 줄의 기록 — 비정기 청구 · 감액 · 수납(수납 등록 · 보증금 상계)을 여기서 취소한다. 은행 입금은 입금 매칭에서 하므로 취소 메뉴 자체가 없다 */
 function ledRec(x){
   if(x.items[0].cxd) return null;
   if(x.g.startsWith('adh')){const r=BILLS.find(i=>'adh'+i.id===x.g);return r?{kind:'adh',rec:r}:null;}
   if(x.g.startsWith('cut')){const r=CUTS.find(c=>'cut'+c.sq===x.g);return r?{kind:'cut',rec:r}:null;}
-  if(x.type==='수납'&&x.g.startsWith('pay')){const r=payRec(x.g.slice(3));return r?{kind:'pay',rec:r}:null;}
+  if(x.type==='수납'&&x.g.startsWith('paym')){const r=payRec(x.g.slice(3));return r?{kind:'pay',rec:r}:null;}
   return null;
 }
 function ledMore(x){const R=ledRec(x), m=[{t:'상세',go:`ledOpen('${x.key}')`}];
