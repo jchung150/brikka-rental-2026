@@ -1316,6 +1316,7 @@ function drawerHTML(){
   if(DRAWER==='depret') return drHTML();
   if(DRAWER==='depin') return diHTML();
   if(DRAWER==='ldet') return ledHTML();
+  if(DRAWER==='lcx') return lcxHTML();
   if(DRAWER==='bank') return bkHTML();
   if(DRAWER==='pay') return payHTML();
   if(DRAWER==='mclose') return mcHTML();
@@ -3555,6 +3556,25 @@ function addCut(id,amt,date,why,sup,vat){
   if(ex>0){rec.ex=ex; REL[id]=(REL[id]||0)+ex; const ev=PAYEV[id]||[];
     MOVES.push({id,k:i.k,ym:i.ym,n:i.n,amt:ex,date,dep:(ev[ev.length-1]||{}).dep||'',sq});}
   return true;}
+/* 취소 — 원장은 지우지 않는다. 비정기 청구 · 감액을 잘못 넣었으면 원장 더보기 › 취소로 취소 줄을 더한다(청구 취소 · 감액 취소). 사유 필수 → CTR-3
+   막는 경우: 그 기록의 달을 마감했다 · 비정기 청구에 입금이 배분됐다 · 감액으로 생긴 과납을 이미 환불했거나 썼다.
+   그때는 이번 달의 청구 추가 · 청구 감액으로 바로잡는다 */
+const CANCELS=[];   /* {kind:'adh'|'cut', rec, date, why} */
+function cancelWhyNot(kind,rec){
+  if(closedBy(bOfK(rec.k),rec.date.slice(0,7),TODAY_S)) return '마감한 달의 기록은 취소할 수 없습니다. 이번 달의 청구 추가 · 청구 감액으로 바로잡습니다';
+  if(kind==='adh'&&paidNet(rec.id)>0) return '입금이 배분된 청구는 취소할 수 없습니다. 먼저 수납을 무효 처리합니다';
+  if(kind==='adh'&&cutOf(rec.id)>0) return '감액한 청구는 취소할 수 없습니다. 먼저 감액을 취소합니다';
+  if(kind==='cut'&&rec.ex&&overOf(rec.k)<rec.ex) return '이 감액으로 생긴 과납을 이미 환불했거나 다음 청구에 썼습니다';
+  return '';
+}
+function cancelRec(kind,rec,why){
+  if(!why||!why.trim()||cancelWhyNot(kind,rec)) return false;
+  if(kind==='adh'){const ix=BILLS.indexOf(rec); if(ix<0) return false; BILLS.splice(ix,1);}
+  else{const ix=CUTS.indexOf(rec); if(ix<0) return false; CUTS.splice(ix,1);
+    if(rec.ex){REL[rec.id]-=rec.ex; const m=MOVES.findIndex(x=>x.sq===rec.sq); if(m>=0) MOVES.splice(m,1);}}
+  CANCELS.push({kind,rec,date:TODAY_S,why:why.trim(),sq:++paySeq});
+  return true;
+}
 const addPay=(id,amt,date,src,dep)=>{PAID[id]=(PAID[id]||0)+amt;(PAYEV[id]=PAYEV[id]||[]).push({date,amt,src:src||'이전 입금',dep:dep||'prev',sq:++paySeq});};
 /* 6·7월 청구 — 6/19 · 7/19 발행 완료분. 그 달 관리비 정산 입력값(BILL_M)으로 청구서 발행과 같은 계산을 거친 금액이다.
    임대료·고정관리비는 실제 청구서와 같다. 목업 자료는 이 3개월(6·7·8월)뿐이다 */
@@ -5424,6 +5444,14 @@ function ledgerOf(k){
   /* 보증금상계 — 같은 돈이 임대보증금에서 빠지고(차변) 매출채권을 채운다(대변) */
   MANUAL_DEP.filter(m=>m.k===k).forEach(m=>rows.push({date:m.date,type:'보증금 상계',acc:'임대보증금',
     memo:'미납 청구에 상계',item:'미납 청구에 상계',g:'dd'+m.dep,dec:m.amt,sup:null,vat:null,ord:2,sq:m.sq}));
+  /* 취소한 비정기 청구 · 감액 — 원래 줄은 그대로 두고(취소됨 표시) 취소 줄을 더한다. 잔액은 서로 지워진다 */
+  CANCELS.filter(x=>x.rec.k===k).forEach(x=>{const r=x.rec;
+    if(x.kind==='adh'){
+      rows.push({date:r.date,type:'청구',acc:'매출채권',memo:r.n,item:r.n,ttl:r.n,why:r.memo,g:'adh'+r.id,ym:r.ym,inc:r.amt,sup:r.sup,vat:r.vat,ord:1,pr:98,cxd:x});
+      rows.push({date:x.date,type:'청구 취소',acc:'매출채권',memo:`${r.n} 취소`,item:`${r.n} 취소`,why:x.why,g:'cx'+x.sq,dec:r.amt,sup:r.sup,vat:r.vat,ord:2.3,sq:x.sq});}
+    else{const t=`${r.ym.slice(2).replace('-','.')}월분 ${r.n} 감액`;
+      rows.push({date:r.date,type:'감액',acc:'매출채권',memo:t,item:t,why:r.why,g:'cut'+r.sq,dec:r.amt,sup:r.sup,vat:r.vat,ord:2.2,sq:r.sq,cxd:x});
+      rows.push({date:x.date,type:'감액 취소',acc:'매출채권',memo:`${t} 취소`,item:`${t} 취소`,why:x.why,g:'cx'+x.sq,inc:r.amt,sup:r.sup,vat:r.vat,ord:2.3,sq:x.sq});}});
   /* 보증금 예치 — 원장 탭에서 기록한 받은 보증금(임대보증금 대변) */
   DEP_IN.filter(x=>x.k===k).forEach(x=>{const t=`보증금 예치${x.memo?' — '+x.memo:''}`;
     rows.push({date:x.date,type:'보증금 예치',acc:'임대보증금',memo:t,item:t,g:'di'+x.sq,inc:x.amt,sup:null,vat:null,ord:1.5,sq:x.sq});});
@@ -5458,6 +5486,7 @@ function histC(c){
   Object.values(G).forEach(({r,items})=>{const sum=x=>items.reduce((a,i)=>a+(i.inc||0)+(i.dec||0),0);
     if(r.type==='청구') out.push({at:withT(r.date,'bill'+k),by:'김관리',kind:'청구',name:nm,type:'등록',sum:r.ttl||`${r.ym.slice(2).replace('-','.')}월분 청구서 발행 · ${items.length}건 · ${won(sum())}`});
     else if(r.type==='수납') out.push({at:withT(r.date,'pay'+r.g+k,r.src),by:'김관리',kind:'수납',name:nm,type:'등록',sum:`${r.src&&r.src!=='이전 입금'?r.src.replace(/^\d\d:\d\d:\d\d /,'')+' 입금':'입금'} ${won(sum())} · ${items.length}건에 배분`});
+    else if(r.type==='청구 취소'||r.type==='감액 취소') out.push({at:withT(r.date,'cx'+r.g+k),by:'슈퍼관리자',kind:'청구',name:nm,type:'취소',sum:r.item,why:r.why});
     else if(r.type==='감액') out.push({at:withT(r.date,'cut'+r.g+k),by:'슈퍼관리자',kind:'청구',name:nm,type:'감액',sum:r.item});
     else if(r.type==='환불') out.push({at:withT(r.date,'rf'+r.g+k),by:'김관리',kind:'수납',name:nm,type:'등록',sum:`${r.item} ${won(sum())}`});
     else if(r.type==='보증금 상계') out.push({at:withT(r.date,'dd'+r.g+k),by:'김관리',kind:'수납',name:nm,type:'등록',sum:`보증금상계 ${won(sum())}`});
@@ -5543,7 +5572,7 @@ function CTR3(k){
   const from=f3.per?new Date((dnum(TODAY_S)-({'1':30,'3':91,'12':365}[f3.per]))*864e5)
     .toISOString().slice(0,10):null;
   const rows=L.rows.filter(r=>(!f3.acc||r.acc===f3.acc)&&(!from||dnum(r.date)>=dnum(from))).slice().reverse();
-  const TP={'청구':'ac','청구 취소':'mu','수납':'ok','수납 취소':'mu','보증금 예치':'mu','보증금 상계':'wa','보증금 반환':'da','감액':'wa2','환불':'da'};
+  const TP={'청구':'ac','청구 취소':'mu','수납':'ok','수납 취소':'mu','보증금 예치':'mu','보증금 상계':'wa','보증금 반환':'da','감액':'wa2','감액 취소':'mu','환불':'da'};
   /* 매출채권 잔액이 0보다 작으면 과납이다 */
   const balTx=v=>won(v);
   const b0=L.bal.매출채권, late=arrears(c).due;
@@ -5577,11 +5606,11 @@ function CTR3(k){
         <div class="nm"><span class="tg ${op?'op':''}" style="${many?'':'visibility:hidden'}">${ic('chev',16)}</span>${x.date.slice(2).replace(/-/g,'.')}</div>
         <div><span class="bd ${TP[x.type]||'mu'}">${x.type}</span></div>
         <div class="c2" style="margin:0">${x.acc}</div>
-        <div>${x.title}${many?`<span class="c2" style="margin-left:6px">${x.type==='수납'?`${x.items.length}건에 배분`:`${x.items.length}건`}</span>`:''}</div>
+        <div>${x.title}${x.items[0].cxd?'<span class="bd mu" style="margin-left:6px">취소됨</span>':''}${many?`<span class="c2" style="margin-left:6px">${x.type==='수납'?`${x.items.length}건에 배분`:`${x.items.length}건`}</span>`:''}</div>
         <div class="n">${x.dr?won(x.dr):''}</div>
         <div class="n">${x.cr?won(x.cr):''}</div>
         <div class="n"><b>${balTx(x.bal)}</b></div>
-        <div class="c" onclick="event.stopPropagation()">${moreCell([{t:'상세',go:`ledOpen('${x.key}')`}])}</div></div>`
+        <div class="c" onclick="event.stopPropagation()">${moreCell(ledMore(x))}</div></div>`
       +(!op||!many?'':x.items.map(r=>`<div class="schr led sub">
         <div></div><div></div><div></div>
         <div class="nm">${r.item}</div>
@@ -5598,14 +5627,44 @@ function CTR3(k){
   <div class="hint">
     이 계약의 모든 돈 거래입니다. 청구서 한 장, 입금 한 건을 한 줄로 묶었습니다. 펼치면 항목별로 보입니다. 사유 · 공급가액 · 부가세는 더보기의 <b>상세</b>에서 봅니다.<br>
     최근 거래가 위에 있고, 잔액은 그 거래 직후의 금액입니다. 매출채권(받을 돈)과 임대보증금(돌려줄 돈)의 잔액은 따로 셉니다.<br>
-    원장은 고치지 않습니다. 잘못된 거래는 취소 거래를 추가해 바로잡습니다. 연체료는 수납 처리에서 받기로 한 금액만 청구로 올라옵니다.<br>
+    원장은 고치지 않습니다. 잘못 넣은 청구 추가 · 청구 감액은 더보기의 <b>취소</b>로 취소 줄을 더합니다(마감 전 · 입금 전). 연체료는 수납 처리에서 받기로 한 금액만 청구로 올라옵니다.<br>
     잔액을 바꾸지 않는 안쪽 옮김(미납 이월 · 전월 과납액 배분 · 감액으로 넘친 수납)은 적지 않습니다. 잔액이 0보다 작으면 <b>과납</b>이며, 돌려줄 때는 위의 <b>수납 › 환불</b>을 씁니다.<br>
     받을 돈을 바꾸는 일(청구 추가 · 청구 감액)은 <b>청구</b>, 받은 돈 · 돌려준 돈은 <b>수납</b> 메뉴에서 기록합니다.</div>`;
 }
 
 /* 원장 거래 상세 — 더보기 › 상세. 목록에는 사유를 적지 않고 여기서 본다 → CTR-3 */
 const LEDG={};
-let ldk=null;
+let ldk=null, lcx=null;
+/* 원장 줄의 기록 — 비정기 청구 · 감액만 취소할 수 있다 */
+function ledRec(x){
+  if(x.items[0].cxd) return null;
+  if(x.g.startsWith('adh')){const r=BILLS.find(i=>'adh'+i.id===x.g);return r?{kind:'adh',rec:r}:null;}
+  if(x.g.startsWith('cut')){const r=CUTS.find(c=>'cut'+c.sq===x.g);return r?{kind:'cut',rec:r}:null;}
+  return null;
+}
+function ledMore(x){const R=ledRec(x), m=[{t:'상세',go:`ledOpen('${x.key}')`}];
+  if(R){const no=cancelWhyNot(R.kind,R.rec); m.push({t:'취소',go:`lcxOpen('${x.key}')`,off:no});}
+  return m;}
+function lcxOpen(key){lcx={key,why:''};DRAWER='lcx';render(true);}
+function lcxConfirm(){const x=LEDG[lcx.key], R=x&&ledRec(x); if(!R) return;
+  if(cancelRec(R.kind,R.rec,lcx.why)){DRAWER=null;lcx=null;render(true);}}
+function lcxHTML(){
+  if(DRAWER!=='lcx'||!lcx||!LEDG[lcx.key]) return '';
+  const x=LEDG[lcx.key], R=ledRec(x), r0=x.items[0], adh=R&&R.kind==='adh', F=(k,b)=>`<div class="fr"><span class="fk">${k}</span>${b}</div>`;
+  return `<div class="dro"><div class="ov" onclick="closeDrawer()"></div><div class="pn">
+    <div class="dh"><div><div class="t">${adh?'청구 취소':'감액 취소'}</div><div class="s">${x.date.replace(/-/g,'.')} · ${x.title}</div></div>
+      <button class="x" onclick="closeDrawer()">✕</button></div>
+    <div class="db">
+      <div class="fg"><div class="fl">취소할 거래</div>
+        ${F('날짜',x.date.replace(/-/g,'.'))}${F('거래유형',x.type)}${F('내용',x.title)}${F('금액',`<b>${won(x.dr||x.cr)}</b>`)}${r0.why?F('원래 사유',r0.why):''}</div>
+      <div class="fg"><div class="fl">취소</div>
+        ${F('취소 사유',`<input type="text" value="${lcx.why}" placeholder="필수. 예: 금액 잘못 입력" oninput="lcx.why=this.value;document.getElementById('lcxok').disabled=!this.value.trim()">`)}</div>
+      <div class="prev"><div class="pt">취소 확정하면</div>원장에 <b>${adh?'청구 취소':'감액 취소'} ${won(x.dr||x.cr)}</b>이 오늘(${TODAY_S.slice(5).replace('-','.')}) 날짜로 더해지고, 원래 줄은 「취소됨」으로 남습니다. 잔액은 처음으로 돌아갑니다.${adh?' 청구·수납 탭에서 이 청구는 빠집니다.':''}</div>
+    </div>
+    <div class="df"><button class="btn" onclick="closeDrawer()">닫기</button>
+      <button class="btn pri" id="lcxok" ${lcx.why.trim()?'':'disabled'} onclick="lcxConfirm()">취소 확정</button></div>
+  </div></div>`;
+}
 function ledOpen(key){ldk=key;DRAWER='ldet';render(true);}
 function ledHTML(){
   if(DRAWER!=='ldet'||!LEDG[ldk]) return '';

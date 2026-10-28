@@ -554,6 +554,24 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   r6.push(['실수 바로잡기 — 엘베 사용료 220,000(납부전) → 청구 감액에서 그 청구를 골라 공급가액 200,000 → 원장 감액 220,000 · 청구·수납 탭 그 줄 「감액」 · 미납 0 · 잔액 원래대로 · 원장 제목에 「비정기 청구서」 없음 · 목록에 사유 없고 상세에 있음',
     before === '납부전' && cut && cut.sup === 200000 && e8 && e8.cut === 220000 && e8.due === 0 && e8.st === '감액'
     && L.bal.매출채권 === bal0 && MX.LEDG[adhKey].title === '엘베 사용료' && !/비정기 청구서 ·/.test(lh) && !/잘못 발행/.test(lh) && /잘못 발행/.test(det)]); }
+/* 취소 — 원장은 지우지 않는다. 비정기 청구 · 감액은 원장 더보기 › 취소로 취소 줄을 더한다 · 사유 필수 · 입금 배분 · 마감한 달은 막힘 */
+{ const CX = new Function(stub + bare + '; seedJuly(); return {issueAdhoc,adhocOf,addCut,addPay,ledgerOf,ctrPay,CTR3,MORE,LEDG,lcxOpen,lcxConfirm,lcxHTML,cutOf,CUTS,get lcx(){return lcx;},set tab3c(v){tab3c=v;}};')();
+  const k = 'b1별관301호', bal0 = CX.ledgerOf(k).bal.매출채권;
+  CX.issueAdhoc(k, '엘베 사용료', 220000, '세금계산서', '이사', null, 200000, 20000); const ad = CX.adhocOf(k)[0];
+  CX.tab3c = '원장'; CX.MORE.length = 0; CX.CTR3(k);
+  const key = Object.keys(CX.LEDG).find(x => x.startsWith('adh')), menu = CX.MORE.find(m => m.some(i => i.go === `lcxOpen('${key}')`));
+  CX.lcxOpen(key); const h = CX.lcxHTML(); CX.lcxConfirm(); const noWhy = CX.adhocOf(k).length === 1;
+  CX.lcx.why = '금액 잘못 입력'; CX.lcxConfirm();
+  const L = CX.ledgerOf(k), rows = L.rows.filter(r => /엘베/.test(r.item)), gone = !CX.ctrPay(k, '2026-08').it.some(i => i.id === ad.id);
+  CX.MORE.length = 0; const lh = CX.CTR3(k), menu2 = CX.MORE.find(m => m.some(i => i.go === `lcxOpen('${key}')`));
+  CX.issueAdhoc(k, '수리비', 55000, '세금계산서', '파손', null, 50000, 5000); const ad2 = CX.adhocOf(k)[0]; CX.addPay(ad2.id, 55000, '2026-08-10', '현금', 'm98');
+  CX.MORE.length = 0; CX.CTR3(k); const k2 = Object.keys(CX.LEDG).find(x => x.startsWith('adh') && x.includes(ad2.id.split('|').pop() + '|')), m2 = CX.MORE.find(m => m.some(i => i.go === `lcxOpen('${k2}')`));
+  const bid = '2026-07|별관301호|수도요금'; CX.addCut(bid, 10000, '2026-07-20', '7월'); CX.MORE.length = 0; CX.CTR3(k);
+  const k3 = Object.keys(CX.LEDG).find(x => x.startsWith('cut')), m3 = CX.MORE.find(m => m.some(i => i.go === `lcxOpen('${k3}')`));
+  r6.push(['취소 — 원장 더보기 › 취소(사유 필수) · 원래 줄 「취소됨」 + 청구 취소 줄 · 잔액 원래대로 · 청구·수납 탭에서 빠짐 · 취소한 줄엔 취소 없음 · 입금 배분된 청구 · 마감한 달 감액은 취소 잠김',
+    menu && !menu.find(i => i.t === '취소').off && /취소 사유/.test(h) && noWhy && rows.length === 2 && rows.some(r => r.type === '청구 취소' && r.dec === 220000)
+    && L.bal.매출채권 === bal0 && gone && /취소됨/.test(lh) && !menu2
+    && m2 && !!m2.find(i => i.t === '취소').off && m3 && /마감/.test(m3.find(i => i.t === '취소').off)]); }
 /* 청구서 발행 — 메일 체크박스·미납 조회 없음 · 발행을 누르면 메일 여부를 묻는다 · 더보기로 한 계약만 발행 */
 { const IA = new Function(stub + bare + '; seedJuly(); return {PAY1,issueAsk,issueGo,issueHTML,ISS,MORE,set f1b(v){f1.b=v;}};')();
   IA.f1b = 'b2'; IA.MORE.length = 0; const h = IA.PAY1();
