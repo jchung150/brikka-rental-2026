@@ -1993,6 +1993,9 @@ function beHTML(){
   </div></div>`;
 }
 function facDel(id,n){const b=BUILDINGS.find(x=>x.id===id); b.fac=b.fac.filter(x=>x!==n); render(true);}
+/* 상세 화면 탭(요약 제외)의 공통 모양 — 위에 필터 줄(버튼은 오른쪽 끝), 그 아래 요약 숫자 · 전체 펼치기 줄, 표, 아래 안내. 계약 상세 원장과 같다 */
+const tabBar=(left,right)=>`<div class="fbar">${left||''}<span style="margin-left:auto;display:flex;gap:6px">${right||''}</span></div>`;
+const tabSub=(left,right)=>`<div style="display:flex;align-items:center;gap:18px;margin:-6px 0 8px;font-size:12.5px;min-height:28px"><span style="color:var(--muted)">${left||''}</span><span style="margin-left:auto">${right||''}</span></div>`;
 function t요약(b){
   const d=dday(b.mgmtEnd);
   return `
@@ -2057,13 +2060,11 @@ function t주차(b){
   const groups=cs.map(c=>({c,k:ckey(c),vs:list.filter(v=>v.k===ckey(c))})).filter(g=>g.vs.length||(!filt&&CPARK[g.k]));
   const anyOp=groups.some(g=>gpkOpen(g.k)), miss='<span style="color:var(--warn)">미확인</span>';
   return `
-  <div class="card"><div class="ct">주차
-    <span class="sub">주차면 ${b.park} · 등록 ${all.length}대 · ${left>=0?`남은 자리 ${left}`:`<b style="color:var(--warn)">${-left}대 초과</b>`} · 무료 ${nFree} · 월정액 ${all.length-nFree}</span>
-    <span class="ca"><button class="btn pri sm" onclick="vehOpen('${b.id}')">+ 차량 추가</button></span></div>
-    <div class="fbar" style="padding:0 16px 10px;margin:0">
-      ${S('k',cs.map(c=>[ckey(c),cname(b.alias,c.no,c.ten)]),'전체 계약')}${S('loc',VEH_LOC.map(v=>[v,v]),'전체 주차구분')}
-      ${groups.length?`<span style="margin-left:auto"><button class="btn sm" onclick="gpkSet(${anyOp?'false':'true'})">${anyOp?'전체 접기':'전체 펼치기'}</button></span>`:''}
-    </div>
+  ${tabBar(S('k',cs.map(c=>[ckey(c),cname(b.alias,c.no,c.ten)]),'전체 계약')+S('loc',VEH_LOC.map(v=>[v,v]),'전체 주차구분'),
+    `<button class="btn pri" onclick="vehOpen('${b.id}')">+ 차량 추가</button>`)}
+  ${tabSub(`주차면 ${b.park} · 등록 ${all.length}대 · ${left>=0?`남은 자리 ${left}`:`<b style="color:var(--warn)">${-left}대 초과</b>`} · 무료 ${nFree} · 월정액 ${all.length-nFree}`,
+    groups.length?`<button class="btn sm" onclick="gpkSet(${anyOp?'false':'true'})">${anyOp?'전체 접기':'전체 펼치기'}</button>`:'')}
+  <div class="tbl">
     ${groups.length?`<div class="tw"><table>
       <thead><tr><th>계약고유이름 · 차량 소유자</th><th>차량번호</th><th>연락처</th><th>차종</th><th>주차구분</th><th>요금부과</th><th class="c">더보기</th></tr></thead>
       <tbody>${groups.map(g=>{const cp=CPARK[g.k]||{}, vs=vehOf(g.k), fr=vs.filter(v=>v.fee==='무료').length, mo=vs.length-fr, over=cp.free!=null?fr-cp.free:0, op=gpkOpen(g.k);
@@ -2216,14 +2217,14 @@ function udHTML(){
   </div></div>`;
 }
 function t유닛(b){
-  if(!b.units.length) return `<div class="card"><div class="ct">유닛<span class="ca"><button class="btn pri sm" title="슈퍼관리자만" onclick="unOpen('${b.id}')">+ 유닛 등록</button></span></div>
+  const add=tabBar('',`<button class="btn pri" title="슈퍼관리자만" onclick="unOpen('${b.id}')">+ 유닛 등록</button>`);
+  if(!b.units.length) return `${add}<div class="tbl">
     <div class="empty"><div class="t">등록된 유닛이 없습니다</div>유닛을 등록하면 여기에 표시됩니다.</div></div>`;
   const c={사용중:0,공실:0,비운영중:0};b.units.forEach(u=>c[u.st]++);
+  /* 유닛은 표가 아니라 카드 바둑판이다 — 층 · 면적 · 임차인을 한눈에 본다 */
   return `
-  <div class="card"><div class="ct">유닛
-    <span class="sub">전체 ${b.units.length} · 사용중 ${c.사용중} · 공실 ${c.공실} · 비운영중 ${c.비운영중}</span>
-    <span class="ca"><button class="btn pri sm" title="슈퍼관리자만" onclick="unOpen('${b.id}')">+ 유닛 등록</button></span></div>
-    <div class="cc" style="padding-top:12px"><div class="units">
+  ${add}${tabSub(`전체 ${b.units.length} · 사용중 ${c.사용중} · 공실 ${c.공실} · 비운영중 ${c.비운영중}`)}
+  <div><div class="units">
     ${b.units.map(u=>{
       return `<div class="unit" onclick="udOpen('${b.id}','${u.no}')">
       <div class="uh"><span class="un">${u.no}</span>${stb(u.st)}</div>
@@ -2340,14 +2341,11 @@ function t자료(b,ck){
   const ids=b.docs.map((_,i)=>i).filter(i=>{const d=b.docs[i];return (!ck||d.k===ck)&&(!fdoc.c||d.c===fdoc.c)&&(from==null||dnum(d.at.slice(0,10))>=from);});
   const nSel=ids.filter(i=>selD[i]).length, all=ids.length&&nSel===ids.length;
   const cats=ck?DOC_CAT_OF.계약:DOC_CAT;
-  /* 계약 상세(ck)는 청구·수납 · 원장과 같은 모양 — 카드 제목 없이 필터 줄(버튼은 오른쪽) + 표. 건물 상세는 다른 탭처럼 카드 */
   const sel=`<select onchange="setFdoc('c',this.value)"><option value="">전체 카테고리</option>${cats.map(v=>`<option ${fdoc.c===v?'selected':''}>${v}</option>`).join('')}</select>
       <select onchange="setFdoc('per',this.value)">${[['','전체 기간'],['1','최근 1개월'],['3','최근 3개월'],['12','최근 12개월']].map(([v,t])=>`<option value="${v}" ${fdoc.per===v?'selected':''}>${t}</option>`).join('')}</select>`,
     btns=(sm=>`<button class="btn${sm}" ${nSel?'':'disabled title="삭제할 문서를 체크하세요"'} onclick="docDelOpen('${b.id}',${JSON.stringify(ids.filter(i=>selD[i]))})">선택 삭제${nSel?` ${nSel}건`:''}</button>
       <button class="btn pri${sm}" onclick="upOpen('${b.id}',false${ck?`,'${ck}'`:''})">+ 파일 업로드</button>`);
-  return `${ck?`<div class="fbar">${sel}<span style="margin-left:auto;display:flex;gap:6px">${btns('')}</span></div><div class="tbl">`
-    :`<div class="card"><div class="ct">자료보관<span class="ca">${btns(' sm')}</span></div>
-    <div class="fbar" style="padding:0 16px 10px;margin:0">${sel}</div>`}
+  return `${tabBar(sel,btns(''))}<div class="tbl">
     <div class="tw"><table>
       <thead><tr><th class="c" style="width:44px"><span class="cb ${all?'on':''}" style="cursor:pointer" onclick="dPickIds(${JSON.stringify(ids)},${all?'false':'true'})"></span></th>
         <th>제목 <span class="so">⇅</span></th><th>카테고리</th><th>파일 형식</th><th>업로드한 사람</th><th>등록일시 <span class="so">⇅</span></th><th class="c">더보기</th></tr></thead>
@@ -2358,8 +2356,8 @@ function t자료(b,ck){
         <td style="white-space:nowrap">${d.at.replace(/-/g,'.')}</td>
         <td class="c">${moreCell([{t:'상세',go:`docOpen('${b.id}',${i})`},{t:'내려받기',go:`docDown('${b.id}',${i})`},{t:'삭제',go:`docDelOpen('${b.id}',[${i}])`}])}</td></tr>`;}).join('')
       :`<tr><td colspan="7" style="text-align:center;padding:28px 0;color:var(--muted)">${fdoc.c||fdoc.per?'조건에 맞는 자료가 없습니다':'등록된 자료가 없습니다'}</td></tr>`}</tbody>
-    </table></div></div>${ck?`
-    <div class="hint">이 계약에 올린 문서입니다. 줄을 누르면 문서를 봅니다. 여러 개를 지울 때는 체크한 뒤 <b>선택 삭제</b>를 누릅니다.</div>`:''}`;
+    </table></div></div>
+    <div class="hint">이 ${ck?'계약':'건물'}에 올린 문서입니다. 줄을 누르면 문서를 봅니다. 여러 개를 지울 때는 체크한 뒤 <b>선택 삭제</b>를 누릅니다.</div>`;
 }
 
 /* ═══ 청구항목 상세 — 관리비 탭의 더보기 「상세」. 설정을 한눈에 보고, 최근 3개월 고지서 금액을 본다. 고치려면 「수정」 → PRO-3 ═══ */
@@ -2399,11 +2397,12 @@ function cdHTML(){
   </div></div>`;
 }
 function t청구(b){
-  if(!b.charge.length) return `<div class="card"><div class="ct">관리비<span class="ca"><button class="btn pri sm" onclick="openCS()">+ 항목 추가</button></span></div>
+  const add=tabBar('','<button class="btn pri" onclick="openCS()">+ 항목 추가</button>');
+  if(!b.charge.length) return `${add}<div class="tbl">
     <div class="empty"><div class="t">등록된 청구항목이 없습니다</div>이 건물에서 받을 청구항목을 추가하세요.</div></div>`;
   return `
-  <div class="card"><div class="ct">관리비
-    <span class="ca"><button class="btn pri sm" onclick="openCS()">+ 항목 추가</button></span></div>
+  ${add}${tabSub(`전체 ${b.charge.length} · 사용 ${b.charge.filter(c=>c.use).length}`)}
+  <div class="tbl">
     <div class="tw"><table>
       <thead><tr><th class="c">배분 우선순위</th><th>청구항목</th><th>사용여부</th><th>발행 문서</th><th>반복주기</th>
         <th>배분 기준</th><th>근거 문서</th>
@@ -2423,6 +2422,8 @@ function t청구(b){
           {t:'삭제',go:`ciDel(codeOf('${c.it}'))`,off:c.fixed?'계약서 약정 항목은 건물에서 빼지 않습니다':''}])}</td></tr>`}).join('')}</tbody>
     </table></div>
   </div>
+  <div class="hint">이 건물에서 받는 청구항목입니다. 배분 우선순위 순서로 보입니다. 줄을 누르면 설정과 최근 고지서 금액을 봅니다.<br>
+    임대료 · 고정관리비는 계약서에서 정한 항목이라 줄 색이 다르고, 건물에서 뺄 수 없습니다.</div>
 `;
 }
 
@@ -4659,7 +4660,7 @@ function ctrRowsOf(f,b){
   return CTRS.filter(c=>(!b||c.b===b)&&(!f.st||(f.st==='잔액남음'?!!leftOf(c):c.st===f.st))).map(c=>({c,end:ctrEnd(c),dd:dday(ctrEnd(c))}))
     .filter(x=>!f.dd||(f.dd==='0'?x.dd<0:x.dd>=0&&x.dd<=+f.dd)).sort((a,b)=>a.dd-b.dd);
 }
-function ctrFbar(f,set,withB){
+function ctrFbar(f,set,withB,right){
   return `<div class="fbar">
     ${withB?`<select onchange="${set}('b',this.value)"><option value="">전체 건물</option>
       ${BUILDINGS.map(b=>`<option value="${b.id}" ${f.b===b.id?'selected':''}>${b.name}</option>`).join('')}</select>`:''}
@@ -4667,6 +4668,7 @@ function ctrFbar(f,set,withB){
       ${[['','전체 계약상태'],['준비중','준비중'],['진행중','진행중'],['종료됨','종료됨'],['파기됨','파기됨'],['잔액남음','종료 · 잔액 남음']].map(([v,t])=>`<option value="${v}" ${f.st===v?'selected':''}>${t}</option>`).join('')}</select>
     <select onchange="${set}('dd',this.value)">
       ${[['','만료 남은 일수 전체'],['0','만료됨'],['30','30일 이하'],['90','90일 이하'],['180','180일 이하']].map(([v,t])=>`<option value="${v}" ${f.dd===v?'selected':''}>${t}</option>`).join('')}</select>
+    ${right?`<span style="margin-left:auto;display:flex;gap:6px">${right}</span>`:''}
   </div>`;
 }
 function ctrTbl(rows){
@@ -4701,9 +4703,8 @@ let fbc={st:'진행중',dd:''};
 const setFbc=(k,v)=>{fbc[k]=v;render(true);};
 function t계약(b){
   const all=CTRS.filter(c=>c.b===b.id), on=all.filter(c=>c.st==='진행중').length;
-  return `<div class="card" style="margin:0 0 12px"><div class="ct">계약<span class="sub">전체 ${all.length} · 진행중 ${on}</span>
-    <span class="ca"><button class="btn pri sm" ${bOp(b.id)==='비운영중'?'disabled title="비운영중인 건물은 계약을 등록할 수 없습니다"':''} onclick="nc=null;ncInit();nc.b='${b.id}';go('ctr-2')">+ 새로운 계약 등록</button></span></div></div>
-  ${ctrFbar(fbc,'setFbc',false)}
+  return `${ctrFbar(fbc,'setFbc',false,`<button class="btn pri" ${bOp(b.id)==='비운영중'?'disabled title="비운영중인 건물은 계약을 등록할 수 없습니다"':''} onclick="nc=null;ncInit();nc.b='${b.id}';go('ctr-2')">+ 새로운 계약 등록</button>`)}
+  ${tabSub(`전체 ${all.length} · 진행중 ${on}`)}
   ${ctrTbl(ctrRowsOf(fbc,b.id))}
   <div class="hint">이 건물의 계약만 보입니다. 표와 필터는 계약 목록(CTR-1)과 같습니다.</div>`;
 }
@@ -5566,10 +5567,8 @@ function histHTML(rows,scope){
   const N=Math.max(1,Math.ceil(R.length/HPER)), cur=Math.min(hp[scope]||1,N), P=R.slice((cur-1)*HPER,cur*HPER);
   HROWS[scope]=R;
   const d=a=>a.replace(/-/g,'.');
-  /* 계약 상세는 청구·수납 · 원장과 같은 모양 — 카드 제목 없이 필터 줄 + 표. 건물 상세는 다른 탭처럼 카드 */
-  const flat=scope.startsWith('c'), fb=`${S('kind',[...new Set(rows.map(r=>r.kind))],'전체 대상 종류')}${S('type',[...new Set(rows.map(r=>r.type))],'전체 변경 유형')}`;
-  return `${flat?`<div class="fbar">${fb}</div><div class="tbl">`:`<div class="card"><div class="ct">이력</div>
-    <div class="fbar" style="padding:0 16px 10px;margin:0">${fb}</div>`}
+  const fb=`${S('kind',[...new Set(rows.map(r=>r.kind))],'전체 대상 종류')}${S('type',[...new Set(rows.map(r=>r.type))],'전체 변경 유형')}`;
+  return `${tabBar(fb)}<div class="tbl">
     <div class="tw"><table>
       <thead><tr><th>일시</th><th>대상 종류</th><th>대상 이름</th><th>변경 유형</th><th>변경 요약</th><th>처리자</th><th class="c">더보기</th></tr></thead>
       <tbody>${R.length?P.map((r,i)=>`<tr style="cursor:pointer" onclick="hdOpen('${scope}',${(cur-1)*HPER+i})">
@@ -5577,8 +5576,7 @@ function histHTML(rows,scope){
           <td><span class="bd mu">${r.kind}</span></td><td style="white-space:nowrap">${r.name}</td><td>${r.type}</td>
           <td>${r.sum}${r.why?`<div class="c2">사유: ${r.why}</div>`:''}</td><td style="white-space:nowrap">${r.by}</td>
           <td class="c">${moreCell([{t:'상세',go:`hdOpen('${scope}',${(cur-1)*HPER+i})`},{t:'삭제',go:`hdOpen('${scope}',${(cur-1)*HPER+i},true)`}])}</td></tr>`).join(''):`<tr><td colspan="7" style="text-align:center;padding:28px 0;color:var(--muted)">조건에 맞는 이력이 없습니다</td></tr>`}</tbody></table>
-      ${pagerHTML(R.length,cur,`(p=>{hp['${scope}']=p;render(true);})`)}</div></div>${flat?`
-    <div class="hint">이 계약에서 누가 언제 무엇을 했는지 남긴 기록입니다. 최근 기록이 위에 있습니다. 줄을 누르면 사유와 바뀐 값을 봅니다.</div>`:''}`;
+      ${pagerHTML(R.length,cur,`(p=>{hp['${scope}']=p;render(true);})`)}</div></div>`;
 }
 let tab3c='요약', g3={}, g3All=false;
 const g3Open=k=>(k in g3)?g3[k]:g3All;

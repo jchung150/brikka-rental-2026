@@ -864,7 +864,7 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   const th = h => (h.match(/<thead><tr><th>일시<\/th>.*?<\/tr><\/thead>/) || [''])[0], nRow = h => (h.match(/<td><span class="bd mu">/g) || []).length;
   const same = th(hb) && th(hb) === th(hc) && /<th>대상 종류<\/th><th>대상 이름<\/th><th>변경 유형<\/th><th>변경 요약<\/th><th>처리자<\/th>/.test(th(hb));
   const allT = HI.histB(HI.BUILDINGS[0]).every(r => /^\d{4}-\d\d-\d\d \d\d:\d\d$/.test(r.at));
-  const ui = /<div class="ct">이력<\/div>\s*<div class="fbar"/.test(hb) && !/class="fq"/.test(hb) && !/고치거나 지울 수 없습니다|최근이 위/.test(hb);
+  const ui = [hb, hc].every(h => !/<div class="ct">이력<\/div>/.test(h) && /<div class="fbar"><select onchange="setFh/.test(h) && !/class="hint"/.test(h.split('<div class="fbar"><select onchange="setFh')[1] || '')) && !/class="fq"/.test(hb);
   const page = nRow(hb) === 10 && /<\/table>\s*<div class="pgr">[\s\S]*?<\/div><\/div>/.test(hb) && /hp\['bb1'\]=p/.test(hb);
   const f = (k, v, h) => { HI.setFh(k, v); const r = h(); HI.setFh(k, ''); return r; };
   const bOk = /마감 취소/.test(f('kind', '월 마감', () => HI.PRO3('b1'))) && /관리비 설정 — /.test(f('kind', '건물 관리비 설정', () => HI.PRO3('b1')))
@@ -880,7 +880,7 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   const n0 = HI.HROWS['cb1본관801호'].length, di = HI.HROWS['cb1본관801호'].findIndex(r => /담당자 추가/.test(r.sum));
   HI.hdOpen('cb1본관801호', di, true); HI.hdDelete(); const kept = HI.hdHTML() !== '';
   HI.hdDel.why = '잘못 기록'; HI.hdDelete(); const h2 = HI.CTR3('b1본관801호'); const del = kept && !/담당자 추가/.test(h2) && HI.HROWS['cb1본관801호'].length === n0 - 1;
-  r6.push(['이력 탭 — 건물 상세 · 계약 상세 같은 표 · 일시는 모두 시각까지 · 대상 종류 · 변경 유형 필터 줄(검색 없음) · 안내 문구 없음 · 한 페이지 10줄(페이지 번호) · 건물은 월 마감 · 관리비 설정 · 모든 계약 · 계약은 그 계약만 · 수정하면 바로 쌓임 · 더보기(상세 · 삭제) · 줄을 누르면 상세 패널(변경 전/후 · 닫기 · 삭제만, 원장 거래 없음) · 삭제는 사유 필수',
+  r6.push(['이력 탭 — 건물 상세 · 계약 상세 같은 표 · 일시는 모두 시각까지 · 대상 종류 · 변경 유형 필터 줄(검색 없음 · 카드 제목 없음) · 안내 문구 없음 · 한 페이지 10줄(페이지 번호) · 건물은 월 마감 · 관리비 설정 · 모든 계약 · 계약은 그 계약만 · 수정하면 바로 쌓임 · 더보기(상세 · 삭제) · 줄을 누르면 상세 패널(변경 전/후 · 닫기 · 삭제만, 원장 거래 없음) · 삭제는 사유 필수',
     same && allT && ui && page && bOk && cOk && cOnly && live && exp && del]); }
 /* 자료보관 — 건물 · 계약 같은 표 · 같은 필터 줄(카테고리 · 기간) · 빈 계약도 표 모양 그대로 */
 { const DF = new Function(stub + bare + '; return {PRO3,CTR3,setFdoc,set tab3(v){tab3=v;},set tab3c(v){tab3c=v;}};')();
