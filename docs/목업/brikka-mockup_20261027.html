@@ -493,8 +493,7 @@ table.nowr th,table.nowr td{white-space:nowrap}
 .ctm{grid-template-columns:minmax(180px,1fr) 110px 140px 140px 150px 100px 80px}
 .schr.dep .nm{color:var(--muted)}
 .led{grid-template-columns:96px 108px minmax(260px,1fr) 124px 124px 132px 64px}
-.ledh{font-weight:700;font-size:13px;margin:20px 0 8px;display:flex;align-items:baseline;gap:8px}
-.ledh:first-of-type{margin-top:0}
+.schr.led.gap{padding:0;height:14px;background:var(--head)}
 .schr.led.sub .nm{padding-left:14px}
 .arr{grid-template-columns:minmax(300px,1.6fr) 210px 90px 100px 130px 76px}
 .rcp{grid-template-columns:minmax(120px,1fr) 92px 92px 58px;gap:0 8px;padding:9px 12px;font-size:12.5px}
@@ -5633,16 +5632,17 @@ function CTR3(k){
         <div class="n c2" style="margin:0">${r.dr?won(r.dr):''}</div>
         <div class="n c2" style="margin:0">${r.cr?won(r.cr):''}</div>
         <div></div><div></div></div>`).join(''));}).join('');   /* 항목 줄은 같은 순간이라 잔액을 적지 않는다 */
-    return {G,html:`<div class="ledh">${acc==='매출채권'?'받을 돈':'보증금'}<span class="c2" style="margin:0">${acc}</span></div>
-    <div class="tbl schl">
-      <div class="schr led hd"><div>날짜</div><div>거래유형</div><div>내용</div>
-        <div class="n">차변</div><div class="n">대변</div><div class="n">잔액</div><div class="c">더보기</div></div>
-      ${body||'<div class="empty">이 기간에 거래가 없습니다</div>'}
-      ${pg?pagerHTML(G.length,cur,`(p=>{hp['l${k}']=p;render(true);})`):''}
-    </div>`};};
+    return {G,body,pager:pg?pagerHTML(G.length,cur,`(p=>{hp['l${k}']=p;render(true);})`):''};};
+   /* 한 표 안에 위는 받을 돈, 빈 줄 하나 띄우고 아래는 보증금 — 머리글은 하나 */
    const A=sec('매출채권'), B=sec('임대보증금'), anyOp=[...A.G,...B.G].some(x=>g3Open(x.key));
    const tog=A.G.length||B.G.length?`<button class="btn sm" onclick="g3All=${anyOp?'false':'true'};g3={};render(true)">${anyOp?'전체 접기':'전체 펼치기'}</button>`:'';
-   return {tog,html:A.html+B.html};
+   return {tog,html:`<div class="tbl schl">
+      <div class="schr led hd"><div>날짜</div><div>거래유형</div><div>내용</div>
+        <div class="n">차변</div><div class="n">대변</div><div class="n">잔액</div><div class="c">더보기</div></div>
+      ${A.body||(B.body?'':'<div class="empty">이 기간에 거래가 없습니다</div>')}
+      ${A.body&&B.body?'<div class="schr led gap"></div>':''}${B.body}
+      ${A.pager}
+    </div>`};
   })();
   return CTR3head(c,k)+`
   <div class="fbar">
@@ -5652,12 +5652,12 @@ function CTR3(k){
     ${LT.tog}
     <span style="margin-left:auto;display:flex;gap:6px">   <!-- 돈을 다루는 버튼은 원장 탭에만 둔다 -->
       ${ledBtns(k,L)}
-      <button class="btn pri" title="지금 보이는 기간의 원장(받을 돈 · 보증금 두 표)을 PDF로 내려받습니다" onclick="alert('원장 출력 — 지금 보이는 기간의 원장(받을 돈 · 보증금 두 표)을 PDF로 내려받습니다.\n목업에서는 파일을 내려받지 않습니다.')">원장 출력</button></span>
+      <button class="btn pri" title="지금 보이는 기간의 원장(받을 돈 · 보증금)을 PDF로 내려받습니다" onclick="alert('원장 출력 — 지금 보이는 기간의 원장(받을 돈 · 보증금)을 PDF로 내려받습니다.\n목업에서는 파일을 내려받지 않습니다.')">원장 출력</button></span>
   </div>
   ${LT.html}
   <div class="hint">
-    이 계약의 모든 돈 거래를 <b>받을 돈</b>(매출채권)과 <b>보증금</b>(임대보증금) 두 표로 나눴습니다. 잔액은 표마다 따로 셉니다. 보증금 상계는 두 표에 함께 보입니다(받을 돈의 수납 · 보증금의 상계). 청구서 한 장, 입금 한 건을 한 줄로 묶었습니다. 펼치면 항목별로 보입니다. 사유 · 공급가액 · 부가세는 더보기의 <b>상세</b>에서 봅니다.<br>
-    최근 거래가 위에 있고, 잔액은 그 거래 직후의 금액입니다. 받을 돈 표는 10줄씩 나눠 보입니다.<br>
+    이 계약의 모든 돈 거래를 <b>받을 돈</b>(매출채권)과 <b>보증금</b>(임대보증금) 나눠, 위에 받을 돈 · 빈 줄 아래에 보증금을 둡니다. 잔액은 따로 셉니다. 보증금 상계는 양쪽에 함께 보입니다(받을 돈의 수납 · 보증금의 상계). 청구서 한 장, 입금 한 건을 한 줄로 묶었습니다. 펼치면 항목별로 보입니다. 사유 · 공급가액 · 부가세는 더보기의 <b>상세</b>에서 봅니다.<br>
+    최근 거래가 위에 있고, 잔액은 그 거래 직후의 금액입니다. 받을 돈은 10줄씩 나눠 보입니다.<br>
     원장은 고치지 않습니다. 잘못 넣은 청구 추가 · 청구 감액 · 수납 등록 · 보증금 예치 · 상계 · 반환은 더보기의 <b>취소</b>로 취소 줄을 더합니다(마감 전). 은행 입금은 입금 매칭에서 무효 처리합니다. 연체료는 수납 등록에서 받기로 한 금액만 청구로 올라옵니다.<br>
     잔액을 바꾸지 않는 안쪽 옮김(미납 이월 · 전월 과납액 배분 · 감액으로 넘친 수납)은 적지 않습니다. 잔액이 0보다 작으면 <b>과납</b>이며, 돌려줄 때는 위의 <b>수납 › 과납 환불</b>을 씁니다.<br>
     받을 돈을 바꾸는 일(청구 추가 · 청구 감액)은 <b>청구</b>, 받은 돈 · 돌려준 돈은 <b>수납</b> 메뉴에서 기록합니다.</div>`;

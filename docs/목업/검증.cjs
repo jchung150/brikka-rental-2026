@@ -628,18 +628,17 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   const L = DX.ledgerOf(k);
   r6.push(['보증금 예치 · 반환 취소 — 원장 ⋮ › 취소 · 잔액이 0 아래로 가는 예치 취소는 잠김 · 반환을 먼저 취소하면 풀림 · 보증금 예치 취소 · 보증금 반환 취소 줄 · 잔액 원래대로 · 계약 보증금(예시값)은 마감한 달이라 잠김',
     lock && open && L.bal.임대보증금 === b0 && L.rows.some(r => r.type === '보증금 예치 취소' && r.dec === 5000000) && L.rows.some(r => r.type === '보증금 반환 취소' && r.inc === b0 + 1000000)]); }
-/* 원장은 받을 돈 · 보증금 두 표 — 칸 같음(계정 칸 · 계정 필터 없음) · 보증금 상계는 두 표에 · 받을 돈은 10묶음씩 페이지 */
+/* 원장은 한 표 — 머리글 하나 · 위 받을 돈 · 빈 줄 · 아래 보증금 · 같은 칸(계정 칸 · 계정 필터 · 표 이름 없음) · 받을 돈은 10묶음씩 페이지 */
 { const LX = new Function(stub + bare + '; seedJuly(); return {CTR3,openOffset,payConfirm,issueAdhoc,hp,set tab3c(v){tab3c=v;}};')();
   LX.tab3c = '원장'; const k = 'b1별관301호'; LX.openOffset(k); LX.payConfirm(); const h = LX.CTR3(k).split('<div class="hint">')[0];
-  const ia = h.indexOf('>받을 돈<'), ib = h.indexOf('>보증금<span'), A = h.slice(ia, ib), B = h.slice(ib);
-  const hd = (h.match(/<div class="schr led hd">[\s\S]*?<\/div><\/div>/g) || []);
-  const two = ia > 0 && ib > ia && hd.length === 2 && hd[0] === hd[1] && !/<div>계정<\/div>/.test(hd[0]) && !/전체 계정/.test(h);
+  const gap = h.indexOf('schr led gap'), A = h.slice(0, gap), B = h.slice(gap);
+  const one = (h.match(/<div class="schr led hd">/g) || []).length === 1 && gap > 0 && !/<div>계정<\/div>/.test(h) && !/전체 계정/.test(h) && !/>받을 돈<|>보증금<span/.test(h);
   const split = /보증금상계 수납/.test(A) && !/>보증금 상계</.test(A) && />보증금 상계</.test(B) && />보증금 예치</.test(B) && !/>청구</.test(B);
   const few = !/hp\['l/.test(h);
   for (let i = 0; i < 8; i++) LX.issueAdhoc(k, '엘리베이터 사용료 ' + i, 11000, '세금계산서', '시험', null, 10000, 1000);
-  const h2 = LX.CTR3(k).split('<div class="hint">')[0], A2 = h2.slice(h2.indexOf('>받을 돈<'), h2.indexOf('>보증금<span')), B2 = h2.slice(h2.indexOf('>보증금<span'));
-  const pg = few && /hp\['lb1별관301호'\]=p/.test(A2) && !/hp\['l/.test(B2) && (A2.match(/class="schr led grp"/g) || []).length === 10;
-  r6.push(['원장 두 표 — 받을 돈 위 · 보증금 아래 · 같은 칸(계정 칸 · 계정 필터 없음) · 보증금 상계는 받을 돈엔 수납, 보증금엔 상계 · 받을 돈 10줄 페이지', two && split && pg]); }
+  const h2 = LX.CTR3(k).split('<div class="hint">')[0], A2 = h2.slice(0, h2.indexOf('schr led gap'));
+  const pg = few && /hp\['lb1별관301호'\]=p/.test(h2) && (A2.match(/class="schr led grp"/g) || []).length === 10;
+  r6.push(['원장 한 표 — 머리글 하나 · 위 받을 돈 · 빈 줄 · 아래 보증금 · 계정 칸 · 계정 필터 · 표 이름 없음 · 보증금 상계는 위엔 수납, 아래엔 상계 · 받을 돈 10줄 페이지', one && split && pg]); }
 /* 청구서 발행 — 메일 체크박스·미납 조회 없음 · 발행을 누르면 메일 여부를 묻는다 · 더보기로 한 계약만 발행 */
 { const IA = new Function(stub + bare + '; seedJuly(); return {PAY1,issueAsk,issueGo,issueHTML,ISS,MORE,set f1b(v){f1.b=v;}};')();
   IA.f1b = 'b2'; IA.MORE.length = 0; const h = IA.PAY1();
