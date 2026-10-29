@@ -242,7 +242,7 @@ W.payConfirm();
 const LC = W.ledgerOf('b1별관301호');
 r6.push(['현장 수납 현금 300만 — 오래된 달부터 · 미납 2,146,472 · 원장 매출채권 잔액 일치 · 「현금 수납」 기록',
   pc.lines[0].ym <= pc.lines[pc.lines.length - 1].ym && pc.rest === 0 && left('b1별관301호') === 2146472
-  && LC.bal.매출채권 === 2146472 && LC.rows.some(r => r.type === '수납' && r.hand && / 현금$/.test(r.src))]);
+  && LC.bal.매출채권 === 2146472 && LC.rows.some(r => r.type === '수납' && r.hand && r.src === '현금')]);
 const dep0 = LC.bal.임대보증금;
 /* 보증금 상계 — 계약 중 언제든(슈퍼관리자). 수납 등록 결제수단에는 없고, 보증금 ▾ 메뉴의 자기 패널에서 한다 */
 const payNoOff = !/보증금상계/.test((W.openPay('b1별관301호'), W.payHTML()).match(/<select onchange="setPm\('how'[^]*?<\/select>/)[0]);

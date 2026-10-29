@@ -4179,7 +4179,7 @@ function feeBill(){
   if(!pm.feeOn||!pm.fee) return null;
   const c=CTRS.find(x=>ckey(x)===pm.k), off=pm.feeFull-pm.fee;
   return {id:`fee|${pm.k}|${pm.date}|${pmSeq+1}`,ym:pm.date.slice(0,7),k:pm.k,no:c.no,n:'연체료',amt:pm.fee,
-    fee:true,date:pm.date,memo:`연체료 (${pm.date.slice(5).replace('-','.')}까지${off?` · ${won(pm.feeFull)} 중 ${won(off)} 감면`:''})`};
+    fee:true,date:pm.date,memo:`연체료 청구서${off?` (${won(pm.feeFull)} 중 ${won(off)} 감면)`:''}`};
 }
 /* 배분 — 입금 매칭과 같은 규칙. 현금·카드는 같은 임차인의 이 건물 계약 전체에,
    보증금상계는 그 보증금이 걸린 이 계약에만 → 4.3.1 */
@@ -4196,7 +4196,7 @@ function payConfirm(){
   const fb=feeBill(); if(fb) BILLS.push(fb);
   const dep='m'+(++pmSeq);
   if(pm.feeOn){FEE_PREV[dep]={k:pm.k,cut:FEE_CUT[pm.k]};FEE_CUT[pm.k]=pm.date;}   /* 받았든 깎았든 이날까지의 연체료는 정리됐다 */
-  const src=`${pm.date.slice(5).replace('-','.')} ${pm.how}`;
+  const src=pm.how;   /* 날짜는 원장 날짜 칸에 있으니 이름에 붙이지 않는다 */
   pl.lines.forEach(l=>addPay(l.id,l.pay,pm.date,src,dep));
   if(pm.how==='보증금상계') MANUAL_DEP.push({k:pm.k,date:pm.date,amt:pm.amt-pl.rest,dep,sq:++paySeq});
   DRAWER=null;pm=null;render(true);
@@ -5453,7 +5453,7 @@ function ledgerOf(k){
     g:'rf'+x.sq,inc:x.amt,sup:null,vat:null,ord:3,sq:x.sq}));
   /* 보증금상계 — 같은 돈이 임대보증금에서 빠지고(차변) 매출채권을 채운다(대변) */
   MANUAL_DEP.filter(m=>m.k===k).forEach(m=>rows.push({date:m.date,type:'보증금 상계',acc:'임대보증금',
-    memo:'미납 청구에 상계',item:'미납 청구에 상계',g:'dd'+m.dep,dec:m.amt,sup:null,vat:null,ord:2,sq:m.sq}));
+    memo:'미납액 정리',item:'미납액 정리',g:'dd'+m.dep,dec:m.amt,sup:null,vat:null,ord:2,sq:m.sq}));
   /* 취소한 비정기 청구 · 감액 — 원래 줄은 그대로 두고(취소됨 표시) 취소 줄을 더한다. 잔액은 서로 지워진다 */
   CANCELS.filter(x=>x.kind==='pay').forEach(x=>{const r=x.rec;
     r.ev.forEach(e=>{const b=BILLS.find(i=>i.id===e.id)||(CANCELS.find(y=>y.kind==='adh'&&y.rec.id===e.id)||{}).rec, kk=b?b.k:e.id.split('|')[1]; if(kk!==k) return;
@@ -5461,7 +5461,7 @@ function ledgerOf(k){
       rows.push({date:e.date,type:'수납',acc:'매출채권',memo:`${it} ← ${e.src}`,item:it,src:e.src,g:'pay'+r.dep,dec:e.amt,sup:null,vat:null,ord:2,hand:true,sq:e.sq,cxd:x});
       rows.push({date:x.date,type:'수납 취소',acc:'매출채권',memo:`${it} 수납 취소`,item:`${it} 수납 취소`,why:x.why,g:'cx'+x.sq,inc:e.amt,sup:null,vat:null,ord:2.3,sq:x.sq});});
     if(r.md&&r.md.k===k){
-      rows.push({date:r.md.date,type:'보증금 상계',acc:'임대보증금',memo:'미납 청구에 상계',item:'미납 청구에 상계',g:'dd'+r.dep,dec:r.md.amt,sup:null,vat:null,ord:2,sq:r.md.sq,cxd:x});
+      rows.push({date:r.md.date,type:'보증금 상계',acc:'임대보증금',memo:'미납액 정리',item:'미납액 정리',g:'dd'+r.dep,dec:r.md.amt,sup:null,vat:null,ord:2,sq:r.md.sq,cxd:x});
       rows.push({date:x.date,type:'보증금 상계 취소',acc:'임대보증금',memo:'보증금 상계 취소',item:'보증금 상계 취소',why:x.why,g:'cxd'+x.sq,inc:r.md.amt,sup:null,vat:null,ord:2.3,sq:x.sq});}});
   CANCELS.filter(x=>x.kind!=='pay'&&x.rec.k===k).forEach(x=>{const r=x.rec;
     /* 보증금 예치 · 반환 취소 — 원래 줄은 그대로 두고 반대 방향 줄을 더한다 */
