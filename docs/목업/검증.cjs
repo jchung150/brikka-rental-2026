@@ -343,10 +343,11 @@ const H = new Function(stub + bare + '; seedJuly(); return {openPay,setPm,payCon
 H.openPay('b1본관B201호'); const rubyMode = H.pm.feeMode === 'full' && H.pm.amt === 2615;
 H.openPay('b1별관301호'); const hh = H.payHTML();
 const three = H.pm.feeMode === 'full' && H.pm.amt === 5146472 + 68433 && /전액 받기/.test(hh) && /전액 감면/.test(hh) && /직접 입력/.test(hh)
-  && !/이번엔 안 함/.test(hh) && !/50% 감면/.test(hh) && hh.indexOf('>연체료<') < hh.indexOf('연체료 처리') && /미납액 합계/.test(hh);
+  && !/이번엔 안 함/.test(hh) && !/50% 감면/.test(hh) && hh.indexOf('>연체료<') < hh.indexOf('연체료 처리') && /미납액 합계/.test(hh)
+  && /미납 내역/.test(hh) && !/배분 미리보기/.test(hh) && /<div>청구년월<\/div><div class="n">미납액<\/div><div class="n">연체일수<\/div><div class="n">연체료<\/div>/.test(hh) && /26\.06월분/.test(hh);
 H.setPm('amt', 3000000); H.payConfirm();
 const LH = H.ledgerOf('b1별관301호'), hRow = LH.rows.find(r => r.type === '청구' && /^연체료/.test(r.item));
-r6.push(['수납 처리 연체료 처리 — 전액 받기 · 전액 감면 · 직접 입력(상계와 같음) · 기본 전액 받기 · 일부만 받아도 연체료 청구서 68,433 · 남은 받을 돈 2,214,905 · 루비뮤직도 전액 기본',
+r6.push(['수납 처리 연체료 처리 — 전액 받기 · 전액 감면 · 직접 입력(상계와 같음) · 기본 전액 받기 · 아래 표는 미납 내역(상계와 같음) · 일부만 받아도 연체료 청구서 68,433 · 남은 받을 돈 2,214,905 · 루비뮤직도 전액 기본',
   rubyMode && three && hRow && hRow.inc === 68433 && hRow.item === '연체료 청구서' && LH.bal.매출채권 === 5146472 + 68433 - 3000000]);
 r6.push(['연체료만 남은 루비뮤직도 미납 관리 기본 보기에', /본관B201호/.test(H.PAY2())]);
 /* 계약 등록 — 진행중 계약과 기간이 겹치면 막고, 끝난 다음 날부터는 등록된다 → CTR-2 */
