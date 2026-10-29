@@ -3583,7 +3583,8 @@ function cancelRec(kind,rec,why){
   else if(kind==='pay'){rec.ev.forEach(e=>{PAYEV[e.id]=(PAYEV[e.id]||[]).filter(x=>x.dep!==rec.dep);PAID[e.id]-=e.amt;});
     if(rec.md){const ix=MANUAL_DEP.indexOf(rec.md); if(ix>=0) MANUAL_DEP.splice(ix,1);}
     /* 그 수납 때 받기로 해 생긴 연체료 청구도 함께 취소한다 — 받기 전으로 돌아가고, 연체료는 오늘까지 쌓인 금액으로 다시 계산된다 */
-    rec.ev.filter(e=>e.id.startsWith('fee|')).forEach(e=>{const b=BILLS.find(i=>i.id===e.id); if(!b||paidNet(b.id)>0) return;
+    /* 일부만 받아 연체료 청구가 아직 안 채워졌어도 함께 지운다. 다른 입금이 이미 채웠으면 남긴다 */
+    BILLS.filter(i=>i.fee&&i.dep===rec.dep).forEach(b=>{if(paidNet(b.id)>0) return;
       BILLS.splice(BILLS.indexOf(b),1); CANCELS.push({kind:'adh',rec:b,date:TODAY_S,why:why.trim(),sq:++paySeq});});
     const fp=FEE_PREV[rec.dep]; if(fp&&FEE_CUT[fp.k]===rec.date){if(fp.cut) FEE_CUT[fp.k]=fp.cut; else delete FEE_CUT[fp.k]; delete FEE_PREV[rec.dep];}}
   else{const ix=CUTS.indexOf(rec); if(ix<0) return false; CUTS.splice(ix,1);
@@ -4148,9 +4149,8 @@ const feeUntil=(k,d)=>[...new Set(BILLS.filter(i=>i.k===k).map(i=>i.ym))].reduce
 function openPay(k){
   const a=arrears(CTRS.find(c=>ckey(c)===k));
   const full=feeUntil(k,TODAY_S);
-  /* 연체료만 남은 계약은 연체료를 정리하러 연 것이다 → 기본 전액. 청구 미납이 있으면 기본은 이번엔 정리 안 함 */
-  const mode=!a.due&&full?'full':'later';
-  pm={k,date:TODAY_S,amt:a.due+(mode==='full'?full:0),how:'현금',memo:'',feeMode:mode,feeOn:mode!=='later',feeFull:full,fee:full};
+  /* 연체료 처리는 보증금 상계와 같다 — 기본 전액 받기. 수납할 때마다 그날까지의 연체료가 정리된다 */
+  pm={k,date:TODAY_S,amt:a.due+full,how:'현금',memo:'',feeMode:'full',feeOn:true,feeFull:full,fee:full};
   DRAWER='pay';render(true);
 }
 const numOf=v=>Math.max(0,parseInt(String(v).replace(/[^0-9]/g,''))||0);
@@ -4159,20 +4159,17 @@ function setPm(f,v){
   const was=pm.feeOn?pm.fee:0;
   if(f==='amt') pm.amt=numOf(v);
   else if(f==='fee'){pm.feeMode='custom';pm.feeOn=true;pm.fee=Math.min(numOf(v),pm.feeFull);}
-  else if(f==='feeOn') setFeeMode(v===true||v==='1'?'full':'later');
   else if(f==='feeMode') setFeeMode(v);
   else if(f==='date'){pm.date=v;pm.feeFull=feeUntil(pm.k,v);setFeeMode(pm.feeMode);}
   else pm[f]=v;
   if(f!=='amt') pm.amt=Math.max(0,pm.amt-was+(pm.feeOn?pm.fee:0));
   render(true);
 }
-/* 연체료 처리 5가지 — 이번엔 정리 안 함 · 전액 받기 · 50% 감면 · 직접 입력 · 전액 감면 → 4.4.3 */
-/* 보증금 상계의 연체료 처리 — 상계는 남은 것을 정리하는 일이라 「이번엔 안 함」 · 50% 감면이 없다. 기본 전액 받기 */
-const OFF_FEE=[['full','전액 받기'],['waive','전액 감면'],['custom','직접 입력']];
-const FEE_MODES=[['full','전액 받기'],['waive','전액 감면'],['custom','직접 입력'],['half','50% 감면'],['later','이번엔 안 함']];   /* 앞 셋은 보증금 상계와 같은 순서 */
+/* 연체료 처리 3가지 — 수납 처리 · 보증금 상계 같다. 기본 전액 받기. 일부 감면은 직접 입력으로 → 4.4.3 */
+const FEE_MODES=[['full','전액 받기'],['waive','전액 감면'],['custom','직접 입력']];
 function setFeeMode(m){
-  pm.feeMode=m; pm.feeOn=m!=='later';
-  pm.fee=m==='half'?Math.floor(pm.feeFull/2):m==='waive'?0:m==='custom'?Math.min(pm.fee,pm.feeFull):pm.feeFull;
+  pm.feeMode=m; pm.feeOn=true;
+  pm.fee=m==='waive'?0:m==='custom'?Math.min(pm.fee,pm.feeFull):pm.feeFull;
 }
 /* 받기로 한 연체료 — 받은 날 청구 건으로 만든다. 확정 전에는 미리보기에만 쓴다 */
 function feeBill(){
@@ -4193,8 +4190,7 @@ function payPlan(){
 function payConfirm(){
   const pl=payPlan(); if(pl.rest>0||(!pl.lines.length&&!pm.feeOn)) return;
   if(pm.how==='보증금상계'&&pm.amt>ledgerOf(pm.k).bal.임대보증금) return;
-  const fb=feeBill(); if(fb) BILLS.push(fb);
-  const dep='m'+(++pmSeq);
+  const fb=feeBill(), dep='m'+(++pmSeq); if(fb){fb.dep=dep;BILLS.push(fb);}   /* 어느 수납 때 생긴 연체료 청구인지 — 취소할 때 함께 지운다 */
   if(pm.feeOn){FEE_PREV[dep]={k:pm.k,cut:FEE_CUT[pm.k]};FEE_CUT[pm.k]=pm.date;}   /* 받았든 깎았든 이날까지의 연체료는 정리됐다 */
   const src=pm.how;   /* 날짜는 원장 날짜 칸에 있으니 이름에 붙이지 않는다 */
   pl.lines.forEach(l=>addPay(l.id,l.pay,pm.date,src,dep));
@@ -4227,7 +4223,7 @@ ${isOff?`      <div class="fg"><div class="fl">정리할 돈</div>
             :`<b>${won(pm.fee)}</b>`}
           <span class="c2">${off?`${won(pm.feeFull)} 중 <b style="color:var(--warn)">${won(off)} 감면</b>`:`${pm.date.slice(5).replace('-','.')}까지 · 연 ${rateOf(pm.k)}%`}</span></div>
         <div class="fr"><span class="fk">연체료 처리</span>
-          <div style="display:flex;flex-wrap:wrap;gap:6px">${OFF_FEE.map(([v,t])=>
+          <div style="display:flex;flex-wrap:wrap;gap:6px">${FEE_MODES.map(([v,t])=>
             `<button class="btn sm ${pm.feeMode===v?'pri':''}" onclick="setPm('feeMode','${v}')">${t}</button>`).join('')}</div></div>`:''}
         <div class="fr" style="border-top:1px solid var(--line);padding-top:9px;margin-top:4px"><span class="fk"><b>미납액 합계</b></span>
           <b style="font-size:15px">${won(need)}</b><span class="c2">${pm.feeFull?'미납 + 연체료':'미납'}</span>
@@ -4237,7 +4233,7 @@ ${isOff?`      <div class="fg"><div class="fl">정리할 돈</div>
         ${pm.feeFull?`<div class="fr"><span class="fk">연체료</span>${pm.feeMode==='custom'
             ?`<input type="text" inputmode="numeric" value="${pm.fee.toLocaleString('ko-KR')}" onchange="setPm('fee',this.value)" style="text-align:right;max-width:140px">`
             :`<b>${won(pm.feeOn?pm.fee:pm.feeFull)}</b>`}
-          <span class="c2">${!pm.feeOn?'이번엔 정리하지 않음 · 계속 쌓임':off?`${won(pm.feeFull)} 중 <b style="color:var(--warn)">${won(off)} 감면</b>`:`${pm.date.slice(5).replace('-','.')}까지 · 연 ${rateOf(pm.k)}%`}</span></div>
+          <span class="c2">${off?`${won(pm.feeFull)} 중 <b style="color:var(--warn)">${won(off)} 감면</b>`:`${pm.date.slice(5).replace('-','.')}까지 · 연 ${rateOf(pm.k)}%`}</span></div>
         <div class="fr"><span class="fk">연체료 처리</span>
           <div style="display:flex;flex-wrap:wrap;gap:6px">${FEE_MODES.map(([v,t])=>
             `<button class="btn sm ${pm.feeMode===v?'pri':''}" onclick="setPm('feeMode','${v}')">${t}</button>`).join('')}</div></div>`:''}
