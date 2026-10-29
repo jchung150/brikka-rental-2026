@@ -598,8 +598,12 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   PO.lcxOpen(Object.keys(PO.LEDG).filter(x => x.startsWith('paym')).pop()); PO.lcx.why = '잘못 받음'; PO.lcxConfirm();
   PO.openOffset(k); PO.setPm('amt', 5000000); PO.payConfirm();
   const seq = PO.ledgerOf(k).rows.filter(r => r.date === '2026-08-10' && r.acc === '매출채권').map(r => r.type + ' ' + r.bal).join(' / ');
-  r6.push(['같은 날 원장은 한 일 순서대로 — 현금 500만 → 취소 → 보증금 상계 500만 · 잔액 5,214,905 → 214,905 → 5,214,905 → 5,146,472 → 5,214,905 → 214,905',
-    seq === '청구 5214905 / 수납 214905 / 수납 취소 5214905 / 청구 취소 5146472 / 청구 5214905 / 수납 214905']); }
+  PO.MORE.length = 0; PO.CTR3(k);
+  PO.lcxOpen(Object.keys(PO.LEDG).filter(x => x.startsWith('paym')).pop()); PO.lcx.why = '잘못 상계'; PO.lcxConfirm();
+  const seq2 = PO.ledgerOf(k).rows.filter(r => r.date === '2026-08-10' && r.acc === '매출채권').map(r => r.type + ' ' + r.bal).join(' / ');
+  const once = '청구 5214905 / 수납 214905 / 수납 취소 5214905 / 청구 취소 5146472';
+  r6.push(['같은 날 원장은 한 일 순서대로 — 현금 500만 → 취소 → 보증금 상계 500만 → 취소 · 취소한 연체료 청구서도 생긴 자리에 · 잔액이 줄마다 맞음',
+    seq === once + ' / 청구 5214905 / 수납 214905' && seq2 === once + ' / ' + once]); }
 /* 전체 펼치기는 필터 옆(왼쪽) · 할 일 버튼만 오른쪽 끝 · 청구서 발행의 전체 선택은 머리글 체크박스 */
 { const TG = new Function(stub + bare + '; seedJuly(); return {PAY1,PAY2,PAY6,PRO3,CTR3,sel1,set tab3(v){tab3=v;},set tab3c(v){tab3c=v;},set f1b(v){f1.b=v;}};')();
   const left = h => { const fb = (h.match(/<div class="fbar">[\s\S]*?<\/div>/g) || []).find(x => /전체 (펼치기|접기)/.test(x)) || ''; const a = fb.indexOf('전체 펼치기'), m = fb.indexOf('margin-left:auto'); return a > 0 && (m < 0 || a < m); };

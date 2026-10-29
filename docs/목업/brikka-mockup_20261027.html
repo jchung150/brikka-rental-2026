@@ -3779,7 +3779,7 @@ function rcConfirm(no){
   if(RC.reg[no]!==false&&g.st!=='자동') RC.alias[g.nm]=g.biz;   /* 입금자명 등록 */
   /* 남는 돈은 과납 — 마지막으로 배분된 계약에 속한다. 배분할 청구가 없었으면 그 임차인의 첫 계약 → 4.3.4 */
   const ok=pl.rest>0?((pl.lines[pl.lines.length-1]||{}).k||ckey(B[g.biz].ctrs[0])):null;
-  RC.dec[no]={done:{st:'확정',was:g.st,biz:g.biz,basis:g.basis,nm:g.nm,dt:d.dt,name:d.name,ok,...pl}};
+  RC.dec[no]={done:{st:'확정',was:g.st,biz:g.biz,basis:g.basis,nm:g.nm,dt:d.dt,name:d.name,ok,...pl,sq:++paySeq}};
   RC.cur=rcNext(); if(!QUIET) render(true);
 }
 function rcIgnore(no){RC.dec[no]={ex:true};RC.cur=rcNext();if(!QUIET) render(true);}
@@ -5433,7 +5433,7 @@ function ledgerOf(k){
   /* 남은 입금 — 청구 건 없이 이 계약에 수납으로 기록한다(과납) → 4.3.4 */
   Object.entries(RC.dec).forEach(([no,x])=>{const d=x.done;if(!d||!(d.rest>0)||d.ok!==k) return;
     rows.push({date:d.dt.slice(0,10),type:'수납',acc:'매출채권',memo:`과납 ← ${d.dt.slice(11,19)} ${d.name}`,item:'과납 (배분할 청구 없음)',src:`${d.dt.slice(11,19)} ${d.name}`,
-      g:'payd'+no,dec:d.rest,sup:null,vat:null,ord:2,sq:1e9});});
+      g:'payd'+no,dec:d.rest,sup:null,vat:null,ord:2,sq:d.sq});});
   /* 전월 미납액에 들어온 수납 — 실제로 들어온 돈이라 원장에 적는다 → 4.3.6 */
   MC_YMS.filter(v=>closeOn(c.b,v)).forEach(v=>{const vL=v.slice(2).replace('-','.')+'월분';
     (PAYEV[carryId(k,v)]||[]).forEach(e=>rows.push({date:e.date,type:'수납',acc:'매출채권',memo:`전월 미납액 ← ${e.src}`,item:'전월 미납액',src:e.src,
@@ -5465,8 +5465,8 @@ function ledgerOf(k){
       rows.push({date:x.date,type:'보증금 반환 취소',acc:'임대보증금',memo:'보증금 반환 취소',item:'보증금 반환 취소',why:x.why,g:'cx'+x.sq,inc:r.amt,sup:null,vat:null,ord:2.3,sq:x.sq});}
     else if(x.kind==='adh'){
       /* 연체료 청구는 수납 취소와 함께 취소된다(같은 날 받은 연체료) */
-      if(r.fee) rows.push({date:r.date,type:'청구',acc:'매출채권',memo:r.memo,item:r.memo,ttl:r.memo,g:'fee'+r.id,ym:r.ym,inc:r.amt,sup:null,vat:null,ord:1,pr:99,cxd:x});
-      else rows.push({date:r.date,type:'청구',acc:'매출채권',memo:r.n,item:r.n,ttl:r.n,why:r.memo,g:'adh'+r.id,ym:r.ym,inc:r.amt,sup:r.sup,vat:r.vat,ord:1,pr:98,cxd:x});
+      if(r.fee) rows.push({date:r.date,type:'청구',acc:'매출채권',memo:r.memo,item:r.memo,ttl:r.memo,g:'fee'+r.id,ym:r.ym,inc:r.amt,sup:null,vat:null,ord:1,pr:99,sq:r.sq,cxd:x});
+      else rows.push({date:r.date,type:'청구',acc:'매출채권',memo:r.n,item:r.n,ttl:r.n,why:r.memo,g:'adh'+r.id,ym:r.ym,inc:r.amt,sup:r.sup,vat:r.vat,ord:1,pr:98,sq:r.sq,cxd:x});
       rows.push({date:x.date,type:'청구 취소',acc:'매출채권',memo:`${r.n} 취소`,item:`${r.n} 취소`,why:x.why,g:'cx'+x.sq,dec:r.amt,sup:r.sup,vat:r.vat,ord:2.3,sq:x.sq});}
     else{const t=`${r.ym.slice(2).replace('-','.')}월분 ${r.n} 감액`;
       rows.push({date:r.date,type:'감액',acc:'매출채권',memo:t,item:t,why:r.why,g:'cut'+r.sq,dec:r.amt,sup:r.sup,vat:r.vat,ord:2.2,sq:r.sq,cxd:x});
