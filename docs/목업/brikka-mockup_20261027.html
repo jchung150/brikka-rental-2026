@@ -1024,7 +1024,7 @@ const vatSplit=(base,doc)=>{const v=doc==='세금계산서'?Math.floor(base/10):
 function issueAdhoc(k,n,amt,doc,memo,ref,sup,vat){
   const c=CTRS.find(x=>ckey(x)===k), S=sup!=null?{sup,vat}:{sup:doc==='세금계산서'?Math.floor(amt*10/11):amt,vat:0};
   if(sup==null) S.vat=amt-S.sup;
-  BILLS.push({id:`adh|${k}|${++adSeq}`,ym:adYm(),k,no:c.no,n,amt,date:TODAY_S,adhoc:true,doc,memo,ref:ref||null,sup:S.sup,vat:S.vat});}
+  BILLS.push({id:`adh|${k}|${++adSeq}`,ym:adYm(),k,no:c.no,n,amt,date:TODAY_S,adhoc:true,doc,memo,ref:ref||null,sup:S.sup,vat:S.vat,sq:++paySeq});}
 const adhocOf=k=>BILLS.filter(i=>i.k===k&&i.adhoc);
 function setMul(code,no,v){
   SAVED[code]=null;
@@ -4194,7 +4194,7 @@ function payPlan(){
 function payConfirm(){
   const pl=payPlan(); if(pl.rest>0||(!pl.lines.length&&!pm.feeOn)) return;
   if(pm.how==='보증금상계'&&pm.amt>ledgerOf(pm.k).bal.임대보증금) return;
-  const fb=feeBill(), dep='m'+(++pmSeq); if(fb){fb.dep=dep;BILLS.push(fb);}   /* 어느 수납 때 생긴 연체료 청구인지 — 취소할 때 함께 지운다 */
+  const fb=feeBill(), dep='m'+(++pmSeq); if(fb){fb.dep=dep;fb.sq=++paySeq;BILLS.push(fb);}   /* 어느 수납 때 생긴 연체료 청구인지 — 취소할 때 함께 지운다 */
   if(pm.feeOn){FEE_PREV[dep]={k:pm.k,cut:FEE_CUT[pm.k]};FEE_CUT[pm.k]=pm.date;}   /* 받았든 깎았든 이날까지의 연체료는 정리됐다 */
   const src=pm.how;   /* 날짜는 원장 날짜 칸에 있으니 이름에 붙이지 않는다 */
   pl.lines.forEach(l=>addPay(l.id,l.pay,pm.date,src,dep));
@@ -5421,7 +5421,7 @@ function ledgerOf(k){
     const ymL=i.ym.slice(2).replace('-','.')+'월분';
     rows.push({date:i.date||billOn(i.ym),type:'청구',acc:'매출채권',memo:i.adhoc?i.n:i.memo||`${ymL} ${i.n}`,item:i.adhoc?i.n:i.memo||`${ymL} ${i.n}`,bid:i.fee?null:i.id,
       g:i.fee?'fee'+i.id:i.adhoc?'adh'+i.id:'bill'+i.ym,ym:i.ym,ttl:i.adhoc?i.n:i.memo,why:i.adhoc?i.memo:'',
-      inc:i.amt,sup,vat:i.vat!=null?i.vat:i.amt-sup,ord:1,pr:prioOf(i.n.split(' ')[0])});
+      inc:i.amt,sup,vat:i.vat!=null?i.vat:i.amt-sup,ord:1,pr:prioOf(i.n.split(' ')[0]),sq:i.sq});
     (PAYEV[i.id]||[]).filter(e=>!e.dep.startsWith('cr')).forEach(e=>rows.push({date:e.date,type:'수납',acc:'매출채권',
       memo:`${i.fee?'연체료':ymL+' '+i.n} ← ${e.src}`,item:i.fee?'연체료':`${ymL} ${i.n}`,src:e.src,g:'pay'+e.dep,dec:e.amt,sup:null,vat:null,ord:2,pr:prioOf(i.n.split(' ')[0]),
       hand:e.dep.startsWith('m'),sq:e.sq}));
@@ -5477,8 +5477,9 @@ function ledgerOf(k){
   /* 보증금 반환 — 돌려준 보증금(임대보증금 차변). 계약 중에도 쓴다(더 받은 보증금) · 퇴거 때는 상계하고 남은 잔액 */
   DEP_RET.filter(x=>x.k===k).forEach(x=>{const t='보증금 반환';
     rows.push({date:x.date,type:'보증금 반환',acc:'임대보증금',memo:t,item:t,why:x.why,acct:x.acct,g:'dr'+x.sq,dec:x.amt,sup:null,vat:null,ord:3,sq:x.sq});});
-  /* 청구서 안의 항목은 금액 순 — 화면은 최근이 위로 뒤집으므로 큰 금액이 위에 온다 */
-  rows.sort((a,b)=>dnum(a.date)-dnum(b.date)||a.ord-b.ord||(a.sq||0)-(b.sq||0)
+  /* 같은 날은 기록한 순서(sq)대로 — 수납 → 취소 → 다시 상계처럼 한 날 여러 번 해도 한 일 순서가 그대로 보인다.
+     sq가 없는 정기 청구 · 계약 보증금은 그날 맨 앞. 청구서 안의 항목은 금액 순(화면은 최근이 위라 큰 금액이 위) */
+  rows.sort((a,b)=>dnum(a.date)-dnum(b.date)||(a.sq||0)-(b.sq||0)||a.ord-b.ord
     ||(a.type==='청구'&&b.type==='청구'?(a.inc||0)-(b.inc||0):(a.pr||0)-(b.pr||0)));
   const bal={매출채권:0,임대보증금:0};
   rows.forEach(r=>{bal[r.acc]+=(r.inc||0)-(r.dec||0);r.bal=bal[r.acc];
