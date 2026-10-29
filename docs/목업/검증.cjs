@@ -596,6 +596,18 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   const before = Object.keys(TG.sel1).filter(k => TG.sel1[k]).length;
   r6.push(['전체 펼치기 — 청구서 발행 · 미납 관리 · 수납 내역 · 원장 · 주차 모두 필터 옆 · 할 일 버튼은 오른쪽 끝 · 청구서 발행 전체 선택은 머리글 체크박스(버튼 없음)',
     [p1, TG.PAY2(), TG.PAY6(), TG.CTR3('b1본관801호'), TG.PRO3('b1')].every(left) && pick && before === 0]); }
+/* 연체료까지 받은 수납 취소 — 잠기지 않는다 · 그때 생긴 연체료 청구도 함께 취소(청구 취소 줄) · 미납 · 연체료 원래대로 */
+{ const PF = new Function(stub + bare + '; seedJuly(); return {openPay,setPm,payConfirm,ledgerOf,arrears,feeUntil,CTRS,CTR3,MORE,LEDG,BILLS,lcxOpen,lcxConfirm,get pm(){return pm;},get lcx(){return lcx;},set tab3c(v){tab3c=v;}};')();
+  const k = 'b1별관301호', c = PF.CTRS.find(x => x.b === 'b1' && x.no === '별관301호'), due0 = PF.arrears(c).due, fee0 = PF.feeUntil(k, '2026-08-10');
+  PF.openPay(k); PF.setPm('feeMode', 'full'); const fee = PF.pm.fee; PF.payConfirm();
+  const made = PF.BILLS.some(i => i.fee && i.k === k), due1 = PF.arrears(c).due;
+  PF.tab3c = '원장'; PF.MORE.length = 0; PF.CTR3(k);
+  const key = Object.keys(PF.LEDG).find(x => x.startsWith('paym')), it = PF.MORE.flat().find(i => i.go === `lcxOpen('${key}')`);
+  PF.lcxOpen(key); PF.lcx.why = '다른 계약 돈'; PF.lcxConfirm();
+  const L = PF.ledgerOf(k);
+  r6.push(['연체료까지 받은 수납 취소 — 취소 잠기지 않음 · 연체료 청구도 함께 취소(청구 취소 · 연체료) · 미납 · 연체료 원래대로',
+    fee > 0 && made && due1 === 0 && it && !it.off && !PF.BILLS.some(i => i.fee && i.k === k) && PF.arrears(c).due === due0 && PF.feeUntil(k, '2026-08-10') === fee0
+    && L.rows.some(r => r.type === '청구 취소' && /연체료/.test(r.item) && r.dec === fee) && L.rows.some(r => r.type === '수납 취소')]); }
 /* 청구서 발행 — 메일 체크박스·미납 조회 없음 · 발행을 누르면 메일 여부를 묻는다 · 더보기로 한 계약만 발행 */
 { const IA = new Function(stub + bare + '; seedJuly(); return {PAY1,issueAsk,issueGo,issueHTML,ISS,MORE,set f1b(v){f1.b=v;}};')();
   IA.f1b = 'b2'; IA.MORE.length = 0; const h = IA.PAY1();
