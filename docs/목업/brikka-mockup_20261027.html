@@ -3641,7 +3641,7 @@ const rateOf=k=>{const c=CTRS.find(x=>ckey(x)===k);return (c&&c.rate)||8;};
 const FEE_CUT={}, FEE_PREV={};   /* FEE_PREV[수납] — 그 수납이 연체료를 정리하기 전의 정리일. 수납을 취소하면 되돌린다 */
 function lateCalc(k,ym,until){
   const end=until||TODAY_S, cutD=FEE_CUT[k];
-  const it=BILLS.filter(i=>i.k===k&&i.ym===ym&&!i.fee), due=dueStr(ym), rate=rateOf(k);   /* 연체료에는 연체료를 붙이지 않는다 */
+  const it=BILLS.filter(i=>i.k===k&&i.ym===ym&&!i.fee&&!i.adhoc), due=dueStr(ym), rate=rateOf(k);   /* 연체료는 정기 청구에만 — 연체료 · 비정기 청구(엘리베이터 사용료 · 수리비 · 위약금 · 퇴거 예상분 등)에는 붙이지 않는다 */
   const bill=it.reduce((a,i)=>a+i.amt,0);
   const ev=[...it.flatMap(i=>PAYEV[i.id]||[]),...(carryEv(k)[ym]||[])];   /* 미납액으로 넘어가서 받은 돈도 그 달 몫이다 */
   let bal=bill-ev.filter(e=>dnum(e.date)<=dnum(due)).reduce((a,e)=>a+e.amt,0);

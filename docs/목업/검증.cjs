@@ -608,6 +608,12 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   r6.push(['연체료까지 받은 수납 취소 — 취소 잠기지 않음 · 연체료 청구도 함께 취소(청구 취소 · 연체료) · 미납 · 연체료 원래대로',
     fee > 0 && made && due1 === 0 && it && !it.off && !PF.BILLS.some(i => i.fee && i.k === k) && PF.arrears(c).due === due0 && PF.feeUntil(k, '2026-08-10') === fee0
     && L.rows.some(r => r.type === '청구 취소' && /연체료/.test(r.item) && r.dec === fee) && L.rows.some(r => r.type === '수납 취소')]); }
+/* 비정기 청구에는 연체료를 붙이지 않는다 — 엘리베이터 사용료를 청구 추가해도 그 달 연체료는 그대로(정기 청구만 센다) */
+{ const NF = new Function(stub + bare + '; seedJuly(); return {issueAdhoc,lateCalc,BILLS};')();
+  const k = 'b1별관301호', f0 = NF.lateCalc(k, '2026-08', '2026-10-31').fee;
+  NF.issueAdhoc(k, '엘리베이터 사용료', 220000, '세금계산서', '이사', null, 200000, 20000);
+  const ad = NF.BILLS.find(i => i.adhoc && i.k === k), f1 = NF.lateCalc(k, ad.ym, '2026-10-31').fee;
+  r6.push(['비정기 청구에는 연체료 없음 — 엘리베이터 사용료 220,000을 청구 추가해도 8월분은 정기 청구 발행 전이라 연체료 0 · 정기 청구가 있는 7월분은 연체료 있음', ad.ym === '2026-08' && f0 === 0 && f1 === 0 && NF.lateCalc(k, '2026-07', '2026-10-31').fee > 0]); }
 /* 청구서 발행 — 메일 체크박스·미납 조회 없음 · 발행을 누르면 메일 여부를 묻는다 · 더보기로 한 계약만 발행 */
 { const IA = new Function(stub + bare + '; seedJuly(); return {PAY1,issueAsk,issueGo,issueHTML,ISS,MORE,set f1b(v){f1.b=v;}};')();
   IA.f1b = 'b2'; IA.MORE.length = 0; const h = IA.PAY1();
