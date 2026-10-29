@@ -5159,8 +5159,6 @@ function CTR3head(c,k){
             <span class="mn">${x.no} · ${x.ten}</span><span class="mk">${x.st}</span></div>`).join('')}`).join('')}
       </div>`:''}
     </div><span class="sid">CTR-3</span>
-    <div class="act">
-      <button class="btn" onclick="go('ctr-1')">목록</button></div>
   </div>
   <div class="tabs">
     ${['요약','청구·수납','원장','자료보관','이력'].map(t=>`<button class="${t===tab3c?'on':''}" onclick="tab3c='${t}';render()">${t}</button>`).join('')}
