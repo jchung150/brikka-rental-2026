@@ -587,6 +587,15 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   r6.push(['수납 취소 — 현금 100만 · 보증금 상계 50만을 원장 ⋮ › 취소 → 미납 원래대로 · 보증금 잔액 원래대로 · 원장에 수납 취소 · 보증금 상계 취소 줄 · 은행 입금 줄은 ⋮에 상세만',
     bankKey && bankNo && manual.length === 2 && PX.arrears(c).due === due0 && L.bal.임대보증금 === dep0
     && L.rows.some(r => r.type === '수납 취소' && r.inc === 1000000) && L.rows.some(r => r.type === '보증금 상계 취소' && r.inc === 500000)]); }
+/* 전체 펼치기는 필터 옆(왼쪽) · 할 일 버튼만 오른쪽 끝 · 청구서 발행의 전체 선택은 머리글 체크박스 */
+{ const TG = new Function(stub + bare + '; seedJuly(); return {PAY1,PAY2,PAY6,PRO3,CTR3,sel1,set tab3(v){tab3=v;},set tab3c(v){tab3c=v;},set f1b(v){f1.b=v;}};')();
+  const left = h => { const fb = (h.match(/<div class="fbar">[\s\S]*?<\/div>/g) || []).find(x => /전체 (펼치기|접기)/.test(x)) || ''; const a = fb.indexOf('전체 펼치기'), m = fb.indexOf('margin-left:auto'); return a > 0 && (m < 0 || a < m); };
+  TG.tab3 = '주차'; TG.tab3c = '원장'; TG.f1b = 'b1';
+  const p1 = TG.PAY1(), hdr = (p1.match(/<div class="schr iss hd">[\s\S]*?<\/div>/) || [''])[0];
+  const pick = /class="cb[^"]*" title="발행 대기 전체 선택" onclick="pickAll\(true\)"/.test(hdr) && !/>전체 선택<\/button>/.test(p1) && !/선택 해제/.test(p1);
+  const before = Object.keys(TG.sel1).filter(k => TG.sel1[k]).length;
+  r6.push(['전체 펼치기 — 청구서 발행 · 미납 관리 · 수납 내역 · 원장 · 주차 모두 필터 옆 · 할 일 버튼은 오른쪽 끝 · 청구서 발행 전체 선택은 머리글 체크박스(버튼 없음)',
+    [p1, TG.PAY2(), TG.PAY6(), TG.CTR3('b1본관801호'), TG.PRO3('b1')].every(left) && pick && before === 0]); }
 /* 청구서 발행 — 메일 체크박스·미납 조회 없음 · 발행을 누르면 메일 여부를 묻는다 · 더보기로 한 계약만 발행 */
 { const IA = new Function(stub + bare + '; seedJuly(); return {PAY1,issueAsk,issueGo,issueHTML,ISS,MORE,set f1b(v){f1.b=v;}};')();
   IA.f1b = 'b2'; IA.MORE.length = 0; const h = IA.PAY1();

@@ -1993,9 +1993,8 @@ function beHTML(){
   </div></div>`;
 }
 function facDel(id,n){const b=BUILDINGS.find(x=>x.id===id); b.fac=b.fac.filter(x=>x!==n); render(true);}
-/* 상세 화면 탭(요약 제외)의 공통 모양 — 위에 필터 줄(버튼은 오른쪽 끝), 펼치는 표면 그 아래 전체 펼치기 줄, 표, 아래 안내. 요약 숫자는 적지 않는다. 계약 상세 원장과 같다 */
+/* 상세 화면 탭(요약 제외)의 공통 모양 — 위에 필터 줄, 표, 아래 안내. 필터 줄 왼쪽은 보는 방법(필터 · 전체 펼치기), 오른쪽 끝은 할 일 버튼. 요약 숫자는 적지 않는다 */
 const tabBar=(left,right)=>`<div class="fbar">${left||''}<span style="margin-left:auto;display:flex;gap:6px">${right||''}</span></div>`;
-const tabSub=(left,right)=>right?`<div style="display:flex;align-items:center;gap:18px;margin:-6px 0 8px;font-size:12.5px"><span style="color:var(--muted)">${left||''}</span><span style="margin-left:auto">${right}</span></div>`:'';
 function t요약(b){
   const d=dday(b.mgmtEnd);
   return `
@@ -2059,9 +2058,9 @@ function t주차(b){
   const groups=cs.map(c=>({c,k:ckey(c),vs:list.filter(v=>v.k===ckey(c))})).filter(g=>g.vs.length||(!filt&&CPARK[g.k]));
   const anyOp=groups.some(g=>gpkOpen(g.k)), miss='<span style="color:var(--warn)">미확인</span>';
   return `
-  ${tabBar(S('k',cs.map(c=>[ckey(c),cname(b.alias,c.no,c.ten)]),'전체 계약')+S('loc',VEH_LOC.map(v=>[v,v]),'전체 주차구분'),
+  ${tabBar(S('k',cs.map(c=>[ckey(c),cname(b.alias,c.no,c.ten)]),'전체 계약')+S('loc',VEH_LOC.map(v=>[v,v]),'전체 주차구분')
+    +(groups.length?`<button class="btn sm" onclick="gpkSet(${anyOp?'false':'true'})">${anyOp?'전체 접기':'전체 펼치기'}</button>`:''),
     `<button class="btn pri" onclick="vehOpen('${b.id}')">+ 차량 추가</button>`)}
-  ${tabSub('',groups.length?`<button class="btn sm" onclick="gpkSet(${anyOp?'false':'true'})">${anyOp?'전체 접기':'전체 펼치기'}</button>`:'')}
   <div class="tbl">
     ${groups.length?`<div class="tw"><table>
       <thead><tr><th>계약고유이름 · 차량 소유자</th><th>차량번호</th><th>연락처</th><th>차종</th><th>주차구분</th><th>요금부과</th><th class="c">더보기</th></tr></thead>
@@ -3310,9 +3309,7 @@ function PAY1(){
     <select onchange="setF1('st',this.value)">
       ${['','발행 대기','발행 완료'].map(v=>`<option value="${v}" ${f1.st===v?'selected':''}>${v||'전체 상태'}</option>`).join('')}
     </select>
-    ${rows.length?`<span style="margin-left:auto;display:flex;gap:8px">
-      <button class="btn sm" onclick="pickAll(${nSel?'false':'true'})">${nSel?'선택 해제':'전체 선택'}</button>
-      <button class="btn sm" onclick="gAll(${anyOpen?'false':'true'})">${anyOpen?'전체 접기':'전체 펼치기'}</button></span>`:''}
+    ${rows.length?`<button class="btn sm" onclick="gAll(${anyOpen?'false':'true'})">${anyOpen?'전체 접기':'전체 펼치기'}</button>`:''}
   </div>
   ${PAST_CTX?(lk?`<div class="fnd"><span class="h">${ic('lock',14)} 마감된 회차입니다</span>
     ${ymL}은 ${lk.at.replace('-','.')}에 마감했습니다(${lk.by}). 발행한 청구서를 볼 수만 있습니다.
@@ -3338,7 +3335,7 @@ function PAY1(){
   ${!rows.length?`<div class="tbl"><div class="empty"><div class="t">발행할 청구서가 없습니다</div>
      진행중인 계약이 없거나 조건에 맞는 건이 없습니다.</div></div>`
   :`<div class="tbl schl">
-      <div class="schr iss hd"><div>계약고유이름 · 청구항목</div><div>발행 문서</div>
+      <div class="schr iss hd"><div>${wait.length?`<span class="cb ${nSel===wait.length?'on':''}" title="발행 대기 전체 선택" onclick="pickAll(${nSel===wait.length?'false':'true'})"></span>`:'<span class="cb dis"></span>'}<span style="display:inline-block;width:20px"></span>계약고유이름 · 청구항목</div><div>발행 문서</div>
         <div class="n">미납·과납액</div>
         <div class="n">공급가액</div><div class="n">부가세</div><div class="n">합계</div>
         <div class="c">상태</div><div class="c">더보기</div></div>
@@ -4106,8 +4103,7 @@ function PAY6(){
     <select onchange="setRC('st',this.value)">
       ${['','완납','부분납','납부전','미납','과납'].map(v=>`<option value="${v}" ${RC.f.st===v?'selected':''}>${v||'전체 납부상태'}</option>`).join('')}
     </select>
-    ${rows.length?`<span style="margin-left:auto;display:flex;gap:8px">
-      <button class="btn sm" onclick="g6Set(${anyOp?'false':'true'})">${anyOp?'전체 접기':'전체 펼치기'}</button></span>`:''}
+    ${rows.length?`<button class="btn sm" onclick="g6Set(${anyOp?'false':'true'})">${anyOp?'전체 접기':'전체 펼치기'}</button>`:''}
   </div>
   ${waitN?`<div class="fnd wa3"><span class="h">확정 전 입금 ${waitN}건</span>
     아직 기록되지 않은 입금이 있어 이미 낸 계약도 <b>미납</b>으로 보일 수 있습니다.
@@ -4590,7 +4586,7 @@ function PAY2(){
     <select onchange="setF2('dd',this.value)">
       ${[['','전체 연체일수'],['30','30일 이상'],['60','60일 이상'],['90','90일 이상']].map(([v,t])=>`<option value="${v}" ${f2.dd===v?'selected':''}>${t}</option>`).join('')}
     </select>
-    ${rows.length?`<span style="margin-left:auto"><button class="btn sm" onclick="g2All=${anyOp?'false':'true'};g2={};render(true)">${anyOp?'전체 접기':'전체 펼치기'}</button></span>`:''}
+    ${rows.length?`<button class="btn sm" onclick="g2All=${anyOp?'false':'true'};g2={};render(true)">${anyOp?'전체 접기':'전체 펼치기'}</button>`:''}
   </div>
   ${waitN?`<div class="fnd wa3"><span class="h">확정 전 입금 ${waitN}건</span>
     아직 기록되지 않은 입금이 있어 이미 낸 계약도 미납으로 보입니다.
@@ -5590,19 +5586,7 @@ function CTR3(k){
   const balTx=v=>won(v);
   const b0=L.bal.매출채권, late=arrears(c).due;
   const dash='<span style="color:var(--faint)">—</span>';
-  return CTR3head(c,k)+`
-  <div class="fbar">
-    <select onchange="setF3('per',this.value)">
-      ${[['','전체 기간'],['1','최근 1개월'],['3','최근 3개월'],['12','최근 12개월']].map(([v,t])=>`<option value="${v}" ${f3.per===v?'selected':''}>${t}</option>`).join('')}
-    </select>
-    <select onchange="setF3('acc',this.value)">
-      ${[['','전체 계정'],['매출채권','매출채권 (청구·수납)'],['임대보증금','임대보증금']].map(([v,t])=>`<option value="${v}" ${f3.acc===v?'selected':''}>${t}</option>`).join('')}
-    </select>
-    <span style="margin-left:auto;display:flex;gap:6px">   <!-- 돈을 다루는 버튼은 원장 탭에만 둔다 -->
-      ${ledBtns(k,L)}
-      <button class="btn pri" onclick="alert('원장 출력 — 선택한 기간·계정의 원장을 거래내역서 PDF로 내려받거나 임차인 담당자에게 보낸다')">원장 출력</button></span>
-  </div>
-  ${(()=>{
+  const LT=(()=>{
     /* 묶음 — 청구는 청구서 하나, 수납은 입금 하나, 보증금은 거래 하나. rows는 이미 최근 순이다 */
     const G=[];rows.forEach(r=>{const last=G[G.length-1];
       if(last&&last.g===r.g&&last.date===r.date) last.items.push(r); else G.push({g:r.g,date:r.date,type:r.type,acc:r.acc,items:[r]});});
@@ -5630,13 +5614,27 @@ function CTR3(k){
         <div class="n c2" style="margin:0">${r.dr?won(r.dr):''}</div>
         <div class="n c2" style="margin:0">${r.cr?won(r.cr):''}</div>
         <div></div><div></div></div>`).join(''));}).join('');   /* 항목 줄은 같은 순간이라 잔액을 적지 않는다 */
-    return `<div style="display:flex;align-items:center;gap:18px;margin:-6px 0 8px;font-size:12.5px">
-      <span style="margin-left:auto">${G.length?`<button class="btn sm" onclick="g3All=${anyOp?'false':'true'};g3={};render(true)">${anyOp?'전체 접기':'전체 펼치기'}</button>`:''}</span></div>
-    <div class="tbl schl">
+    const tog=G.length?`<button class="btn sm" onclick="g3All=${anyOp?'false':'true'};g3={};render(true)">${anyOp?'전체 접기':'전체 펼치기'}</button>`:'';
+    return {tog,html:`<div class="tbl schl">
       <div class="schr led hd"><div>날짜</div><div>거래유형</div><div>계정</div><div>내용</div>
         <div class="n">차변</div><div class="n">대변</div><div class="n">잔액</div><div class="c">더보기</div></div>
       ${body||'<div class="empty">이 기간에 거래가 없습니다</div>'}
-    </div>`;})()}
+    </div>`};
+  })();
+  return CTR3head(c,k)+`
+  <div class="fbar">
+    <select onchange="setF3('per',this.value)">
+      ${[['','전체 기간'],['1','최근 1개월'],['3','최근 3개월'],['12','최근 12개월']].map(([v,t])=>`<option value="${v}" ${f3.per===v?'selected':''}>${t}</option>`).join('')}
+    </select>
+    <select onchange="setF3('acc',this.value)">
+      ${[['','전체 계정'],['매출채권','매출채권 (청구·수납)'],['임대보증금','임대보증금']].map(([v,t])=>`<option value="${v}" ${f3.acc===v?'selected':''}>${t}</option>`).join('')}
+    </select>
+    ${LT.tog}
+    <span style="margin-left:auto;display:flex;gap:6px">   <!-- 돈을 다루는 버튼은 원장 탭에만 둔다 -->
+      ${ledBtns(k,L)}
+      <button class="btn pri" onclick="alert('원장 출력 — 선택한 기간·계정의 원장을 거래내역서 PDF로 내려받거나 임차인 담당자에게 보낸다')">원장 출력</button></span>
+  </div>
+  ${LT.html}
   <div class="hint">
     이 계약의 모든 돈 거래입니다. 청구서 한 장, 입금 한 건을 한 줄로 묶었습니다. 펼치면 항목별로 보입니다. 사유 · 공급가액 · 부가세는 더보기의 <b>상세</b>에서 봅니다.<br>
     최근 거래가 위에 있고, 잔액은 그 거래 직후의 금액입니다. 매출채권(받을 돈)과 임대보증금(돌려줄 돈)의 잔액은 따로 셉니다.<br>
