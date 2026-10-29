@@ -608,9 +608,10 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   const key = Object.keys(PF.LEDG).find(x => x.startsWith('paym')), it = PF.MORE.flat().find(i => i.go === `lcxOpen('${key}')`);
   PF.lcxOpen(key); PF.lcx.why = '다른 계약 돈'; PF.lcxConfirm();
   const L = PF.ledgerOf(k);
-  r6.push(['연체료까지 받은 수납 취소 — 취소 잠기지 않음 · 연체료 청구도 함께 취소(청구 취소 · 연체료) · 미납 · 연체료 원래대로',
+  r6.push(['연체료까지 받은 수납 취소 — 취소 잠기지 않음 · 연체료 청구도 함께 취소(청구 취소 · 연체료, 수납 취소 다음 줄) · 미납 · 연체료 원래대로',
     fee > 0 && made && due1 === 0 && it && !it.off && !PF.BILLS.some(i => i.fee && i.k === k) && PF.arrears(c).due === due0 && PF.feeUntil(k, '2026-08-10') === fee0
-    && L.rows.some(r => r.type === '청구 취소' && /연체료/.test(r.item) && r.dec === fee) && L.rows.some(r => r.type === '수납 취소')]); }
+    && L.rows.some(r => r.type === '청구 취소' && /연체료/.test(r.item) && r.dec === fee) && L.rows.some(r => r.type === '수납 취소')
+    && L.rows.findIndex(r => r.type === '수납 취소') < L.rows.findIndex(r => r.type === '청구 취소')]); }
 /* 비정기 청구에는 연체료를 붙이지 않는다 — 엘리베이터 사용료를 청구 추가해도 그 달 연체료는 그대로(정기 청구만 센다) */
 { const NF = new Function(stub + bare + '; seedJuly(); return {issueAdhoc,lateCalc,BILLS};')();
   const k = 'b1별관301호', f0 = NF.lateCalc(k, '2026-08', '2026-10-31').fee;

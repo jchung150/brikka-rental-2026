@@ -3578,6 +3578,8 @@ function cancelWhyNot(kind,rec){
 }
 function cancelRec(kind,rec,why){
   if(!why||!why.trim()||cancelWhyNot(kind,rec)) return false;
+  /* 취소 줄 순서 — 수납 취소가 먼저, 함께 지우는 연체료 청구 취소가 그다음(원장 잔액이 거꾸로 따라 올라간다) */
+  const sq0=++paySeq;
   if(kind==='adh'){const ix=BILLS.indexOf(rec); if(ix<0) return false; BILLS.splice(ix,1);}
   else if(kind==='di'||kind==='dr'){const L=kind==='di'?DEP_IN:DEP_RET, ix=L.indexOf(rec); if(ix<0) return false; L.splice(ix,1);}
   else if(kind==='pay'){rec.ev.forEach(e=>{PAYEV[e.id]=(PAYEV[e.id]||[]).filter(x=>x.dep!==rec.dep);PAID[e.id]-=e.amt;});
@@ -3589,7 +3591,7 @@ function cancelRec(kind,rec,why){
     const fp=FEE_PREV[rec.dep]; if(fp&&FEE_CUT[fp.k]===rec.date){if(fp.cut) FEE_CUT[fp.k]=fp.cut; else delete FEE_CUT[fp.k]; delete FEE_PREV[rec.dep];}}
   else{const ix=CUTS.indexOf(rec); if(ix<0) return false; CUTS.splice(ix,1);
     if(rec.ex){REL[rec.id]-=rec.ex; const m=MOVES.findIndex(x=>x.sq===rec.sq); if(m>=0) MOVES.splice(m,1);}}
-  CANCELS.push({kind,rec,date:TODAY_S,why:why.trim(),sq:++paySeq});
+  CANCELS.push({kind,rec,date:TODAY_S,why:why.trim(),sq:sq0});
   return true;
 }
 const addPay=(id,amt,date,src,dep)=>{PAID[id]=(PAID[id]||0)+amt;(PAYEV[id]=PAYEV[id]||[]).push({date,amt,src:src||'이전 입금',dep:dep||'prev',sq:++paySeq});};
@@ -5607,7 +5609,7 @@ function CTR3(k){
     const pg=acc==='매출채권', N=Math.max(1,Math.ceil(G.length/HPER)), cur=pg?Math.min(hp['l'+k]||1,N):1, P=pg?G.slice((cur-1)*HPER,cur*HPER):G;
     /* 청구서·입금 묶음은 한 건이어도 펼쳐서 어디에 들어갔는지 보인다. 감액·환불·보증금은 한 줄 그대로 */
     /* 비정기 청구서는 항목이 하나라 펼치지 않는다 */
-    const body=P.map(x=>{const op=g3Open(x.key), many=x.items.length>1||(x.type==='청구'&&!x.g.startsWith('adh'))||x.type==='수납';
+    const body=P.map(x=>{const op=g3Open(x.key), many=x.items.length>1||(x.type==='청구'&&x.g.startsWith('bill'))||x.type==='수납';   /* 비정기 · 연체료 청구는 한 줄짜리라 펼치지 않는다 */
       return `<div class="schr led grp" onclick="${many?`g3Tog('${x.key}')`:''}">
         <div class="nm"><span class="tg ${op?'op':''}" style="${many?'':'visibility:hidden'}">${ic('chev',16)}</span>${x.date.slice(2).replace(/-/g,'.')}</div>
         <div><span class="bd ${TP[x.type]||'mu'}">${x.type}</span></div>
