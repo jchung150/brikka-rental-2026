@@ -614,6 +614,20 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   NF.issueAdhoc(k, '엘리베이터 사용료', 220000, '세금계산서', '이사', null, 200000, 20000);
   const ad = NF.BILLS.find(i => i.adhoc && i.k === k), f1 = NF.lateCalc(k, ad.ym, '2026-10-31').fee;
   r6.push(['비정기 청구에는 연체료 없음 — 엘리베이터 사용료 220,000을 청구 추가해도 8월분은 정기 청구 발행 전이라 연체료 0 · 정기 청구가 있는 7월분은 연체료 있음', ad.ym === '2026-08' && f0 === 0 && f1 === 0 && NF.lateCalc(k, '2026-07', '2026-10-31').fee > 0]); }
+/* 보증금 예치 · 반환 취소 — 원장 ⋮ › 취소 · 잔액이 0 아래로 내려가는 예치 취소는 잠김(먼저 반환 취소) · 계약 보증금(예시값)은 마감한 달이라 잠김 */
+{ const DX = new Function(stub + bare + '; seedJuly(); return {openDepIn,diSet,diConfirm,openDepRet,drSet,drConfirm,ledgerOf,CTR3,MORE,LEDG,lcxOpen,lcxConfirm,get lcx(){return lcx;},get dr(){return dr;},set tab3c(v){tab3c=v;}};')();
+  const k = 'b1별관301호', b0 = DX.ledgerOf(k).bal.임대보증금;
+  DX.openDepIn(k); DX.diSet('amt', 5000000); DX.diConfirm();
+  DX.openDepRet(k); DX.drSet('amt', b0 + 1000000); DX.drSet('why', '다른 계약 몫'); DX.drConfirm();
+  const ui = () => { DX.tab3c = '원장'; DX.MORE.length = 0; DX.CTR3(k); const ks = Object.keys(DX.LEDG);
+    const kd = ks.find(x => x.startsWith('di')), kr = ks.find(x => x.startsWith('dr')), k0 = ks.find(x => x.startsWith('dep|'));
+    const off = key => (DX.MORE.flat().find(i => i.go === `lcxOpen('${key}')`) || {}).off; return {kd, kr, k0, off}; };
+  let u = ui(); const lock = /0 아래/.test(u.off(u.kd) || '') && /마감한 달/.test(u.off(u.k0) || '') && u.off(u.kr) === '';
+  DX.lcxOpen(u.kr); DX.lcx.why = '반환 잘못 기록'; DX.lcxConfirm();
+  u = ui(); const open = u.off(u.kd) === ''; DX.lcxOpen(u.kd); DX.lcx.why = '다른 임차인 돈'; DX.lcxConfirm();
+  const L = DX.ledgerOf(k);
+  r6.push(['보증금 예치 · 반환 취소 — 원장 ⋮ › 취소 · 잔액이 0 아래로 가는 예치 취소는 잠김 · 반환을 먼저 취소하면 풀림 · 보증금 예치 취소 · 보증금 반환 취소 줄 · 잔액 원래대로 · 계약 보증금(예시값)은 마감한 달이라 잠김',
+    lock && open && L.bal.임대보증금 === b0 && L.rows.some(r => r.type === '보증금 예치 취소' && r.dec === 5000000) && L.rows.some(r => r.type === '보증금 반환 취소' && r.inc === b0 + 1000000)]); }
 /* 청구서 발행 — 메일 체크박스·미납 조회 없음 · 발행을 누르면 메일 여부를 묻는다 · 더보기로 한 계약만 발행 */
 { const IA = new Function(stub + bare + '; seedJuly(); return {PAY1,issueAsk,issueGo,issueHTML,ISS,MORE,set f1b(v){f1.b=v;}};')();
   IA.f1b = 'b2'; IA.MORE.length = 0; const h = IA.PAY1();
