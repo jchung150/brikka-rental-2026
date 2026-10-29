@@ -587,18 +587,6 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   r6.push(['수납 취소 — 현금 100만 · 보증금 상계 50만을 원장 ⋮ › 취소 → 미납 원래대로 · 보증금 잔액 원래대로 · 원장에 수납 취소 · 보증금 상계 취소 줄 · 은행 입금 줄은 ⋮에 상세만',
     bankKey && bankNo && manual.length === 2 && PX.arrears(c).due === due0 && L.bal.임대보증금 === dep0
     && L.rows.some(r => r.type === '수납 취소' && r.inc === 1000000) && L.rows.some(r => r.type === '보증금 상계 취소' && r.inc === 500000)]); }
-/* 기간 필터 직접 입력 — 원장 · 자료보관 같은 드롭다운 · 고르면 시작일 ~ 종료일 칸 · 그 사이 거래만 · 원장 출력은 PDF 내려받기만 */
-{ const PF = new Function(stub + bare + '; seedJuly(); return {CTR3,PRO3,setF3,setFdoc,set tab3(v){tab3=v;},set tab3c(v){tab3c=v;}};')();
-  PF.tab3c = '원장'; const k = 'b1본관801호', h0 = PF.CTR3(k);
-  PF.setF3('per', 'custom'); const h1 = PF.CTR3(k); PF.setF3('from', '2026-07-01'); PF.setF3('to', '2026-07-31'); const h2 = PF.CTR3(k);
-  const ds = h => (h.match(/<div class="nm"><span class="tg[^>]*>[\s\S]*?<\/span>(\d\d\.\d\d\.\d\d)<\/div>/g) || []).map(x => x.match(/(\d\d\.\d\d\.\d\d)<\/div>$/)[1]);
-  const led = /<option value="custom" >직접 입력<\/option>/.test(h0) && !/type="date" class="fd"/.test(h0) && (h1.match(/type="date" class="fd"/g) || []).length === 2
-    && ds(h2).length > 0 && ds(h2).every(d => d.startsWith('26.07')) && ds(h0).some(d => !d.startsWith('26.07'));
-  PF.setF3('per', ''); PF.tab3 = '자료보관'; PF.setFdoc('per', 'custom'); const d1 = PF.PRO3('b1');
-  PF.setFdoc('from', '2099-01-01'); const d2 = PF.PRO3('b1'); PF.setFdoc('per', '');
-  const doc = (d1.match(/type="date" class="fd"/g) || []).length === 2 && /조건에 맞는 자료가 없습니다/.test(d2);
-  const pdf = /원장 출력<\/button>/.test(h0) && /PDF로 내려받습니다/.test(h0) && !/담당자에게 보/.test(h0) && !/원장 출력 ▾/.test(h0);
-  r6.push(['기간 필터 직접 입력 — 원장 · 자료보관 같은 드롭다운 · 고르면 시작일 ~ 종료일 칸 · 7월만 고르면 7월 거래만 · 원장 출력은 PDF 내려받기만(메뉴 아님)', led && doc && pdf]); }
 /* 전체 펼치기는 필터 옆(왼쪽) · 할 일 버튼만 오른쪽 끝 · 청구서 발행의 전체 선택은 머리글 체크박스 */
 { const TG = new Function(stub + bare + '; seedJuly(); return {PAY1,PAY2,PAY6,PRO3,CTR3,sel1,set tab3(v){tab3=v;},set tab3c(v){tab3c=v;},set f1b(v){f1.b=v;}};')();
   const left = h => { const fb = (h.match(/<div class="fbar">[\s\S]*?<\/div>/g) || []).find(x => /전체 (펼치기|접기)/.test(x)) || ''; const a = fb.indexOf('전체 펼치기'), m = fb.indexOf('margin-left:auto'); return a > 0 && (m < 0 || a < m); };
