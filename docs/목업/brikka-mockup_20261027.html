@@ -492,7 +492,9 @@ table.nowr th,table.nowr td{white-space:nowrap}
 .ctr{grid-template-columns:minmax(260px,1fr) 150px 150px 150px 100px 80px}
 .ctm{grid-template-columns:minmax(180px,1fr) 110px 140px 140px 150px 100px 80px}
 .schr.dep .nm{color:var(--muted)}
-.led{grid-template-columns:96px 92px 76px minmax(260px,1fr) 124px 124px 132px 64px}
+.led{grid-template-columns:96px 108px minmax(260px,1fr) 124px 124px 132px 64px}
+.ledh{font-weight:700;font-size:13px;margin:20px 0 8px;display:flex;align-items:baseline;gap:8px}
+.ledh:first-of-type{margin-top:0}
 .schr.led.sub .nm{padding-left:14px}
 .arr{grid-template-columns:minmax(300px,1.6fr) 210px 90px 100px 130px 76px}
 .rcp{grid-template-columns:minmax(120px,1fr) 92px 92px 58px;gap:0 8px;padding:9px 12px;font-size:12.5px}
@@ -5414,7 +5416,7 @@ function CTR3sum(c,k){
 }
 
 /* ═══ CTR-3 계약 원장 — 이 계약의 모든 돈 거래를 있는 그대로. 추가만 하고 고치지 않는다 ═══ */
-let f3={per:'',acc:''};
+let f3={per:''};
 const setF3=(k,v)=>{f3[k]=v;render();};
 const isTaxItem=n=>{const m=MASTER.find(x=>x.name===n.split(' ')[0]);return m?isTax(m.bill):true;};
 function ledgerOf(k){
@@ -5596,64 +5598,66 @@ function CTR3(k){
   const L=ledgerOf(k);
   const from=f3.per?new Date((dnum(TODAY_S)-({'1':30,'3':91,'12':365}[f3.per]))*864e5)
     .toISOString().slice(0,10):null;
-  const rows=L.rows.filter(r=>(!f3.acc||r.acc===f3.acc)&&(!from||dnum(r.date)>=dnum(from))).slice().reverse();
+  const rows=L.rows.filter(r=>!from||dnum(r.date)>=dnum(from)).slice().reverse();
   const TP={'청구':'ac','청구 취소':'mu','수납':'ok','수납 취소':'mu','보증금 예치':'mu','보증금 상계':'wa','보증금 반환':'da','감액':'wa2','감액 취소':'mu','보증금 상계 취소':'mu','보증금 예치 취소':'mu','보증금 반환 취소':'mu','환불':'da'};
   /* 매출채권 잔액이 0보다 작으면 과납이다 */
   const balTx=v=>won(v);
   const b0=L.bal.매출채권, late=arrears(c).due;
   const dash='<span style="color:var(--faint)">—</span>';
+  /* 받을 돈(매출채권)과 보증금(임대보증금)은 표를 나눈다 — 잔액이 섞이지 않게. 칸은 같다. 받을 돈은 10묶음씩 페이지 */
   const LT=(()=>{
+   const sec=acc=>{
     /* 묶음 — 청구는 청구서 하나, 수납은 입금 하나, 보증금은 거래 하나. rows는 이미 최근 순이다 */
-    const G=[];rows.forEach(r=>{const last=G[G.length-1];
+    const G=[];rows.filter(r=>r.acc===acc).forEach(r=>{const last=G[G.length-1];
       if(last&&last.g===r.g&&last.date===r.date) last.items.push(r); else G.push({g:r.g,date:r.date,type:r.type,acc:r.acc,items:[r]});});
     G.forEach(x=>{const it=x.items;x.bal=it[0].bal;   /* 최근 순이므로 첫 행이 묶음 끝의 잔액 */
       x.dr=it.reduce((a,r)=>a+(r.dr||0),0);x.cr=it.reduce((a,r)=>a+(r.cr||0),0);
       x.sup=it.some(r=>r.sup!=null)?it.reduce((a,r)=>a+(r.sup||0),0):null;x.vat=it.reduce((a,r)=>a+(r.vat||0),0);
       x.title=it[0].ttl?it[0].ttl:x.type==='청구'?`${it[0].ym.slice(2).replace('-','.')}월분 청구서`:x.type==='수납'?(it[0].src==='이전 입금'?'이전 입금':`${it[0].src.replace(/^\d\d:\d\d:\d\d /,'')} ${it[0].hand?'수납':'입금'}`):it[0].item;   /* 입금 시각은 적지 않는다 */
       x.key=x.g+'|'+x.date; LEDG[x.key]=x;});
-    const anyOp=G.some(x=>g3Open(x.key));
+    const pg=acc==='매출채권', N=Math.max(1,Math.ceil(G.length/HPER)), cur=pg?Math.min(hp['l'+k]||1,N):1, P=pg?G.slice((cur-1)*HPER,cur*HPER):G;
     /* 청구서·입금 묶음은 한 건이어도 펼쳐서 어디에 들어갔는지 보인다. 감액·환불·보증금은 한 줄 그대로 */
     /* 비정기 청구서는 항목이 하나라 펼치지 않는다 */
-    const body=G.map(x=>{const op=g3Open(x.key), many=x.items.length>1||(x.type==='청구'&&!x.g.startsWith('adh'))||x.type==='수납';
+    const body=P.map(x=>{const op=g3Open(x.key), many=x.items.length>1||(x.type==='청구'&&!x.g.startsWith('adh'))||x.type==='수납';
       return `<div class="schr led grp" onclick="${many?`g3Tog('${x.key}')`:''}">
         <div class="nm"><span class="tg ${op?'op':''}" style="${many?'':'visibility:hidden'}">${ic('chev',16)}</span>${x.date.slice(2).replace(/-/g,'.')}</div>
         <div><span class="bd ${TP[x.type]||'mu'}">${x.type}</span></div>
-        <div class="c2" style="margin:0">${x.acc}</div>
         <div>${x.title}${x.items[0].cxd?'<span class="bd mu" style="margin-left:6px">취소됨</span>':''}${many?`<span class="c2" style="margin-left:6px">${x.type==='수납'?`${x.items.length}건에 배분`:`${x.items.length}건`}</span>`:''}</div>
         <div class="n">${x.dr?won(x.dr):''}</div>
         <div class="n">${x.cr?won(x.cr):''}</div>
         <div class="n"><b>${balTx(x.bal)}</b></div>
         <div class="c" onclick="event.stopPropagation()">${moreCell(ledMore(x))}</div></div>`
       +(!op||!many?'':x.items.map(r=>`<div class="schr led sub">
-        <div></div><div></div><div></div>
+        <div></div><div></div>
         <div class="nm">${r.item}</div>
         <div class="n c2" style="margin:0">${r.dr?won(r.dr):''}</div>
         <div class="n c2" style="margin:0">${r.cr?won(r.cr):''}</div>
         <div></div><div></div></div>`).join(''));}).join('');   /* 항목 줄은 같은 순간이라 잔액을 적지 않는다 */
-    const tog=G.length?`<button class="btn sm" onclick="g3All=${anyOp?'false':'true'};g3={};render(true)">${anyOp?'전체 접기':'전체 펼치기'}</button>`:'';
-    return {tog,html:`<div class="tbl schl">
-      <div class="schr led hd"><div>날짜</div><div>거래유형</div><div>계정</div><div>내용</div>
+    return {G,html:`<div class="ledh">${acc==='매출채권'?'받을 돈':'보증금'}<span class="c2" style="margin:0">${acc}</span></div>
+    <div class="tbl schl">
+      <div class="schr led hd"><div>날짜</div><div>거래유형</div><div>내용</div>
         <div class="n">차변</div><div class="n">대변</div><div class="n">잔액</div><div class="c">더보기</div></div>
       ${body||'<div class="empty">이 기간에 거래가 없습니다</div>'}
-    </div>`};
+      ${pg?pagerHTML(G.length,cur,`(p=>{hp['l${k}']=p;render(true);})`):''}
+    </div>`};};
+   const A=sec('매출채권'), B=sec('임대보증금'), anyOp=[...A.G,...B.G].some(x=>g3Open(x.key));
+   const tog=A.G.length||B.G.length?`<button class="btn sm" onclick="g3All=${anyOp?'false':'true'};g3={};render(true)">${anyOp?'전체 접기':'전체 펼치기'}</button>`:'';
+   return {tog,html:A.html+B.html};
   })();
   return CTR3head(c,k)+`
   <div class="fbar">
     <select onchange="setF3('per',this.value)">
       ${[['','전체 기간'],['1','최근 1개월'],['3','최근 3개월'],['12','최근 12개월']].map(([v,t])=>`<option value="${v}" ${f3.per===v?'selected':''}>${t}</option>`).join('')}
     </select>
-    <select onchange="setF3('acc',this.value)">
-      ${[['','전체 계정'],['매출채권','매출채권 (청구·수납)'],['임대보증금','임대보증금']].map(([v,t])=>`<option value="${v}" ${f3.acc===v?'selected':''}>${t}</option>`).join('')}
-    </select>
     ${LT.tog}
     <span style="margin-left:auto;display:flex;gap:6px">   <!-- 돈을 다루는 버튼은 원장 탭에만 둔다 -->
       ${ledBtns(k,L)}
-      <button class="btn pri" title="지금 보이는 기간 · 계정의 원장을 PDF로 내려받습니다" onclick="alert('원장 출력 — 지금 보이는 기간 · 계정의 원장을 PDF로 내려받습니다.\n목업에서는 파일을 내려받지 않습니다.')">원장 출력</button></span>
+      <button class="btn pri" title="지금 보이는 기간의 원장(받을 돈 · 보증금 두 표)을 PDF로 내려받습니다" onclick="alert('원장 출력 — 지금 보이는 기간의 원장(받을 돈 · 보증금 두 표)을 PDF로 내려받습니다.\n목업에서는 파일을 내려받지 않습니다.')">원장 출력</button></span>
   </div>
   ${LT.html}
   <div class="hint">
-    이 계약의 모든 돈 거래입니다. 청구서 한 장, 입금 한 건을 한 줄로 묶었습니다. 펼치면 항목별로 보입니다. 사유 · 공급가액 · 부가세는 더보기의 <b>상세</b>에서 봅니다.<br>
-    최근 거래가 위에 있고, 잔액은 그 거래 직후의 금액입니다. 매출채권(받을 돈)과 임대보증금(돌려줄 돈)의 잔액은 따로 셉니다.<br>
+    이 계약의 모든 돈 거래를 <b>받을 돈</b>(매출채권)과 <b>보증금</b>(임대보증금) 두 표로 나눴습니다. 잔액은 표마다 따로 셉니다. 보증금 상계는 두 표에 함께 보입니다(받을 돈의 수납 · 보증금의 상계). 청구서 한 장, 입금 한 건을 한 줄로 묶었습니다. 펼치면 항목별로 보입니다. 사유 · 공급가액 · 부가세는 더보기의 <b>상세</b>에서 봅니다.<br>
+    최근 거래가 위에 있고, 잔액은 그 거래 직후의 금액입니다. 받을 돈 표는 10줄씩 나눠 보입니다.<br>
     원장은 고치지 않습니다. 잘못 넣은 청구 추가 · 청구 감액 · 수납 등록 · 보증금 예치 · 상계 · 반환은 더보기의 <b>취소</b>로 취소 줄을 더합니다(마감 전). 은행 입금은 입금 매칭에서 무효 처리합니다. 연체료는 수납 등록에서 받기로 한 금액만 청구로 올라옵니다.<br>
     잔액을 바꾸지 않는 안쪽 옮김(미납 이월 · 전월 과납액 배분 · 감액으로 넘친 수납)은 적지 않습니다. 잔액이 0보다 작으면 <b>과납</b>이며, 돌려줄 때는 위의 <b>수납 › 과납 환불</b>을 씁니다.<br>
     받을 돈을 바꾸는 일(청구 추가 · 청구 감액)은 <b>청구</b>, 받은 돈 · 돌려준 돈은 <b>수납</b> 메뉴에서 기록합니다.</div>`;
