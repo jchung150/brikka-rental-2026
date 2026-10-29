@@ -1993,9 +1993,9 @@ function beHTML(){
   </div></div>`;
 }
 function facDel(id,n){const b=BUILDINGS.find(x=>x.id===id); b.fac=b.fac.filter(x=>x!==n); render(true);}
-/* 상세 화면 탭(요약 제외)의 공통 모양 — 위에 필터 줄(버튼은 오른쪽 끝), 그 아래 요약 숫자 · 전체 펼치기 줄, 표, 아래 안내. 계약 상세 원장과 같다 */
+/* 상세 화면 탭(요약 제외)의 공통 모양 — 위에 필터 줄(버튼은 오른쪽 끝), 펼치는 표면 그 아래 전체 펼치기 줄, 표, 아래 안내. 요약 숫자는 적지 않는다. 계약 상세 원장과 같다 */
 const tabBar=(left,right)=>`<div class="fbar">${left||''}<span style="margin-left:auto;display:flex;gap:6px">${right||''}</span></div>`;
-const tabSub=(left,right)=>`<div style="display:flex;align-items:center;gap:18px;margin:-6px 0 8px;font-size:12.5px;min-height:28px"><span style="color:var(--muted)">${left||''}</span><span style="margin-left:auto">${right||''}</span></div>`;
+const tabSub=(left,right)=>right?`<div style="display:flex;align-items:center;gap:18px;margin:-6px 0 8px;font-size:12.5px"><span style="color:var(--muted)">${left||''}</span><span style="margin-left:auto">${right}</span></div>`:'';
 function t요약(b){
   const d=dday(b.mgmtEnd);
   return `
@@ -2054,7 +2054,6 @@ function t주차(b){
   const cs=CTRS.filter(c=>c.b===b.id&&c.st==='진행중'), keys=cs.map(ckey);
   const all=VEH.filter(v=>keys.includes(v.k)), filt=!!(fpk.k||fpk.loc);
   const list=all.filter(v=>(!fpk.k||v.k===fpk.k)&&(!fpk.loc||v.loc===fpk.loc));
-  const nFree=all.filter(v=>v.fee==='무료').length, left=b.park-all.length;
   const S=(f,opts,lab)=>`<select onchange="setFpk('${f}',this.value)"><option value="">${lab}</option>${opts.map(([v,t])=>`<option value="${v}" ${fpk[f]===v?'selected':''}>${t}</option>`).join('')}</select>`;
   /* 필터가 없으면 차량이 없어도 무료 주차가 있는 계약을 보인다(빈 자리를 알 수 있게) */
   const groups=cs.map(c=>({c,k:ckey(c),vs:list.filter(v=>v.k===ckey(c))})).filter(g=>g.vs.length||(!filt&&CPARK[g.k]));
@@ -2062,8 +2061,7 @@ function t주차(b){
   return `
   ${tabBar(S('k',cs.map(c=>[ckey(c),cname(b.alias,c.no,c.ten)]),'전체 계약')+S('loc',VEH_LOC.map(v=>[v,v]),'전체 주차구분'),
     `<button class="btn pri" onclick="vehOpen('${b.id}')">+ 차량 추가</button>`)}
-  ${tabSub(`주차면 ${b.park} · 등록 ${all.length}대 · ${left>=0?`남은 자리 ${left}`:`<b style="color:var(--warn)">${-left}대 초과</b>`} · 무료 ${nFree} · 월정액 ${all.length-nFree}`,
-    groups.length?`<button class="btn sm" onclick="gpkSet(${anyOp?'false':'true'})">${anyOp?'전체 접기':'전체 펼치기'}</button>`:'')}
+  ${tabSub('',groups.length?`<button class="btn sm" onclick="gpkSet(${anyOp?'false':'true'})">${anyOp?'전체 접기':'전체 펼치기'}</button>`:'')}
   <div class="tbl">
     ${groups.length?`<div class="tw"><table>
       <thead><tr><th>계약고유이름 · 차량 소유자</th><th>차량번호</th><th>연락처</th><th>차종</th><th>주차구분</th><th>요금부과</th><th class="c">더보기</th></tr></thead>
@@ -2220,10 +2218,9 @@ function t유닛(b){
   const add=tabBar('',`<button class="btn pri" title="슈퍼관리자만" onclick="unOpen('${b.id}')">+ 유닛 등록</button>`);
   if(!b.units.length) return `${add}<div class="tbl">
     <div class="empty"><div class="t">등록된 유닛이 없습니다</div>유닛을 등록하면 여기에 표시됩니다.</div></div>`;
-  const c={사용중:0,공실:0,비운영중:0};b.units.forEach(u=>c[u.st]++);
   /* 유닛은 표가 아니라 카드 바둑판이다 — 층 · 면적 · 임차인을 한눈에 본다 */
   return `
-  ${add}${tabSub(`전체 ${b.units.length} · 사용중 ${c.사용중} · 공실 ${c.공실} · 비운영중 ${c.비운영중}`)}
+  ${add}
   <div><div class="units">
     ${b.units.map(u=>{
       return `<div class="unit" onclick="udOpen('${b.id}','${u.no}')">
@@ -2401,7 +2398,7 @@ function t청구(b){
   if(!b.charge.length) return `${add}<div class="tbl">
     <div class="empty"><div class="t">등록된 청구항목이 없습니다</div>이 건물에서 받을 청구항목을 추가하세요.</div></div>`;
   return `
-  ${add}${tabSub(`전체 ${b.charge.length} · 사용 ${b.charge.filter(c=>c.use).length}`)}
+  ${add}
   <div class="tbl">
     <div class="tw"><table>
       <thead><tr><th class="c">배분 우선순위</th><th>청구항목</th><th>사용여부</th><th>발행 문서</th><th>반복주기</th>
@@ -4702,9 +4699,7 @@ function CTR1(){
 let fbc={st:'진행중',dd:''};
 const setFbc=(k,v)=>{fbc[k]=v;render(true);};
 function t계약(b){
-  const all=CTRS.filter(c=>c.b===b.id), on=all.filter(c=>c.st==='진행중').length;
   return `${ctrFbar(fbc,'setFbc',false,`<button class="btn pri" ${bOp(b.id)==='비운영중'?'disabled title="비운영중인 건물은 계약을 등록할 수 없습니다"':''} onclick="nc=null;ncInit();nc.b='${b.id}';go('ctr-2')">+ 새로운 계약 등록</button>`)}
-  ${tabSub(`전체 ${all.length} · 진행중 ${on}`)}
   ${ctrTbl(ctrRowsOf(fbc,b.id))}
   <div class="hint">이 건물의 계약만 보입니다. 표와 필터는 계약 목록(CTR-1)과 같습니다.</div>`;
 }
