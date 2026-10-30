@@ -1,0 +1,15 @@
+<section id="dev" style="background:#1E2633;color:#F6F4EF;font-family:'Noto Sans KR', Arial, sans-serif;padding:120px 128px 160px;display:flex;flex-direction:column;gap:40px">
+<p style="font-size:26px;font-weight:700;color:#8FB3F5">개발 체크</p>
+<h2 style="font-size:60px;font-weight:700;line-height:1.15">데이터에 남길 것</h2>
+<table style="font-size:28px;color:#E6EBF2">
+<tr style="background:#2C3747"><th style="width:32%">무엇</th><th style="width:68%">어떻게</th></tr>
+<tr><td>청구서 종류</td><td>정기 · 비정기. 「계약 × 청구년월에 하나」는 정기만</td></tr>
+<tr style="background:#253041"><td>금액</td><td>청구 건마다 공급가액 · 부가세를 따로 저장(합계에서 역산하지 않음)</td></tr>
+<tr><td>미선택 항목</td><td>발행 기록에 뺀 항목과 금액을 남긴다(감면 근거)</td></tr>
+<tr style="background:#253041"><td>우선순위</td><td>정기 항목은 건물 설정 · 비정기 98 · 연체료 99</td></tr>
+<tr><td>연체료 계산 대상</td><td>정기 청구의 미납만. 비정기 · 연체료 자체는 제외</td></tr>
+<tr style="background:#253041"><td>취소</td><td>지우지 않고 취소 거래를 더한다(덱 2)</td></tr>
+</table>
+<p style="position:absolute;left:128px;bottom:64px;width:1664px;font-size:24px;color:#9AA6B5">BRIKKA · 1 정기 청구와 비정기 청구 · 9</p>
+<aside>명세변경 14-6 · 18. 마지막 청구서(해지 처리)를 정기 쪽 종류로 둘지, 별도 구분값으로 둘지는 명세 반영 때 정한다.</aside>
+</section>
