@@ -3243,11 +3243,12 @@ function ISSUE(){
     }));
     const k=ckey(c);
     /* 연체료 — 이번 회차 청구서에 기본으로 넣는다(그날까지 쌓인 금액). 발행한 청구서는 발행 때 금액을 보인다.
-       지난 회차(6·7월)는 이 줄 없이 발행했다 → 4.4.3 */
-    const z=ISS[k], fee=PAST_CTX?0:z?z.feeAll||0:feeUntil(k,TODAY_S);
+       지난 회차는 발행할 때 넣은 연체료 청구를 보인다(6월분은 없음 · 7월분 7/19까지) → 4.4.3 */
+    const z=ISS[k], pf=PAST_CTX?BILLS.find(i=>i.k===k&&i.ym===PAST_CTX&&i.reg):null;
+    const fee=PAST_CTX?(pf?pf.amt:0):z?z.feeAll||0:feeUntil(k,TODAY_S);
     /* 연체료는 대가가 아니라 늦게 낸 데 대한 연체이자라 부가세 대상이 아니다(부가가치세법 29조 5항 5호) → 4.4.3 */
     if(fee){
-      lines.push({n:'연체료',bill:'일반내역서',src:`${(z?z.at:TODAY_S).slice(5).replace('-','.')}까지 · 연 ${rateOf(k)}%`,
+      lines.push({n:'연체료',bill:'일반내역서',src:`${(pf?pf.feeTo:z?z.at:TODAY_S).slice(5).replace('-','.')}까지 · 연 ${rateOf(k)}%`,
         supply:fee,vat:0,amt:fee,st:'연체료',stc:'wa',fee:true});}
     /* 넣을 항목 — 약정은 잠근다. 발행한 청구서는 발행 때 고른 대로 */
     const o=PAST_CTX?{}:OFF1[k]||{};
@@ -3399,14 +3400,14 @@ function PAY1(){
 /* ═══ PAY-6 수납 내역 ═══ */
 /* 2026-07 카리나빌딩 납부 계좌 거래내역 — 은행에서 내려받은 형식 그대로다. 7/20 ~ 7/31분.
    8월 실제 거래내역의 날짜를 7월로 옮기고, 임차인 입금액은 7월 청구액에 맞춰 만든 예시값이다.
-   (주)비씨에이전시는 6·7월분 중 5,000,000원만 냈다 · 주식회사루비뮤직은 6월 부족분 385,000원을 얹어 냈다
+   (주)비씨에이전시는 6·7월분 중 5,000,000원만 냈다 · 주식회사루비뮤직은 6월 부족분 385,000원을 얹어 냈다(7월 청구서의 연체료 1,603원 포함)
    에스씨케이컴퍼니는 6월 과납 18,000원(전월 과납액)을 뺀 금액을 냈다
    거래후 잔액 열은 원본 값이며 계산에 쓰지 않는다.
    앞 2행은 머리말, 출금 행과 임대 외 입금이 섞여 있다. 시스템이 걸러내야 한다 → 4.6.1 */
 const BANK_RAW=`카리나빌딩
 조회기간 : 2026.07.01~2026.07.31 조회일시 : 2026.08.03 07:30:28
 No.    거래일시    적요    기재내용    지급(원)    입금(원)    거래후 잔액(원)    취급점    메모    수표·어음·증권금액(원)
-1    2026.07.31 19:01:55    인터넷    주식회사루비뮤직    0    2,948,160    128,641,416    기업은행(003045)        0
+1    2026.07.31 19:01:55    인터넷    주식회사루비뮤직    0    2,949,763    128,643,019    기업은행(003045)        0
 2    2026.07.31 16:26:06    인터넷    (주)케이큐엔터테인    0    16,659,264    126,331,919    199555        0
 3    2026.07.31 15:48:24    인터넷    (주)케이더블유인터    0    14,505,276    109,577,547    하나은행(081569)        0
 4    2026.07.31 15:48:23    인터넷    (주)케이더블유인터    0    4,903,057    95,105,912    하나은행(081569)        0
@@ -3851,6 +3852,13 @@ function applyCredits(ym,date){
     const dep='cr'+ym, sq=++paySeq; let r=amt, used=0;
     its.forEach(x=>{if(r<=0) return; const p=Math.min(r,x.due); addPay(x.i.id,p,date,'전월 과납액',dep); r-=p; used+=p;});
     if(used) CREDITS.push({k,ym,amt:used,date,dep,sq});});
+}
+/* 정기 청구서의 연체료 — 발행일까지 쌓인 연체료를 그 달 청구서에 한 줄로 넣는다. 발행일이 연체료 정리일이다 → 4.4.3
+   6월분은 첫 달이라 연체료가 없다. 7월분(7/19 발행)에는 6월분을 늦게 낸 계약에 들어간다 */
+function issueFee(ym,date){
+  CTRS.filter(c=>c.b==='b1'&&c.st==='진행중').forEach(c=>{const k=ckey(c), amt=feeUntil(k,date); if(!amt) return;
+    BILLS.push({id:`${ym}|${c.no}|연체료`,ym,k,no:c.no,n:'연체료',amt,fee:true,reg:true,feeTo:date});
+    FEE_CUT[k]=date;});
 }
 /* 테스트·목업 시연용 — 대기 입금을 순서대로 모두 확정한다 */
 function rcConfirmAll(){rcQueue().filter(rcIsOpen).forEach(d=>{
@@ -5439,7 +5447,7 @@ function ledgerOf(k){
     const tax=i.adhoc?i.doc==='세금계산서':isTaxItem(i.n), sup=i.sup!=null?i.sup:tax?Math.floor(i.amt*10/11):i.amt;
     const ymL=i.ym.slice(2).replace('-','.')+'월분';
     rows.push({date:i.date||billOn(i.ym),type:'청구',acc:'매출채권',memo:i.adhoc?i.n:i.memo||`${ymL} ${i.n}`,item:i.adhoc?i.n:i.memo||`${ymL} ${i.n}`,bid:i.fee?null:i.id,
-      g:i.fee?'fee'+i.id:i.adhoc?'adh'+i.id:'bill'+i.ym,ym:i.ym,ttl:i.adhoc?i.n:i.memo,why:i.adhoc?i.memo:'',
+      g:i.reg?'bill'+i.ym:i.fee?'fee'+i.id:i.adhoc?'adh'+i.id:'bill'+i.ym,ym:i.ym,ttl:i.adhoc?i.n:i.memo,why:i.adhoc?i.memo:'',
       inc:i.amt,sup,vat:i.vat!=null?i.vat:i.amt-sup,ord:1,pr:prioOf(i.n.split(' ')[0]),sq:i.sq});
     (PAYEV[i.id]||[]).filter(e=>!e.dep.startsWith('cr')).forEach(e=>rows.push({date:e.date,type:'수납',acc:'매출채권',
       memo:`${i.fee?'연체료':ymL+' '+i.n} ← ${e.src}`,item:i.fee?'연체료':`${ymL} ${i.n}`,src:e.src,g:'pay'+e.dep,dec:e.amt,sup:null,vat:null,ord:2,pr:prioOf(i.n.split(' ')[0]),
@@ -5775,7 +5783,8 @@ document.addEventListener('mouseover',e=>{const t=e.target.closest&&e.target.clo
   if(!t){bx.style.display='none';return;}
   const r=t.getBoundingClientRect();bx.textContent=t.dataset.tip;bx.style.display='block';
   bx.style.left=Math.max(8,Math.min(r.left-6,innerWidth-bx.offsetWidth-8))+'px';bx.style.top=(r.bottom+6)+'px';});
-/* 7/19 7월 청구서 발행 — 6월에 생긴 과납이 7월 청구에서 빠진다. 7월 입금보다 먼저다 */
+/* 7/19 7월 청구서 발행 — 그날까지의 연체료를 정기 청구서에 한 줄로 넣고(→ 4.4.3), 6월에 생긴 과납이 7월 청구에서 빠진다. 7월 입금보다 먼저다 */
+issueFee('2026-07','2026-07-19');
 applyCredits('2026-07','2026-07-19');
 seedJuly();paintOp();paintFold();render();
 </script>
