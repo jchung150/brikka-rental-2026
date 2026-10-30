@@ -590,19 +590,25 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   r6.push(['수납 취소 — 현금 100만(연체료 청구서 생김 · 안 채워짐) · 보증금 상계 50만을 원장 ⋮ › 취소 → 미납 원래대로 · 보증금 잔액 원래대로 · 원장에 수납 취소 · 보증금 상계 취소 줄 · 은행 입금 줄은 ⋮에 상세만',
     bankKey && bankNo && manual.length === 2 && PX.arrears(c).due === due0 && L.bal.임대보증금 === dep0 && !PX.BILLS.some(i => i.fee && i.k === k)
     && L.rows.some(r => r.type === '수납 취소' && r.inc === 1000000) && L.rows.some(r => r.type === '보증금 상계 취소' && r.inc === 500000)]); }
-/* 정기 청구서의 연체료 — 기본으로 한 줄 들어간다 · 연체료 조정에서 낮추거나 이번엔 뺀다 · 지난 회차엔 없다 → 4.4.3 */
-{ const FI = new Function(stub + bare + '; seedJuly(); return {ISSUE,PAY1,withMonth,fee1Open,fee1Set,fee1OK,fee1HTML,MORE,set f1b(v){f1.b=v;},set f1ym(v){f1.ym=v;}};')();
-  FI.f1b = 'b1';
-  const ln = () => (FI.ISSUE().find(c => c.no === '별관301호').lines.find(l => l.n === '연체료') || null);
+/* 정기 청구서의 연체료 — 기본으로 한 줄 들어간다 · 지난 회차엔 없다 → 4.4.3
+   항목 체크박스 — 기본 모두 넣기 · 약정은 잠김 · 뺀 항목은 합계에서 빠지고 「N개 항목 미선택」 · 발행하면 연체료 정리(뺐어도 감면) · 취소하면 되돌림 */
+{ const FI = new Function(stub + bare + '; seedJuly(); return {ISSUE,PAY1,withMonth,gAll,lineTog,issue1,cancelOpen,cancelOK,feeUntil,FEE_CUT,OFF1,TODAY_S,MORE,get cx1(){return cx1;},set f1b(v){f1.b=v;}};')();
+  FI.f1b = 'b1'; const k = 'b1별관301호';
+  const row = () => FI.ISSUE().find(c => c.k === k), ln = () => row().lines.find(l => l.n === '연체료') || null;
   const l0 = ln(), ruby = FI.ISSUE().find(c => c.no === '본관B201호').lines.find(l => l.n === '연체료');
-  const menu = (FI.MORE.length = 0, FI.PAY1(), FI.MORE.some(m => m.some(i => i.t === '연체료 조정' && i.go === "fee1Open('b1별관301호')")));
-  FI.fee1Open('b1별관301호'); FI.fee1Set('amt', '30000'); const ph = FI.fee1HTML(); FI.fee1OK(); const l1 = ln();
-  FI.fee1Open('b1별관301호'); FI.fee1Set('mode', 'skip'); FI.fee1OK(); const l2 = ln(), cap = /연체료 68,433원 뺌/.test(FI.PAY1());
-  FI.fee1Open('b1별관301호'); FI.fee1Set('mode', 'full'); FI.fee1OK(); const l3 = ln();
+  const r0 = row(), rent = r0.lines.find(l => l.n === '임대료'), v = r0.lines.find(l => !l.lock && !l.fee && l.amt > 0);
+  const allOn = r0.nOff === 0 && r0.inc.length === r0.lines.length;
+  FI.gAll(true); const h0 = FI.PAY1(), rentLocked = rent && rent.lock && !h0.includes(`lineTog('${k}','${rent.id}'`) && h0.includes(`lineTog('${k}','${v.id}'`);
+  const noMenu = (FI.MORE.length = 0, FI.PAY1(), !FI.MORE.some(m => m.some(i => i.t === '연체료 조정')));
+  FI.lineTog(k, v.id); FI.lineTog(k, '연체료'); const r1 = row(), cap = /2개 항목 미선택/.test(FI.PAY1());
+  const cut = r1.sum === r0.sum - v.amt - 68433 && r1.nOff === 2 && r1.inc.length === r0.lines.length - 2 && r1.lines.length === r0.lines.length;
+  FI.issue1([k]); const r2 = row(), iss = r2.st === '발행 완료' && FI.FEE_CUT[k] === FI.TODAY_S && FI.feeUntil(k, FI.TODAY_S) === 0 && ln() && ln().amt === 68433 && ln().off && r2.sum === r1.sum
+    && !FI.PAY1().includes(`lineTog('${k}','${v.id}'`);
+  FI.cancelOpen(k); FI.cx1.why = '테스트'; FI.cancelOK(); const back = !(k in FI.FEE_CUT) && FI.feeUntil(k, FI.TODAY_S) === 68433;
+  FI.lineTog(k, v.id); FI.lineTog(k, '연체료'); const reset = row().nOff === 0 && !FI.OFF1[k] && row().sum === r0.sum;
   const past = FI.withMonth('2026-07', () => FI.ISSUE()).every(c => !c.lines.some(l => l.n === '연체료'));
-  r6.push(['청구서 연체료 — 8월 청구서에 기본 한 줄(별관301호 68,433 · 공급가액 62,211 · 부가세 6,222 · 루비뮤직 2,615) · 연체료 조정 3만(3만 감면 표기) · 이번엔 빼기(줄 없음 · 「뺌」) · 전액 넣기로 되돌림 · 7월(지난 회차)엔 없음',
-    l0 && l0.amt === 68433 && l0.supply === 62211 && l0.vat === 6222 && ruby && ruby.amt === 2615 && menu
-    && /전액 넣기/.test(ph) && /이번엔 빼기/.test(ph) && /38,433원 감면/.test(ph) && l1 && l1.amt === 30000 && !l2 && cap && l3 && l3.amt === 68433 && past]); }
+  r6.push([`청구서 항목 체크박스 — 8월 연체료 기본 한 줄(별관301호 68,433 · 공급가액 62,211 · 부가세 6,222 · 루비뮤직 2,615) · 기본 모두 넣기 · 임대료 잠김 · ${v.n} · 연체료 빼면 합계에서 빠지고 「2개 항목 미선택」 · 발행하면 정리일 = 발행일(뺀 연체료는 감면) · 체크 잠김 · 취소하면 되돌림 · 연체료 조정 메뉴 없음 · 7월엔 연체료 없음`,
+    l0 && l0.amt === 68433 && l0.supply === 62211 && l0.vat === 6222 && ruby && ruby.amt === 2615 && allOn && rentLocked && noMenu && cut && cap && iss && back && reset && past]); }
 /* 같은 날 원장은 한 일 순서대로 — 현금 500만 → 그 수납 취소 → 보증금 상계 500만. 잔액이 매 줄 맞게 따라간다 */
 { const PO = new Function(stub + bare + '; seedJuly(); return {openPay,openOffset,setPm,payConfirm,ledgerOf,CTR3,MORE,LEDG,lcxOpen,lcxConfirm,get lcx(){return lcx;},set tab3c(v){tab3c=v;}};')();
   const k = 'b1별관301호';
