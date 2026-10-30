@@ -236,10 +236,9 @@ const all12 = ['본관801호','본관701호','본관601호','본관501호','본�
 r6.push(['미납 관리 — 비씨에이전시 5,146,472원만 남음 (루비뮤직 6월분 해소)', all12.every(n => left('b1' + n) === 0) && left('b1별관301호') === 5146472]);
 r6.push(['PAY-1 8월 발행 화면의 미납 잔액 — 7월까지의 미납', W.dueOf('b1별관301호').amt === 5146472 && W.dueOf('b1별관301호').from === '2026-06']);
 /* 현장 수납 — 입금 매칭을 다 끝낸 뒤 비씨에이전시가 현금 300만 원을 들고 왔다 → PAY-2 수납 처리 */
-W.openPay('b1별관301호'); W.setPm('feeMode', 'waive'); W.setPm('amt', 3000000);
+W.openPay('b1별관301호'); W.setPm('amt', 3000000);
 const pc = W.payPlan();
 W.payConfirm();
-delete W.FEE_CUT['b1별관301호'];   /* 뒤의 검산이 연체료 68,433을 쓰므로 정리일을 되돌린다(배분만 본다) */
 const LC = W.ledgerOf('b1별관301호');
 r6.push(['현장 수납 현금 300만 — 오래된 달부터 · 미납 2,146,472 · 원장 매출채권 잔액 일치 · 「현금 수납」 기록',
   pc.lines[0].ym <= pc.lines[pc.lines.length - 1].ym && pc.rest === 0 && left('b1별관301호') === 2146472
@@ -341,13 +340,14 @@ r6.push(['월 마감 — 카리나빌딩 7월 확인 6항목 통과 · 사유 �
 /* 수납 처리의 연체료 처리 — 보증금 상계와 같은 셋 · 기본 전액 받기 · 연체료만 남은 계약도 미납 관리에 — 화면을 연 상태(7월 처리 완료)에서 */
 const H = new Function(stub + bare + '; seedJuly(); return {openPay,setPm,payConfirm,payHTML,ledgerOf,arrears,CTRS,get pm(){return pm;},f2,PAY2};')();
 H.openPay('b1본관B201호'); const rubyMode = H.pm.feeMode === 'full' && H.pm.amt === 2615;
-H.openPay('b1별관301호'); const hh = H.payHTML();
-const three = H.pm.feeMode === 'full' && H.pm.amt === 5146472 + 68433 && /전액 받기/.test(hh) && /전액 감면/.test(hh) && /직접 입력/.test(hh)
+H.openPay('b1별관301호'); const hp0 = H.payHTML(), off0 = !H.pm.feeOn && H.pm.amt === 5146472 && /함께 정리/.test(hp0) && !/전액 받기/.test(hp0) && /다음 정기 청구서/.test(hp0);
+H.setPm('feeOn', '1'); const hh = H.payHTML();
+const three = off0 && H.pm.feeMode === 'full' && H.pm.amt === 5146472 + 68433 && /전액 받기/.test(hh) && /전액 감면/.test(hh) && /직접 입력/.test(hh)
   && !/이번엔 안 함/.test(hh) && !/50% 감면/.test(hh) && hh.indexOf('>연체료<') < hh.indexOf('연체료 처리') && /미납액 합계/.test(hh)
   && /미납 내역/.test(hh) && !/배분 미리보기/.test(hh) && /<div>청구년월<\/div><div class="n">미납액<\/div><div class="n">연체일수<\/div><div class="n">연체료<\/div>/.test(hh) && /26\.06월분/.test(hh);
 H.setPm('amt', 3000000); H.payConfirm();
 const LH = H.ledgerOf('b1별관301호'), hRow = LH.rows.find(r => r.type === '청구' && /^연체료/.test(r.item));
-r6.push(['수납 처리 연체료 처리 — 전액 받기 · 전액 감면 · 직접 입력(상계와 같음) · 기본 전액 받기 · 아래 표는 미납 내역(상계와 같음) · 일부만 받아도 연체료 청구서 68,433 · 남은 받을 돈 2,214,905 · 루비뮤직도 전액 기본',
+r6.push(['수납 처리 연체료 — 기본은 함께 정리 끔(입금만 · 받을 금액 = 미납) · 켜면 전액 받기 · 전액 감면 · 직접 입력(상계와 같음) · 아래 표는 미납 내역(상계와 같음) · 일부만 받아도 연체료 청구서 68,433 · 남은 받을 돈 2,214,905 · 루비뮤직도 전액 기본',
   rubyMode && three && hRow && hRow.inc === 68433 && hRow.item === '연체료 청구서' && LH.bal.매출채권 === 5146472 + 68433 - 3000000]);
 r6.push(['연체료만 남은 루비뮤직도 미납 관리 기본 보기에', /본관B201호/.test(H.PAY2())]);
 /* 계약 등록 — 진행중 계약과 기간이 겹치면 막고, 끝난 다음 날부터는 등록된다 → CTR-2 */
@@ -590,10 +590,23 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   r6.push(['수납 취소 — 현금 100만(연체료 청구서 생김 · 안 채워짐) · 보증금 상계 50만을 원장 ⋮ › 취소 → 미납 원래대로 · 보증금 잔액 원래대로 · 원장에 수납 취소 · 보증금 상계 취소 줄 · 은행 입금 줄은 ⋮에 상세만',
     bankKey && bankNo && manual.length === 2 && PX.arrears(c).due === due0 && L.bal.임대보증금 === dep0 && !PX.BILLS.some(i => i.fee && i.k === k)
     && L.rows.some(r => r.type === '수납 취소' && r.inc === 1000000) && L.rows.some(r => r.type === '보증금 상계 취소' && r.inc === 500000)]); }
+/* 정기 청구서의 연체료 — 기본으로 한 줄 들어간다 · 연체료 조정에서 낮추거나 이번엔 뺀다 · 지난 회차엔 없다 → 4.4.3 */
+{ const FI = new Function(stub + bare + '; seedJuly(); return {ISSUE,PAY1,withMonth,fee1Open,fee1Set,fee1OK,fee1HTML,MORE,set f1b(v){f1.b=v;},set f1ym(v){f1.ym=v;}};')();
+  FI.f1b = 'b1';
+  const ln = () => (FI.ISSUE().find(c => c.no === '별관301호').lines.find(l => l.n === '연체료') || null);
+  const l0 = ln(), ruby = FI.ISSUE().find(c => c.no === '본관B201호').lines.find(l => l.n === '연체료');
+  const menu = (FI.MORE.length = 0, FI.PAY1(), FI.MORE.some(m => m.some(i => i.t === '연체료 조정' && i.go === "fee1Open('b1별관301호')")));
+  FI.fee1Open('b1별관301호'); FI.fee1Set('amt', '30000'); const ph = FI.fee1HTML(); FI.fee1OK(); const l1 = ln();
+  FI.fee1Open('b1별관301호'); FI.fee1Set('mode', 'skip'); FI.fee1OK(); const l2 = ln(), cap = /연체료 68,433원 뺌/.test(FI.PAY1());
+  FI.fee1Open('b1별관301호'); FI.fee1Set('mode', 'full'); FI.fee1OK(); const l3 = ln();
+  const past = FI.withMonth('2026-07', () => FI.ISSUE()).every(c => !c.lines.some(l => l.n === '연체료'));
+  r6.push(['청구서 연체료 — 8월 청구서에 기본 한 줄(별관301호 68,433 · 공급가액 62,211 · 부가세 6,222 · 루비뮤직 2,615) · 연체료 조정 3만(3만 감면 표기) · 이번엔 빼기(줄 없음 · 「뺌」) · 전액 넣기로 되돌림 · 7월(지난 회차)엔 없음',
+    l0 && l0.amt === 68433 && l0.supply === 62211 && l0.vat === 6222 && ruby && ruby.amt === 2615 && menu
+    && /전액 넣기/.test(ph) && /이번엔 빼기/.test(ph) && /38,433원 감면/.test(ph) && l1 && l1.amt === 30000 && !l2 && cap && l3 && l3.amt === 68433 && past]); }
 /* 같은 날 원장은 한 일 순서대로 — 현금 500만 → 그 수납 취소 → 보증금 상계 500만. 잔액이 매 줄 맞게 따라간다 */
 { const PO = new Function(stub + bare + '; seedJuly(); return {openPay,openOffset,setPm,payConfirm,ledgerOf,CTR3,MORE,LEDG,lcxOpen,lcxConfirm,get lcx(){return lcx;},set tab3c(v){tab3c=v;}};')();
   const k = 'b1별관301호';
-  PO.openPay(k); PO.setPm('amt', 5000000); PO.payConfirm();
+  PO.openPay(k); PO.setPm('feeOn', '1'); PO.setPm('amt', 5000000); PO.payConfirm();
   PO.tab3c = '원장'; PO.MORE.length = 0; PO.CTR3(k);
   PO.lcxOpen(Object.keys(PO.LEDG).filter(x => x.startsWith('paym')).pop()); PO.lcx.why = '잘못 받음'; PO.lcxConfirm();
   PO.openOffset(k); PO.setPm('amt', 5000000); PO.payConfirm();
@@ -616,7 +629,7 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
 /* 연체료까지 받은 수납 취소 — 잠기지 않는다 · 그때 생긴 연체료 청구도 함께 취소(청구 취소 줄) · 미납 · 연체료 원래대로 */
 { const PF = new Function(stub + bare + '; seedJuly(); return {openPay,setPm,payConfirm,ledgerOf,arrears,feeUntil,CTRS,CTR3,MORE,LEDG,BILLS,lcxOpen,lcxConfirm,get pm(){return pm;},get lcx(){return lcx;},set tab3c(v){tab3c=v;}};')();
   const k = 'b1별관301호', c = PF.CTRS.find(x => x.b === 'b1' && x.no === '별관301호'), due0 = PF.arrears(c).due, fee0 = PF.feeUntil(k, '2026-08-10');
-  PF.openPay(k); PF.setPm('feeMode', 'full'); const fee = PF.pm.fee; PF.payConfirm();
+  PF.openPay(k); PF.setPm('feeOn', '1'); const fee = PF.pm.fee; PF.payConfirm();
   const made = PF.BILLS.some(i => i.fee && i.k === k), due1 = PF.arrears(c).due;
   PF.tab3c = '원장'; PF.MORE.length = 0; PF.CTR3(k);
   const key = Object.keys(PF.LEDG).find(x => x.startsWith('paym')), it = PF.MORE.flat().find(i => i.go === `lcxOpen('${key}')`);
