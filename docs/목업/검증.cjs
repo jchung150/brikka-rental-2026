@@ -347,8 +347,8 @@ const three = off0 && H.pm.feeMode === 'full' && H.pm.amt === 5146472 + 68433 &&
   && /미납 내역/.test(hh) && !/배분 미리보기/.test(hh) && /<div>청구년월<\/div><div class="n">미납액<\/div><div class="n">연체일수<\/div><div class="n">연체료<\/div>/.test(hh) && /26\.06월분/.test(hh);
 H.setPm('amt', 3000000); H.payConfirm();
 const LH = H.ledgerOf('b1별관301호'), hRow = LH.rows.find(r => r.type === '청구' && /^연체료/.test(r.item));
-r6.push(['수납 처리 연체료 — 기본은 함께 정리 끔(입금만 · 받을 금액 = 미납) · 켜면 전액 받기 · 전액 감면 · 직접 입력(상계와 같음) · 아래 표는 미납 내역(상계와 같음) · 일부만 받아도 연체료 청구서 68,433 · 남은 받을 돈 2,214,905 · 루비뮤직도 전액 기본',
-  rubyMode && three && hRow && hRow.inc === 68433 && hRow.item === '연체료 청구서' && LH.bal.매출채권 === 5146472 + 68433 - 3000000]);
+r6.push(['수납 처리 연체료 — 기본은 함께 정리 끔(입금만 · 받을 금액 = 미납) · 켜면 전액 받기 · 전액 감면 · 직접 입력(상계와 같음) · 아래 표는 미납 내역(상계와 같음) · 일부만 받아도 연체료 청구서 68,433(비과세 · 부가세 0) · 남은 받을 돈 2,214,905 · 루비뮤직도 전액 기본',
+  rubyMode && three && hRow && hRow.inc === 68433 && hRow.item === '연체료 청구서' && hRow.sup === 68433 && hRow.vat === 0 && LH.bal.매출채권 === 5146472 + 68433 - 3000000]);
 r6.push(['연체료만 남은 루비뮤직도 미납 관리 기본 보기에', /본관B201호/.test(H.PAY2())]);
 /* 계약 등록 — 진행중 계약과 기간이 겹치면 막고, 끝난 다음 날부터는 등록된다 → CTR-2 */
 const K = new Function(stub + bare + '; seedJuly(); return {CTR2,ncSet,ncSave,ncLookup,ncClash,CTRS,get nc(){return nc;},ctrEnd,ledgerOf};')();
@@ -607,8 +607,8 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   FI.cancelOpen(k); FI.cx1.why = '테스트'; FI.cancelOK(); const back = !(k in FI.FEE_CUT) && FI.feeUntil(k, FI.TODAY_S) === 68433;
   FI.lineTog(k, v.id); FI.lineTog(k, '연체료'); const reset = row().nOff === 0 && !FI.OFF1[k] && row().sum === r0.sum;
   const past = FI.withMonth('2026-07', () => FI.ISSUE()).every(c => !c.lines.some(l => l.n === '연체료'));
-  r6.push([`청구서 항목 체크박스 — 8월 연체료 기본 한 줄(별관301호 68,433 · 공급가액 62,211 · 부가세 6,222 · 루비뮤직 2,615) · 기본 모두 넣기 · 임대료 잠김 · ${v.n} · 연체료 빼면 합계에서 빠지고 「2개 항목 미선택」 · 발행하면 정리일 = 발행일(뺀 연체료는 감면) · 체크 잠김 · 취소하면 되돌림 · 연체료 조정 메뉴 없음 · 7월엔 연체료 없음`,
-    l0 && l0.amt === 68433 && l0.supply === 62211 && l0.vat === 6222 && ruby && ruby.amt === 2615 && allOn && rentLocked && noMenu && cut && cap && iss && back && reset && past]); }
+  r6.push([`청구서 항목 체크박스 — 8월 연체료 기본 한 줄(별관301호 68,433 · 일반내역서(비과세) · 공급가액 68,433 · 부가세 0 · 루비뮤직 2,615) · 기본 모두 넣기 · 임대료 잠김 · ${v.n} · 연체료 빼면 합계에서 빠지고 「2개 항목 미선택」 · 발행하면 정리일 = 발행일(뺀 연체료는 감면) · 체크 잠김 · 취소하면 되돌림 · 연체료 조정 메뉴 없음 · 7월엔 연체료 없음`,
+    l0 && l0.amt === 68433 && l0.bill === '일반내역서' && l0.supply === 68433 && l0.vat === 0 && ruby && ruby.amt === 2615 && allOn && rentLocked && noMenu && cut && cap && iss && back && reset && past]); }
 /* 같은 날 원장은 한 일 순서대로 — 현금 500만 → 그 수납 취소 → 보증금 상계 500만. 잔액이 매 줄 맞게 따라간다 */
 { const PO = new Function(stub + bare + '; seedJuly(); return {openPay,openOffset,setPm,payConfirm,ledgerOf,CTR3,MORE,LEDG,lcxOpen,lcxConfirm,get lcx(){return lcx;},set tab3c(v){tab3c=v;}};')();
   const k = 'b1별관301호';

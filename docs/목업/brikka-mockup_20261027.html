@@ -3245,9 +3245,10 @@ function ISSUE(){
     /* 연체료 — 이번 회차 청구서에 기본으로 넣는다(그날까지 쌓인 금액). 발행한 청구서는 발행 때 금액을 보인다.
        지난 회차(6·7월)는 이 줄 없이 발행했다 → 4.4.3 */
     const z=ISS[k], fee=PAST_CTX?0:z?z.feeAll||0:feeUntil(k,TODAY_S);
-    if(fee){const sp=Math.floor(fee*10/11);
-      lines.push({n:'연체료',bill:'세금계산서',src:`${(z?z.at:TODAY_S).slice(5).replace('-','.')}까지 · 연 ${rateOf(k)}%`,
-        supply:sp,vat:fee-sp,amt:fee,st:'연체료',stc:'wa',fee:true});}
+    /* 연체료는 대가가 아니라 늦게 낸 데 대한 연체이자라 부가세 대상이 아니다(부가가치세법 29조 5항 5호) → 4.4.3 */
+    if(fee){
+      lines.push({n:'연체료',bill:'일반내역서',src:`${(z?z.at:TODAY_S).slice(5).replace('-','.')}까지 · 연 ${rateOf(k)}%`,
+        supply:fee,vat:0,amt:fee,st:'연체료',stc:'wa',fee:true});}
     /* 넣을 항목 — 약정은 잠근다. 발행한 청구서는 발행 때 고른 대로 */
     const o=PAST_CTX?{}:OFF1[k]||{};
     lines.forEach(l=>{l.id=lid(l); l.lock=l.st==='약정'; l.off=!l.lock&&!!o[l.id];});
@@ -3389,7 +3390,7 @@ function PAY1(){
     발행 문서가 <b>세금계산서</b>인 항목만 부가세가 붙는다.<br>
     금액 칸의 <b style="color:var(--warn)">미산출</b>은 이번 회차 대상인데 금액이 없다는 뜻이다.
     그대로 발행하면 그 항목이 빠진 청구서가 나간다.<br>
-    <b>연체료</b>는 발행일까지 쌓인 금액이 청구서에 한 줄로 기본으로 들어간다(세금계산서 · 부가세 포함 금액을 역산). 발행하면 그날이 연체료 정리일이 된다 → 4.4.3<br>
+    <b>연체료</b>는 발행일까지 쌓인 금액이 청구서에 한 줄로 기본으로 들어간다(일반내역서 · 비과세. 연체이자는 공급가액에 넣지 않는다 · 부가가치세법 29조 5항 5호). 발행하면 그날이 연체료 정리일이 된다 → 4.4.3<br>
     <b>항목 체크박스</b>로 이번 청구서에 넣을 항목을 계약마다 고른다. 기본은 모두 넣기. <b>약정</b>(임대료 · 고정관리비)은 잠겨 뺄 수 없다. 뺀 항목은 계산은 그대로 하고 청구하지 않는다. <b>임대인 부담(감면)</b>이며 다음 청구서로 넘어가지 않는다. 연체료도 같다. 이번 청구서에만 적용하고 다음 회차는 다시 모두 넣기로 시작한다. 연체료를 일부만 받으려면 수납 처리의 함께 정리 › 직접 입력을 쓴다<br>
     발행하면 원장에 <b>청구</b> 거래로 기록된다. 발행 버튼을 누르면 메일을 보낼지 묻고, <b>메일 보내고 발행</b>을 고르면 임차인 담당자에게 이메일이 발송된다. 계약 하나만 발행하려면 더보기의 <b>청구서 발행</b>을 누른다.<br>
     발행한 청구서는 고치지 않는다. 입금이 없고 마감 전이면 <b>취소</b>하고 다시 발행한다(원장에 청구 취소). 입금 뒤에는 계약 상세의 <b>청구 감액</b>·<b>청구 추가</b>로 바로잡는다.</div>`;
@@ -5426,7 +5427,8 @@ function CTR3sum(c,k){
 /* ═══ CTR-3 계약 원장 — 이 계약의 모든 돈 거래를 있는 그대로. 추가만 하고 고치지 않는다 ═══ */
 let f3={per:''};
 const setF3=(k,v)=>{f3[k]=v;render();};
-const isTaxItem=n=>{const m=MASTER.find(x=>x.name===n.split(' ')[0]);return m?isTax(m.bill):true;};
+/* 연체료는 비과세(일반내역서) → 4.4.3 */
+const isTaxItem=n=>{if(n==='연체료') return false; const m=MASTER.find(x=>x.name===n.split(' ')[0]);return m?isTax(m.bill):true;};
 function ledgerOf(k){
   const c=CTRS.find(x=>ckey(x)===k), rows=[];
   const rent=((c.it||[]).find(x=>x[0]==='임대료')||[])[1]||0;
