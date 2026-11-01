@@ -1002,7 +1002,7 @@ function csDrop(){
   DRAWER=null; cs=null; render();
 }
 function openDrawer(k){DRAWER=k;dPick=[];render();}
-function closeDrawer(){DRAWER=null;cs=null;cq=null;render();}
+function closeDrawer(){DRAWER=null;cs=null;render();}
 function dToggle(c){dPick.includes(c)?dPick=dPick.filter(x=>x!==c):dPick.push(c);render();}
 function dApply(){dPick.forEach(c=>{BILL[c].on=true;});DRAWER=null;dPick=[];render();}
 function delItem(code){BILL[code].on=false;render();}
@@ -1322,7 +1322,6 @@ function drawerHTML(){
   if(DRAWER==='pay') return payHTML();
   if(DRAWER==='mclose') return mcHTML();
   if(DRAWER==='citem') return ciHTML();
-  if(DRAWER==='cset') return cqHTML();
   if(DRAWER!=='additem') return '';
   const used=BUILDINGS[0].charge.filter(c=>c.use).map(c=>c.it);
   const rest=MASTER.filter(m=>!m.fixed&&!BILL[m.code].on&&used.includes(m.name));
@@ -5190,35 +5189,13 @@ const billTo=c=>pplOf(c).filter((x,i)=>x.bill!=null?x.bill:i===0);
 /* 연체료 중지 안내 — 중지 중일 때만 청구·수납 탭 위에 한 줄 → 19 */
 function feeStopNote(k){const st=feeStop(k);
   return st?`<div class="fnd"><span class="h">연체료 중지 중 · ${st.replace(/-/g,'.')}부터</span>재개할 때까지 이 계약의 연체료를 세지 않습니다. <b class="lk" onclick="tab3c='요약';render()">요약 › 임대정보에서 재개 →</b></div>`:'';}
-/* 연체료 중지 · 재개 — 요약 › 임대정보의 연체료 부과 줄 버튼 → 오른쪽 패널. 사유는 받지 않는다 → 19 */
-let cq=null;
-const lastIss=k=>BILLS.filter(i=>i.k===k&&!i.adhoc).map(i=>i.date||billOn(i.ym)).sort().pop()||'';
-const cqMin=k=>{const L=lastIss(k), st=feeStop(k);return [L,st||''].sort().pop();};
-function cqOpen(k){cq={k,d:TODAY_S};DRAWER='cset';render(true);}
-function cqErr(){if(!cq) return ''; const st=feeStop(cq.k), mn=cqMin(cq.k);
-  return !cq.d||dnum(cq.d)<dnum(mn)?`${st?'재개일':'중지일'}은 ${mn.replace(/-/g,'.')} 이후로 고릅니다`:'';}
-function cqSave(){if(!cq||cqErr()) return; const k=cq.k, S=csetOf(k), st=feeStop(k);
-  if(!st){S.off.push({from:cq.d}); clog(k,'계약','수정',`연체료 부과 중지 — ${cq.d.replace(/-/g,'.')}부터`,'',[['연체료 부과','부과','중지']]);}
-  else{S.off[S.off.length-1].to=cq.d; clog(k,'계약','수정',`연체료 부과 재개 — ${cq.d.replace(/-/g,'.')}부터`,'',[['연체료 부과','중지','부과']]);}
-  DRAWER=null;cq=null;render(true);}
-function cqHTML(){
-  if(DRAWER!=='cset'||!cq) return '';
-  const c=CTRS.find(x=>ckey(x)===cq.k), bd=BUILDINGS.find(x=>x.id===c.b)||BUILDINGS[0], st=feeStop(cq.k), err=cqErr(), mn=cqMin(cq.k), d=cq.d.replace(/-/g,'.');
-  const R=(k,body,tip)=>`<div class="fr"><span class="fk">${k}${tip?`<i class="tip" data-tip="${tip}">i</i>`:''}</span>${body}</div>`;
-  return `<div class="dro"><div class="ov" onclick="closeDrawer()"></div><div class="pn">
-    <div class="dh"><div><div class="t">${st?'연체료 재개':'연체료 중지'}</div><div class="s">${cname(bd.alias,c.no,c.ten)}</div></div>
-      <button class="x" onclick="closeDrawer()">✕</button></div>
-    <div class="db">
-      <div class="fg"><div class="fl">연체료</div>
-        ${R('연체이자율',`<span class="fv">연 ${rateOf(cq.k)}%<span class="c2" style="margin:0 0 0 8px">계약 조건 · 그대로</span></span>`)}
-        ${st?R('중지일',`<span class="fv">${st.replace(/-/g,'.')}</span>`):''}
-        ${R(st?'재개일':'중지일',`<input type="date" value="${cq.d}" min="${mn}" onchange="cq.d=this.value;render(true)">`,`마지막 청구서 발행일(${(lastIss(cq.k)||'—').replace(/-/g,'.')}) 이후만 고릅니다. 이미 발행한 청구서의 연체료는 바뀌지 않습니다. 그 몫은 청구 감액으로 줄입니다`)}</div>
-      ${err?`<div class="prev warn2">${err}</div>`:`<div class="prev"><div class="pt">저장하면</div>${st?`<b>${d}</b>부터 남은 미납에 연체료를 다시 셉니다.`:`<b>${d}</b>부터 재개할 때까지 연체료를 세지 않습니다. 그 전까지 쌓인 연체료는 다음 청구서에 들어갑니다. 그것까지 받지 않으려면 청구서 발행에서 연체료 체크를 풉니다.`}</div>`}
-    </div>
-    <div class="df"><button class="btn" onclick="closeDrawer()">닫기</button>
-      <button class="btn pri" ${err?'disabled':''} onclick="cqSave()">${st?'재개':'중지'}</button></div>
-  </div></div>`;
-}
+/* 연체료 중지 · 재개 — 요약 › 임대정보의 연체료 부과 토글. 누르면 바로 바뀌고 그날(오늘)이 중지일 · 재개일이다. 사유 · 패널 없음 → 19
+   같은 날 다시 켜면 그 중지는 없던 일로 지운다 */
+function feeToggle(k){const S=csetOf(k), st=feeStop(k);
+  if(!st){S.off.push({from:TODAY_S}); clog(k,'계약','수정',`연체료 부과 중지 — ${TODAY_S.replace(/-/g,'.')}부터`,'',[['연체료 부과','부과','중지']]);}
+  else{if(st===TODAY_S) S.off.pop(); else S.off[S.off.length-1].to=TODAY_S;
+    clog(k,'계약','수정',`연체료 부과 재개 — ${TODAY_S.replace(/-/g,'.')}부터`,'',[['연체료 부과','중지','부과']]);}
+  render(true);}
 function CTR3month(c,k){
   return feeStopNote(k)+CTR3monthT(c,k);}
 function CTR3monthT(c,k){
@@ -5424,9 +5401,8 @@ function CTR3sum(c,k){
       <dt>납부마감일</dt><dd>${bn.dueDay}</dd>
       <dt>기산일</dt><dd>${d8(fR)}${fM!==fR?`<span class="lock">고정관리비 ${d8(fM)}</span>`:''}</dd>
       <dt>연체이자율</dt><dd>연 ${rateOf(k)}%</dd>
-      <dt>연체료 부과</dt><dd>${(st=>{/* 토글 — 누르면 바로 바뀌지 않고 날짜를 묻는 패널이 열린다. 패널이 열린 동안만 스위치가 넘어가 보이고, 닫으면 돌아온다 → 19 */
-        const asking=DRAWER==='cset'&&cq&&cq.k===k, on=asking?!!st:!st;
-        return `<button class="tgl ${on?'on':''}" title="${st?'켜면 재개일을 묻습니다':'끄면 중지일을 묻습니다'}" aria-label="연체료 부과" onclick="cqOpen('${k}')"></button><span style="margin-left:10px">${st?`<span class="bd wa">중지</span> ${d8(st)}부터`:'부과 중'}</span>`;})(feeStop(k))}</dd>
+      <dt>연체료 부과</dt><dd>${(st=>{/* 토글 — 누르면 바로 중지 · 재개된다. 꺼져 있으면 중지한 날짜를 옆에 보인다 → 19 */
+        return `<button class="tgl ${st?'':'on'}" title="${st?'켜면 오늘부터 다시 셉니다':'끄면 오늘부터 연체료를 세지 않습니다'}" aria-label="연체료 부과" onclick="feeToggle('${k}')"></button><span style="margin-left:10px">${st?`<span class="bd wa">중지</span> ${d8(st)}부터`:'부과 중'}</span>`;})(feeStop(k))}</dd>
       <dt>렌트프리</dt><dd>${rfx?`있음 · ${d8(c.base)} - ${d8(c.rf.end)} · ${rfDaysOf(c.base,c.rf.end)}일<span class="lock">${rfIt}</span>`:'없음'}</dd>
       <dt>정산액 대납</dt><dd>${pay?`${pay.no} · ${pay.ten}<span class="lock">이 유닛 정산액을 그 계약이 냄</span>`:'없음'}</dd></dl>`,
     `<button class="btn sm" onclick="ciOpen('${k}','rent')">수정</button>`);

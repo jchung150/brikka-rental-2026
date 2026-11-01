@@ -709,22 +709,22 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
     !/월분으로 이월/.test(h0) && CY.ctrPay(k, '2026-06').st === '미납' && /2026년 08월분/.test(h0) && /청구서 발행 전/.test(h0)
     && p8.st === '미납' && p8.carry.amt === 5178045 && q8.st === '부분납' && q8.carry.paid === 1000000 && q8.carry.due === 4178045 && /4,178,045/.test(h1)]); }
 /* 연체료 중지 · 청구서 메일 받는 사람 → 명세변경 19 */
-{ const CQ = new Function(stub + bare + '; seedJuly(); return {feeUntil,feeStop,cqOpen,cqErr,cqSave,cqHTML,CTR3month,CTR3sum,CTRS,CLOG,CPPL,pplOf,billTo,cx3Open,cx3Save,cx3HTML,openPay,payHTML,issueAsk,issueHTML,issueGo,ISS,get cq(){return cq;},get cx3(){return cx3;},set f1b(v){f1.b=v;}};')();
+{ const CQ = new Function(stub + bare + '; seedJuly(); return {feeUntil,feeStop,feeToggle,CSET,CTR3month,CTR3sum,CTRS,CLOG,CPPL,pplOf,billTo,cx3Open,cx3Save,cx3HTML,openPay,payHTML,issueAsk,issueHTML,issueGo,ISS,get cx3(){return cx3;},set f1b(v){f1.b=v;}};')();
   const k = 'b1별관301호', c = CQ.CTRS.find(x => x.b === 'b1' && x.no === '별관301호'), F = d => CQ.feeUntil(k, d);
-  const f0 = F('2026-08-10'), f731 = F('2026-07-31'), sum0 = CQ.CTR3sum(c, k);
-  CQ.cqOpen(k); CQ.cq.d = '2026-07-10'; const early = /이후로 고릅니다/.test(CQ.cqErr()); CQ.cqSave(); const blocked = !CQ.feeStop(k);
-  CQ.cq.d = '2026-08-01'; const html = CQ.cqHTML(); CQ.cqSave();
+  const f0 = F('2026-08-10'), f809 = F('2026-08-09'), sum0 = CQ.CTR3sum(c, k);
+  CQ.feeToggle(k);
   const fa = F('2026-08-10'), fb = F('2026-08-31'), sum1 = CQ.CTR3sum(c, k), tab = CQ.CTR3month(c, k);
   CQ.openPay(k); const pay = CQ.payHTML();
-  r6.push(['연체료 중지 — 요약 › 임대정보 「연체료 부과 · 부과 중 [중지]」 → 패널 · 중지일이 마지막 발행일(07.19) 전이면 막힘 · 08.01부터 중지하면 7/31까지만 · 그 뒤로 안 쌓임 · 카드 「중지 · 08.01부터 [재개]」 · 청구·수납 탭 위 안내 · 수납 패널 안내 · 이력',
-    /부과 중/.test(sum0) && /class="tgl on"/.test(sum0) && /cqOpen\('b1별관301호'\)/.test(sum0) && early && blocked && /연체료 중지/.test(html) && /연체이자율/.test(html)
-    && f0 === 36859 && CQ.feeStop(k) === '2026-08-01' && fa === f731 && fb === fa && fa < f0
-    && /2026\.08\.01부터/.test(sum1) && /class="tgl "/.test(sum1) && /연체료 중지 중 · 2026\.08\.01부터/.test(tab) && !/청구 설정/.test(tab)
-    && /연체료 중지 중\(08\.01부터\)/.test(pay) && /연체료 부과 중지/.test(CQ.CLOG[k][0].sum)]);
-  CQ.cqOpen(k); const rh = CQ.cqHTML(); CQ.cq.d = '2026-08-20'; CQ.cqSave();
+  r6.push(['연체료 중지 — 요약 › 임대정보 「연체료 부과」 토글(켜짐 · 부과 중) → 누르면 바로 중지(패널 없음) · 오늘(08.10)부터 안 셈: 08.09까지만 · 08.31도 같음 · 꺼짐 · 「중지 2026.08.10부터」 · 청구·수납 탭 위 안내 · 수납 패널 안내 · 이력',
+    /부과 중/.test(sum0) && /class="tgl on"/.test(sum0) && /feeToggle\('b1별관301호'\)/.test(sum0)
+    && f0 === 36859 && CQ.feeStop(k) === '2026-08-10' && fa === f809 && fb === fa && fa < f0
+    && /2026\.08\.10부터/.test(sum1) && /class="tgl "/.test(sum1) && /연체료 중지 중 · 2026\.08\.10부터/.test(tab)
+    && /연체료 중지 중\(08\.10부터\)/.test(pay) && /연체료 부과 중지/.test(CQ.CLOG[k][0].sum)]);
+  CQ.feeToggle(k); const same = !CQ.feeStop(k) && !CQ.CSET[k].off.length && F('2026-08-10') === f0 && /연체료 부과 재개/.test(CQ.CLOG[k][0].sum);
+  CQ.CSET[k].off.push({from: '2026-08-01', to: '2026-08-20'});   /* 지난 중지 구간(8/1 중지 · 8/20 재개) */
   const g19 = F('2026-08-19'), g31 = F('2026-08-31');
-  r6.push(['연체료 재개 — 패널 「연체료 재개」 · 08.20부터 다시 셈 · 08.19까지는 중지 때와 같음 · 08.31엔 늘어남 · 청구·수납 탭 안내 사라짐',
-    /연체료 재개/.test(rh) && !CQ.feeStop(k) && g19 === fa && g31 > g19 && /연체료 부과 재개/.test(CQ.CLOG[k][0].sum) && !/연체료 중지 중/.test(CQ.CTR3month(c, k))]);
+  r6.push(['연체료 재개 — 같은 날 다시 켜면 중지가 없던 일 · 중지 구간(08.01~08.19)은 안 셈: 08.19까지 = 7/31까지 · 08.20부터 다시 셈',
+    same && g19 === F('2026-07-31') && g31 > g19 && !/연체료 중지 중/.test(CQ.CTR3month(c, k))]);
   const def = CQ.billTo(c).length === 1 && CQ.billTo(c)[0] === CQ.pplOf(c)[0] && /청구서 메일/.test(CQ.CTR3sum(c, k));
   CQ.cx3Open(k, 'ppl'); const ph = CQ.cx3HTML(); CQ.cx3.ppl[0].bill = false; CQ.cx3Save();
   const none = !CQ.billTo(c).length && /청구서 메일 받는 사람 없음/.test(CQ.CTR3sum(c, k));
