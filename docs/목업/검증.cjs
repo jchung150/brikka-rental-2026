@@ -530,11 +530,11 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   const opts = (hc.match(/fxSet\('id'[^]*?<\/select>/) || [''])[0];
   const look = /<div class="t">청구 감액<\/div>/.test(hc) && /청구항목/.test(hc) && /<option[^>]*>임대료<\/option>/.test(hc)
     && /26\.07월분 · 정기/.test(opts) && /26\.06월분 · 정기/.test(opts) && !/임대료/.test(opts) && /감액 확정/.test(hc)
-    && /<div class="t">청구 추가<\/div>/.test(ha) && /항목명/.test(ha) && /발행 문서/.test(ha) && /청구서 발행/.test(ha) && !/내역<\/div>/.test(ha + hc);
+    && /<div class="t">청구 추가<\/div>/.test(ha) && /항목명/.test(ha) && /발행 문서/.test(ha) && /메일 없이 발행/.test(ha) && /메일 보내고 발행/.test(ha) && !/내역<\/div>/.test(ha + hc);
   FX.fxSet('name', '파손 수리비'); FX.fxSet('amt', '50000'); FX.fxConfirm(); const noWhy = !FX.BILLS.some(i => i.adhoc);
   FX.fxSet('why', '출입문 파손'); FX.fxConfirm();
   const r = FX.BILLS.find(i => i.adhoc), ln = FX.ISSUE().find(c => c.no === '본관101호').lines.find(l => l.n === '파손 수리비');
-  r6.push(['청구 추가 · 청구 감액 — 추가는 새 항목만 · 감액은 항목 → 그 항목의 청구(수도요금 → 26.07 · 26.06) · 내역 목록 없음 · 사유 없으면 막힘 · 수리비 공급가액 50,000 → 비정기 청구서 55,000 · 정기 청구서엔 없음',
+  r6.push(['청구 추가 · 청구 감액 — 추가는 새 항목만 · 감액은 항목 → 그 항목의 청구(수도요금 → 26.07 · 26.06) · 내역 목록 없음 · 추가는 메일 없이 / 메일 보내고 발행 · 사유 없으면 막힘 · 수리비 공급가액 50,000 → 비정기 청구서 55,000 · 정기 청구서엔 없음',
     look && noWhy && r && r.n === '파손 수리비' && r.doc === '세금계산서' && r.amt === 55000 && !ln]); }
 /* 실수 바로잡기 — 잘못 낸 비정기 청구는 청구 감액으로. 감액은 고른 그 청구를 줄인다 → 청구·수납 탭에서 그 줄이 「감액」 */
 { const MX = new Function(stub + bare + '; seedJuly(); return {issueAdhoc,adhocOf,ledgerOf,fixOpen,fxSet,fxConfirm,fixHTML,ctrPay,CTR3,ledOpen,ledHTML,LEDG,set tab3c(v){tab3c=v;}};')();

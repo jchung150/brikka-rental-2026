@@ -4299,7 +4299,8 @@ function payHTML(){
 }
 
 /* ═══ 청구 추가 · 청구 감액 — 원장 탭 청구 ▾ 메뉴에서 각자 패널로 연다. 칸 순서는 같다 → CTR-3 ═══
-   청구 추가: 항목명 · 발행 문서 · 금액 · 사유 → [청구서 발행]. 비정기 청구서 한 장(오늘 날짜 청구)
+   청구 추가: 항목명 · 발행 문서 · 금액 · 사유 → [메일 없이 발행] · [메일 보내고 발행]. 비정기 청구서 한 장(오늘 날짜 청구).
+     메일은 정기 청구서와 같이 청구서 메일 담당자에게 간다(아무도 없으면 보내지 않는다) → 14-2 · 19-4
    청구 감액: 청구항목 → 그 항목의 청구(청구년월) → 금액 · 사유 → [감액 확정]. 고른 청구 건을 줄인다.
      목록이 길어지지 않게 항목을 먼저 고르고, 그 항목의 청구만 보인다. 남은 금액이 있는 청구만 오른다
    실수는 지우지 않고 반대 방향으로 바로잡는다 — 잘못 낸 청구는 청구 감액, 잘못 한 감액은 청구 추가 */
@@ -4325,9 +4326,11 @@ const fxDoc=()=>{if(fz.mode==='add') return fz.doc; const i=fxBill(); return !i?
 const fxLeft=()=>{const i=fxBill();return i?i.amt-cutOf(i.id):0;};
 function fxOK(){const V=vatSplit(fz.amt,fxDoc());
   return fz.amt>0&&!!fz.why.trim()&&!!fxName()&&(fz.mode==='add'||!!fxBill()&&V.amt<=fxLeft());}
-function fxConfirm(){if(!fxOK()) return; const V=vatSplit(fz.amt,fxDoc());
+function fxConfirm(mail){if(!fxOK()) return; const V=vatSplit(fz.amt,fxDoc());
   if(fz.mode==='cut') addCut(fz.id,V.amt,TODAY_S,fz.why.trim(),V.sup,V.vat);
-  else issueAdhoc(fz.k,fxName(),V.amt,fz.doc,fz.why.trim(),null,V.sup,V.vat);
+  else {issueAdhoc(fz.k,fxName(),V.amt,fz.doc,fz.why.trim(),null,V.sup,V.vat);
+    const to=billTo(CTRS.find(x=>ckey(x)===fz.k));
+    if(mail===true&&to.length) clog(fz.k,'청구','발송',`비정기 청구서 메일 — ${fxName()} · ${to.map(x=>x.n).join(', ')}`);}
   DRAWER=null;fz=null;render(true);}
 function fixHTML(){
   if(DRAWER!=='fix'||!fz) return '';
@@ -4355,10 +4358,12 @@ function fixHTML(){
       ${cut&&I&&V.amt>left?`<div class="prev warn2"><div class="pt">청구액보다 많이 줄일 수 없습니다</div>남은 청구액 ${won(left)}까지 줄일 수 있습니다.</div>`
        :fz.amt?`<div class="prev"><div class="pt">${cut?'감액 확정하면':'발행하면'}</div>${cut
           ?`오늘(${TODAY_S.slice(5).replace('-','.')}) 날짜로 원장에 <b>${I?billLabel(I):''} 감액 ${won(V.amt)}</b>이 기록됩니다.${over>0?` 이미 낸 돈이 있어 <b>과납 ${won(over)}</b>이 생기고, 다음 청구서를 발행할 때 먼저 빠집니다.`:''}`
-          :`「${fz.name||'새 항목'}」 ${won(V.amt)}의 <b>비정기 청구서</b>가 바로 발행되고, 오늘(${TODAY_S.slice(5).replace('-','.')}) 날짜로 원장에 청구가 기록됩니다. 납부마감일 <b>${dueStr(adYm()).replace(/-/g,'.')}</b>.`}</div>`:''}
+          :`「${fz.name||'새 항목'}」 ${won(V.amt)}의 <b>비정기 청구서</b>가 바로 발행되고, 오늘(${TODAY_S.slice(5).replace('-','.')}) 날짜로 원장에 청구가 기록됩니다. 납부마감일 <b>${dueStr(adYm()).replace(/-/g,'.')}</b>.${(to=>to.length?` 메일을 보내면 ${to.map(x=>x.n).join(', ')}에게 갑니다.`:' 청구서 메일 받는 담당자가 없어 메일은 보내지 않습니다.')(billTo(c))}`}</div>`:''}
     </div>
     <div class="df"><button class="btn" onclick="closeDrawer()">닫기</button>
-      <button class="btn pri" ${fxOK()?'':'disabled'} onclick="fxConfirm()">${cut?'감액 확정':'청구서 발행'}</button></div>
+      ${cut?`<button class="btn pri" ${fxOK()?'':'disabled'} onclick="fxConfirm()">감액 확정</button>`
+        :`<button class="btn" ${fxOK()?'':'disabled'} onclick="fxConfirm(false)">메일 없이 발행</button>
+      <button class="btn pri" ${fxOK()&&billTo(c).length?'':'disabled'} ${billTo(c).length?'':'title="청구서 메일 받는 담당자가 없습니다(요약 › 담당자)"'} onclick="fxConfirm(true)">메일 보내고 발행</button>`}</div>
   </div></div>`;
 }
 /* 예전 이름 — 검증 스크립트가 쓴다 */
