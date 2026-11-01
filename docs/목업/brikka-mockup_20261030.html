@@ -3650,7 +3650,7 @@ function ctrPay(k,ym){
   /* 다 감액한 청구는 납부상태가 「감액」이다 — 받을 돈이 없다 */
   const it=BILLS.filter(i=>i.k===k&&i.ym===ym).map(i=>{const cut=D?by(CUTS,i.id):cutOf(i.id);
     const raw=D?paidBy(i.id,D)-by(MOVES,i.id):paidNet(i.id), net=i.amt-cut, due=Math.max(0,net-raw);
-    return {...i,cut,paid:Math.min(raw,i.amt),due,st:net===0&&!raw?'감액':closed&&due>0?'이월':raw>net?'과납':payState(net,raw,ym)};});
+    return {...i,cut,paid:Math.min(raw,i.amt),due,st:net===0&&!raw?'감액':closed&&due>0?'미납':raw>net?'과납':payState(net,raw,ym)};});
   /* 지난달 마감 때 넘어온 미납액 */
   const pv=ymPrev(ym), ca=closeOn(b,pv)?carryAmt(k,pv):0, cp=ca?(PAID[carryId(k,pv)]||0):0;
   const carry=ca?{id:carryId(k,pv),from:pv,amt:ca,paid:cp,due:Math.max(0,ca-cp)}:null;
@@ -3661,9 +3661,8 @@ function ctrPay(k,ym){
   /* 전월 과납액 — 이 달 청구에 먼저 배분된 지난달 과납 */
   const credit=CREDITS.filter(x=>x.k===k&&x.ym===ym).reduce((a,x)=>a+x.amt,0);
   const allCut=it.length&&it.every(i=>i.st==='감액')&&!carry;
-  /* 마감한 달에 남은 미납은 다음 달 전월 미납액으로 넘어갔다 — 납부상태 「이월」. 미납은 다음 달 줄 한 곳에만 보인다 → 20
-     청구서 발행 전인 달(청구 없음)은 넘어온 전월 미납액만으로 상태를 정한다 */
-  return {it,bill,cut,paid:paid+over,due,over,carry,credit,st:!it.length?(carry?(carry.due>0?(carry.paid?'부분납':'미납'):'완납'):null):allCut?'감액':dAll>0?(closed?'이월':payState(nAll,nAll-dAll,ym)):over>0?'과납':'완납'};
+  /* 청구서 발행 전인 달(청구 없음)은 넘어온 전월 미납액만으로 상태를 정한다 → 20 */
+  return {it,bill,cut,paid:paid+over,due,over,carry,credit,st:!it.length?(carry?(carry.due>0?(carry.paid?'부분납':'미납'):'완납'):null):allCut?'감액':dAll>0?(closed?'미납':payState(nAll,nAll-dAll,ym)):over>0?'과납':'완납'};
 }
 /* 연체료(예상) — 구간별로 계산한다 → 4.4
    납부마감일 다음날부터 오늘까지를 수납이 들어올 때마다 끊고, 구간마다 그 동안의 미납액 × 연체이자율 × 일수 ÷ 365.
@@ -3720,7 +3719,7 @@ function lateCalc(k,ym,until){
 /* 이 계약에 배분된 입금 — 입금 하나가 여러 계약에 나뉘면 자기 몫만 */
 const ctrDeps=(k,ym)=>RC.P.dep.filter(d=>(RC.dec[d.no]||{}).done)
   .map(d=>({d,pay:RC.dec[d.no].done.lines.filter(l=>l.k===k&&(!ym||l.ym===ym)).reduce((a,l)=>a+l.pay,0)})).filter(x=>x.pay>0);
-const PST={'완납':'ok','부분납':'wa','납부전':'mu','미납':'da','과납':'ac','감액':'mu','이월':'mu'};
+const PST={'완납':'ok','부분납':'wa','납부전':'mu','미납':'da','과납':'ac','감액':'mu'};
 
 /* 사업자 — 같은 사업자의 계약은 입금 1건으로 함께 낼 수 있다 */
 function rcBiz(){
@@ -4096,13 +4095,13 @@ function rcvRow(x,o){
   const sub=!op?'':(cr?`
       <div class="schr ${o.cls} sub ni"><div class="nm">전월 미납액</div>
         <div class="n c2">${won(cr.amt-(cr.cut||0))}${cutNote(cr.cut)}</div><div class="n c2">${cr.paid?won(cr.paid):dash}</div>
-        <div class="n">${cr.due?`<span style="color:var(--${closed?'muted':'warn'})">${won(cr.due)}</span>`:dash}</div>
-        <div class="c"><span class="bd ${PST[cr.due?(closed?'이월':cr.paid?'부분납':'미납'):'완납']}">${cr.due?(closed?'이월':cr.paid?'부분납':'미납'):'완납'}</span></div>${tail}</div>`:'')+(x.credit?`
+        <div class="n">${cr.due?`<span style="color:var(--warn)">${won(cr.due)}</span>`:dash}</div>
+        <div class="c"><span class="bd ${PST[cr.due?(closed?'미납':cr.paid?'부분납':'미납'):'완납']}">${cr.due?(closed?'미납':cr.paid?'부분납':'미납'):'완납'}</span></div>${tail}</div>`:'')+(x.credit?`
       <div class="schr ${o.cls} sub ni"><div class="nm">전월 과납액</div>
         <div class="n c2">−${won(x.credit)}</div><div class="n c2">−${won(x.credit)}</div><div class="n">${dash}</div><div class="c"></div>${tail}</div>`:'')+x.it.map(i=>`
       <div class="schr ${o.cls} sub"><div class="nm">${i.n}</div>
         <div class="n c2">${won(i.amt-(i.cut||0))}${cutNote(i.cut)}</div><div class="n c2">${i.paid?won(i.paid):dash}</div>
-        <div class="n">${i.due?`<span style="color:var(--${i.st==='이월'?'muted':'warn'})">${won(i.due)}</span>`:dash}</div>
+        <div class="n">${i.due?`<span style="color:var(--warn)">${won(i.due)}</span>`:dash}</div>
         <div class="c"><span class="bd ${PST[i.st]}">${i.st}</span></div>${tail}</div>`).join('')+(!x.over?'':`
       <div class="schr ${o.cls} sub ni"><div class="nm">과납액</div>
         <div class="n c2">${dash}</div><div class="n c2">${won(x.over)}</div><div class="n">${dash}</div>
@@ -4113,7 +4112,7 @@ function rcvRow(x,o){
       <div class="nm"><span class="tg ${op?'op':''}">${ic('chev',16)}</span>${o.label}</div>${o.dueCol!==undefined?`<div>${o.dueCol}</div>`:''}
       <div class="n">${won(g.bill)}${cutNote(g.cut)}</div>
       <div class="n">${g.paid?won(g.paid):dash}</div>
-      <div class="n">${g.due?x.st==='이월'?`<span style="color:var(--muted)">${won(g.due)}</span><div class="c2" style="margin:0">${+ymNext(o.ym).slice(5)}월분으로 이월</div>`:`<b style="color:var(--warn)">${won(g.due)}</b>`:dash}${o.fee?`<div class="c2" style="margin:0">연체료 ${won(o.fee)}</div>`:''}</div>
+      <div class="n">${g.due?`<b style="color:var(--warn)">${won(g.due)}</b>`:dash}${o.fee?`<div class="c2" style="margin:0">연체료 ${won(o.fee)}</div>`:''}</div>
       <div class="c"><span class="bd ${PST[x.st]}">${x.st}</span></div>${o.more!==undefined?`<div class="c">${o.more}</div>`:''}</div>`+(pre?sub.replace(/(<div class="nm">[^<]*<\/div>)/g,'$1'+pre):sub);
 }
 
@@ -4172,7 +4171,7 @@ function PAY6(){
         `<option value="${v}" ${RC.f.ym===v?'selected':''}>${t}</option>`).join('')}
     </select>
     <select onchange="setRC('st',this.value)">
-      ${['','완납','부분납','납부전','미납','과납','이월'].map(v=>`<option value="${v}" ${RC.f.st===v?'selected':''}>${v||'전체 납부상태'}</option>`).join('')}
+      ${['','완납','부분납','납부전','미납','과납'].map(v=>`<option value="${v}" ${RC.f.st===v?'selected':''}>${v||'전체 납부상태'}</option>`).join('')}
     </select>
     ${rows.length?`<button class="btn sm" onclick="g6Set(${anyOp?'false':'true'})">${anyOp?'전체 접기':'전체 펼치기'}</button>`:''}
   </div>
@@ -5260,7 +5259,7 @@ function CTR3monthT(c,k){
     ${pagerHTML(rows.length,cur,`(p=>{hp['m${k}']=p;render(true);})`)}
   </div>
   <div class="hint">달마다 청구액·수납액·미납액을 봅니다. 줄을 누르면 항목별로 펼쳐집니다. 미납이나 연체료가 있는 달은 더보기의 <b>상세</b>로 그 달의 내역을 봅니다.<br>
-    합계의 미납액은 지금 남은 받을 돈(원장 잔액)입니다. 마감한 달에 남은 미납은 다음 달 <b>전월 미납액</b>으로 넘어가고, 그 달은 납부상태 <b>이월</b>로 회색으로 보입니다. 미납은 넘어간 달 한 곳에만 보입니다.<br>
+    합계의 미납액은 지금 남은 받을 돈(원장 잔액)입니다. 마감한 달의 미납은 다음 달 전월 미납액으로 넘어가므로 달별 미납액을 더한 값과 다를 수 있습니다.<br>
     다음 달 청구서를 발행하기 전이면 그 달 줄(청구서 발행 전)에 전월 미납액만 보이고, 마감 뒤에 받은 돈은 거기에 붙습니다.<br>
     돈을 기록하는 일(청구 · 수납, 보증금)은 원장 탭에서 합니다.<br>
     맨 위 <b>청구 설정</b>에서 계약마다 연체료 부과(부과 · 중지)와 청구서 메일(보냄 · 안 보냄 · 받는 사람)을 정합니다. 연체이자율은 계약 조건이라 요약의 임대정보에 있습니다.</div>`;
