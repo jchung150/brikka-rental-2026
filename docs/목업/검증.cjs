@@ -402,7 +402,7 @@ const noElec = G.ISSUE().filter(c => c.b === 'b1' && !c.lines.some(l => /전기�
 const elecAll = noElec === '본관301호' && G.ISSUE().find(c => c.no === '본관302호').lines.filter(l => /수도요금/.test(l.n)).length === 2; /* 301호 전기는 302호 계량기로, 수도는 302호가 대납 */
 /* 301호 고정관리비 0원 = 청구 안 함 · 수정에서 금액을 넣으면 청구 */
 const t301 = G.CTR3sum(G.CTRS.find(c => c.no === '본관301호'), 'b1본관301호');
-const zero301 = !ln('본관301호', '고정관리비') && /고정관리비/.test(t301) && /청구 안 함/.test(t301) && !/전기요금/.test(t301) && !/class="tgl/.test(t301) && /<dt>정산액 대납<\/dt><dd>본관302호/.test(t301);
+const zero301 = !ln('본관301호', '고정관리비') && /고정관리비/.test(t301) && /청구 안 함/.test(t301) && !/전기요금/.test(t301) && (t301.match(/class="tgl/g) || []).length === 1 && /aria-label="연체료 부과"/.test(t301) && /<dt>정산액 대납<\/dt><dd>본관302호/.test(t301);
 G.ciOpen('b1본관301호', 'rent'); G.ci.its.고정관리비.amt = '110000'; G.ciSave(); const m301 = ln('본관301호', '고정관리비');
 const act301 = zero301 && m301 && m301.amt === 110000;
 G.ciOpen('b1별관301호', 'adj'); G.ciSet('d', '2026-08-01'); G.ciSet('rent', '3630000'); G.ciSave();
@@ -717,9 +717,9 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   const fa = F('2026-08-10'), fb = F('2026-08-31'), sum1 = CQ.CTR3sum(c, k), tab = CQ.CTR3month(c, k);
   CQ.openPay(k); const pay = CQ.payHTML();
   r6.push(['연체료 중지 — 요약 › 임대정보 「연체료 부과 · 부과 중 [중지]」 → 패널 · 중지일이 마지막 발행일(07.19) 전이면 막힘 · 08.01부터 중지하면 7/31까지만 · 그 뒤로 안 쌓임 · 카드 「중지 · 08.01부터 [재개]」 · 청구·수납 탭 위 안내 · 수납 패널 안내 · 이력',
-    /부과 중/.test(sum0) && /cqOpen\('b1별관301호'\)/.test(sum0) && early && blocked && /연체료 중지/.test(html) && /연체이자율/.test(html)
+    /부과 중/.test(sum0) && /class="tgl on"/.test(sum0) && /cqOpen\('b1별관301호'\)/.test(sum0) && early && blocked && /연체료 중지/.test(html) && /연체이자율/.test(html)
     && f0 === 36859 && CQ.feeStop(k) === '2026-08-01' && fa === f731 && fb === fa && fa < f0
-    && /2026\.08\.01부터/.test(sum1) && />재개</.test(sum1) && /연체료 중지 중 · 2026\.08\.01부터/.test(tab) && !/청구 설정/.test(tab)
+    && /2026\.08\.01부터/.test(sum1) && /class="tgl "/.test(sum1) && /연체료 중지 중 · 2026\.08\.01부터/.test(tab) && !/청구 설정/.test(tab)
     && /연체료 중지 중\(08\.01부터\)/.test(pay) && /연체료 부과 중지/.test(CQ.CLOG[k][0].sum)]);
   CQ.cqOpen(k); const rh = CQ.cqHTML(); CQ.cq.d = '2026-08-20'; CQ.cqSave();
   const g19 = F('2026-08-19'), g31 = F('2026-08-31');

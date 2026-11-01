@@ -5424,7 +5424,9 @@ function CTR3sum(c,k){
       <dt>납부마감일</dt><dd>${bn.dueDay}</dd>
       <dt>기산일</dt><dd>${d8(fR)}${fM!==fR?`<span class="lock">고정관리비 ${d8(fM)}</span>`:''}</dd>
       <dt>연체이자율</dt><dd>연 ${rateOf(k)}%</dd>
-      <dt>연체료 부과</dt><dd>${(st=>`${st?`<span class="bd wa">중지</span> ${d8(st)}부터`:'부과 중'}<button class="btn sm" style="margin-left:10px" onclick="cqOpen('${k}')">${st?'재개':'중지'}</button>`)(feeStop(k))}</dd>
+      <dt>연체료 부과</dt><dd>${(st=>{/* 토글 — 누르면 바로 바뀌지 않고 날짜를 묻는 패널이 열린다. 패널이 열린 동안만 스위치가 넘어가 보이고, 닫으면 돌아온다 → 19 */
+        const asking=DRAWER==='cset'&&cq&&cq.k===k, on=asking?!!st:!st;
+        return `<button class="tgl ${on?'on':''}" title="${st?'켜면 재개일을 묻습니다':'끄면 중지일을 묻습니다'}" aria-label="연체료 부과" onclick="cqOpen('${k}')"></button><span style="margin-left:10px">${st?`<span class="bd wa">중지</span> ${d8(st)}부터`:'부과 중'}</span>`;})(feeStop(k))}</dd>
       <dt>렌트프리</dt><dd>${rfx?`있음 · ${d8(c.base)} - ${d8(c.rf.end)} · ${rfDaysOf(c.base,c.rf.end)}일<span class="lock">${rfIt}</span>`:'없음'}</dd>
       <dt>정산액 대납</dt><dd>${pay?`${pay.no} · ${pay.ten}<span class="lock">이 유닛 정산액을 그 계약이 냄</span>`:'없음'}</dd></dl>`,
     `<button class="btn sm" onclick="ciOpen('${k}','rent')">수정</button>`);
