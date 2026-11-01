@@ -282,7 +282,7 @@ table.bt2 td{padding:9px 12px}
 .ver{font-size:11px;color:var(--warn);border:1px solid currentColor;border-radius:4px;padding:1px 6px;margin-right:10px;white-space:nowrap}
 .mock{font-size:11px;color:var(--warn);background:var(--warn-bg);padding:3px 9px;border-radius:99px;font-weight:500}
 .wrap{padding:6px 28px 64px;max-width:1560px}
-/* 고정 머리 — 위 경로 줄 · 제목 · 필터 줄은 움직이지 않고, 아래 목록(.scr)만 스크롤된다(시험: 계약 목록 · 건물 목록).
+/* 고정 머리 — 위 경로 줄 · 제목 · 필터 줄은 움직이지 않고, 아래 목록(.scr)만 스크롤된다. 목록 화면(FIXED)에 render가 .scr을 씌운다.
    화면 전체를 창 높이에 맞추고 목록 칸만 스크롤시킨다. 스크롤바는 목록 칸 하나뿐이다 */
 .main:has(.scr){height:100vh;display:flex;flex-direction:column}
 .main:has(.scr) .wrap{flex:1;min-height:0;display:flex;flex-direction:column;padding-bottom:0}
@@ -1616,7 +1616,6 @@ function PRO1(){
       ${BMGRS.map(x=>`<option ${f1p.mgr===x.n?'selected':''}>${x.n}</option>`).join('')}<option value="-" ${f1p.mgr==='-'?'selected':''}>지정 안 됨</option></select>
     <span style="margin-left:auto;display:flex;gap:6px"><button class="btn pri" onclick="nb=null;go('pro-2')">+ 새로운 건물 등록</button></span>
   </div>
-  <div class="scr">
   <div class="tbl"><div class="tw"><table>
     <thead><tr>
       <th>건물 <span class="so">⇅</span></th><th>주소 <span class="so">⇅</span></th>
@@ -1629,7 +1628,7 @@ function PRO1(){
       <button class="pgb">‹ Previous</button><button class="pgb on">1</button><button class="pgb">Next ›</button>
     </div>
     <span class="pgi">${list.length?`1–${list.length}`:'0'} / 총 ${list.length}개</span>
-  </div></div></div>`;
+  </div></div>`;
 }
 
 /* ═══ PRO-3 ═══ */
@@ -4708,11 +4707,10 @@ function CTR1(){
   return `
   <div class="ph"><h1>계약 목록</h1><span class="sid">CTR-1</span></div>
   ${ctrFbar(f1c,'setF1c',true,`<button class="btn pri" onclick="nc=null;go('ctr-2')">+ 새로운 계약 등록</button>`)}
-  <div class="scr">
   ${ctrTbl(ctrRowsOf(f1c,f1c.b))}
   <div class="hint">행을 누르면 계약 상세로 들어갑니다. 원장은 계약 상세의 원장 탭에 있습니다.<br>
     임대료·관리비는 부가세를 포함한 월 금액입니다. 보증금에는 부가세가 없습니다.<br>
-    목업의 계약 종료일·보증금은 예시값입니다.</div></div>`;
+    목업의 계약 종료일·보증금은 예시값입니다.</div>`;
 }
 /* 건물 상세 계약 탭 — 계약 목록과 같은 표. 건물 필터 대신 이 건물만. 등록 버튼은 이 건물을 골라 둔 채로 연다 */
 let fbc={st:'진행중',dd:''};
@@ -5770,8 +5768,18 @@ function ledHTML(){
 }
 
 /* ═══ 라우터 ═══ */
+/* 고정 머리 — 목록 화면은 위(경로 줄 · 제목 · 필터 줄)를 고정하고 그 아래만 스크롤한다. 필터 줄이 없으면 제목까지 고정.
+   상세 화면(건물 · 계약)과 입력 화면(등록 · 관리비 정산)은 하지 않는다 */
+const FIXED=['pro-1','ctr-1','pay-1','pay-2','pay-6','pay-11','pay-13','rep-1','user-1','user-2','user-6','user-8','user-10','doc-1','rec-1','ntf-6','sys-1'];
+function fixHead(id){
+  const v=document.querySelector('#view'); if(!FIXED.includes(id)||!v||!v.children) return;
+  const f=[...v.children].filter(e=>e.matches('.ph,.fbar')).pop(); if(!f) return;
+  const box=document.createElement('div'); box.className='scr';
+  for(let n=f.nextElementSibling;n;){const nx=n.nextElementSibling; if(!n.classList.contains('dro')) box.appendChild(n); n=nx;}
+  f.after(box);
+}
 function render(keep){
-  const y=window.scrollY||0;
+  const y=window.scrollY||0, sc=document.querySelector('.scr'), sy=sc&&sc.scrollTop||0;
   MORE.length=0; moreClose();
   const h=(location.hash||'#/pro-1').replace(/^#\//,'');
   const [id,arg]=h.split('/');
@@ -5801,7 +5809,8 @@ function render(keep){
     const m=ALL.find(i=>i.id===id);
     crumb=(g?g.g+' <span>›</span> ':'')+`<b>${m?m.n:'—'}</b>`;}
   $('#crumb').innerHTML=crumb;$('#view').innerHTML=html+drawerHTML();
-  if(keep) window.scrollTo(0,y); else if(!DRAWER) window.scrollTo(0,0);
+  fixHead(id);
+  if(keep){window.scrollTo(0,y); const n=document.querySelector('.scr'); if(n) n.scrollTop=sy;} else if(!DRAWER) window.scrollTo(0,0);
 }
 /* 화면을 옮기면 맨 위부터 보인다 — 이벤트 객체가 keep으로 들어가지 않게 감싼다 */
 addEventListener('hashchange',()=>render());
