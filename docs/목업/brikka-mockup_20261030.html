@@ -5184,8 +5184,11 @@ function CTR3head(c,k){
 }
 /* CTR-3 청구·수납 탭 — 수납 내역(PAY-6)과 같은 줄을 이 계약 하나로. 미납·연체료가 있는 달은 「상세」로 미납 상세 패널 */
 let g7={};
-/* 청구서 메일 받는 사람 — 담당자마다 「청구서 메일」 체크. 정하지 않았으면 대표 담당자. 아무도 없으면 이 계약은 청구서 메일을 보내지 않는다 → 19 */
+/* 청구서 메일 받는 사람 — 담당자마다 「청구서 메일」 토글. 정하지 않았으면 대표 담당자. 아무도 없으면 이 계약은 청구서 메일을 보내지 않는다 → 19 */
 const billTo=c=>pplOf(c).filter((x,i)=>x.bill!=null?x.bill:i===0);
+/* 청구서 메일 토글 — 담당자 카드에서 누르면 바로 바뀐다(패널 없음) → 19 */
+function billTog(k,i){const c=CTRS.find(x=>ckey(x)===k), x=pplOf(c)[i]; if(!x) return; const on=billTo(c).includes(x);
+  x.bill=!on; clog(k,'계약','수정',`청구서 메일 ${on?'끔':'켬'} — ${x.n}`,'',[['청구서 메일',`${x.n} ${on?'켬':'끔'}`,`${x.n} ${on?'끔':'켬'}`]]);render(true);}
 /* 연체료 중지 안내 — 중지 중일 때만 청구·수납 탭 위에 한 줄 → 19 */
 function feeStopNote(k){const st=feeStop(k);
   return st?`<div class="fnd"><span class="h">연체료 중지 중 · ${st.replace(/-/g,'.')}부터</span>재개할 때까지 이 계약의 연체료를 세지 않습니다. <b class="lk" onclick="tab3c='요약';render()">요약 › 임대정보에서 재개 →</b></div>`:'';}
@@ -5275,8 +5278,7 @@ function cx3HTML(){
   const body=cx3.mode==='ppl'?cx3.ppl.map((x,i)=>`<div class="fg" style="border:1px solid var(--line);border-radius:var(--r-sm);padding:10px 12px 2px">
         <div class="fl" style="display:flex;align-items:center">${i?`담당자 ${i+1}`:'대표 담당자'}
           ${i?`<button class="btn sm" style="margin-left:auto;color:var(--danger)" onclick="cx3.ppl.splice(${i},1);render(true)">삭제</button>`:''}</div>
-        ${F('담당자명',PI(i,'n',140))}${F('직위',PI(i,'t',160))}${F('연락처',PI(i,'tel',160))}${F('이메일',PI(i,'mail'))}
-        ${F('청구서 메일',`<label class="ck"><input type="checkbox" ${(x.bill!=null?x.bill:i===0)?'checked':''} onchange="cx3.ppl[${i}].bill=this.checked">받기</label><i class="tip" data-tip="청구서를 발행할 때 「메일 보내고 발행」을 고르면 체크한 담당자에게 메일이 갑니다. 아무도 체크하지 않으면 이 계약은 메일을 보내지 않습니다">i</i>`)}</div>`).join('')
+        ${F('담당자명',PI(i,'n',140))}${F('직위',PI(i,'t',160))}${F('연락처',PI(i,'tel',160))}${F('이메일',PI(i,'mail'))}</div>`).join('')
       +`<button class="btn sm" onclick="cx3.ppl.push({n:'',t:'',tel:'',mail:'',bill:false});render(true)">+ 담당자 추가</button>`
     :cx3.mode==='ctr'?F('유닛',`<span class="fv">${c.no} <span class="c2" style="margin:0">수정 불가</span></span>`)
       +F('임차인',`<span class="fv">${c.ten} <span class="c2" style="margin:0">임차인 관리에서 고칩니다</span></span>`)
@@ -5409,7 +5411,8 @@ function CTR3sum(c,k){
   const P=pplOf(c);
   const BT=billTo(c);
   const ppl=card('담당자',`<dl class="dl">${P.map((x,i)=>`<dt>${x.n}${i?'':' <span class="bd ac">대표</span>'}</dt>
-      <dd>${x.tel||'—'}<span class="lock">${x.mail||'—'}</span>${BT.includes(x)?' <span class="bd ok">청구서 메일</span>':''}<div class="c2">${x.t||''}</div></dd>`).join('')}</dl>
+      <dd>${x.tel||'—'}<span class="lock">${x.mail||'—'}</span><div class="c2">${x.t||''}</div>
+        <div style="display:flex;align-items:center;gap:10px;margin-top:6px"><button class="tgl ${BT.includes(x)?'on':''}" aria-label="청구서 메일" title="청구서를 발행할 때 「메일 보내고 발행」을 고르면 켜진 담당자에게 메일이 갑니다" onclick="billTog('${k}',${i})"></button>청구서 메일</div></dd>`).join('')}</dl>
       ${BT.length?'':'<div class="c2" style="margin-top:6px">청구서 메일 받는 사람 없음 · 청구서를 발행해도 메일이 나가지 않습니다</div>'}`,edit('ppl'));
   const dep=card('보증금 정보',`<dl class="dl">
       <dt>보증금 약정액</dt><dd>${won(ctrDeposit(c))}</dd>
