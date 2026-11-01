@@ -4267,10 +4267,10 @@ function payHTML(){
         <div class="fr"><span class="fk"><b>미납액 합계</b></span>
           <b style="font-size:15px">${won(need-withFee)}</b>${many?'<span class="c2">이 임차인의 이 건물 계약 전체</span>':''}
           ${pm.amt!==tgt?`<button class="btn sm" style="margin-left:auto" onclick="setPm('amt','${tgt}')">이 금액으로</button>`:''}</div>
-        ${fn?`<div class="fr"><span class="fk">연체료(청구 전)<i class="tip" data-tip="아직 청구서에 들어가지 않은 연체료입니다. 함께 받기를 고르면 받은 날까지의 연체료가 청구로 올라가고 이번에 함께 받습니다. 고르지 않으면 다음 청구서에 들어갑니다">i</i></span>
-          <span>${won(fn.amt)}</span><span class="c2">${pm.date.slice(5).replace('-','.')}까지${pm.fee?' · 이번에 함께 받습니다':' · 다음 청구서에 들어갑니다'}${feeStop(pm.k)?` · 연체료 중지 중(${feeStop(pm.k).slice(5).replace('-','.')}부터)`:''}</span></div>
+        ${fn?`<div class="fr"><span class="fk">연체료<i class="tip" data-tip="아직 청구서에 들어가지 않은 연체료입니다. 함께 받기를 고르면 받은 날까지의 연체료가 청구로 올라가고 이번에 함께 받습니다. 고르지 않으면 다음 청구서에 들어갑니다">i</i></span>
+          <span>${won(fn.amt)}</span><span class="c2">${pm.date===TODAY_S?'오늘':pm.date.slice(5).replace('-','.')} 기준${feeStop(pm.k)?` · 연체료 중지 중(${feeStop(pm.k).slice(5).replace('-','.')}부터)`:''}</span></div>
         <div class="fr"><span class="fk">함께 받기</span>
-          <span style="cursor:pointer" onclick="setPm('fee',${!pm.fee})"><span class="cb ${pm.fee?'on':''}"></span><span style="margin-left:8px">청구 전 연체료도 받기</span></span></div>`:''}
+          <span style="cursor:pointer" onclick="setPm('fee',${!pm.fee})"><span class="cb ${pm.fee?'on':''}"></span></span></div>`:''}
       </div>
       ${isOff?`<div class="fg"><div class="fl">보증금에서 뺄 돈</div>
         <div class="fr"><span class="fk">보증금 잔액</span><b style="color:var(--pri)">${won(depBal)}</b></div>
@@ -4294,7 +4294,7 @@ function payHTML(){
       ${leftDue&&pm.amt?`<div class="prev warn2" style="margin:-4px 0 18px"><div class="pt">${won(pm.amt)}을 ${isOff?'상계하면':'받으면'}</div>
         남는 미납 <b>${won(leftDue)}</b></div>`:''}
       <div class="fg"><div class="fl">미납 내역</div>
-        <div class="tbl" style="margin:0"><div class="schr unh hd"><div>청구년월</div><div class="n">미납액</div><div class="n">연체일수</div><div class="n">연체료(청구 전)</div></div>
+        <div class="tbl" style="margin:0"><div class="schr unh hd"><div>청구년월</div><div class="n">미납액</div><div class="n">연체일수</div><div class="n">연체료</div></div>
         ${ARs.map(x=>x.months.slice().reverse().map(m=>`<div class="schr unh"><div class="nm">${many?`<span class="c2" style="margin:0 6px 0 0">${x.c.no}</span>`:''}${m.ym.slice(2).replace('-','.')}월분</div>
           <div class="n"><b>${m.due?won(m.due):'—'}</b></div><div class="n">${m.days?`${m.days}일`:'—'}</div><div class="n">${m.fee?won(m.fee):'—'}</div></div>`).join('')).join('')
           ||'<div class="empty">미납 청구가 없습니다</div>'}
