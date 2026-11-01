@@ -581,6 +581,18 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   r6.push(['수납 취소 — 현금 100만(연체료 청구서 생김 · 안 채워짐) · 보증금 상계 50만을 원장 ⋮ › 취소 → 미납 원래대로 · 보증금 잔액 원래대로 · 원장에 수납 취소 · 보증금 상계 취소 줄 · 은행 입금 줄은 ⋮에 상세만',
     bankKey && bankNo && manual.length === 2 && PX.arrears(c).due === due0 && L.bal.임대보증금 === dep0 && !PX.BILLS.some(i => i.fee && !i.reg && i.k === k)
     && L.rows.some(r => r.type === '수납 취소' && r.inc === 1000000) && L.rows.some(r => r.type === '보증금 상계 취소' && r.inc === 500000)]); }
+/* 보증금 상계 줄에서도 취소 — 예치 뒤 상계한 보증금은 상계를 먼저 취소해야 예치를 취소할 수 있다 → 명세변경 10-1 */
+{ const PD = new Function(stub + bare + '; seedJuly(); return {openDepIn,diSet,diConfirm,openOffset,payConfirm,ledgerOf,arrears,CTRS,CTR3,MORE,LEDG,lcxOpen,lcxConfirm,lcxHTML,cancelWhyNot,ledRec,get lcx(){return lcx;},set tab3c(v){tab3c=v;}};')();
+  const k = 'b1별관301호', c = PD.CTRS.find(x => x.b === 'b1' && x.no === '별관301호'), due0 = PD.arrears(c).due;
+  PD.openDepIn(k); PD.diSet('amt', 2000000); PD.diConfirm(); const dep1 = PD.ledgerOf(k).bal.임대보증금;
+  PD.openOffset(k); PD.payConfirm();
+  const view = () => { PD.tab3c = '원장'; PD.MORE.length = 0; PD.CTR3(k); };
+  view(); const ddKey = Object.keys(PD.LEDG).find(x => x.startsWith('ddm')), on = PD.MORE.some(m => m.some(i => i.go === `lcxOpen('${ddKey}')` && !i.off));
+  PD.lcxOpen(ddKey); const html = PD.lcxHTML(); PD.lcx.why = '다른 임차인 돈'; PD.lcxConfirm(); view();
+  const L = PD.ledgerOf(k), diKey = Object.keys(PD.LEDG).find(x => x.startsWith('di')), diR = PD.ledRec(PD.LEDG[diKey]);
+  r6.push(['보증금 상계 줄에서도 취소 — 200만 예치 뒤 미납 전부 상계 · 「보증금 상계」 줄 ⋮ › 취소 → 패널 「보증금 상계 취소」 · 수납 취소 · 보증금 상계 취소 두 줄 · 미납 · 보증금 잔액 원래대로 · 그 뒤 예치 취소 가능',
+    !!ddKey && on && /보증금 상계 취소/.test(html) && PD.arrears(c).due === due0 && L.bal.임대보증금 === dep1
+    && L.rows.some(r => r.type === '수납 취소') && L.rows.some(r => r.type === '보증금 상계 취소') && diR && !PD.cancelWhyNot(diR.kind, diR.rec)]); }
 /* 정기 청구서의 연체료 — 기본으로 한 줄 들어간다 · 지난 회차엔 없다 → 4.4.3
    항목 체크박스 — 기본 모두 넣기 · 약정은 잠김 · 뺀 항목은 합계에서 빠지고 「N개 항목 미선택」 · 발행하면 연체료 정리(뺐어도 감면) · 취소하면 되돌림 */
 { const FI = new Function(stub + bare + '; seedJuly(); return {ISSUE,PAY1,withMonth,gAll,lineTog,issue1,cancelOpen,cancelOK,feeUntil,FEE_CUT,OFF1,TODAY_S,MORE,get cx1(){return cx1;},set f1b(v){f1.b=v;}};')();
