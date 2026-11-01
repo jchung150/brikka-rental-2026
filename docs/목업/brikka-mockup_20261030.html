@@ -1603,15 +1603,13 @@ function PRO1(){
       <td class="c">${moreCell([{t:'상세',go:`tab3='요약';go('pro-3/${b.id}')`}])}</td>
     </tr>`}).join('');
   return `
-  <div class="ph"><h1>건물 목록</h1><span class="sid">PRO-1</span>
-    <div class="act">
-      <button class="btn pri" onclick="nb=null;go('pro-2')">+ 새로운 건물 등록</button></div>
-  </div>
+  <div class="ph"><h1>건물 목록</h1><span class="sid">PRO-1</span></div>
   <div class="fbar">
     <select onchange="setF1p('kind',this.value)"><option value="">전체 건물유형</option>
       ${BKIND.map(k=>`<option ${f1p.kind===k?'selected':''}>${k}</option>`).join('')}</select>
     <select onchange="setF1p('mgr',this.value)"><option value="">전체 건물관리자</option>
       ${BMGRS.map(x=>`<option ${f1p.mgr===x.n?'selected':''}>${x.n}</option>`).join('')}<option value="-" ${f1p.mgr==='-'?'selected':''}>지정 안 됨</option></select>
+    <span style="margin-left:auto;display:flex;gap:6px"><button class="btn pri" onclick="nb=null;go('pro-2')">+ 새로운 건물 등록</button></span>
   </div>
   <div class="tbl"><div class="tw"><table>
     <thead><tr>
@@ -4697,10 +4695,8 @@ function ctrTbl(rows){
 }
 function CTR1(){
   return `
-  <div class="ph"><h1>계약 목록</h1><span class="sid">CTR-1</span>
-    <div class="act"><button class="btn pri" onclick="nc=null;go('ctr-2')">+ 새로운 계약 등록</button></div>
-  </div>
-  ${ctrFbar(f1c,'setF1c',true)}
+  <div class="ph"><h1>계약 목록</h1><span class="sid">CTR-1</span></div>
+  ${ctrFbar(f1c,'setF1c',true,`<button class="btn pri" onclick="nc=null;go('ctr-2')">+ 새로운 계약 등록</button>`)}
   ${ctrTbl(ctrRowsOf(f1c,f1c.b))}
   <div class="hint">행을 누르면 계약 상세로 들어갑니다. 원장은 계약 상세의 원장 탭에 있습니다.<br>
     임대료·관리비는 부가세를 포함한 월 금액입니다. 보증금에는 부가세가 없습니다.<br>
