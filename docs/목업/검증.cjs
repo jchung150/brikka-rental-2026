@@ -1,10 +1,11 @@
 /* 목업 수정 후 반드시 실행한다.  node 검증.js
    문법 검사만으로는 함수 유실을 잡지 못한다. 호출부만 남아도 문법은 정상이다. */
 const fs = require('fs'), path = require('path');
-/* 파일명에 날짜판이 붙는다(brikka-mockup_YYYYMMDD.html). 하나만 있어야 한다 */
-const files = fs.readdirSync(__dirname).filter(f => /^brikka-mockup_\d{8}\.html$/.test(f));
-if (files.length !== 1) { console.log('✗ 목업 파일이 ' + files.length + '개다. brikka-mockup_YYYYMMDD.html 하나만 둔다: ' + files.join(', ')); process.exit(1); }
-const file = path.join(__dirname, files[0]);
+/* 파일명에 날짜판이 붙는다(brikka-mockup_YYYYMMDD.html). 개발자에게 보낸 판은 그대로 두고, 가장 늦은 날짜판(작업용)만 검증한다 */
+const files = fs.readdirSync(__dirname).filter(f => /^brikka-mockup_\d{8}\.html$/.test(f)).sort();
+if (!files.length) { console.log('✗ 목업 파일(brikka-mockup_YYYYMMDD.html)이 없다'); process.exit(1); }
+const file = path.join(__dirname, files[files.length - 1]);
+console.log('검증 대상: ' + files[files.length - 1]);
 const html = fs.readFileSync(file, 'utf8');
 
 const m = html.match(/<script>([\s\S]*)<\/script>/);
@@ -698,6 +699,25 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   r6.push(['청구서 발행 — 메일 체크박스·미납 조회 없음 · 더보기 「청구서 발행」 → 메일 여부 묻기 → 메일 없이 발행',
     !h.includes('메일 보내기') && !h.includes('미납 조회') && m && !m[0].off && !!m[1].off
     && /메일을 보내시겠습니까/.test(ask) && IA.ISS['b21203호'] && IA.ISS['b21203호'].mail === false]); }
+/* 청구 설정 — 연체료 중지 · 재개 · 청구서 메일 → 명세변경 19 */
+{ const CQ = new Function(stub + bare + '; seedJuly(); return {feeUntil,feeStop,cqOpen,cqErr,cqSave,cqHTML,CTR3month,CTRS,CLOG,openPay,payHTML,issueAsk,issueHTML,issueGo,ISS,get cq(){return cq;},set f1b(v){f1.b=v;}};')();
+  const k = 'b1별관301호', c = CQ.CTRS.find(x => x.b === 'b1' && x.no === '별관301호'), F = d => CQ.feeUntil(k, d);
+  const f0 = F('2026-08-10'), f731 = F('2026-07-31');
+  CQ.cqOpen(k); CQ.cq.fee = 'off'; CQ.cq.d = '2026-07-10'; const early = /이후로 고릅니다/.test(CQ.cqErr()); CQ.cqSave(); const blocked = !CQ.feeStop(k);
+  CQ.cq.d = '2026-08-01'; const html = CQ.cqHTML(); CQ.cqSave();
+  const fa = F('2026-08-10'), fb = F('2026-08-31'), card = CQ.CTR3month(c, k);
+  CQ.openPay(k); const pay = CQ.payHTML();
+  r6.push(['연체료 중지 — 청구·수납 탭 「청구 설정」 · 중지일이 마지막 발행일(07.19) 전이면 막힘 · 08.01부터 중지하면 7/31까지만 · 그 뒤로 안 쌓임 · 수납 패널에 「연체료 중지 중」 · 이력에 남음',
+    early && blocked && /연체료 부과/.test(html) && /청구서 메일/.test(html) && f0 === 36859 && CQ.feeStop(k) === '2026-08-01' && fa === f731 && fb === fa && fa < f0
+    && /청구 설정/.test(card) && /2026\.08\.01부터/.test(card) && /연체료 중지 중\(08\.01부터\)/.test(pay) && /연체료 부과 중지/.test(CQ.CLOG[k][0].sum)]);
+  CQ.cqOpen(k); CQ.cq.fee = 'on'; CQ.cq.d = '2026-08-20'; CQ.cqSave();
+  const g19 = F('2026-08-19'), g31 = F('2026-08-31');
+  r6.push(['연체료 재개 — 08.20부터 다시 셈 · 08.19까지는 중지 때와 같음 · 08.31엔 늘어남 · 카드는 「부과」',
+    !CQ.feeStop(k) && g19 === fa && g31 > g19 && /연체료 부과 재개/.test(CQ.CLOG[k][0].sum) && !/중지<\/span>/.test(CQ.CTR3month(c, k))]);
+  CQ.cqOpen(k); CQ.cq.to = []; const noTo = /받는 사람/.test(CQ.cqErr()); CQ.cq.mail = false; CQ.cqSave();
+  CQ.f1b = 'b1'; CQ.issueAsk([k]); const ask = CQ.issueHTML(); CQ.issueGo(true);
+  r6.push(['청구서 메일 안 보냄 — 받는 사람 없으면 막힘 · 발행 확인에 안내 · 「메일 보내고 발행」이어도 이 계약은 메일 안 보냄 · 발행은 됨',
+    noTo && /청구서 메일 안 보냄/.test(ask) && CQ.ISS[k] && CQ.ISS[k].mail === false && /안 보냄/.test(CQ.CTR3month(c, k))]); }
 /* 건물 등록 — 빠진 필수 항목은 막힘 · 지분 합계 100% · 별칭 중복 막힘 · 저장하면 목록에 생기고 상세가 열림 */
 { const NB = new Function(stub + bare + '; return {PRO2,PRO3,nbSave,nbMissing,BUILDINGS,get nb(){return nb;},set tab3(v){tab3=v;}};')();
   NB.PRO2(); NB.nbSave(); const blocked = NB.BUILDINGS.length === 3 && NB.nbMissing().includes('건물명');
