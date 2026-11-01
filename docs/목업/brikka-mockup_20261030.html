@@ -3147,7 +3147,7 @@ const ISS={}, ISS_LOG=[];
 let mail1=true, cx1=null, ia1=null;
 function issue1(keys){if(f1.b==='b1') snapDates(SETTLE.ym); const R=ISSUE(); keys.forEach(k=>{const c=R.find(x=>x.k===k), fee=c?c.fee:0;
     /* 넣었든 뺐든(감면) 발행일까지의 연체료는 정리됐다. 취소하면 되돌린다 */
-    ISS[k]={at:TODAY_S,mail:mail1&&csetOf(k).mail,fee:c&&c.feeIn?fee:0,feeAll:fee,cut:FEE_CUT[k]}; if(fee) FEE_CUT[k]=TODAY_S;});sel1={};render(true);}
+    ISS[k]={at:TODAY_S,mail:mail1&&billTo(CTRS.find(x=>ckey(x)===k)).length>0,fee:c&&c.feeIn?fee:0,feeAll:fee,cut:FEE_CUT[k]}; if(fee) FEE_CUT[k]=TODAY_S;});sel1={};render(true);}
 /* 발행 확인 — 발행 버튼(상단·더보기)을 누르면 메일을 보낼지 묻는다 */
 function issueAsk(keys){ia1={keys};DRAWER='issue';render(true);}
 function issueGo(mail){if(!ia1) return; mail1=mail; const k=ia1.keys; ia1=null; DRAWER=null; issue1(k);}
@@ -3157,7 +3157,7 @@ function issueHTML(){
   return `<div class="dro"><div class="ov" onclick="closeDrawer()"></div><div class="pn">
     <div class="dh"><div><div class="t">청구서 발행</div><div class="s">${one?cname(bd.alias,one.no,one.ten):`${n}건`} · ${SETTLE.ym.replace('-','년 ').replace(/년 0/,'년 ')}월</div></div>
       <button class="x" onclick="closeDrawer()">✕</button></div>
-    <div class="db"><div style="white-space:normal;line-height:1.7">청구서 <b>${n}건</b>을 발행합니다.<br>임차인에게 청구서가 담긴 메일을 보내시겠습니까?${(m=>m?`<div class="c2" style="margin-top:8px">${n>1?`${m}건은 `:''}계약의 청구 설정이 「청구서 메일 안 보냄」이라 메일을 보내지 않습니다.</div>`:'')(ia1.keys.filter(k=>!csetOf(k).mail).length)}</div></div>
+    <div class="db"><div style="white-space:normal;line-height:1.7">청구서 <b>${n}건</b>을 발행합니다.<br>임차인에게 청구서가 담긴 메일을 보내시겠습니까?${(m=>m?`<div class="c2" style="margin-top:8px">${n>1?`${m}건은 `:''}청구서 메일 받는 담당자가 없어 메일을 보내지 않습니다(계약 상세 › 요약 › 담당자).</div>`:'')(ia1.keys.filter(k=>!billTo(CTRS.find(x=>ckey(x)===k)).length).length)}</div></div>
     <div class="df"><button class="btn" onclick="closeDrawer()">닫기</button>
       <button class="btn" onclick="issueGo(false)">메일 없이 발행</button>
       <button class="btn pri" onclick="issueGo(true)">메일 보내고 발행</button></div>
@@ -3394,7 +3394,7 @@ function PAY1(){
     그대로 발행하면 그 항목이 빠진 청구서가 나간다.<br>
     <b>연체료</b>는 발행일까지 쌓인 금액이 청구서에 한 줄로 기본으로 들어간다(일반내역서 · 비과세. 연체이자는 공급가액에 넣지 않는다 · 부가가치세법 29조 5항 5호). 발행하면 그날이 연체료 정리일이 된다. 그 청구서의 납부마감일까지 밀린 미납을 다 내면 발행 다음날부터 낸 날까지는 면제, 못 내면 발행 다음날부터 이어서 세어 다음 청구서에 넣는다 → 18<br>
     <b>항목 체크박스</b>로 이번 청구서에 넣을 항목을 계약마다 고른다. 기본은 모두 넣기. <b>약정</b>(임대료 · 고정관리비)은 잠겨 뺄 수 없다. 뺀 항목은 계산은 그대로 하고 청구하지 않는다. <b>임대인 부담(감면)</b>이며 다음 청구서로 넘어가지 않는다. 연체료도 같다. 이번 청구서에만 적용하고 다음 회차는 다시 모두 넣기로 시작한다. 연체료 일부 감면은 발행 뒤 계약 상세의 <b>청구 감액</b>으로 연체료 줄을 줄인다. 수납 처리 · 보증금 상계에는 연체료 칸이 없다<br>
-    발행하면 원장에 <b>청구</b> 거래로 기록된다. 발행 버튼을 누르면 메일을 보낼지 묻고, <b>메일 보내고 발행</b>을 고르면 임차인 담당자에게 이메일이 발송된다(계약 상세 › 청구·수납 › 청구 설정에서 「안 보냄」인 계약은 빼고, 받는 사람은 그 설정을 따른다). 계약 하나만 발행하려면 더보기의 <b>청구서 발행</b>을 누른다.<br>
+    발행하면 원장에 <b>청구</b> 거래로 기록된다. 발행 버튼을 누르면 메일을 보낼지 묻고, <b>메일 보내고 발행</b>을 고르면 임차인 담당자에게 이메일이 발송된다(받는 사람은 계약 상세 › 요약 › 담당자에서 「청구서 메일」을 체크한 사람이다. 아무도 없는 계약은 메일을 보내지 않는다). 계약 하나만 발행하려면 더보기의 <b>청구서 발행</b>을 누른다.<br>
     발행한 청구서는 고치지 않는다. 입금이 없고 마감 전이면 <b>취소</b>하고 다시 발행한다(원장에 청구 취소). 입금 뒤에는 계약 상세의 <b>청구 감액</b>·<b>청구 추가</b>로 바로잡는다.</div>`;
 }
 
@@ -3672,9 +3672,9 @@ const rateOf=k=>{const c=CTRS.find(x=>ckey(x)===k);return (c&&c.rate)||8;};
 const FEE_CUT={};
 /* 해지 처리한 계약의 해지일 — 마지막 청구서에 해지일까지 넣었다. 그 뒤로 늦어진 날은 받지 않는다(감면) → 18-5 */
 const FEE_END={};
-/* 청구 설정 — 계약마다. off는 연체료 중지 구간 [{from,to}](to가 없으면 중지 중), mail은 청구서 메일, to는 받는 사람(담당자 순번) → 19 */
+/* 연체료 중지 — 계약마다 중지 구간 [{from,to}](to가 없으면 중지 중) → 19 */
 const CSET={};
-const csetOf=k=>(CSET[k]=CSET[k]||{off:[],mail:true,to:[0]});
+const csetOf=k=>(CSET[k]=CSET[k]||{off:[]});
 const feeStop=k=>{const o=(CSET[k]||{}).off||[], x=o[o.length-1];return x&&!x.to?x.from:null;};
 const nstr=n=>new Date(n*864e5).toISOString().slice(0,10);
 /* 중지 구간 빼기 — 중지일부터 재개일 전날까지는 세지 않는다. 구간을 둘로 나누고 각각 원 미만 절사 */
@@ -5185,57 +5185,42 @@ function CTR3head(c,k){
 }
 /* CTR-3 청구·수납 탭 — 수납 내역(PAY-6)과 같은 줄을 이 계약 하나로. 미납·연체료가 있는 달은 「상세」로 미납 상세 패널 */
 let g7={};
-/* 청구 설정 카드 — 청구·수납 탭 맨 위. 바꾸기는 오른쪽 패널(수정) → 19 */
-function csetCard(c,k){
-  const S=csetOf(k), st=feeStop(k), P=pplOf(c), to=S.to.map(i=>P[i]).filter(Boolean);
-  return `<div class="card" style="margin:0 0 16px"><div class="ct">청구 설정<span class="ca"><button class="btn sm" onclick="cqOpen('${k}')">수정</button></span></div><div class="cc"><dl class="dl">
-    <dt>연체료 부과</dt><dd>${st?`<span class="bd wa">중지</span> ${st.replace(/-/g,'.')}부터<span class="lock">재개할 때까지 연체료를 세지 않음</span>`:`부과<span class="lock">연체이자율 연 ${rateOf(k)}% · 임대정보</span>`}</dd>
-    <dt>청구서 메일</dt><dd>${S.mail?'보냄':'<span class="bd mu">안 보냄</span>'}<span class="lock">${S.mail?'청구서 발행에서 「메일 보내고 발행」을 고르면 보냄':'청구서는 발행 · 기록되고 메일만 나가지 않음'}</span></dd>
-    <dt>받는 사람</dt><dd>${S.mail?to.map(x=>`${x.n}<span class="lock">${x.mail||'—'}</span>`).join('<br>')||'—':'<span style="color:var(--faint)">—</span>'}</dd></dl></div></div>`;
-}
+/* 청구서 메일 받는 사람 — 담당자마다 「청구서 메일」 체크. 정하지 않았으면 대표 담당자. 아무도 없으면 이 계약은 청구서 메일을 보내지 않는다 → 19 */
+const billTo=c=>pplOf(c).filter((x,i)=>x.bill!=null?x.bill:i===0);
+/* 연체료 중지 안내 — 중지 중일 때만 청구·수납 탭 위에 한 줄 → 19 */
+function feeStopNote(k){const st=feeStop(k);
+  return st?`<div class="fnd"><span class="h">연체료 중지 중 · ${st.replace(/-/g,'.')}부터</span>재개할 때까지 이 계약의 연체료를 세지 않습니다. <b class="lk" onclick="tab3c='요약';render()">요약 › 임대정보에서 재개 →</b></div>`:'';}
+/* 연체료 중지 · 재개 — 요약 › 임대정보의 연체료 부과 줄 버튼 → 오른쪽 패널. 사유는 받지 않는다 → 19 */
 let cq=null;
 const lastIss=k=>BILLS.filter(i=>i.k===k&&!i.adhoc).map(i=>i.date||billOn(i.ym)).sort().pop()||'';
-function cqOpen(k){const S=csetOf(k), st=feeStop(k);cq={k,fee:st?'off':'on',d:TODAY_S,mail:S.mail,to:[...S.to]};DRAWER='cset';render(true);}
 const cqMin=k=>{const L=lastIss(k), st=feeStop(k);return [L,st||''].sort().pop();};
-function cqErr(){if(!cq) return '';
-  const st=feeStop(cq.k), chgFee=(cq.fee==='off')!==!!st;
-  if(chgFee&&(!cq.d||dnum(cq.d)<dnum(cqMin(cq.k)))) return `${st?'재개일':'중지일'}은 ${cqMin(cq.k).replace(/-/g,'.')} 이후로 고릅니다`;
-  if(cq.mail&&!cq.to.length) return '받는 사람을 한 명 이상 고릅니다';
-  return '';}
-function cqSave(){if(!cq||cqErr()) return; const k=cq.k, S=csetOf(k), st=feeStop(k), c=CTRS.find(x=>ckey(x)===k), P=pplOf(c);
-  if(cq.fee==='off'&&!st){S.off.push({from:cq.d}); clog(k,'계약','수정',`연체료 부과 중지 — ${cq.d.replace(/-/g,'.')}부터`,'',[['연체료 부과','부과','중지']]);}
-  else if(cq.fee==='on'&&st){S.off[S.off.length-1].to=cq.d; clog(k,'계약','수정',`연체료 부과 재개 — ${cq.d.replace(/-/g,'.')}부터`,'',[['연체료 부과','중지','부과']]);}
-  const nm=a=>a.map(i=>(P[i]||{}).n).filter(Boolean).join(' · ')||'—';
-  if(cq.mail!==S.mail) clog(k,'계약','수정',`청구서 메일 ${cq.mail?'보냄':'안 보냄'}`,'',[['청구서 메일',S.mail?'보냄':'안 보냄',cq.mail?'보냄':'안 보냄']]);
-  if(cq.mail&&nm(cq.to)!==nm(S.to)) clog(k,'계약','수정',`청구서 받는 사람 — ${nm(cq.to)}`,'',[['받는 사람',nm(S.to),nm(cq.to)]]);
-  S.mail=cq.mail; if(cq.mail) S.to=[...cq.to].sort();
+function cqOpen(k){cq={k,d:TODAY_S};DRAWER='cset';render(true);}
+function cqErr(){if(!cq) return ''; const st=feeStop(cq.k), mn=cqMin(cq.k);
+  return !cq.d||dnum(cq.d)<dnum(mn)?`${st?'재개일':'중지일'}은 ${mn.replace(/-/g,'.')} 이후로 고릅니다`:'';}
+function cqSave(){if(!cq||cqErr()) return; const k=cq.k, S=csetOf(k), st=feeStop(k);
+  if(!st){S.off.push({from:cq.d}); clog(k,'계약','수정',`연체료 부과 중지 — ${cq.d.replace(/-/g,'.')}부터`,'',[['연체료 부과','부과','중지']]);}
+  else{S.off[S.off.length-1].to=cq.d; clog(k,'계약','수정',`연체료 부과 재개 — ${cq.d.replace(/-/g,'.')}부터`,'',[['연체료 부과','중지','부과']]);}
   DRAWER=null;cq=null;render(true);}
 function cqHTML(){
   if(DRAWER!=='cset'||!cq) return '';
-  const c=CTRS.find(x=>ckey(x)===cq.k), bd=BUILDINGS.find(x=>x.id===c.b)||BUILDINGS[0], st=feeStop(cq.k), P=pplOf(c), err=cqErr(), mn=cqMin(cq.k);
+  const c=CTRS.find(x=>ckey(x)===cq.k), bd=BUILDINGS.find(x=>x.id===c.b)||BUILDINGS[0], st=feeStop(cq.k), err=cqErr(), mn=cqMin(cq.k), d=cq.d.replace(/-/g,'.');
   const R=(k,body,tip)=>`<div class="fr"><span class="fk">${k}${tip?`<i class="tip" data-tip="${tip}">i</i>`:''}</span>${body}</div>`;
-  const RB=(f,v,t)=>`<label class="ck" style="margin-right:14px"><input type="radio" name="cq${f}" ${cq[f]===v?'checked':''} onchange="cq.${f}=${typeof v==='string'?`'${v}'`:v};render(true)">${t}</label>`;
-  const chgFee=(cq.fee==='off')!==!!st;
   return `<div class="dro"><div class="ov" onclick="closeDrawer()"></div><div class="pn">
-    <div class="dh"><div><div class="t">청구 설정</div><div class="s">${cname(bd.alias,c.no,c.ten)}</div></div>
+    <div class="dh"><div><div class="t">${st?'연체료 재개':'연체료 중지'}</div><div class="s">${cname(bd.alias,c.no,c.ten)}</div></div>
       <button class="x" onclick="closeDrawer()">✕</button></div>
     <div class="db">
       <div class="fg"><div class="fl">연체료</div>
-        ${R('연체료 부과',RB('fee','on','부과')+RB('fee','off','중지'),'중지하면 그날부터 재개할 때까지 연체료를 세지 않습니다. 연체이자율(계약 조건)은 그대로입니다. 이미 청구서에 들어간 연체료는 청구 감액으로 줄입니다')}
-        ${chgFee?R(st?'재개일':'중지일',`<input type="date" value="${cq.d}" min="${mn}" onchange="cq.d=this.value;render(true)">`,`마지막 청구서 발행일(${(lastIss(cq.k)||'—').replace(/-/g,'.')}) 이후만 고릅니다. 이미 발행한 청구서의 연체료는 바뀌지 않습니다`):''}
-        ${st&&!chgFee?R('중지일',`${st.replace(/-/g,'.')}<span class="c2">중지 중</span>`):''}</div>
-      <div class="fg"><div class="fl">청구서 메일</div>
-        ${R('청구서 메일',RB('mail',true,'보냄')+RB('mail',false,'안 보냄'),'안 보냄이어도 청구서는 발행되고 원장에 기록됩니다. 메일만 나가지 않습니다. 국세청 세금계산서 메일과는 별개입니다')}
-        ${cq.mail?R('받는 사람',`<div style="display:flex;flex-direction:column;gap:4px">${P.map((x,i)=>`<label class="ck"><input type="checkbox" ${cq.to.includes(i)?'checked':''} onchange="cq.to=this.checked?[...cq.to,${i}]:cq.to.filter(v=>v!==${i});render(true)">${x.n} <span class="c2" style="margin:0 0 0 6px">${x.mail||'—'}</span></label>`).join('')}</div>`,'계약 요약의 담당자 중에서 고릅니다'):''}</div>
-      ${chgFee?`<div class="prev"><div class="pt">저장하면</div>${st?`<b>${cq.d.replace(/-/g,'.')}</b>부터 남은 미납에 연체료를 다시 셉니다.`:`<b>${cq.d.replace(/-/g,'.')}</b>부터 연체료를 세지 않습니다. 그 전까지 쌓인 연체료는 다음 청구서에 들어갑니다. 그것까지 받지 않으려면 청구서 발행에서 연체료 체크를 풉니다.`}</div>`:''}
-      ${err?`<div class="prev warn2">${err}</div>`:''}
+        ${R('연체이자율',`<span class="fv">연 ${rateOf(cq.k)}%<span class="c2" style="margin:0 0 0 8px">계약 조건 · 그대로</span></span>`)}
+        ${st?R('중지일',`<span class="fv">${st.replace(/-/g,'.')}</span>`):''}
+        ${R(st?'재개일':'중지일',`<input type="date" value="${cq.d}" min="${mn}" onchange="cq.d=this.value;render(true)">`,`마지막 청구서 발행일(${(lastIss(cq.k)||'—').replace(/-/g,'.')}) 이후만 고릅니다. 이미 발행한 청구서의 연체료는 바뀌지 않습니다. 그 몫은 청구 감액으로 줄입니다`)}</div>
+      ${err?`<div class="prev warn2">${err}</div>`:`<div class="prev"><div class="pt">저장하면</div>${st?`<b>${d}</b>부터 남은 미납에 연체료를 다시 셉니다.`:`<b>${d}</b>부터 재개할 때까지 연체료를 세지 않습니다. 그 전까지 쌓인 연체료는 다음 청구서에 들어갑니다. 그것까지 받지 않으려면 청구서 발행에서 연체료 체크를 풉니다.`}</div>`}
     </div>
     <div class="df"><button class="btn" onclick="closeDrawer()">닫기</button>
-      <button class="btn pri" ${err?'disabled':''} onclick="cqSave()">저장</button></div>
+      <button class="btn pri" ${err?'disabled':''} onclick="cqSave()">${st?'재개':'중지'}</button></div>
   </div></div>`;
 }
 function CTR3month(c,k){
-  return csetCard(c,k)+CTR3monthT(c,k);}
+  return feeStopNote(k)+CTR3monthT(c,k);}
 function CTR3monthT(c,k){
   const yms=[...new Set(BILLS.filter(i=>i.k===k).map(i=>i.ym))].sort().reverse();
   /* 마지막으로 마감한 달의 미납이 넘어간 다음 달 — 청구서 발행 전이어도 이월 미납액만으로 한 줄을 보인다(마감 뒤 수납이 여기에 붙는다) */
@@ -5262,7 +5247,7 @@ function CTR3monthT(c,k){
     합계의 미납액은 지금 남은 받을 돈(원장 잔액)입니다. 마감한 달의 미납은 다음 달 이월 미납액으로 넘어가므로 달별 미납액을 더한 값과 다를 수 있습니다.<br>
     다음 달 청구서를 발행하기 전이면 그 달 줄(청구서 발행 전)에 이월 미납액만 보이고, 마감 뒤에 받은 돈은 거기에 붙습니다.<br>
     돈을 기록하는 일(청구 · 수납, 보증금)은 원장 탭에서 합니다.<br>
-    맨 위 <b>청구 설정</b>에서 계약마다 연체료 부과(부과 · 중지)와 청구서 메일(보냄 · 안 보냄 · 받는 사람)을 정합니다. 연체이자율은 계약 조건이라 요약의 임대정보에 있습니다.</div>`;
+    연체료를 중지한 계약은 맨 위에 안내가 보입니다. 중지 · 재개는 요약 › 임대정보의 <b>연체료 부과</b> 줄에서, 청구서 메일 받는 사람은 요약 › 담당자에서 정합니다.</div>`;
 }
 /* CTR-3 요약 탭 — 계약·임대 정보. 잔액은 원장에서 */
 /* 계약의 주차 약정 · 냉난방기 구분 — 목업 예시값. 등록 차량은 건물 주차 탭과 같은 기록(VEH) → CTR-3 · PRO-3 */
@@ -5313,8 +5298,9 @@ function cx3HTML(){
   const body=cx3.mode==='ppl'?cx3.ppl.map((x,i)=>`<div class="fg" style="border:1px solid var(--line);border-radius:var(--r-sm);padding:10px 12px 2px">
         <div class="fl" style="display:flex;align-items:center">${i?`담당자 ${i+1}`:'대표 담당자'}
           ${i?`<button class="btn sm" style="margin-left:auto;color:var(--danger)" onclick="cx3.ppl.splice(${i},1);render(true)">삭제</button>`:''}</div>
-        ${F('담당자명',PI(i,'n',140))}${F('직위',PI(i,'t',160))}${F('연락처',PI(i,'tel',160))}${F('이메일',PI(i,'mail'))}</div>`).join('')
-      +`<button class="btn sm" onclick="cx3.ppl.push({n:'',t:'',tel:'',mail:''});render(true)">+ 담당자 추가</button>`
+        ${F('담당자명',PI(i,'n',140))}${F('직위',PI(i,'t',160))}${F('연락처',PI(i,'tel',160))}${F('이메일',PI(i,'mail'))}
+        ${F('청구서 메일',`<label class="ck"><input type="checkbox" ${(x.bill!=null?x.bill:i===0)?'checked':''} onchange="cx3.ppl[${i}].bill=this.checked">받기</label><i class="tip" data-tip="청구서를 발행할 때 「메일 보내고 발행」을 고르면 체크한 담당자에게 메일이 갑니다. 아무도 체크하지 않으면 이 계약은 메일을 보내지 않습니다">i</i>`)}</div>`).join('')
+      +`<button class="btn sm" onclick="cx3.ppl.push({n:'',t:'',tel:'',mail:'',bill:false});render(true)">+ 담당자 추가</button>`
     :cx3.mode==='ctr'?F('유닛',`<span class="fv">${c.no} <span class="c2" style="margin:0">수정 불가</span></span>`)
       +F('임차인',`<span class="fv">${c.ten} <span class="c2" style="margin:0">임차인 관리에서 고칩니다</span></span>`)
       +F('사업자구분',`<span class="fv">${ctrKind(c)} <span class="c2" style="margin:0">임차인 관리에서 고칩니다</span></span>`)
@@ -5438,12 +5424,15 @@ function CTR3sum(c,k){
       <dt>납부마감일</dt><dd>${bn.dueDay}</dd>
       <dt>기산일</dt><dd>${d8(fR)}${fM!==fR?`<span class="lock">고정관리비 ${d8(fM)}</span>`:''}</dd>
       <dt>연체이자율</dt><dd>연 ${rateOf(k)}%</dd>
+      <dt>연체료 부과</dt><dd>${(st=>`${st?`<span class="bd wa">중지</span> ${d8(st)}부터`:'부과 중'}<button class="btn sm" style="margin-left:10px" onclick="cqOpen('${k}')">${st?'재개':'중지'}</button>`)(feeStop(k))}</dd>
       <dt>렌트프리</dt><dd>${rfx?`있음 · ${d8(c.base)} - ${d8(c.rf.end)} · ${rfDaysOf(c.base,c.rf.end)}일<span class="lock">${rfIt}</span>`:'없음'}</dd>
       <dt>정산액 대납</dt><dd>${pay?`${pay.no} · ${pay.ten}<span class="lock">이 유닛 정산액을 그 계약이 냄</span>`:'없음'}</dd></dl>`,
     `<button class="btn sm" onclick="ciOpen('${k}','rent')">수정</button>`);
   const P=pplOf(c);
+  const BT=billTo(c);
   const ppl=card('담당자',`<dl class="dl">${P.map((x,i)=>`<dt>${x.n}${i?'':' <span class="bd ac">대표</span>'}</dt>
-      <dd>${x.tel||'—'}<span class="lock">${x.mail||'—'}</span><div class="c2">${x.t||''}</div></dd>`).join('')}</dl>`,edit('ppl'));
+      <dd>${x.tel||'—'}<span class="lock">${x.mail||'—'}</span>${BT.includes(x)?' <span class="bd ok">청구서 메일</span>':''}<div class="c2">${x.t||''}</div></dd>`).join('')}</dl>
+      ${BT.length?'':'<div class="c2" style="margin-top:6px">청구서 메일 받는 사람 없음 · 청구서를 발행해도 메일이 나가지 않습니다</div>'}`,edit('ppl'));
   const dep=card('보증금 정보',`<dl class="dl">
       <dt>보증금 약정액</dt><dd>${won(ctrDeposit(c))}</dd>
       <dt>보증금 잔액</dt><dd>${won(L.bal.임대보증금)}</dd>
