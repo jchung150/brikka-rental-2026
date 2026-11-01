@@ -1,15 +1,16 @@
-<section id="dev" style="background:#1E2633;color:#F6F4EF;font-family:'Noto Sans KR', Arial, sans-serif;padding:120px 128px 160px;display:flex;flex-direction:column;gap:40px">
-<p style="font-size:26px;font-weight:700;color:#8FB3F5">개발 체크</p>
-<h2 style="font-size:60px;font-weight:700;line-height:1.15">원장 기록 한 줄에 남길 것</h2>
-<table style="font-size:28px;color:#E6EBF2">
-<tr style="background:#2C3747"><th style="width:32%">무엇</th><th style="width:68%">어떻게</th></tr>
-<tr><td>계정 · 거래유형</td><td>받을 돈 또는 보증금 중 하나 · 거래유형 하나</td></tr>
-<tr style="background:#253041"><td>금액</td><td>공급가액 · 부가세 · 합계(화면에는 합계만)</td></tr>
-<tr><td>기록 순번</td><td>같은 날 순서를 지키기 위한 순번 또는 기록 시각</td></tr>
-<tr style="background:#253041"><td>원래 거래 연결</td><td>취소 줄은 취소한 거래를, 감액은 청구 건을 가리킨다</td></tr>
-<tr><td>사유</td><td>감액 · 취소 · 청구 추가는 필수. 목록에는 안 보이고 상세에서 본다</td></tr>
-<tr style="background:#253041"><td>잔액</td><td>계정마다 차변 합과 대변 합의 차이로 센다</td></tr>
+<section id="dev" style="background:#1E2633;color:#F6F4EF;font-family:'Noto Sans KR', Arial, sans-serif;padding:112px 128px 150px;display:flex;flex-direction:column;gap:24px">
+<p style="font-size:26px;font-weight:700;color:#8FB3F5">개발 체크 · Dev checklist</p>
+<div style="display:flex;flex-direction:column;gap:6px"><h2 style="font-size:52px;font-weight:700;line-height:1.15">원장 기록 한 줄에 남길 것</h2><p style="font-size:30px;font-weight:500;color:#A9B4C2;line-height:1.25">What each ledger record must store</p></div>
+<table style="font-size:24px;color:#E6EBF2;line-height:1.25">
+<tr style="background:#2C3747"><th style="padding:8px 16px;width:28%">무엇 · What</th><th style="padding:8px 16px;width:72%">어떻게 · How</th></tr>
+<tr><td style="padding:8px 16px">계정 · 거래유형<br><span style="color:#A9B4C2">Account · type</span></td><td style="padding:8px 16px">받을 돈 또는 보증금 중 하나 · 거래유형 하나<br><span style="color:#A9B4C2">Either receivable or deposit · one transaction type</span></td></tr>
+<tr style="background:#253041"><td style="padding:8px 16px">금액<br><span style="color:#A9B4C2">Amount</span></td><td style="padding:8px 16px">공급가액 · 부가세 · 합계(화면에는 합계만)<br><span style="color:#A9B4C2">Supply amount · VAT · total (the screen shows the total only)</span></td></tr>
+<tr><td style="padding:8px 16px">기록 순번<br><span style="color:#A9B4C2">Record sequence</span></td><td style="padding:8px 16px">같은 날 순서를 지키기 위한 순번 또는 기록 시각<br><span style="color:#A9B4C2">Sequence number or record timestamp to keep same-day order</span></td></tr>
+<tr style="background:#253041"><td style="padding:8px 16px">원래 거래 연결<br><span style="color:#A9B4C2">Link to original</span></td><td style="padding:8px 16px">취소 줄은 취소한 거래를, 감액은 청구 건을 가리킨다<br><span style="color:#A9B4C2">A cancel line points to the cancelled transaction; a reduction points to its charge</span></td></tr>
+<tr><td style="padding:8px 16px">사유<br><span style="color:#A9B4C2">Reason</span></td><td style="padding:8px 16px">감액 · 취소 · 청구 추가는 필수. 목록에는 안 보이고 상세에서 본다<br><span style="color:#A9B4C2">Required for reduction, cancel and Add charge. Not shown in the list; seen in the detail</span></td></tr>
+<tr style="background:#253041"><td style="padding:8px 16px">잔액<br><span style="color:#A9B4C2">Balance</span></td><td style="padding:8px 16px">계정마다 차변 합과 대변 합의 차이로 센다<br><span style="color:#A9B4C2">Per account: total debits minus total credits (or the reverse)</span></td></tr>
 </table>
-<p style="position:absolute;left:128px;bottom:64px;width:1664px;font-size:24px;color:#9AA6B5">BRIKKA · 2 원장의 역할 · 10</p>
-<aside>v1.5 2.7 · 10 데이터 요구사항 · 명세변경 14-6 · 15. 잔액 공식: 받을 돈 = 차변 합 − 대변 합, 보증금 = 대변 합 − 차변 합(v1.5).원장 거래 · 청구 · 수납은 영구 보존이다(11 비기능요건).</aside>
+<p style="position:absolute;left:128px;bottom:64px;width:1664px;font-size:24px;color:#9AA6B5">BRIKKA · 2 원장의 역할 · The ledger's role · 11</p>
+<aside>v1.5 2.7 · 10 데이터 요구사항 · 명세변경 14-6 · 15. 잔액 공식: 받을 돈 = 차변 합 − 대변 합, 보증금 = 대변 합 − 차변 합(v1.5). 원장 거래 · 청구 · 수납은 영구 보존이다(11 비기능요건).
+EN: v1.5 §2.7, §10 data requirements, spec changes 14-6 and 15. Balance formulas: receivable = sum of debits − sum of credits; deposit = sum of credits − sum of debits (v1.5). Ledger transactions, charges and payments are kept permanently (§11 non-functional requirements).</aside>
 </section>

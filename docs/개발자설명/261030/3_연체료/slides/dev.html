@@ -1,14 +1,15 @@
-<section id="dev" style="background:#1E2633;color:#F6F4EF;font-family:'Noto Sans KR', Arial, sans-serif;padding:120px 128px 160px;display:flex;flex-direction:column;gap:40px">
-<p style="font-size:26px;font-weight:700;color:#F2A65A">개발 체크</p>
-<h2 style="font-size:60px;font-weight:700;line-height:1.15">만들 때 필요한 것</h2>
-<table style="font-size:28px;color:#E6EBF2">
-<tr style="background:#2C3747"><th style="width:32%">무엇</th><th style="width:68%">어떻게</th></tr>
-<tr><td>연체료 줄</td><td>청구서 발행 때 계산해 청구 건으로 저장. 기간(시작~끝)을 함께 저장</td></tr>
-<tr style="background:#253041"><td>정리일</td><td>계약마다. 발행일로 옮기고, 청구서 취소 때 되돌린다</td></tr>
-<tr><td>면제 판정</td><td>마감일에 「발행 때 밀려 있던 미납」이 다 들어왔는지 본다. 다 들어왔으면 발행 다음날~낸 날을 빼고 센다</td></tr>
-<tr style="background:#253041"><td>안내 금액</td><td>아직 청구 안 된 연체료(오늘까지)를 계산해 보여주기만. 미납액에는 넣지 않는다</td></tr>
-<tr><td>없애는 것</td><td>수납 처리 · 보증금 상계의 함께 정리 · 연체료 처리 버튼 · 수납 때 생기는 연체료 청구</td></tr>
+<section id="dev" style="background:#1E2633;color:#F6F4EF;font-family:'Noto Sans KR', Arial, sans-serif;padding:96px 128px 130px;display:flex;flex-direction:column;gap:28px">
+<p style="font-size:26px;font-weight:700;color:#F2A65A">개발 체크 · Dev checklist</p>
+<div style="display:flex;flex-direction:column;gap:8px"><h2 style="font-size:56px;font-weight:700;line-height:1.15">만들 때 필요한 것</h2><p style="font-size:28px;font-weight:500;line-height:1.25;color:#9AA6B5">What the build needs</p></div>
+<table style="font-size:24px;color:#E6EBF2">
+<tr style="background:#2C3747"><th style="width:24%">무엇 · What</th><th style="width:76%">어떻게 · How</th></tr>
+<tr><td>연체료 줄<br><span style="color:#9AA6B5">Late fee line</span></td><td>청구서 발행 때 계산해 청구 건으로 저장. 기간(시작~끝)을 함께 저장<br><span style="color:#9AA6B5">Calculate at invoice issue and save as a charge, with its period (start~end)</span></td></tr>
+<tr style="background:#253041"><td>정리일<br><span style="color:#9AA6B5">Fee cut-off date</span></td><td>계약마다. 발행일로 옮기고, 청구서 취소 때 되돌린다<br><span style="color:#9AA6B5">Per contract. Move it to the issue date; restore it when the invoice is cancelled</span></td></tr>
+<tr><td>면제 판정<br><span style="color:#9AA6B5">Waiver check</span></td><td>마감일에 「발행 때 밀려 있던 미납」이 다 들어왔는지 본다. 다 들어왔으면 발행 다음날~낸 날을 빼고 센다<br><span style="color:#9AA6B5">At the due date, check whether the unpaid balance overdue at issue was fully paid. If so, exclude day after issue ~ payment date from the count</span></td></tr>
+<tr style="background:#253041"><td>안내 금액<br><span style="color:#9AA6B5">Notice amount</span></td><td>아직 청구 안 된 연체료(오늘까지)를 계산해 보여주기만. 미납액에는 넣지 않는다<br><span style="color:#9AA6B5">Calculate the not-yet-invoiced late fee (to today) for display only. Never add it to the unpaid balance</span></td></tr>
+<tr><td>없애는 것<br><span style="color:#9AA6B5">Remove</span></td><td>수납 처리 · 보증금 상계의 함께 정리 · 연체료 처리 버튼 · 수납 때 생기는 연체료 청구<br><span style="color:#9AA6B5">"Settle together" in Record payment and Deposit offset · late fee buttons · late fee charges created at payment</span></td></tr>
 </table>
-<p style="position:absolute;left:128px;bottom:64px;width:1664px;font-size:24px;color:#9AA6B5">BRIKKA · 3 연체료 · 12</p>
-<aside>면제 판정은 사례 A · B · C로 시험한다: A는 07.19 청구서에 연체료 없음, B는 11,200(06.20~07.03), C는 10,800(06.20~07.10). 목업: 루비뮤직은 6월 미납을 7월분 마감일 07.31에 다 냈으므로 8월 연체료가 0원이다. 비씨에이전시는 못 냈으므로 36,859원이다.</aside>
+<p style="position:absolute;left:128px;bottom:64px;width:1664px;font-size:24px;color:#9AA6B5">BRIKKA · 3 연체료 · Late fees · 12</p>
+<aside>면제 판정은 사례 A · B · C로 시험한다: A는 07.19 청구서에 연체료 없음, B는 11,200(06.20~07.03), C는 10,800(06.20~07.10). 목업: 루비뮤직은 6월 미납을 7월분 마감일 07.31에 다 냈으므로 8월 연체료가 0원이다. 비씨에이전시는 못 냈으므로 36,859원이다.
+EN: Test the waiver check with cases A, B and C: A has no late fee on the 07.19 invoice, B has 11,200 (06.20~07.03), C has 10,800 (06.20~07.10). Mockup: 루비뮤직 (Ruby Music) paid its June unpaid balance in full by the July due date 07.31, so its August late fee is 0 won. 비씨에이전시 (BC Agency) did not, so it is 36,859 won.</aside>
 </section>

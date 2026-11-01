@@ -1,25 +1,26 @@
-<section id="moveout" style="background:#F6F4EF;color:#1E2633;font-family:'Noto Sans KR', Arial, sans-serif;padding:120px 128px 160px;display:flex;flex-direction:column;gap:40px">
-<p style="font-size:26px;font-weight:700;color:#C2571A">퇴거</p>
-<h2 style="font-size:60px;font-weight:700;line-height:1.15">다음 청구서가 없으니 마지막 청구서에 넣는다</h2>
+<section id="moveout" style="background:#F6F4EF;color:#1E2633;font-family:'Noto Sans KR', Arial, sans-serif;padding:96px 128px 130px;display:flex;flex-direction:column;gap:26px">
+<p style="font-size:26px;font-weight:700;color:#C2571A">퇴거 · Move-out</p>
+<div style="display:flex;flex-direction:column;gap:8px"><h2 style="font-size:52px;font-weight:700;line-height:1.15">다음 청구서가 없으니 마지막 청구서에 넣는다</h2><p style="font-size:26px;font-weight:500;line-height:1.25;color:#5F6673">No next invoice, so it goes on the final invoice</p></div>
 <div style="display:grid;grid-template-columns:repeat(3, 1fr);gap:20px">
-<div style="background:#FBFAF7;border-top:6px solid #9AA6B5;border-radius:12px;padding:32px;display:flex;flex-direction:column;gap:10px">
-<p style="font-size:36px;font-weight:700">08.10</p>
-<p style="font-size:28px;color:#4A5363;line-height:1.5">「일주일 뒤 나갈게요」<br>해지 처리 · 해지일 08.17</p>
+<div style="background:#FBFAF7;border-top:6px solid #9AA6B5;border-radius:12px;padding:24px 28px;display:flex;flex-direction:column;gap:8px">
+<p style="font-size:34px;font-weight:700">08.10</p>
+<p style="font-size:24px;color:#4A5363;line-height:1.45">「일주일 뒤 나갈게요」<br>해지 처리 · 해지일 08.17<br><span style="color:#6B7380">"We're leaving in a week" · Termination, termination date 08.17</span></p>
 </div>
-<div style="background:#FBFAF7;border-top:6px solid #C2571A;border-radius:12px;padding:32px;display:flex;flex-direction:column;gap:10px">
-<p style="font-size:36px;font-weight:700">저장하면</p>
-<p style="font-size:28px;color:#4A5363;line-height:1.5">마지막 청구서에<br>「연체료 (08.17까지)」<br>일할 임대료 · 관리비와 함께</p>
+<div style="background:#FBFAF7;border-top:6px solid #C2571A;border-radius:12px;padding:24px 28px;display:flex;flex-direction:column;gap:8px">
+<p style="font-size:34px;font-weight:700">저장하면 · On save</p>
+<p style="font-size:24px;color:#4A5363;line-height:1.45">마지막 청구서에<br>「연체료 (08.17까지)」<br>일할 임대료 · 관리비와 함께<br><span style="color:#6B7380">Final invoice gets "late fee (to 08.17)" with pro-rata rent and maintenance fee</span></p>
 </div>
-<div style="background:#FBFAF7;border-top:6px solid #2E62C9;border-radius:12px;padding:32px;display:flex;flex-direction:column;gap:10px">
-<p style="font-size:36px;font-weight:700">08.17</p>
-<p style="font-size:28px;color:#4A5363;line-height:1.5">보증금 상계 한 번<br>남은 보증금은 반환</p>
+<div style="background:#FBFAF7;border-top:6px solid #2E62C9;border-radius:12px;padding:24px 28px;display:flex;flex-direction:column;gap:8px">
+<p style="font-size:34px;font-weight:700">08.17</p>
+<p style="font-size:24px;color:#4A5363;line-height:1.45">보증금 상계 한 번<br>남은 보증금은 반환<br><span style="color:#6B7380">One Deposit offset · remaining deposit goes to Deposit refund</span></p>
 </div>
 </div>
-<table style="font-size:28px;color:#1E2633">
-<tr style="background:#E3E9F1"><th style="width:30%">날짜가 어긋나면</th><th style="width:70%">처리</th></tr>
-<tr><td>08.14에 일찍 정리</td><td>08.15~08.17분을 미리 청구한 셈 → 그만큼 청구 감액</td></tr>
-<tr style="background:#ECEAE3"><td>08.20에 늦게 정리</td><td>08.18~08.20분은 받을 곳이 없다 → 받지 않는다(감면)</td></tr>
+<table style="font-size:24px;color:#1E2633">
+<tr style="background:#E3E9F1"><th style="width:30%">날짜가 어긋나면 · If dates differ</th><th style="width:70%">처리 · Handling</th></tr>
+<tr><td>08.14에 일찍 정리<br><span style="color:#5F6673">Settled early, 08.14</span></td><td>08.15~08.17분을 미리 청구한 셈 → 그만큼 청구 감액<br><span style="color:#5F6673">08.15~08.17 was charged in advance → Invoice reduction by that amount</span></td></tr>
+<tr style="background:#ECEAE3"><td>08.20에 늦게 정리<br><span style="color:#5F6673">Settled late, 08.20</span></td><td>08.18~08.20분은 받을 곳이 없다 → 받지 않는다(감면)<br><span style="color:#5F6673">08.18~08.20 has no invoice to go on → not charged (discount)</span></td></tr>
 </table>
-<p style="position:absolute;left:128px;bottom:64px;width:1664px;font-size:24px;color:#7A818C">BRIKKA · 3 연체료 · 10</p>
-<aside>보증금 상계는 연체료를 새로 계산하지 않는다. 마지막 청구서까지 원장에 올라온 미납만 정리한다. 해지일 뒤 늦어진 며칠분이 크면 청구 추가로 따로 받을 수 있다. 퇴거 예상분 · 위약금 · 원상복구비는 비정기 청구서다(덱 1).</aside>
+<p style="position:absolute;left:128px;bottom:64px;width:1664px;font-size:24px;color:#7A818C">BRIKKA · 3 연체료 · Late fees · 10</p>
+<aside>보증금 상계는 연체료를 새로 계산하지 않는다. 마지막 청구서까지 원장에 올라온 미납만 정리한다. 해지일 뒤 늦어진 며칠분이 크면 청구 추가로 따로 받을 수 있다. 퇴거 예상분 · 위약금 · 원상복구비는 비정기 청구서다(덱 1).
+EN: Deposit offset never recalculates the late fee. It only settles the unpaid balance already in the ledger, up to the final invoice. If the days after the termination date add up to a large amount, they can be charged separately with an added charge. Estimated move-out utilities, penalties and restoration costs are ad-hoc invoices (deck 1).</aside>
 </section>

@@ -1,20 +1,21 @@
-<section id="formula" style="background:#F6F4EF;color:#1E2633;font-family:'Noto Sans KR', Arial, sans-serif;padding:120px 128px 160px;display:flex;flex-direction:column;gap:40px">
-<p style="font-size:26px;font-weight:700;color:#C2571A">계산식</p>
-<h2 style="font-size:60px;font-weight:700;line-height:1.15">밀린 원금 × 연이율 × 일수 ÷ 365</h2>
-<div style="background:#1E2633;border-radius:16px;padding:40px 48px;display:flex;flex-direction:column;gap:12px">
-<p style="font-size:32px;color:#F6F4EF;font-weight:500">연체료 = Σ 구간 ( 구간 동안의 미납액 × 연이율 × 구간 일수 ÷ 365 )</p>
-<p style="font-size:28px;color:#C9D2DE">돈이 들어올 때마다 구간을 끊는다 · 구간마다 원 미만 절사</p>
+<section id="formula" style="background:#F6F4EF;color:#1E2633;font-family:'Noto Sans KR', Arial, sans-serif;padding:96px 128px 130px;display:flex;flex-direction:column;gap:32px">
+<p style="font-size:26px;font-weight:700;color:#C2571A">계산식 · Formula</p>
+<div style="display:flex;flex-direction:column;gap:8px"><h2 style="font-size:60px;font-weight:700;line-height:1.15">밀린 원금 × 연이율 × 일수 ÷ 365</h2><p style="font-size:30px;font-weight:500;line-height:1.25;color:#5F6673">Overdue principal × annual rate × days ÷ 365</p></div>
+<div style="background:#1E2633;border-radius:16px;padding:36px 48px;display:flex;flex-direction:column;gap:14px">
+<p style="font-size:32px;color:#F6F4EF;font-weight:500">연체료 = Σ 구간 ( 구간 동안의 미납액 × 연이율 × 구간 일수 ÷ 365 )<br><span style="color:#9AA6B5">Late fee = Σ periods ( unpaid balance during the period × annual rate × days in period ÷ 365 )</span></p>
+<p style="font-size:28px;color:#C9D2DE">돈이 들어올 때마다 구간을 끊는다 · 구간마다 원 미만 절사<br><span style="color:#9AA6B5">Start a new period whenever money comes in · truncate below 1 won per period</span></p>
 </div>
 <div style="display:flex;gap:28px;align-items:stretch">
-<div style="flex:1;background:#FBFAF7;border:1px solid #DDD8CC;border-radius:16px;padding:36px;display:flex;flex-direction:column;gap:10px">
-<p style="font-size:26px;font-weight:700;color:#C2571A">이 덱의 예시 값</p>
-<p style="font-size:30px;line-height:1.5">5월분 미납 3,650,000 · 연 8%<br>3,650,000 × 8% ÷ 365 = <b>하루 800원</b></p>
+<div style="flex:1;background:#FBFAF7;border:1px solid #DDD8CC;border-radius:16px;padding:32px 36px;display:flex;flex-direction:column;gap:10px">
+<p style="font-size:26px;font-weight:700;color:#C2571A">이 덱의 예시 값 · Example values in this deck</p>
+<p style="font-size:30px;line-height:1.5">5월분 미납 3,650,000 · 연 8%<br><span style="color:#6B7380">May unpaid balance 3,650,000 · 8% per year</span><br>3,650,000 × 8% ÷ 365 = <b>하루 800원</b> <span style="color:#6B7380">(800 won per day)</span></p>
 </div>
-<div style="flex:1;background:#FBFAF7;border:1px solid #DDD8CC;border-radius:16px;padding:36px;display:flex;flex-direction:column;gap:10px">
-<p style="font-size:26px;font-weight:700;color:#C2571A">언제부터</p>
-<p style="font-size:30px;line-height:1.5">납부마감일 다음날부터<br>5월분 마감 05.31 → <b>06.01부터</b></p>
+<div style="flex:1;background:#FBFAF7;border:1px solid #DDD8CC;border-radius:16px;padding:32px 36px;display:flex;flex-direction:column;gap:10px">
+<p style="font-size:26px;font-weight:700;color:#C2571A">언제부터 · Starting when</p>
+<p style="font-size:30px;line-height:1.5">납부마감일 다음날부터<br><span style="color:#6B7380">From the day after the payment due date</span><br>5월분 마감 05.31 → <b>06.01부터</b><br><span style="color:#6B7380">May due date 05.31 → from 06.01</span></p>
 </div>
 </div>
-<p style="position:absolute;left:128px;bottom:64px;width:1664px;font-size:24px;color:#7A818C">BRIKKA · 3 연체료 · 3</p>
-<aside>v1.5 4.4.1. 미납액은 부가세를 포함한 금액이다. 월 마감한 날이 아니라 납부마감일이 기준이다(마감은 관리자가 누르는 날이라 일정하지 않다). 전월 미납액으로 넘어가도 원래 납부마감일부터 센다. 연이율은 계약마다 다르고 기본 연 8%다.</aside>
+<p style="position:absolute;left:128px;bottom:64px;width:1664px;font-size:24px;color:#7A818C">BRIKKA · 3 연체료 · Late fees · 3</p>
+<aside>v1.5 4.4.1. 미납액은 부가세를 포함한 금액이다. 월 마감한 날이 아니라 납부마감일이 기준이다(마감은 관리자가 누르는 날이라 일정하지 않다). 전월 미납액으로 넘어가도 원래 납부마감일부터 센다. 연이율은 계약마다 다르고 기본 연 8%다.
+EN: v1.5 4.4.1. The unpaid balance includes VAT. The reference is the payment due date, not the day the month was closed (closing is whenever an admin clicks it, so it varies). Even after the amount carries over as the previous month's unpaid balance, counting starts from the original payment due date. The annual rate is set per contract; the default is 8% per year.</aside>
 </section>

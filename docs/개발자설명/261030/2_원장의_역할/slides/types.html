@@ -1,19 +1,17 @@
-<section id="types" style="background:#F6F4EF;color:#1E2633;font-family:'Noto Sans KR', Arial, sans-serif;padding:110px 128px 150px;display:flex;flex-direction:column;gap:28px">
-<p style="font-size:26px;font-weight:700;color:#2E62C9">거래유형</p>
-<h2 style="font-size:56px;font-weight:700;line-height:1.15">원장 한 줄은 이 중 하나다</h2>
-<table style="font-size:24px;color:#1E2633">
-<tr style="background:#E3E9F1"><th style="width:20%">거래유형</th><th style="width:22%">계정 · 기입</th><th style="width:58%">언제 생기나</th></tr>
-<tr><td><b>청구</b></td><td>받을 돈 · 차변</td><td>정기 청구서 발행 · 청구 추가(비정기)</td></tr>
-<tr style="background:#ECEAE3"><td>청구 취소</td><td>받을 돈 · 대변</td><td>정기 청구서 취소 · 청구 추가 취소</td></tr>
-<tr><td><b>감액</b></td><td>받을 돈 · 대변</td><td>청구 감액</td></tr>
-<tr style="background:#ECEAE3"><td>감액 취소</td><td>받을 돈 · 차변</td><td>잘못 넣은 감액을 취소</td></tr>
-<tr><td><b>수납</b></td><td>받을 돈 · 대변</td><td>은행 입금 매칭 · 수납 처리(현금 · 카드) · 보증금 상계</td></tr>
-<tr style="background:#ECEAE3"><td>수납 취소</td><td>받을 돈 · 차변</td><td>수납 처리 취소 · 은행 입금 무효</td></tr>
-<tr><td><b>환불</b></td><td>받을 돈 · 차변</td><td>과납(돌려줄 돈)을 돌려줌</td></tr>
-<tr style="background:#ECEAE3"><td><b>보증금 예치</b></td><td>보증금 · 대변</td><td>보증금을 받음</td></tr>
-<tr><td><b>보증금 상계</b></td><td>보증금 · 차변</td><td>보증금으로 미납을 정리(받을 돈 쪽에는 같은 금액의 수납)</td></tr>
-<tr style="background:#ECEAE3"><td><b>보증금 반환</b></td><td>보증금 · 차변</td><td>남은 보증금을 돌려줌</td></tr>
+<section id="types" style="background:#F6F4EF;color:#1E2633;font-family:'Noto Sans KR', Arial, sans-serif;padding:112px 128px 160px;display:flex;flex-direction:column;gap:18px">
+<p style="font-size:24px;font-weight:700;color:#2E62C9">거래유형 · Transaction types</p>
+<div style="display:flex;flex-direction:column;gap:6px"><h2 style="font-size:48px;font-weight:700;line-height:1.15">원장 한 줄은 이 중 하나다 ① 받을 돈</h2><p style="font-size:30px;font-weight:500;color:#5E6878;line-height:1.25">Each ledger line is one of these ① Receivable</p></div>
+<table style="font-size:24px;color:#1E2633;line-height:1.2">
+<tr style="background:#E3E9F1"><th style="padding:8px 16px;width:20%">거래유형 · Type</th><th style="padding:8px 16px;width:18%">계정 · 기입 · Account</th><th style="padding:8px 16px;width:62%">언제 생기나 · When it occurs</th></tr>
+<tr><td style="padding:8px 16px"><b>청구</b><br><span style="color:#5E6878">Charge</span></td><td style="padding:8px 16px">받을 돈 · 차변<br><span style="color:#5E6878">AR · Dr</span></td><td style="padding:8px 16px">정기 청구서 발행 · 청구 추가(비정기)<br><span style="color:#5E6878">Regular invoice issued · Add charge (ad-hoc)</span></td></tr>
+<tr style="background:#ECEAE3"><td style="padding:8px 16px">청구 취소<br><span style="color:#5E6878">Charge cancel</span></td><td style="padding:8px 16px">받을 돈 · 대변<br><span style="color:#5E6878">AR · Cr</span></td><td style="padding:8px 16px">정기 청구서 취소 · 청구 추가 취소<br><span style="color:#5E6878">Regular invoice cancelled · Add charge cancelled</span></td></tr>
+<tr><td style="padding:8px 16px"><b>감액</b><br><span style="color:#5E6878">Reduction</span></td><td style="padding:8px 16px">받을 돈 · 대변<br><span style="color:#5E6878">AR · Cr</span></td><td style="padding:8px 16px">청구 감액 · <span style="color:#5E6878">Invoice reduction</span></td></tr>
+<tr style="background:#ECEAE3"><td style="padding:8px 16px">감액 취소<br><span style="color:#5E6878">Reduction cancel</span></td><td style="padding:8px 16px">받을 돈 · 차변<br><span style="color:#5E6878">AR · Dr</span></td><td style="padding:8px 16px">잘못 넣은 감액을 취소<br><span style="color:#5E6878">Cancelling a wrong reduction</span></td></tr>
+<tr><td style="padding:8px 16px"><b>수납</b><br><span style="color:#5E6878">Payment</span></td><td style="padding:8px 16px">받을 돈 · 대변<br><span style="color:#5E6878">AR · Cr</span></td><td style="padding:8px 16px">은행 입금 매칭 · 수납 처리(현금 · 카드) · 보증금 상계<br><span style="color:#5E6878">Bank deposit matching · Record payment (cash/card) · Deposit offset</span></td></tr>
+<tr style="background:#ECEAE3"><td style="padding:8px 16px">수납 취소<br><span style="color:#5E6878">Payment cancel</span></td><td style="padding:8px 16px">받을 돈 · 차변<br><span style="color:#5E6878">AR · Dr</span></td><td style="padding:8px 16px">수납 처리 취소 · 은행 입금 무효<br><span style="color:#5E6878">Record payment cancelled · bank deposit voided</span></td></tr>
+<tr><td style="padding:8px 16px"><b>환불</b><br><span style="color:#5E6878">Refund</span></td><td style="padding:8px 16px">받을 돈 · 차변<br><span style="color:#5E6878">AR · Dr</span></td><td style="padding:8px 16px">과납(돌려줄 돈)을 돌려줌<br><span style="color:#5E6878">Returning an overpayment</span></td></tr>
 </table>
-<p style="position:absolute;left:128px;bottom:64px;width:1664px;font-size:24px;color:#7A818C">BRIKKA · 2 원장의 역할 · 4</p>
-<aside>v1.5 2.7 거래유형 9종에 명세변경으로 바뀐 이름을 반영했다. 보증금 차감 → 보증금 상계, 보증금 환급 → 보증금 반환(13). 감액 취소 추가(14-6). 보증금 예치 · 상계 · 반환의 취소도 취소 줄로 남는다(10 · 13). 보증금 상계 한 번은 원장 두 곳에 보인다: 위 받을 돈의 「수납」, 아래 보증금의 「보증금 상계」.</aside>
+<p style="position:absolute;left:128px;bottom:64px;width:1664px;font-size:24px;color:#7A818C">BRIKKA · 2 원장의 역할 · The ledger's role · 4</p>
+<aside>v1.5 2.7 거래유형 9종에 명세변경으로 바뀐 이름을 반영했다. 보증금 차감 → 보증금 상계, 보증금 환급 → 보증금 반환(13). 감액 취소 추가(14-6). 보증금 예치 · 상계 · 반환의 취소도 취소 줄로 남는다(10 · 13). 보증금 상계 한 번은 원장 두 곳에 보인다: 위 받을 돈의 「수납」, 아래 보증금의 「보증금 상계」.
+EN: The 9 transaction types of v1.5 §2.7 with names updated by the spec changes: 보증금 차감 → 보증금 상계 (Deposit offset), 보증금 환급 → 보증금 반환 (Deposit refund) (13). Reduction cancel added (14-6). Cancelling a deposit received / offset / refund also remains as a cancel line (10, 13). One deposit offset appears in two places in the ledger: as 「수납」(Payment) in the receivable above, and as 「보증금 상계」(Deposit offset) in the deposit below. AR = receivable, Dr = debit, Cr = credit.</aside>
 </section>

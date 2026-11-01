@@ -1,18 +1,19 @@
-<section id="sameday" style="background:#EAEFF4;color:#1E2633;font-family:'Noto Sans KR', Arial, sans-serif;padding:110px 128px 150px;display:flex;flex-direction:column;gap:28px">
-<p style="font-size:26px;font-weight:700;color:#2E62C9">예시 · 같은 날 여러 번</p>
-<h2 style="font-size:56px;font-weight:700;line-height:1.15">09.10 현금 → 취소 → 보증금 상계</h2>
-<table style="font-size:24px;color:#1E2633">
-<tr style="background:#D9E2EC"><th style="width:6%">순번</th><th style="width:16%">거래유형</th><th style="width:30%">내용</th><th style="width:16%;text-align:right">차변</th><th style="width:16%;text-align:right">대변</th><th style="width:16%;text-align:right">잔액</th></tr>
-<tr><td>—</td><td></td><td>09.10 시작 · 받을 돈</td><td></td><td></td><td style="text-align:right">1,850,000</td></tr>
-<tr style="background:#E1E8EF"><td>1</td><td>수납</td><td>현금 <span style="color:#7A818C">취소됨</span></td><td></td><td style="text-align:right">1,850,000</td><td style="text-align:right">0</td></tr>
-<tr><td>2</td><td>수납 취소</td><td>사유 「다른 계약 돈」</td><td style="text-align:right">1,850,000</td><td></td><td style="text-align:right">1,850,000</td></tr>
-<tr style="background:#E1E8EF"><td>3</td><td>수납</td><td>보증금상계</td><td></td><td style="text-align:right">1,850,000</td><td style="text-align:right"><b>0</b></td></tr>
-<tr style="background:#EAEFF4"><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-<tr><td>3</td><td>보증금 상계</td><td>미납액 정리</td><td style="text-align:right">1,850,000</td><td></td><td style="text-align:right"><b>36,650,000</b></td></tr>
+<section id="sameday" style="background:#EAEFF4;color:#1E2633;font-family:'Noto Sans KR', Arial, sans-serif;padding:100px 128px 150px;display:flex;flex-direction:column;gap:20px">
+<p style="font-size:24px;font-weight:700;color:#2E62C9">예시 · 같은 날 여러 번 · Example: several entries on one day</p>
+<div style="display:flex;flex-direction:column;gap:6px"><h2 style="font-size:52px;font-weight:700;line-height:1.15">09.10 현금 → 취소 → 보증금 상계</h2><p style="font-size:30px;font-weight:500;color:#5E6878;line-height:1.25">09.10 Cash → Cancel → Deposit offset</p></div>
+<table style="font-size:24px;color:#1E2633;line-height:1.25">
+<tr style="background:#D9E2EC"><th style="padding:8px 16px;width:10%">순번 · <span style="color:#5E6878">Seq</span></th><th style="padding:8px 16px;width:18%">거래유형 · <span style="color:#5E6878">Type</span></th><th style="padding:8px 16px;width:36%">내용 · <span style="color:#5E6878">Description</span></th><th style="padding:8px 16px;width:12%;text-align:right">차변 · <span style="color:#5E6878">Dr</span></th><th style="padding:8px 16px;width:12%;text-align:right">대변 · <span style="color:#5E6878">Cr</span></th><th style="padding:8px 16px;width:12%;text-align:right">잔액 · <span style="color:#5E6878">Balance</span></th></tr>
+<tr><td style="padding:8px 16px">—</td><td style="padding:8px 16px"></td><td style="padding:8px 16px">09.10 시작 · 받을 돈<br><span style="color:#5E6878">Opening · receivable</span></td><td style="padding:8px 16px"></td><td style="padding:8px 16px"></td><td style="padding:8px 16px;text-align:right">1,850,000</td></tr>
+<tr style="background:#E1E8EF"><td style="padding:8px 16px">1</td><td style="padding:8px 16px">수납 · <span style="color:#5E6878">Payment</span></td><td style="padding:8px 16px">현금 <span style="color:#7A818C">취소됨</span> · <span style="color:#5E6878">Cash, cancelled</span></td><td style="padding:8px 16px"></td><td style="padding:8px 16px;text-align:right">1,850,000</td><td style="padding:8px 16px;text-align:right">0</td></tr>
+<tr><td style="padding:8px 16px">2</td><td style="padding:8px 16px">수납 취소<br><span style="color:#5E6878">Payment cancel</span></td><td style="padding:8px 16px">사유 「다른 계약 돈」<br><span style="color:#5E6878">Reason: “money for another contract”</span></td><td style="padding:8px 16px;text-align:right">1,850,000</td><td style="padding:8px 16px"></td><td style="padding:8px 16px;text-align:right">1,850,000</td></tr>
+<tr style="background:#E1E8EF"><td style="padding:8px 16px">3</td><td style="padding:8px 16px">수납 · <span style="color:#5E6878">Payment</span></td><td style="padding:8px 16px">보증금상계 · <span style="color:#5E6878">Deposit offset</span></td><td style="padding:8px 16px"></td><td style="padding:8px 16px;text-align:right">1,850,000</td><td style="padding:8px 16px;text-align:right"><b>0</b></td></tr>
+<tr style="background:#EAEFF4"><td style="padding:8px 16px"></td><td style="padding:8px 16px"></td><td style="padding:8px 16px"></td><td style="padding:8px 16px"></td><td style="padding:8px 16px"></td><td style="padding:8px 16px"></td></tr>
+<tr><td style="padding:8px 16px">3</td><td style="padding:8px 16px">보증금 상계<br><span style="color:#5E6878">Deposit offset</span></td><td style="padding:8px 16px">미납액 정리 · <span style="color:#5E6878">Settles unpaid</span></td><td style="padding:8px 16px;text-align:right">1,850,000</td><td style="padding:8px 16px"></td><td style="padding:8px 16px;text-align:right"><b>36,650,000</b></td></tr>
 </table>
-<div style="background:#1E2633;padding:28px 40px;border-radius:16px">
-<p style="font-size:28px;color:#F6F4EF;line-height:1.5">같은 날 줄은 <b>기록한 순서대로</b> 둔다. 거래유형끼리 다시 묶으면 잔액이 중간에 튄다. 그래서 기록마다 순번(또는 기록 시각)을 남긴다.</p>
+<div style="background:#1E2633;padding:22px 40px;border-radius:16px">
+<p style="font-size:26px;color:#F6F4EF;line-height:1.4">같은 날 줄은 <b>기록한 순서대로</b> 둔다. 거래유형끼리 다시 묶으면 잔액이 중간에 튄다. 그래서 기록마다 순번(또는 기록 시각)을 남긴다.<br><span style="color:#A9B4C2">Same-day lines stay <b>in the order recorded</b>. Regrouping by type makes the balance jump midway, so every record keeps a sequence number (or record timestamp).</span></p>
 </div>
-<p style="position:absolute;left:128px;bottom:64px;width:1664px;font-size:24px;color:#7A818C">BRIKKA · 2 원장의 역할 · 6</p>
-<aside>명세변경 15-2. 보증금 상계 한 번(순번 3)이 위 받을 돈의 수납과 아래 보증금의 상계로 함께 보인다. 정기 청구서 · 계약 보증금처럼 일괄로 만든 기록은 그날 맨 앞이다.</aside>
+<p style="position:absolute;left:128px;bottom:64px;width:1664px;font-size:24px;color:#7A818C">BRIKKA · 2 원장의 역할 · The ledger's role · 7</p>
+<aside>명세변경 15-2. 보증금 상계 한 번(순번 3)이 위 받을 돈의 수납과 아래 보증금의 상계로 함께 보인다. 정기 청구서 · 계약 보증금처럼 일괄로 만든 기록은 그날 맨 앞이다.
+EN: Spec change 15-2. One deposit offset (seq. 3) appears both as a payment in the receivable above and as an offset in the deposit below. Records created in bulk, like regular invoices or the contract deposit, come first on that day.</aside>
 </section>
