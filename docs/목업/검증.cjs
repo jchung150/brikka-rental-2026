@@ -190,7 +190,7 @@ r6.push(['처음 입금한 이름이 상호와 같으면 미매칭이되 임차�
 /* 배분 미리보기는 채우지 못하는 청구까지 보여야 한다 */
 const pvB = W.rcPreview(P6.dep.find(d => d.no === 12), '비씨에이전시', W.rcBiz());
 r6.push(['미리보기 — 비씨에이전시 6월은 마감(07.03)이라 미납액 한 줄 5,054,474 + 7월 7개 항목(연체료 31,573 포함) · 미납액부터 채우고 배분 후 미납 5,178,045',
-  pvB.all.length === 8 && pvB.lines[0].n === '전월 미납액' && pvB.lines[0].due === 5054474 && pvB.all.reduce((a, l) => a + l.due - l.pay, 0) === 5178045]);
+  pvB.all.length === 8 && pvB.lines[0].n === '이월 미납액' && pvB.lines[0].due === 5054474 && pvB.all.reduce((a, l) => a + l.due - l.pay, 0) === 5178045]);
 /* 입금 매칭 — 대기열 순서(입금일시 오름차순)대로 한 건씩 임차인을 고르고 확정한다 */
 const PICK = {1:'루비뮤직', 2:'케이큐엔터테이먼트', 3:'케이더블유인터내셔널', 5:'아이씨비', 7:'에스씨케이컴퍼니',
   8:'아마데우스', 9:'고우컴퍼니', 10:'유니버셜대부', 12:'비씨에이전시', 24:'좋은생각사람들'};
@@ -487,10 +487,10 @@ run('PAY-11 8월 과납 확인', "seedJuly();s11={b:'b1',ym:'2026-08'};PAY11();m
 /* 미납 이월 — 6월 마감(07.03) 때 비씨에이전시 5,054,474가 미납액으로 · 7/31 입금은 미납액에 · 7월 마감(08.05) 때 54,474 + 5,091,998 → 4.3.6 */
 { const CF = new Function(stub + bare + '; seedJuly(); return {ledgerOf,carryAmt,carryParts,ctrPay,MC,mcCarryUsed,mcOpen,mcApply,lateCalc,get mcx(){return mcx;},set s11(v){s11=v;}};')();
   const k = 'b1별관301호', L = CF.ledgerOf(k);
-  const noCf = !L.rows.some(r => r.type === '미납 이월'), cp = L.rows.filter(r => r.item === '전월 미납액');
+  const noCf = !L.rows.some(r => r.type === '미납 이월'), cp = L.rows.filter(r => r.item === '이월 미납액');
   const p7 = CF.carryParts(k, '2026-07');
   const jun = CF.ctrPay(k, '2026-06'), jul = CF.ctrPay(k, '2026-07');
-  r6.push(['미납 이월 — 6월 마감 때 5,054,474 · 7월 마감 때 54,474(6월분) + 5,123,571(7월분 · 연체료 31,573 포함) = 5,178,045 · 원장엔 이월 줄 없이 7/31 「전월 미납액」 수납 5,000,000만 · 6월은 수납 0·미납으로 굳음 · 연체료 그대로',
+  r6.push(['미납 이월 — 6월 마감 때 5,054,474 · 7월 마감 때 54,474(6월분) + 5,123,571(7월분 · 연체료 31,573 포함) = 5,178,045 · 원장엔 이월 줄 없이 7/31 「이월 미납액」 수납 5,000,000만 · 6월은 수납 0·미납으로 굳음 · 연체료 그대로',
     CF.carryAmt(k, '2026-06') === 5054474 && CF.carryAmt(k, '2026-07') === 5178045
     && p7.length === 2 && p7[0].ym === '2026-06' && p7[0].amt === 54474 && p7[1].amt === 5123571
     && noCf && cp.length === 1 && cp[0].dec === 5000000 && L.bal.매출채권 === 5178045
@@ -699,14 +699,14 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   r6.push(['청구서 발행 — 메일 체크박스·미납 조회 없음 · 더보기 「청구서 발행」 → 메일 여부 묻기 → 메일 없이 발행',
     !h.includes('메일 보내기') && !h.includes('미납 조회') && m && !m[0].off && !!m[1].off
     && /메일을 보내시겠습니까/.test(ask) && IA.ISS['b21203호'] && IA.ISS['b21203호'].mail === false]); }
-/* 청구서 발행 전 달 — 마감한 달의 미납이 넘어간 다음 달 줄에 전월 미납액만, 마감 뒤 수납은 거기에 → 명세변경 20 */
+/* 청구서 발행 전 달 — 마감한 달의 미납이 넘어간 다음 달 줄에 이월 미납액만, 마감 뒤 수납은 거기에 → 명세변경 20 */
 { const CY = new Function(stub + bare + '; seedJuly(); return {CTR3month,CTRS,ctrPay,openPay,setPm,payConfirm};')();
   const k = 'b1별관301호', c = CY.CTRS.find(x => x.b === 'b1' && x.no === '별관301호');
   const h0 = CY.CTR3month(c, k), p8 = CY.ctrPay(k, '2026-08');
   CY.openPay(k); CY.setPm('amt', 1000000); CY.payConfirm();
   const h1 = CY.CTR3month(c, k), q8 = CY.ctrPay(k, '2026-08');
-  r6.push(['청구서 발행 전 달 — 비씨에이전시 6 · 7월분은 미납 그대로 · 8월분(청구서 발행 전) 줄에 전월 미납액 5,178,045 · 8/10 수납 100만이 8월분 줄에 붙어 미납 4,178,045',
-    !/이월/.test(h0) && CY.ctrPay(k, '2026-06').st === '미납' && /2026년 08월분/.test(h0) && /청구서 발행 전/.test(h0)
+  r6.push(['청구서 발행 전 달 — 비씨에이전시 6 · 7월분은 미납 그대로 · 8월분(청구서 발행 전) 줄에 이월 미납액 5,178,045 · 8/10 수납 100만이 8월분 줄에 붙어 미납 4,178,045',
+    !/월분으로 이월/.test(h0) && CY.ctrPay(k, '2026-06').st === '미납' && /2026년 08월분/.test(h0) && /청구서 발행 전/.test(h0)
     && p8.st === '미납' && p8.carry.amt === 5178045 && q8.st === '부분납' && q8.carry.paid === 1000000 && q8.carry.due === 4178045 && /4,178,045/.test(h1)]); }
 /* 청구 설정 — 연체료 중지 · 재개 · 청구서 메일 → 명세변경 19 */
 { const CQ = new Function(stub + bare + '; seedJuly(); return {feeUntil,feeStop,cqOpen,cqErr,cqSave,cqHTML,CTR3month,CTRS,CLOG,openPay,payHTML,issueAsk,issueHTML,issueGo,ISS,get cq(){return cq;},set f1b(v){f1.b=v;}};')();
