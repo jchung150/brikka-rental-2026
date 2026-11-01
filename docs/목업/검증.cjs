@@ -189,8 +189,8 @@ r6.push(['6월에 등록한 입금자명으로 7월 입금 10건 자동 매칭 �
 r6.push(['처음 입금한 이름이 상호와 같으면 미매칭이되 임차인을 미리 채움', first[12].st === '후보' && first[12].cand === '비씨에이전시']);
 /* 배분 미리보기는 채우지 못하는 청구까지 보여야 한다 */
 const pvB = W.rcPreview(P6.dep.find(d => d.no === 12), '비씨에이전시', W.rcBiz());
-r6.push(['미리보기 — 비씨에이전시 6월은 마감(07.03)이라 미납액 한 줄 5,054,474 + 7월 7개 항목(연체료 31,573 포함) · 미납액부터 채우고 배분 후 미납 5,178,045',
-  pvB.all.length === 8 && pvB.lines[0].n === '이월 미납액' && pvB.lines[0].due === 5054474 && pvB.all.reduce((a, l) => a + l.due - l.pay, 0) === 5178045]);
+r6.push(['미리보기 — 비씨에이전시 6월은 마감(07.03)이라 미납액 한 줄 5,054,474 + 7월 7개 항목(연체료 29,911 포함) · 미납액부터 채우고 배분 후 미납 5,176,383',
+  pvB.all.length === 8 && pvB.lines[0].n === '이월 미납액' && pvB.lines[0].due === 5054474 && pvB.all.reduce((a, l) => a + l.due - l.pay, 0) === 5176383]);
 /* 입금 매칭 — 대기열 순서(입금일시 오름차순)대로 한 건씩 임차인을 고르고 확정한다 */
 const PICK = {1:'루비뮤직', 2:'케이큐엔터테이먼트', 3:'케이더블유인터내셔널', 5:'아이씨비', 7:'에스씨케이컴퍼니',
   8:'아마데우스', 9:'고우컴퍼니', 10:'유니버셜대부', 12:'비씨에이전시', 24:'좋은생각사람들'};
@@ -220,41 +220,41 @@ r6.push(['수납 내역 — 나머지 12계약 7월 완납 · 루비뮤직 6월�
 r6.push(['케이더블유인터 두 입금이 각 계약에 자기 몫만', W.ctrDeps('b1본관501호').length >= 1 && W.ctrDeps('b1별관201호').length >= 1]);
 /* 연체료 구간 계산 — 비씨에이전시(연 12%) 6월분: 7/19(7월 청구서에 연체료를 넣어 정리) ~ 7/31 5,054,474원 → 7/31 입금 후 54,474원, 오늘 8/10까지 → 4.4 */
 const L6 = W.lateCalc('b1별관301호', '2026-06'), LR = W.lateCalc('b1본관B201호', '2026-06');
-r6.push(['연체료 구간 — 비씨에이전시 6월분 7/19 정리 뒤 19,940 + 179 = 20,119 · 7월 청구서에 6/30~7/19 연체료 31,573',
-  L6.periods.length === 2 && L6.periods[0].from === '2026-07-19' && L6.periods[0].fee === 19940 && L6.periods[1].fee === 179 && L6.fee === 20119
-  && W.BILLS.some(i => i.id === '2026-07|별관301호|연체료' && i.amt === 31573 && i.reg)]);
-r6.push(['연체료 합계 — 비씨에이전시 6월분 20,119 + 7월분 16,740 = 36,859',
-  W.lateCalc('b1별관301호', '2026-07').fee === 16740 && W.feeUntil('b1별관301호', '2026-08-10') === 36859]);
-r6.push(['연체료 면제 — 루비뮤직 6월분 385,000 × 8% · 7월 청구서에 19일 1,603 · 7월분 마감일(7/31)까지 6월 미납을 다 냄 → 7/20~7/31 면제 · 8월 연체료 0', LR.fee === 0 && LR.periods.length === 0
-  && W.feeUntil('b1본관B201호', '2026-08-10') === 0 && W.BILLS.some(i => i.id === '2026-07|본관B201호|연체료' && i.amt === 1603) && W.PAID['2026-07|본관B201호|연체료'] === 1603]);
-/* 계약 원장 — 비씨에이전시: 매출채권 잔액 = 미납 5,178,045, 수납 줄은 7/31 입금에서 */
+r6.push(['연체료 구간 — 비씨에이전시 6월분 7/18 정리 뒤 21,602 + 179 = 21,781 · 7월 청구서에 7/1~7/18(18일) 연체료 29,911',
+  L6.periods.length === 2 && L6.periods[0].from === '2026-07-18' && L6.periods[0].fee === 21602 && L6.periods[1].fee === 179 && L6.fee === 21781
+  && W.BILLS.some(i => i.id === '2026-07|별관301호|연체료' && i.amt === 29911 && i.reg)]);
+r6.push(['연체료 합계 — 비씨에이전시 6월분 21,781 + 7월분 16,740 = 38,521',
+  W.lateCalc('b1별관301호', '2026-07').fee === 16740 && W.feeUntil('b1별관301호', '2026-08-10') === 38521]);
+r6.push(['면제 없음 — 루비뮤직 6월분 385,000 × 8% · 7월 청구서에 18일(7/18까지) 1,518 · 6월 미납을 7/31에 다 냄 → 7/19~7/31 13일 1,096이 청구 전 연체료로 남음', LR.fee === 1096 && LR.periods.length === 1 && LR.periods[0].from === '2026-07-18' && LR.periods[0].to === '2026-07-31'
+  && W.feeUntil('b1본관B201호', '2026-08-10') === 1096 && W.BILLS.some(i => i.id === '2026-07|본관B201호|연체료' && i.amt === 1518) && W.PAID['2026-07|본관B201호|연체료'] === 1518]);
+/* 계약 원장 — 비씨에이전시: 매출채권 잔액 = 미납 5,176,383, 수납 줄은 7/31 입금에서 */
 const LB = W.ledgerOf('b1별관301호');
-r6.push(['원장 — 비씨에이전시 매출채권 잔액 5,178,045 · 청구 13줄(7월 청구서의 연체료 포함) · 수납은 7/31 입금',
-  LB.bal.매출채권 === 5178045 && LB.rows.filter(r => r.type === '청구').length === 13 && LB.rows.some(r => r.type === '청구' && r.g === 'bill2026-07' && r.item === '26.07월분 연체료' && r.vat === 0) &&
+r6.push(['원장 — 비씨에이전시 매출채권 잔액 5,176,383 · 청구 13줄(7월 청구서의 연체료 포함) · 수납은 7/31 입금',
+  LB.bal.매출채권 === 5176383 && LB.rows.filter(r => r.type === '청구').length === 13 && LB.rows.some(r => r.type === '청구' && r.g === 'bill2026-07' && r.item === '26.07월분 연체료' && r.vat === 0) &&
   LB.rows.filter(r => r.type === '수납').every(r => r.date === '2026-07-31')]);
 /* 원장 잔액 — 청구 전부 − 수납 전부 */
 const left = k => W.ledgerOf(k).bal.매출채권;   /* 원장의 받을 돈 — 미납액에 들어간 돈까지 반영된다 */
 const all12 = ['본관801호','본관701호','본관601호','본관501호','본관401호','본관301호','본관302호','본관201호','본관101호','본관B201호','별관401호','별관201호'];
-r6.push(['미납 관리 — 비씨에이전시 5,178,045원만 남음 (루비뮤직 6월분 해소)', all12.every(n => left('b1' + n) === 0) && left('b1별관301호') === 5178045]);
-r6.push(['PAY-1 8월 발행 화면의 미납 잔액 — 7월까지의 미납', W.dueOf('b1별관301호').amt === 5178045 && W.dueOf('b1별관301호').from === '2026-06']);
+r6.push(['미납 관리 — 비씨에이전시 5,176,383원만 남음 (루비뮤직 6월분 해소)', all12.every(n => left('b1' + n) === 0) && left('b1별관301호') === 5176383]);
+r6.push(['PAY-1 8월 발행 화면의 미납 잔액 — 7월까지의 미납', W.dueOf('b1별관301호').amt === 5176383 && W.dueOf('b1별관301호').from === '2026-06']);
 /* 현장 수납 — 입금 매칭을 다 끝낸 뒤 비씨에이전시가 현금 300만 원을 들고 왔다 → PAY-2 수납 처리 */
 W.openPay('b1별관301호'); W.setPm('amt', 3000000);
 const pc = W.payPlan();
 W.payConfirm();
 const LC = W.ledgerOf('b1별관301호');
-r6.push(['현장 수납 현금 300만 — 오래된 달부터 · 미납 2,178,045 · 원장 매출채권 잔액 일치 · 「현금 수납」 기록',
-  pc.lines[0].ym <= pc.lines[pc.lines.length - 1].ym && pc.rest === 0 && left('b1별관301호') === 2178045
-  && LC.bal.매출채권 === 2178045 && LC.rows.some(r => r.type === '수납' && r.hand && r.src === '현금')]);
+r6.push(['현장 수납 현금 300만 — 오래된 달부터 · 미납 2,176,383 · 원장 매출채권 잔액 일치 · 「현금 수납」 기록',
+  pc.lines[0].ym <= pc.lines[pc.lines.length - 1].ym && pc.rest === 0 && left('b1별관301호') === 2176383
+  && LC.bal.매출채권 === 2176383 && LC.rows.some(r => r.type === '수납' && r.hand && r.src === '현금')]);
 const dep0 = LC.bal.임대보증금;
 /* 보증금 상계 — 계약 중 언제든(슈퍼관리자). 수납 처리 결제수단에는 없고, 보증금 ▾ 메뉴의 자기 패널에서 한다 */
 const payNoOff = !/보증금상계/.test((W.openPay('b1별관301호'), W.payHTML()).match(/<select onchange="setPm\('how'[^]*?<\/select>/)[0]);
 W.openOffset('b1별관301호'); const offHtml = W.payHTML(), offPm = {...W.pm};
-r6.push(['보증금 상계 패널 — 돈만 받는다 · 미납액 합계(청구서에 들어간 연체료 포함) → 청구 전 연체료는 안내만 · 함께 정리 · 연체료 처리 없음 · 미납 내역 · 배분 미리보기 없음',
-  offPm.amt === 2178045 && !/함께 정리/.test(offHtml) && !/전액 받기/.test(offHtml) && !/연체료 처리/.test(offHtml)
+r6.push(['보증금 상계 패널 — 기본은 미납만 · 미납액 합계(청구서에 들어간 연체료 포함) → 청구 전 연체료는 안내(함께 받기 안 고름) · 함께 정리 · 연체료 처리 없음 · 미납 내역 · 배분 미리보기 없음',
+  offPm.amt === 2176383 && !/함께 정리/.test(offHtml) && !/전액 받기/.test(offHtml) && !/연체료 처리/.test(offHtml)
   && /미납액 합계/.test(offHtml) && /연체료\(청구 전\)/.test(offHtml) && /다음 청구서에 들어갑니다/.test(offHtml) && /미납 내역/.test(offHtml)
   && !/배분 미리보기/.test(offHtml) && offHtml.indexOf('미납액 합계') < offHtml.indexOf('연체료(청구 전)') && /26\.07월분/.test(offHtml)
   && /<div>청구년월<\/div><div class="n">미납액<\/div><div class="n">연체일수<\/div><div class="n">연체료\(청구 전\)<\/div>/.test(offHtml)
-  && /<div>합계<\/div><div class="n"><b>2,178,045원<\/b><\/div><div><\/div><div class="n"><b>36,859원<\/b>/.test(offHtml)
+  && /<div>합계<\/div><div class="n"><b>2,176,383원<\/b><\/div><div><\/div><div class="n"><b>38,521원<\/b>/.test(offHtml)
   && !/상계 후 남는 보증금/.test(offHtml) && !/배분 우선순위대로/.test(offHtml) && !/언제 생겼는지/.test(offHtml)]);
 r6.push(['보증금 상계 — 진행중 계약에서도 열림 · 경고 없음 · 제목 「보증금 상계」 · 상계 확정 · 수납 처리 결제수단엔 없음',
   payNoOff && /<div class="t">보증금 상계<\/div>/.test(offHtml) && /상계 확정/.test(offHtml) && !/할 수 없습니다/.test(offHtml)]);
@@ -267,8 +267,8 @@ W.setPm('amt', 1000000); W.payConfirm();
     !!LT.leftOf(ended) && /잔액 남음/.test(LT.leftTag(ended)) && /보증금/.test(LT.leftTag(ended)) && !LT.leftOf(on)
     && rows.length > 0 && rows.every(x => x.c.st === '종료됨' || x.c.st === '파기됨')]); }
 const LD = W.ledgerOf('b1별관301호');
-r6.push(['보증금상계 100만 — 미납 1,178,045 · 보증금 잔액 100만 감소 · 보증금 상계 행',
-  left('b1별관301호') === 1178045 && LD.bal.매출채권 === 1178045 && LD.bal.임대보증금 === dep0 - 1000000
+r6.push(['보증금상계 100만 — 미납 1,176,383 · 보증금 잔액 100만 감소 · 보증금 상계 행',
+  left('b1별관301호') === 1176383 && LD.bal.매출채권 === 1176383 && LD.bal.임대보증금 === dep0 - 1000000
   && LD.rows.some(r => r.type === '보증금 상계' && r.dec === 1000000)]);
 /* 보증금 반환 — 계약 중에도 쓴다. 잔액보다 많이 · 사유 없이는 확정되지 않는다 */
 { const B = new Function(stub + bare + '; seedJuly(); return {ledgerOf,openDepRet,drSet,drConfirm,drHTML,TERMS,openDepIn,diSet,diConfirm,ledBtns,get dr(){return dr;},get di(){return di;}};')();
@@ -289,14 +289,14 @@ r6.push(['보증금상계 100만 — 미납 1,178,045 · 보증금 잔액 100만
     amt0 === 0 && over && noWhy && L.bal.임대보증금 === bal0 - 9000000
     && L.rows.some(r => r.type === '보증금 반환' && r.dec === 9000000 && /보증금 더 받음/.test(r.why) && !/보증금 더 받음/.test(r.item)) && /반환할 금액/.test(html) && full]); }
 W.openPay('b1별관301호'); W.setPm('amt', 99999999); W.payConfirm();
-r6.push(['미납보다 많이 받으면 확정되지 않음', left('b1별관301호') === 1178045]);
-/* 연체료 — 수납 · 상계는 연체료를 건드리지 않는다. 다 받아도 청구 전 연체료는 그대로 다음 청구서로 → 18-4 */
+r6.push(['미납보다 많이 받으면 확정되지 않음', left('b1별관301호') === 1176383]);
+/* 연체료 — 함께 받기를 고르지 않은 수납 · 상계는 청구 전 연체료를 건드리지 않는다. 그대로 다음 청구서로 → 18-3 */
 const fee0 = W.feeUntil('b1별관301호', '2026-08-10');
 W.openOffset('b1별관301호'); const amtF = W.pm.amt; W.payConfirm();
 const LF = W.ledgerOf('b1별관301호');
-r6.push(['보증금 상계로 미납 전부 — 받을 금액 = 미납 1,178,045(연체료 칸 없음) · 받을 돈 0 · 연체료 청구 안 생김 · 청구 전 연체료 36,859는 그대로',
-  amtF === 1178045 && left('b1별관301호') === 0 && LF.bal.매출채권 === 0 && !W.BILLS.some(i => i.fee && !i.reg)
-  && fee0 === 36859 && W.feeUntil('b1별관301호', '2026-08-10') === 36859]);
+r6.push(['보증금 상계로 미납 전부 — 받을 금액 = 미납 1,176,383(함께 받기 안 고름) · 받을 돈 0 · 연체료 청구 안 생김 · 청구 전 연체료 38,521는 그대로',
+  amtF === 1176383 && left('b1별관301호') === 0 && LF.bal.매출채권 === 0 && !W.BILLS.some(i => i.fee && !i.reg)
+  && fee0 === 38521 && W.feeUntil('b1별관301호', '2026-08-10') === 38521]);
 /* 미납액 먼저 — 6월 미납이 있으면 7월 청구서와 같은 금액이 와도 6월부터 채운다 → 4.3.3 */
 const V = new Function(stub + bare + '; return {rcPlan,BILLS};')();
 { const keep = V.BILLS.filter(i => !(i.k === 'b1본관302호' && i.ym !== '2026-07')); V.BILLS.length = 0; V.BILLS.push(...keep); }
@@ -320,8 +320,8 @@ r6.push(['나눠 보낸 입금 — 1차 후 100만 남음(7월 마감 뒤라 미
   mid.st === '미납' && mid.due === 1000000 && auto2 && end.st === '완납' && end.due === 0]);
 /* 화면을 열 때의 상태 — 7월 입금은 월 마감(8/5) 전에 모두 처리됐다 */
 const O = new Function(stub + bare + '; seedJuly(); return {rcOpenN,dueOf,ctrPay,BILLS};')();
-r6.push(['첫 화면 — 7월 입금 대기 0건 · 비씨에이전시 미납 5,178,045 · 8월 청구 없음',
-  O.rcOpenN() === 0 && O.dueOf('b1별관301호').amt === 5178045 && !O.BILLS.some(i => i.ym === '2026-08')]);
+r6.push(['첫 화면 — 7월 입금 대기 0건 · 비씨에이전시 미납 5,176,383 · 8월 청구 없음',
+  O.rcOpenN() === 0 && O.dueOf('b1별관301호').amt === 5176383 && !O.BILLS.some(i => i.ym === '2026-08')]);
 /* 월 마감 — 7월 카리나빌딩: 확인 항목 모두 통과 · 취소는 사유가 있어야 · 다시 마감 */
 const M = new Function(stub + bare + '; seedJuly(); return {MC,MC_LOG,mcChecks,mcOpen,mcApply,get mcx(){return mcx;},s11};')();
 const okAll = M.mcChecks('b1', '2026-07').every(x => x.ok);
@@ -330,18 +330,18 @@ M.mcx.why = '수납 배분 재조정'; M.mcApply(); const undone = !M.MC.b1['202
 M.mcOpen('close'); M.mcApply();
 r6.push(['월 마감 — 카리나빌딩 7월 확인 6항목 통과 · 사유 없으면 취소 안 됨 · 취소 후 다시 마감 · 이력 2줄',
   okAll && kept && undone && !!M.MC.b1['2026-07'] && M.MC_LOG['b1|2026-07'].length === 2]);
-/* 수납 처리 — 돈만 받는다. 청구 전 연체료는 안내만 하고 다음 청구서로 → 18-4 */
+/* 수납 처리 — 기본은 미납만 받는다. 함께 받기를 고르지 않으면 청구 전 연체료는 안내만 하고 다음 청구서로 → 18-3 */
 const H = new Function(stub + bare + '; seedJuly(); return {openPay,setPm,payConfirm,payHTML,ledgerOf,feeUntil,BILLS,get pm(){return pm;},PAY2};')();
-H.openPay('b1본관B201호'); const ruby = H.pm.amt === 0 && !/다음 청구서에 들어갑니다/.test(H.payHTML());
+H.openPay('b1본관B201호'); const ruby = H.pm.amt === 0 && /<span>1,096원<\/span>/.test(H.payHTML());
 H.openPay('b1별관301호'); const hh = H.payHTML();
-const panel = H.pm.amt === 5178045 && !/함께 정리/.test(hh) && !/전액 받기/.test(hh) && !/연체료 처리/.test(hh) && /미납액 합계/.test(hh)
-  && /연체료\(청구 전\)/.test(hh) && /<span>36,859원<\/span>/.test(hh) && /다음 청구서에 들어갑니다/.test(hh) && !/미납을 다 내면 면제/.test(hh)
+const panel = H.pm.amt === 5176383 && !/함께 정리/.test(hh) && !/전액 받기/.test(hh) && !/연체료 처리/.test(hh) && /미납액 합계/.test(hh)
+  && /연체료\(청구 전\)/.test(hh) && /<span>38,521원<\/span>/.test(hh) && /다음 청구서에 들어갑니다/.test(hh) && !/미납을 다 내면 면제/.test(hh)
   && /미납 내역/.test(hh) && /26\.06월분/.test(hh);
 H.setPm('amt', 3000000); H.payConfirm();
 const LH = H.ledgerOf('b1별관301호');
-r6.push(['수납 처리 — 돈만 받는다 · 함께 정리 · 연체료 처리 없음 · 미납액 합계 5,178,045 · 청구 전 연체료 36,859는 안내만(면제 기한 7/31 지남) · 현금 300만 → 연체료 청구 안 생김 · 남은 받을 돈 2,178,045 · 루비뮤직은 받을 돈 0',
-  ruby && panel && !H.BILLS.some(i => i.fee && !i.reg) && LH.bal.매출채권 === 2178045 && H.feeUntil('b1별관301호', '2026-08-10') === 36859]);
-r6.push(['면제된 루비뮤직은 미납 관리에 없음', !/본관B201호/.test(H.PAY2())]);
+r6.push(['수납 처리 — 기본은 미납만 · 함께 정리 · 연체료 처리 없음 · 미납액 합계 5,176,383 · 청구 전 연체료 38,521은 함께 받기를 고르지 않으면 안내만 · 현금 300만 → 연체료 청구 안 생김 · 남은 받을 돈 2,176,383 · 루비뮤직은 받을 돈 0 · 청구 전 연체료 1,096만 안내',
+  ruby && panel && !H.BILLS.some(i => i.fee && !i.reg) && LH.bal.매출채권 === 2176383 && H.feeUntil('b1별관301호', '2026-08-10') === 38521]);
+r6.push(['면제가 없다 — 루비뮤직은 미납은 없지만 청구 전 연체료 1,096이 있어 미납 관리에 오름', /본관B201호/.test(H.PAY2())]);
 /* 계약 등록 — 진행중 계약과 기간이 겹치면 막고, 끝난 다음 날부터는 등록된다 → CTR-2 */
 const K = new Function(stub + bare + '; seedJuly(); return {CTR2,ncSet,ncSave,ncLookup,ncClash,CTRS,get nc(){return nc;},ctrEnd,ledgerOf};')();
 K.CTR2(); K.ncSet('no', '본관302호'); K.ncSet('start', '2026-09-01');
@@ -490,12 +490,12 @@ run('PAY-11 8월 과납 확인', "seedJuly();s11={b:'b1',ym:'2026-08'};PAY11();m
   const noCf = !L.rows.some(r => r.type === '미납 이월'), cp = L.rows.filter(r => r.item === '이월 미납액');
   const p7 = CF.carryParts(k, '2026-07');
   const jun = CF.ctrPay(k, '2026-06'), jul = CF.ctrPay(k, '2026-07');
-  r6.push(['미납 이월 — 6월 마감 때 5,054,474 · 7월 마감 때 54,474(6월분) + 5,123,571(7월분 · 연체료 31,573 포함) = 5,178,045 · 원장엔 이월 줄 없이 7/31 「이월 미납액」 수납 5,000,000만 · 6월은 수납 0·미납으로 굳음 · 연체료 그대로',
-    CF.carryAmt(k, '2026-06') === 5054474 && CF.carryAmt(k, '2026-07') === 5178045
-    && p7.length === 2 && p7[0].ym === '2026-06' && p7[0].amt === 54474 && p7[1].amt === 5123571
-    && noCf && cp.length === 1 && cp[0].dec === 5000000 && L.bal.매출채권 === 5178045
+  r6.push(['미납 이월 — 6월 마감 때 5,054,474 · 7월 마감 때 54,474(6월분) + 5,121,909(7월분 · 연체료 29,911 포함) = 5,176,383 · 원장엔 이월 줄 없이 7/31 「이월 미납액」 수납 5,000,000만 · 6월은 수납 0·미납으로 굳음 · 연체료 그대로',
+    CF.carryAmt(k, '2026-06') === 5054474 && CF.carryAmt(k, '2026-07') === 5176383
+    && p7.length === 2 && p7[0].ym === '2026-06' && p7[0].amt === 54474 && p7[1].amt === 5121909
+    && noCf && cp.length === 1 && cp[0].dec === 5000000 && L.bal.매출채권 === 5176383
     && jun.paid === 0 && jun.st === '미납' && jul.carry.amt === 5054474 && jul.carry.paid === 5000000 && jul.st === '미납'
-    && CF.lateCalc(k, '2026-06').fee === 20119]);
+    && CF.lateCalc(k, '2026-06').fee === 21781]);
   const used6 = CF.mcCarryUsed('b1', '2026-06'), used7 = CF.mcCarryUsed('b1', '2026-07');
   CF.s11 = {b:'b1', ym:'2026-06'}; CF.mcOpen('undo'); CF.mcx.why = '시험'; CF.mcApply(); const kept6 = !!CF.MC.b1['2026-06'];
   r6.push(['마감 취소 — 6월은 미납액에 7/31 입금이 들어가 취소 불가 · 7월은 가능', used6 && !used7 && kept6]); }
@@ -579,7 +579,7 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   const manual = keys.filter(x => x.startsWith('paym'));
   manual.forEach(key => { PX.lcxOpen(key); PX.lcx.why = '잘못 등록'; PX.lcxConfirm(); PX.MORE.length = 0; PX.CTR3(k); });
   const L = PX.ledgerOf(k);
-  r6.push(['수납 취소 — 현금 100만(연체료 청구서 생김 · 안 채워짐) · 보증금 상계 50만을 원장 ⋮ › 취소 → 미납 원래대로 · 보증금 잔액 원래대로 · 원장에 수납 취소 · 보증금 상계 취소 줄 · 은행 입금 줄은 ⋮에 상세만',
+  r6.push(['수납 취소 — 현금 100만 · 보증금 상계 50만을 원장 ⋮ › 취소 → 미납 원래대로 · 보증금 잔액 원래대로 · 원장에 수납 취소 · 보증금 상계 취소 줄 · 은행 입금 줄은 ⋮에 상세만',
     bankKey && bankNo && manual.length === 2 && PX.arrears(c).due === due0 && L.bal.임대보증금 === dep0 && !PX.BILLS.some(i => i.fee && !i.reg && i.k === k)
     && L.rows.some(r => r.type === '수납 취소' && r.inc === 1000000) && L.rows.some(r => r.type === '보증금 상계 취소' && r.inc === 500000)]); }
 /* 보증금 상계 줄에서도 취소 — 예치 뒤 상계한 보증금은 상계를 먼저 취소해야 예치를 취소할 수 있다 → 명세변경 10-1 */
@@ -605,15 +605,15 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   FI.gAll(true); const h0 = FI.PAY1(), rentLocked = rent && rent.lock && !h0.includes(`lineTog('${k}','${rent.id}'`) && h0.includes(`lineTog('${k}','${v.id}'`);
   const noMenu = (FI.MORE.length = 0, FI.PAY1(), !FI.MORE.some(m => m.some(i => i.t === '연체료 조정')));
   FI.lineTog(k, v.id); FI.lineTog(k, '연체료'); const r1 = row(), cap = /2개 항목 미선택/.test(FI.PAY1());
-  const cut = r1.sum === r0.sum - v.amt - 36859 && r1.nOff === 2 && r1.inc.length === r0.lines.length - 2 && r1.lines.length === r0.lines.length;
-  FI.issue1([k]); const r2 = row(), iss = r2.st === '발행 완료' && FI.FEE_CUT[k] === FI.TODAY_S && FI.feeUntil(k, FI.TODAY_S) === 0 && ln() && ln().amt === 36859 && ln().off && r2.sum === r1.sum
+  const cut = r1.sum === r0.sum - v.amt - 36829 && r1.nOff === 2 && r1.inc.length === r0.lines.length - 2 && r1.lines.length === r0.lines.length;
+  FI.issue1([k]); const r2 = row(), iss = r2.st === '발행 완료' && FI.FEE_CUT[k] === '2026-08-09' && FI.feeUntil(k, '2026-08-09') === 0 && FI.feeUntil(k, FI.TODAY_S) > 0 && ln() && ln().amt === 36829 && ln().off && r2.sum === r1.sum
     && !FI.PAY1().includes(`lineTog('${k}','${v.id}'`);
-  FI.cancelOpen(k); FI.cx1.why = '테스트'; FI.cancelOK(); const back = FI.FEE_CUT[k] === '2026-07-19' && FI.feeUntil(k, FI.TODAY_S) === 36859;
+  FI.cancelOpen(k); FI.cx1.why = '테스트'; FI.cancelOK(); const back = FI.FEE_CUT[k] === '2026-07-18' && FI.feeUntil(k, FI.TODAY_S) === 38521;
   FI.lineTog(k, v.id); FI.lineTog(k, '연체료'); const reset = row().nOff === 0 && !FI.OFF1[k] && row().sum === r0.sum;
   const fl = ym => FI.withMonth(ym, () => FI.ISSUE()).filter(c => c.lines.some(l => l.n === '연체료')).map(c => c.no + ' ' + c.lines.find(l => l.n === '연체료').amt).join(' / ');
-  const past = fl('2026-06') === '' && fl('2026-07') === '본관B201호 1603 / 별관301호 31573';
-  r6.push([`청구서 항목 체크박스 — 8월 연체료 기본 한 줄(별관301호 36,859 · 일반내역서(비과세) · 공급가액 36,859 · 부가세 0 · 루비뮤직은 면제라 없음) · 기본 모두 넣기 · 임대료 잠김 · ${v.n} · 연체료 빼면 합계에서 빠지고 「2개 항목 미선택」 · 발행하면 정리일 = 발행일(뺀 연체료는 감면) · 체크 잠김 · 취소하면 되돌림(7/19) · 연체료 조정 메뉴 없음 · 6월분엔 연체료 없음 · 7월분엔 루비뮤직 1,603 · 비씨에이전시 31,573`,
-    l0 && l0.amt === 36859 && l0.bill === '일반내역서' && l0.supply === 36859 && l0.vat === 0 && !ruby && allOn && rentLocked && noMenu && cut && cap && iss && back && reset && past]); }
+  const past = fl('2026-06') === '' && fl('2026-07') === '본관B201호 1518 / 별관301호 29911';
+  r6.push([`청구서 항목 체크박스 — 8월 연체료 기본 한 줄(발행일 전날 08.09까지 · 별관301호 36,829 · 일반내역서(비과세) · 공급가액 36,829 · 부가세 0 · 면제가 없어 루비뮤직도 1,096) · 기본 모두 넣기 · 임대료 잠김 · ${v.n} · 연체료 빼면 합계에서 빠지고 「2개 항목 미선택」 · 발행하면 정리일 = 발행일 전날(뺀 연체료는 감면) · 체크 잠김 · 취소하면 되돌림(7/18) · 연체료 조정 메뉴 없음 · 6월분엔 연체료 없음 · 7월분엔 루비뮤직 1,518 · 비씨에이전시 29,911`,
+    l0 && l0.amt === 36829 && l0.bill === '일반내역서' && l0.supply === 36829 && l0.vat === 0 && ruby && ruby.amt === 1096 && allOn && rentLocked && noMenu && cut && cap && iss && back && reset && past]); }
 /* 같은 날 원장은 한 일 순서대로 — 현금 500만 → 그 수납 취소 → 보증금 상계 500만. 잔액이 매 줄 맞게 따라간다 */
 { const PO = new Function(stub + bare + '; seedJuly(); return {openPay,openOffset,setPm,payConfirm,ledgerOf,CTR3,MORE,LEDG,lcxOpen,lcxConfirm,get lcx(){return lcx;},set tab3c(v){tab3c=v;}};')();
   const k = 'b1별관301호';
@@ -625,9 +625,9 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   PO.MORE.length = 0; PO.CTR3(k);
   PO.lcxOpen(Object.keys(PO.LEDG).filter(x => x.startsWith('paym')).pop()); PO.lcx.why = '잘못 상계'; PO.lcxConfirm();
   const seq2 = PO.ledgerOf(k).rows.filter(r => r.date === '2026-08-10' && r.acc === '매출채권').map(r => r.type + ' ' + r.bal).join(' / ');
-  const once = '수납 178045 / 수납 취소 5178045';
+  const once = '수납 176383 / 수납 취소 5176383';
   r6.push(['같은 날 원장은 한 일 순서대로 — 현금 500만 → 취소 → 보증금 상계 500만 → 취소 · 잔액이 줄마다 맞음',
-    seq === once + ' / 수납 178045' && seq2 === once + ' / ' + once]); }
+    seq === once + ' / 수납 176383' && seq2 === once + ' / ' + once]); }
 /* 전체 펼치기는 필터 옆(왼쪽) · 할 일 버튼만 오른쪽 끝 · 청구서 발행의 전체 선택은 머리글 체크박스 */
 { const TG = new Function(stub + bare + '; seedJuly(); return {PAY1,PAY2,PAY6,PRO3,CTR3,sel1,set tab3(v){tab3=v;},set tab3c(v){tab3c=v;},set f1b(v){f1.b=v;}};')();
   const left = h => { const fb = (h.match(/<div class="fbar">[\s\S]*?<\/div>/g) || []).find(x => /전체 (펼치기|접기)/.test(x)) || ''; const a = fb.indexOf('전체 펼치기'), m = fb.indexOf('margin-left:auto'); return a > 0 && (m < 0 || a < m); };
@@ -643,23 +643,30 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   PF.termOpen(k); PF.termSet('out', '2026-08-17'); PF.termSet('why', '퇴거'); const th = PF.termHTML(); PF.termSave();
   const b = PF.BILLS.find(i => i.k === k && i.reg && i.feeTo === '2026-08-17'), L = PF.ledgerOf(k);
   PF.openOffset(k); const amt = PF.pm.amt; PF.payConfirm();
-  r6.push([`퇴거 — 해지일 08.17 해지 처리 → 마지막 청구서에 연체료 ${f17.toLocaleString()}(08.17까지 · 패널에 미리 보임) · 정리일 08.17 · 그 뒤로 세지 않음 · 보증금 상계 한 번(미납 5,178,045 + 연체료)으로 받을 돈 0`,
-    f17 > 36859 && /연체료/.test(th) && b && b.amt === f17 && PF.FEE_END[k] === '2026-08-17' && PF.feeUntil(k, '2026-08-31') === 0
-    && L.rows.some(r => r.type === '청구' && /마지막 청구서/.test(r.item)) && amt === 5178045 + f17 && PF.ledgerOf(k).bal.매출채권 === 0]); }
+  r6.push([`퇴거 — 해지일 08.17 해지 처리 → 마지막 청구서에 연체료 ${f17.toLocaleString()}(08.17까지 · 패널에 미리 보임) · 정리일 08.17 · 그 뒤로 세지 않음 · 보증금 상계 한 번(미납 5,176,383 + 연체료)으로 받을 돈 0`,
+    f17 > 38521 && /연체료/.test(th) && b && b.amt === f17 && PF.FEE_END[k] === '2026-08-17' && PF.feeUntil(k, '2026-08-31') === 0
+    && L.rows.some(r => r.type === '청구' && /마지막 청구서/.test(r.item)) && amt === 5176383 + f17 && PF.ledgerOf(k).bal.매출채권 === 0]); }
 /* 연체료 일부 감면 — 청구서에 들어간 연체료 줄을 청구 감액으로 줄인다(일반내역서 · 부가세 없음) → 18-2 */
 { const CF = new Function(stub + bare + '; seedJuly(); return {fixOpen,fxSet,fxConfirm,fixHTML,ledgerOf,cutBills};')();
-  const k = 'b1별관301호', can = CF.cutBills(k).some(i => i.reg && i.amt === 31573);
+  const k = 'b1별관301호', can = CF.cutBills(k).some(i => i.reg && i.amt === 29911);
   CF.fixOpen(k, 'cut'); CF.fxSet('item', '연체료'); CF.fxSet('amt', '10000'); CF.fxSet('why', '감면 요청'); const h = CF.fixHTML(); CF.fxConfirm();
   const L = CF.ledgerOf(k);
-  r6.push(['연체료 일부 감면 — 7월 청구서의 연체료 31,573을 청구 감액 10,000 · 원장 「감액」 · 부가세 없음 · 받을 돈 5,168,045',
-    can && /일반내역서/.test(h) && L.rows.some(r => r.type === '감액' && r.dec === 10000 && /연체료/.test(r.item) && !r.vat) && L.bal.매출채권 === 5178045 - 10000]); }
-/* 면제 기한 — 8월 청구서를 오늘(08.10) 발행했다면, 08.31까지 밀린 미납을 다 내면 발행 다음날부터는 면제 · 못 내면 이어서 센다 → 18-3 */
-{ const GW = new Function(stub + bare + '; seedJuly(); return {openPay,setPm,payConfirm,payHTML,feeUntil,FEE_CUT,arrears,CTRS};')();
-  const k = 'b1별관301호'; GW.FEE_CUT[k] = '2026-08-10';
-  const owe = GW.feeUntil(k, '2026-09-15');
-  GW.openPay(k); const gh = GW.payHTML(); GW.payConfirm();
-  r6.push(['면제 기한 — 08.10 발행 가정 · 수납 처리 패널에 「08.31까지 미납을 다 내면 면제」 · 안 내면 09.15까지 연체료가 쌓임 · 08.10에 다 내면 0',
-    owe > 0 && /08\.31까지 미납을 다 내면 면제/.test(gh) && GW.feeUntil(k, '2026-09-15') === 0]); }
+  r6.push(['연체료 일부 감면 — 7월 청구서의 연체료 29,911을 청구 감액 10,000 · 원장 「감액」 · 부가세 없음 · 받을 돈 5,166,383',
+    can && /일반내역서/.test(h) && L.rows.some(r => r.type === '감액' && r.dec === 10000 && /연체료/.test(r.item) && !r.vat) && L.bal.매출채권 === 5176383 - 10000]); }
+/* 수납 처리에서 연체료 함께 받기 — 받은 날까지가 연체료 청구 한 건(비과세)이 되고 받은 날이 정리일 · 수납 취소하면 함께 취소 · 정리일 되돌림 → 18-3 */
+{ const GW = new Function(stub + bare + '; seedJuly(); return {openPay,setPm,payConfirm,payHTML,feeUntil,FEE_CUT,BILLS,ledgerOf,CTR3,MORE,LEDG,lcxOpen,lcxConfirm,lcxHTML,get lcx(){return lcx;},get pm(){return pm;},set tab3c(v){tab3c=v;}};')();
+  const k = 'b1별관301호', f0 = GW.feeUntil(k, '2026-08-10');
+  GW.openPay(k); const h0 = GW.payHTML(), a0 = GW.pm.amt; GW.setPm('fee', true); const h1 = GW.payHTML(), a1 = GW.pm.amt; GW.payConfirm();
+  const fb = GW.BILLS.find(i => i.fee && !i.reg && i.k === k), L = GW.ledgerOf(k);
+  const got = fb && fb.amt === 38521 && GW.FEE_CUT[k] === '2026-08-10' && GW.feeUntil(k, '2026-08-31') === 0 && L.bal.매출채권 === 0
+    && L.rows.some(r => r.type === '청구' && /연체료 \(08\.10까지\) · 수납 처리/.test(r.item) && r.vat === 0);
+  GW.tab3c = '원장'; GW.MORE.length = 0; GW.CTR3(k);
+  const key = Object.keys(GW.LEDG).filter(x => x.startsWith('paym')).pop(); GW.lcxOpen(key); const ch = GW.lcxHTML(); GW.lcx.why = '잘못 받음'; GW.lcxConfirm();
+  const L2 = GW.ledgerOf(k), back = !GW.BILLS.some(i => i.fee && !i.reg) && GW.FEE_CUT[k] === '2026-07-18' && GW.feeUntil(k, '2026-08-10') === f0
+    && L2.bal.매출채권 === 5176383 && L2.rows.some(r => r.type === '청구 취소' && /연체료 \(08\.10까지\)/.test(r.item));
+  r6.push(['연체료 함께 받기 — 수납 처리 기본은 미납만(5,176,383) · 「청구 전 연체료도 받기」 체크하면 받을 금액 5,214,904(+38,521) · 확정하면 연체료 청구 한 줄(08.10까지 · 부가세 0) · 정리일 08.10 · 받을 돈 0 · 수납 취소하면 연체료 청구도 취소 · 정리일 7/18로 되돌림',
+    a0 === 5176383 && /청구 전 연체료도 받기/.test(h0) && /다음 청구서에 들어갑니다/.test(h0) && a1 === 5176383 + 38521 && /이번에 함께 받습니다/.test(h1)
+    && got && /함께 받은 연체료 청구도 취소/.test(ch) && back]); }
 /* 비정기 청구에는 연체료를 붙이지 않는다 — 엘리베이터 사용료를 청구 추가해도 그 달 연체료는 그대로(정기 청구만 센다) */
 { const NF = new Function(stub + bare + '; seedJuly(); return {issueAdhoc,lateCalc,BILLS};')();
   const k = 'b1별관301호', f0 = NF.lateCalc(k, '2026-08', '2026-10-31').fee;
@@ -705,9 +712,9 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   const h0 = CY.CTR3month(c, k), p8 = CY.ctrPay(k, '2026-08');
   CY.openPay(k); CY.setPm('amt', 1000000); CY.payConfirm();
   const h1 = CY.CTR3month(c, k), q8 = CY.ctrPay(k, '2026-08');
-  r6.push(['청구서 발행 전 달 — 비씨에이전시 6 · 7월분은 미납 그대로 · 8월분(청구서 발행 전) 줄에 이월 미납액 5,178,045 · 8/10 수납 100만이 8월분 줄에 붙어 미납 4,178,045',
+  r6.push(['청구서 발행 전 달 — 비씨에이전시 6 · 7월분은 미납 그대로 · 8월분(청구서 발행 전) 줄에 이월 미납액 5,176,383 · 8/10 수납 100만이 8월분 줄에 붙어 미납 4,176,383',
     !/월분으로 이월/.test(h0) && CY.ctrPay(k, '2026-06').st === '미납' && /2026년 08월분/.test(h0) && /청구서 발행 전/.test(h0)
-    && p8.st === '미납' && p8.carry.amt === 5178045 && q8.st === '부분납' && q8.carry.paid === 1000000 && q8.carry.due === 4178045 && /4,178,045/.test(h1)]); }
+    && p8.st === '미납' && p8.carry.amt === 5176383 && q8.st === '부분납' && q8.carry.paid === 1000000 && q8.carry.due === 4176383 && /4,176,383/.test(h1)]); }
 /* 연체료 중지 · 청구서 메일 받는 사람 → 명세변경 19 */
 { const CQ = new Function(stub + bare + '; seedJuly(); return {feeUntil,feeStop,feeToggle,CSET,CTR3month,CTR3sum,CTRS,CLOG,CPPL,pplOf,billTo,cx3Open,cx3Save,cx3HTML,openPay,payHTML,issueAsk,issueHTML,issueGo,ISS,get cx3(){return cx3;},set f1b(v){f1.b=v;}};')();
   const k = 'b1별관301호', c = CQ.CTRS.find(x => x.b === 'b1' && x.no === '별관301호'), F = d => CQ.feeUntil(k, d);
@@ -717,7 +724,7 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   CQ.openPay(k); const pay = CQ.payHTML();
   r6.push(['연체료 중지 — 요약 › 임대정보 「연체료 부과」 토글(켜짐 · 부과 중) → 누르면 바로 중지(패널 없음) · 오늘(08.10)부터 안 셈: 08.09까지만 · 08.31도 같음 · 꺼짐 · 「중지 2026.08.10부터」 · 청구·수납 탭 위 안내 · 수납 패널 안내 · 이력',
     /부과 중/.test(sum0) && /class="tgl on"/.test(sum0) && /feeToggle\('b1별관301호'\)/.test(sum0)
-    && f0 === 36859 && CQ.feeStop(k) === '2026-08-10' && fa === f809 && fb === fa && fa < f0
+    && f0 === 38521 && CQ.feeStop(k) === '2026-08-10' && fa === f809 && fb === fa && fa < f0
     && /2026\.08\.10부터/.test(sum1) && /class="tgl "/.test(sum1) && /연체료 중지 중 · 2026\.08\.10부터/.test(tab)
     && /연체료 중지 중\(08\.10부터\)/.test(pay) && /연체료 부과 중지/.test(CQ.CLOG[k][0].sum)]);
   CQ.feeToggle(k); const same = !CQ.feeStop(k) && !CQ.CSET[k].off.length && F('2026-08-10') === f0 && /연체료 부과 재개/.test(CQ.CLOG[k][0].sum);
@@ -1041,8 +1048,8 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
 { const MT = new Function(stub + bare + '; seedJuly(); return {CTR3,MORE,set tab3c(v){tab3c=v;}};')();
   MT.tab3c = '청구·수납'; MT.MORE.length = 0; const h = MT.CTR3('b1별관301호'); const m1 = MT.MORE.slice(); MT.MORE.length = 0; const h2 = MT.CTR3('b1본관101호'); const m2 = MT.MORE.slice();
   const due = m1.filter(m => m[0].t === '상세' && !m[0].off).length === 2 && m1.every(m => m[1].t === '청구서 보기') && m2.length && m2.every(m => m[0].off);
-  r6.push(['계약 상세 청구·수납 탭 — 비씨에이전시 6·7월 줄 · 납부마감일 칸 · 연체료 · 더보기(상세 · 청구서 보기) · 미납 없는 달은 상세 흐림 · 합계 미납 5,178,045',
-    /2026년 07월분/.test(h) && /2026년 06월분/.test(h) && /<div>납부마감일<\/div>/.test(h) && /<div>2026\.07\.31<\/div>/.test(h) && /연체료 /.test(h) && due && /5,178,045원/.test(h)]); }
+  r6.push(['계약 상세 청구·수납 탭 — 비씨에이전시 6·7월 줄 · 납부마감일 칸 · 연체료 · 더보기(상세 · 청구서 보기) · 미납 없는 달은 상세 흐림 · 합계 미납 5,176,383',
+    /2026년 07월분/.test(h) && /2026년 06월분/.test(h) && /<div>납부마감일<\/div>/.test(h) && /<div>2026\.07\.31<\/div>/.test(h) && /연체료 /.test(h) && due && /5,176,383원/.test(h)]); }
 const bad6 = r6.filter(x => !x[1]);
 if (bad6.length) fail = 1;
 console.log('⑥ 수납 기록 ' + (bad6.length ? '✗ ' + bad6.map(x => x[0]).join(' / ') : 'OK — ' + r6.length + '개 검산'));
