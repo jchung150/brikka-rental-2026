@@ -402,7 +402,7 @@ const noElec = G.ISSUE().filter(c => c.b === 'b1' && !c.lines.some(l => /전기�
 const elecAll = noElec === '본관301호' && G.ISSUE().find(c => c.no === '본관302호').lines.filter(l => /수도요금/.test(l.n)).length === 2; /* 301호 전기는 302호 계량기로, 수도는 302호가 대납 */
 /* 301호 고정관리비 0원 = 청구 안 함 · 수정에서 금액을 넣으면 청구 */
 const t301 = G.CTR3sum(G.CTRS.find(c => c.no === '본관301호'), 'b1본관301호');
-const zero301 = !ln('본관301호', '고정관리비') && /고정관리비/.test(t301) && /청구 안 함/.test(t301) && !/전기요금/.test(t301) && (t301.match(/class="tgl/g) || []).length === (t301.match(/aria-label="(연체료 부과|청구서 메일)"/g) || []).length && /<dt>정산액 대납<\/dt><dd>본관302호/.test(t301);
+const zero301 = !ln('본관301호', '고정관리비') && /고정관리비/.test(t301) && /청구 안 함/.test(t301) && !/전기요금/.test(t301) && (t301.match(/class="tgl/g) || []).length === 1 && /aria-label="연체료 부과"/.test(t301) && /<dt>정산액 대납<\/dt><dd>본관302호/.test(t301);
 G.ciOpen('b1본관301호', 'rent'); G.ci.its.고정관리비.amt = '110000'; G.ciSave(); const m301 = ln('본관301호', '고정관리비');
 const act301 = zero301 && m301 && m301.amt === 110000;
 G.ciOpen('b1별관301호', 'adj'); G.ciSet('d', '2026-08-01'); G.ciSet('rent', '3630000'); G.ciSave();
@@ -709,7 +709,7 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
     !/월분으로 이월/.test(h0) && CY.ctrPay(k, '2026-06').st === '미납' && /2026년 08월분/.test(h0) && /청구서 발행 전/.test(h0)
     && p8.st === '미납' && p8.carry.amt === 5178045 && q8.st === '부분납' && q8.carry.paid === 1000000 && q8.carry.due === 4178045 && /4,178,045/.test(h1)]); }
 /* 연체료 중지 · 청구서 메일 받는 사람 → 명세변경 19 */
-{ const CQ = new Function(stub + bare + '; seedJuly(); return {feeUntil,feeStop,feeToggle,CSET,CTR3month,CTR3sum,CTRS,CLOG,CPPL,pplOf,billTo,billTog,openPay,payHTML,issueAsk,issueHTML,issueGo,ISS,get cx3(){return cx3;},set f1b(v){f1.b=v;}};')();
+{ const CQ = new Function(stub + bare + '; seedJuly(); return {feeUntil,feeStop,feeToggle,CSET,CTR3month,CTR3sum,CTRS,CLOG,CPPL,pplOf,billTo,cx3Open,cx3Save,cx3HTML,openPay,payHTML,issueAsk,issueHTML,issueGo,ISS,get cx3(){return cx3;},set f1b(v){f1.b=v;}};')();
   const k = 'b1별관301호', c = CQ.CTRS.find(x => x.b === 'b1' && x.no === '별관301호'), F = d => CQ.feeUntil(k, d);
   const f0 = F('2026-08-10'), f809 = F('2026-08-09'), sum0 = CQ.CTR3sum(c, k);
   CQ.feeToggle(k);
@@ -726,11 +726,11 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   r6.push(['연체료 재개 — 같은 날 다시 켜면 중지가 없던 일 · 중지 구간(08.01~08.19)은 안 셈: 08.19까지 = 7/31까지 · 08.20부터 다시 셈',
     same && g19 === F('2026-07-31') && g31 > g19 && !/연체료 중지 중/.test(CQ.CTR3month(c, k))]);
   const def = CQ.billTo(c).length === 1 && CQ.billTo(c)[0] === CQ.pplOf(c)[0] && /청구서 메일/.test(CQ.CTR3sum(c, k));
-  const togOn = /class="tgl on" aria-label="청구서 메일"/.test(CQ.CTR3sum(c, k)); CQ.billTog(k, 0); const ph = CQ.CLOG[k][0].sum;
+  CQ.cx3Open(k, 'ppl'); const ph = CQ.cx3HTML(); CQ.cx3.ppl[0].bill = false; CQ.cx3Save();
   const none = !CQ.billTo(c).length && /청구서 메일 받는 사람 없음/.test(CQ.CTR3sum(c, k));
   CQ.f1b = 'b1'; CQ.issueAsk([k]); const ask = CQ.issueHTML(); CQ.issueGo(true);
-  r6.push(['청구서 메일 — 기본은 대표 담당자 · 담당자 카드의 「청구서 메일」 토글로 바로 끔 · 이력 · 아무도 없으면 카드에 안내 · 발행 확인에 안내 · 「메일 보내고 발행」이어도 이 계약은 메일 안 보냄 · 발행은 됨',
-    def && togOn && /청구서 메일 끔 — /.test(ph) && /class="tgl " aria-label="청구서 메일"/.test(CQ.CTR3sum(c, k)) && none && /받는 담당자가 없어/.test(ask) && CQ.ISS[k] && CQ.ISS[k].mail === false]); }
+  r6.push(['청구서 메일 — 기본은 대표 담당자 · 담당자 수정 패널에 「청구서 메일 받기」 체크 · 아무도 없으면 카드에 안내 · 발행 확인에 안내 · 「메일 보내고 발행」이어도 이 계약은 메일 안 보냄 · 발행은 됨',
+    def && /청구서 메일/.test(ph) && /받기/.test(ph) && none && /받는 담당자가 없어/.test(ask) && CQ.ISS[k] && CQ.ISS[k].mail === false]); }
 /* 건물 등록 — 빠진 필수 항목은 막힘 · 지분 합계 100% · 별칭 중복 막힘 · 저장하면 목록에 생기고 상세가 열림 */
 { const NB = new Function(stub + bare + '; return {PRO2,PRO3,nbSave,nbMissing,BUILDINGS,get nb(){return nb;},set tab3(v){tab3=v;}};')();
   NB.PRO2(); NB.nbSave(); const blocked = NB.BUILDINGS.length === 3 && NB.nbMissing().includes('건물명');
