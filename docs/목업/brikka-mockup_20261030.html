@@ -5768,12 +5768,12 @@ function ledHTML(){
 }
 
 /* ═══ 라우터 ═══ */
-/* 고정 머리 — 목록 화면은 위(경로 줄 · 제목 · 필터 줄)를 고정하고 그 아래만 스크롤한다. 필터 줄이 없으면 제목까지 고정.
-   상세 화면(건물 · 계약)과 입력 화면(등록 · 관리비 정산)은 하지 않는다 */
-const FIXED=['pro-1','ctr-1','pay-1','pay-2','pay-6','pay-11','pay-13','rep-1','user-1','user-2','user-6','user-8','user-10','doc-1','rec-1','ntf-6','sys-1'];
+/* 고정 머리 — 목록 화면은 위(경로 줄 · 제목 · 필터 줄)를, 상세 화면(건물 · 계약)은 제목 · 탭 · 필터 줄까지 고정하고 그 아래만 스크롤한다.
+   필터 줄이 없으면 탭(상세) · 제목(목록)까지 고정. 입력 화면(등록 · 관리비 정산)과 대시보드는 하지 않는다 */
+const FIXED=['pro-1','ctr-1','pro-3','ctr-3','pay-1','pay-2','pay-6','pay-11','pay-13','rep-1','user-1','user-2','user-6','user-8','user-10','doc-1','rec-1','ntf-6','sys-1'];
 function fixHead(id){
   const v=document.querySelector('#view'); if(!FIXED.includes(id)||!v||!v.children) return;
-  const f=[...v.children].filter(e=>e.matches('.ph,.fbar')).pop(); if(!f) return;
+  const f=[...v.children].filter(e=>e.matches('.ph,.tabs,.fbar')).pop(); if(!f) return;
   const box=document.createElement('div'); box.className='scr';
   for(let n=f.nextElementSibling;n;){const nx=n.nextElementSibling; if(!n.classList.contains('dro')) box.appendChild(n); n=nx;}
   f.after(box);
