@@ -5402,7 +5402,7 @@ function CTR3sum(c,k){
       <dt>기산일</dt><dd>${d8(fR)}${fM!==fR?`<span class="lock">고정관리비 ${d8(fM)}</span>`:''}</dd>
       <dt>연체이자율</dt><dd>연 ${rateOf(k)}%</dd>
       <dt>연체료 부과</dt><dd>${(st=>{/* 토글 — 누르면 바로 중지 · 재개된다. 꺼져 있으면 중지한 날짜를 옆에 보인다 → 19 */
-        return `<button class="tgl ${st?'':'on'}" title="${st?'켜면 오늘부터 다시 셉니다':'끄면 오늘부터 연체료를 세지 않습니다'}" aria-label="연체료 부과" onclick="feeToggle('${k}')"></button><span style="margin-left:10px">${st?`<span class="bd wa">중지</span> ${d8(st)}부터`:'부과 중'}</span>`;})(feeStop(k))}</dd>
+        return `<button class="tgl ${st?'':'on'}" title="${st?'켜면 오늘부터 다시 셉니다':'끄면 오늘부터 연체료를 세지 않습니다'}" aria-label="연체료 부과" onclick="feeToggle('${k}')"></button><span style="margin-left:10px">${st?`중지 · ${d8(st)}부터`:'부과 중'}</span>`;})(feeStop(k))}</dd>
       <dt>렌트프리</dt><dd>${rfx?`있음 · ${d8(c.base)} - ${d8(c.rf.end)} · ${rfDaysOf(c.base,c.rf.end)}일<span class="lock">${rfIt}</span>`:'없음'}</dd>
       <dt>정산액 대납</dt><dd>${pay?`${pay.no} · ${pay.ten}<span class="lock">이 유닛 정산액을 그 계약이 냄</span>`:'없음'}</dd></dl>`,
     `<button class="btn sm" onclick="ciOpen('${k}','rent')">수정</button>`);
