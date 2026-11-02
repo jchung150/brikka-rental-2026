@@ -1032,6 +1032,15 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   const only = rowsOf(h1) === n1 && !/뉴진스\|/.test(h1) && rowsOf(h2) === BT.CTRS.filter(c => c.b === 'b2' && c.st === '진행중').length && !/>전체 건물</.test(h1);
   BT.nc = null; const p = BT.CTR2(), hv = /<span class="fk">종류<\/span>/.test(p) || /냉난방기/.test(p) && !/placeholder="종류 \(예/.test(p);
   r6.push(['건물 상세 계약 탭 — 요약 · 계약 · 유닛 순서 · 계약 목록과 같은 표 · 그 건물 계약만(건물 필터 없음) · 냉난방기 카드는 종류 · 대수 · 소유 · 메모 줄', order && only && hv && /\+ 새로운 계약 등록/.test(h1)]); }
+/* 건물 목록 검색 — 건물 이름 · 별칭 · 주소 · 건물주(공동 소유자 포함) · 건물관리자(두 번째 관리자 포함) 일부 · 필터와 함께 */
+{ const BQ = new Function(stub + bare + '; return {PRO1,BUILDINGS,get f1p(){return f1p;}};')();
+  const n = h => (h.match(/<tr onclick="go\('pro-3\//g) || []).length, L = q => { BQ.f1p.q = q; return BQ.PRO1(); };
+  const all = n(L('')), box = /id="bq" class="fq"[^>]*placeholder="건물 · 주소 · 건물주 · 건물관리자"/.test(L(''));
+  const one = ['카리나빌딩', '카리나 빌딩', '양화로 156', '윈터', '박현장'].every(q => { const h = L(q); return n(h) === 1 && h.includes("go('pro-3/b1')"); });
+  const mapo = n(L('마포구')) === BQ.BUILDINGS.filter(b => /마포구/.test(b.addr)).length && n(L('마포구')) >= 2;
+  const none = n(L('없는건물')) === 0; BQ.f1p.q = '';
+  r6.push(['건물 목록 검색 — 필터 줄 맨 앞 · 「카리나빌딩」 · 「카리나 빌딩」 · 「양화로 156」 · 공동 건물주 「윈터」 · 두 번째 관리자 「박현장」은 카리나빌딩 1건 · 「마포구」는 마포구 건물 모두',
+    all > 2 && box && one && mapo && none]); }
 /* 계약 목록 검색 — 계약고유이름(건물 별칭 · 유닛 · 임차인) · 건물 이름 일부, 띄어쓰기 · | 무시 · 필터와 함께 · 건물 상세 계약 탭도 같은 칸 */
 { const CQ = new Function(stub + bare + '; seedJuly(); return {CTR1,PRO3,CTRS,get f1c(){return f1c;},get fbc(){return fbc;},set tab3(v){tab3=v;}};')();
   const n = h => (h.match(/<tr onclick="tab3c='요약';go\('ctr-3\//g) || []).length;

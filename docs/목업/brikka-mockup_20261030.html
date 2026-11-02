@@ -696,7 +696,7 @@ const BUILDINGS=[
 
 ];
 BUILDINGS.forEach(b=>{b.park=b.pk.up+b.pk.down+b.pk.mech;});
-BUILDINGS.forEach(b=>{b.mgr=b.mgrs[0]||'';});   /* 목록 검색용 — 첫 건물관리자 */   /* 총 주차면수는 지상 자주식 · 지하 자주식 · 기계식의 합 */
+/* 총 주차면수는 지상 자주식 · 지하 자주식 · 기계식의 합 */
 
 /* ═══ PAY-10 정산 데이터 ═══ */
 /* 카리나빌딩 — 본관 11 · 별관 3 유닛. 임차인명은 실제 입주사다.
@@ -1597,8 +1597,7 @@ function PRO2(){
 /* 건물 삭제 — 유닛도 계약도 없는 건물만(잘못 등록한 건물). 슈퍼관리자만 → 3.7 */
 function bDel(id){const i=BUILDINGS.findIndex(b=>b.id===id); if(i<0||BUILDINGS[i].units.length||CTRS.some(c=>c.b===id)) return; BUILDINGS.splice(i,1); render(true);}
 function PRO1(){
-  const q=f1p.q.trim();
-  const list=BUILDINGS.filter(b=>(!q||[b.name,b.addr,b.addr2,b.owner,b.mgr].some(x=>(x||'').includes(q)))
+  const list=BUILDINGS.filter(b=>qHit(f1p.q,[b.name,b.alias,b.addr,b.addr2,...b.owners.map(o=>o.n),...b.mgrs])
     &&(!f1p.kind||b.kind===f1p.kind)&&(!f1p.mgr||(f1p.mgr==='-'?!b.mgrs.length:b.mgrs.includes(f1p.mgr))));
   const rows=list.map(b=>{
     const d=dday(b.mgmtEnd);
@@ -1615,6 +1614,7 @@ function PRO1(){
   return `
   <div class="ph"><h1>건물 목록</h1><span class="sid">PRO-1</span></div>
   <div class="fbar">
+    ${qBox('bq',f1p.q,'건물 · 주소 · 건물주 · 건물관리자','setF1p')}
     <select onchange="setF1p('kind',this.value)"><option value="">전체 건물유형</option>
       ${BKIND.map(k=>`<option ${f1p.kind===k?'selected':''}>${k}</option>`).join('')}</select>
     <select onchange="setF1p('mgr',this.value)"><option value="">전체 건물관리자</option>
@@ -1852,7 +1852,7 @@ const spRuleBad=()=>!sp.bd||!sp.dd||dnum(dayRule(`${sp.dm} ${sp.dd}`,'2026-08'))
 function spSave(){const b=BUILDINGS.find(x=>x.id===sp.id);
   if(sp.mode==='mgr'){const add=sp.pick.filter(n=>!b.mgrs.includes(n)), del=b.mgrs.filter(n=>!sp.pick.includes(n));
     if(add.length||del.length) blog(b.id,'건물관리자',[...add.map(n=>`${n} 추가`),...del.map(n=>`${n} 빼기`)].join(' · '));
-    b.mgrs=BMGRS.map(x=>x.n).filter(n=>sp.pick.includes(n)); b.mgr=b.mgrs[0]||'';}
+    b.mgrs=BMGRS.map(x=>x.n).filter(n=>sp.pick.includes(n));}
   else if(sp.mode==='rule'){if(spRuleBad()) return; const bill=`${sp.bm} ${sp.bd}`, due=`${sp.dm} ${sp.dd}`;
     if(bill!==b.billDay||due!==b.dueDay) blog(b.id,'청구 정보',`${b.billDay} · ${b.dueDay} → ${bill} · ${due}`);
     b.billDay=bill; b.dueDay=due;}
