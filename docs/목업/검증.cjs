@@ -635,8 +635,14 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   const p1 = TG.PAY1(), hdr = (p1.match(/<div class="schr iss hd">[\s\S]*?<\/div>/) || [''])[0];
   const pick = /class="cb[^"]*" title="발행 대기 전체 선택" onclick="pickAll\(true\)"/.test(hdr) && !/>전체 선택<\/button>/.test(p1) && !/선택 해제/.test(p1);
   const before = Object.keys(TG.sel1).filter(k => TG.sel1[k]).length;
-  r6.push(['전체 펼치기 — 청구서 발행 · 미납 관리 · 수납 내역 · 원장 · 주차 모두 필터 옆 · 할 일 버튼은 오른쪽 끝 · 청구서 발행 전체 선택은 머리글 체크박스(버튼 없음)',
-    [p1, TG.PAY2(), TG.PAY6(), TG.CTR3('b1본관801호'), TG.PRO3('b1')].every(left) && pick && before === 0]); }
+  r6.push(['전체 펼치기 — 청구서 발행 · 미납 관리 · 수납 내역 · 주차 모두 필터 옆 · 할 일 버튼은 오른쪽 끝 · 청구서 발행 전체 선택은 머리글 체크박스(버튼 없음)',
+    [p1, TG.PAY2(), TG.PAY6(), TG.PRO3('b1')].every(left) && pick && before === 0]); }
+/* 원장은 전체 펼치기 버튼 대신 머리글 왼쪽 화살표(줄 화살표와 같은 자리) */
+{ const TL = new Function(stub + bare + '; seedJuly(); return {CTR3,set tab3c(v){tab3c=v;},set g3All(v){g3All=v;}};')();
+  TL.tab3c = '원장'; const h0 = TL.CTR3('b1별관301호'); TL.g3All = true; const h1 = TL.CTR3('b1별관301호');
+  const hd = h => (h.match(/<div class="schr led hd">[\s\S]*?<\/div>/) || [''])[0];
+  r6.push(['원장 전체 펼치기 — 버튼 없음 · 머리글 날짜 칸 왼쪽 화살표(전체 펼치기) · 펼치면 돌아간 화살표(전체 접기)',
+    !/전체 (펼치기|접기)<\/button>/.test(h0) && /<span class="tg " title="전체 펼치기"/.test(hd(h0)) && /<span class="tg op" title="전체 접기"/.test(hd(h1))]); }
 /* 퇴거 — 해지 처리하면 마지막 청구서에 해지일까지의 연체료 · 그 뒤로는 세지 않는다 · 보증금 상계 한 번으로 정리 → 18-5 */
 { const PF = new Function(stub + bare + '; seedJuly(); return {termOpen,termSet,termSave,termHTML,openOffset,payConfirm,ledgerOf,feeUntil,BILLS,FEE_END,get pm(){return pm;}};')();
   const k = 'b1별관301호', f17 = PF.feeUntil(k, '2026-08-17');

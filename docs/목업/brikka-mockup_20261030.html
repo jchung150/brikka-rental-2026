@@ -460,6 +460,10 @@ tr.off td:not(:last-child):not(:nth-last-child(2)){opacity:.5}
   transition:transform .12s}
 .schr.grp:hover .tg{color:var(--ink)}
 .schr.grp .tg.op{transform:rotate(90deg)}
+/* 머리글의 펼침 화살표 — 줄 화살표와 같은 자리 · 누르면 전체 펼치기/접기 */
+.schr.hd .tg{display:inline-flex;width:20px;vertical-align:-4px;cursor:pointer;transition:transform .12s}
+.schr.hd .tg:hover{color:var(--ink)}
+.schr.hd .tg.op{transform:rotate(90deg)}
 .schr .nm .c2{margin-left:7px}
 .schr .n .c2{margin-right:6px}
 .schr.sub{cursor:pointer} .schr.sub:hover{background:var(--side-hov)}
@@ -5699,9 +5703,10 @@ function CTR3(k){
     return {G,body,pager:pg?pagerHTML(G.length,cur,`(p=>{hp['l${k}']=p;render(true);})`):''};};
    /* 한 표 안에 위는 받을 돈, 빈 줄 하나 띄우고 아래는 보증금 — 머리글은 하나 */
    const A=sec('매출채권'), B=sec('임대보증금'), anyOp=[...A.G,...B.G].some(x=>g3Open(x.key));
-   const tog=A.G.length||B.G.length?`<button class="btn sm" onclick="g3All=${anyOp?'false':'true'};g3={};render(true)">${anyOp?'전체 접기':'전체 펼치기'}</button>`:'';
-   return {tog,html:`<div class="tbl schl">
-      <div class="schr led hd"><div>날짜</div><div>거래유형</div><div>내용</div>
+   /* 전체 펼치기 · 접기는 머리글 왼쪽 화살표 — 하나라도 펼쳐져 있으면 전부 접는다 */
+   const tog=A.G.length||B.G.length?`<span class="tg ${anyOp?'op':''}" title="${anyOp?'전체 접기':'전체 펼치기'}" onclick="g3All=${anyOp?'false':'true'};g3={};render(true)">${ic('chev',16)}</span>`:'';
+   return {html:`<div class="tbl schl">
+      <div class="schr led hd"><div>${tog}날짜</div><div>거래유형</div><div>내용</div>
         <div class="n">차변</div><div class="n">대변</div><div class="n">잔액</div><div class="c">더보기</div></div>
       ${A.body||(B.body?'':`<div class="empty">${f3.tp?'조건에 맞는 거래가 없습니다':'이 기간에 거래가 없습니다'}</div>`)}
       ${A.body&&B.body?'<div class="schr led gap"></div>':''}${B.body}
@@ -5716,7 +5721,6 @@ function CTR3(k){
     <select onchange="setF3('tp',this.value)">
       ${[['','전체 거래유형'],...F3TP.map(t=>[t,t])].map(([v,t])=>`<option value="${v}" ${(f3.tp||'')===v?'selected':''}>${t}</option>`).join('')}
     </select>
-    ${LT.tog}
     <span style="margin-left:auto;display:flex;gap:6px">   <!-- 돈을 다루는 버튼은 원장 탭에만 둔다 -->
       ${ledBtns(k,L)}
       <button class="btn pri" title="지금 보이는 기간의 원장(받을 돈 · 보증금)을 PDF로 내려받습니다" onclick="alert('원장 출력 — 지금 보이는 기간의 원장(받을 돈 · 보증금)을 PDF로 내려받습니다.\n목업에서는 파일을 내려받지 않습니다.')">원장 출력</button></span>
