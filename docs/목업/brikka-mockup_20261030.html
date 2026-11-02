@@ -5536,9 +5536,9 @@ function ledgerOf(k){
   DEP_RET.filter(x=>x.k===k).forEach(x=>{const t='보증금 반환';
     rows.push({date:x.date,type:'보증금 반환',acc:'임대보증금',memo:t,item:t,why:x.why,acct:x.acct,g:'dr'+x.sq,dec:x.amt,sup:null,vat:null,ord:3,sq:x.sq});});
   /* 같은 날은 기록한 순서(sq)대로 — 수납 → 취소 → 다시 상계처럼 한 날 여러 번 해도 한 일 순서가 그대로 보인다.
-     sq가 없는 정기 청구 · 계약 보증금은 그날 맨 앞. 청구서 안의 항목은 금액 순(화면은 최근이 위라 큰 금액이 위) */
+     sq가 없는 정기 청구 · 계약 보증금은 그날 맨 앞. 청구서 안의 항목은 배분 우선순위 순(화면은 최근이 위라 우선순위 1이 위 · 연체료가 맨 아래) */
   rows.sort((a,b)=>dnum(a.date)-dnum(b.date)||(a.sq||0)-(b.sq||0)||a.ord-b.ord
-    ||(a.type==='청구'&&b.type==='청구'?(a.inc||0)-(b.inc||0):(a.pr||0)-(b.pr||0)));
+    ||(a.type==='청구'&&b.type==='청구'?(b.pr||0)-(a.pr||0)||(a.inc||0)-(b.inc||0):(a.pr||0)-(b.pr||0)));
   const bal={매출채권:0,임대보증금:0};
   rows.forEach(r=>{bal[r.acc]+=(r.inc||0)-(r.dec||0);r.bal=bal[r.acc];
     /* 차변·대변 — 매출채권(자산)은 늘면 차변, 임대보증금(부채)은 늘면 대변 */
