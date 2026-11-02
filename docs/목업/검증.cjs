@@ -948,8 +948,21 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   PT.vehOpen('b1'); Object.assign(PT.vh, {k:'b1본관801호', plate:'88너8888', own:'김호텔', tel:'010-0000-0002', fee:'무료', loc:'기타', place:''}); PT.vehSave();
   const etc1 = PT.vehMissing().join() === '장소'; PT.vh.place = '아난티 호텔'; PT.vehSave(); PT.fpk.k = 'b1본관801호'; const h3 = PT.PRO3('b1'); PT.fpk.k = '';
   const etc = etc1 && PT.vehOf('b1본관801호').length === 6 && /기타 · 아난티 호텔/.test(h3) && /총 6대 · 무료 3대 \+ 월정액 2대 · 기타 1대/.test(h3);
-  r6.push(['주차 탭 — 유닛·주차·관리비 순 · 31대 한 단 명부(차량번호 · 소유자 · 연락처 · 차종 · 계약고유이름 · 주차구분 · 요금부과) · 묶음 줄 · 펼치기 없음 · 계약을 고르면 「총 4대 · 무료 3대 + 월정액 0대 · 기타 1대」 · 무료 초과면 표 위 안내(누르면 그 계약) · 기타는 장소 필수 · 무료 대수에 안 셈 · 차량 줄을 누르면 상세 · 무료 초과로 새로 넣기 막힘 · 차량번호 중복 막힘 · 검색 칸 없음',
-    order && !/등록 차량/.test(sum) && flat && pick && over && det && overFree && dupP && ok && etc && !/class="fq"/.test(h0)]); }
+  r6.push(['주차 탭 — 유닛·주차·관리비 순 · 31대 한 단 명부(차량번호 · 소유자 · 연락처 · 차종 · 계약고유이름 · 주차구분 · 요금부과) · 묶음 줄 · 펼치기 없음 · 계약을 고르면 「총 4대 · 무료 3대 + 월정액 0대 · 기타 1대」 · 무료 초과면 표 위 안내(누르면 그 계약) · 기타는 장소 필수 · 무료 대수에 안 셈 · 차량 줄을 누르면 상세 · 무료 초과로 새로 넣기 막힘 · 차량번호 중복 막힘',
+    order && !/등록 차량/.test(sum) && flat && pick && over && det && overFree && dupP && ok && etc]); }
+/* 주차 탭 검색 — 차량번호 · 소유자 · 연락처 · 계약고유이름 일부, 띄어쓰기 · 하이픈 무시 · 필터와 함께 · 계약 상세 주차 탭에는 검색 칸 없음 */
+{ const PQ = new Function(stub + bare + '; return {PRO3,CTR3,get fpk(){return fpk;},set tab3(v){tab3=v;},set tab3c(v){tab3c=v;}};')();
+  PQ.tab3 = '주차'; const n = h => (h.match(/onclick="vdOpen\('b1',\d+\)"><td class="c1"/g) || []).length;
+  const Q = q => { PQ.fpk.q = q; const h = PQ.PRO3('b1'); return h; };
+  const box = /id="vq" class="fq"[^>]*placeholder="차량번호 · 소유자 · 연락처"/.test(Q(''));
+  const h1 = Q('3291'), h2 = Q('10버 3291'), h3 = Q('4745-7585'), h4 = Q('47457585'), h5 = Q('이한용'), h6 = Q('본관801'), h7 = Q('없는차량');
+  const one = [h1, h2, h3, h4, h5].every(h => n(h) === 1 && h.includes('10버3291'));
+  const ctr = n(h6) === 4 && !h6.includes('26너4908'), none = n(h7) === 0 && /찾는 차량이 없습니다/.test(h7);
+  PQ.fpk.q = '본관801'; PQ.fpk.loc = '지상'; const both = n(PQ.PRO3('b1')) === 0; PQ.fpk.loc = '';
+  PQ.fpk.q = '없는차량'; PQ.tab3c = '주차'; const hc = PQ.CTR3('b1본관801호'); PQ.fpk.q = '';
+  const cTab = !/id="vq"/.test(hc) && hc.includes('10버3291') && hc.includes('17노1733');
+  r6.push(['주차 탭 검색 — 필터 줄 맨 앞 · 「3291」 · 「10버 3291」 · 「4745-7585」 · 「47457585」 · 「이한용」은 1대 · 「본관801」은 그 계약 4대 · 없으면 「찾는 차량이 없습니다」 · 주차구분 필터와 함께 걸림 · 계약 상세 주차 탭에는 검색 칸 없음',
+    box && one && ctr && none && both && cTab]); }
 /* 자료보관 줄을 누르면 상세 · 요약 탭 건물관리자에 회사·연락처·이메일·계정상태 */
 { const DM = new Function(stub + bare + '; return {PRO3,set tab3(v){tab3=v;}};')();
   DM.tab3 = '자료보관'; const hd = DM.PRO3('b1'); DM.tab3 = '요약'; const hs = DM.PRO3('b1');

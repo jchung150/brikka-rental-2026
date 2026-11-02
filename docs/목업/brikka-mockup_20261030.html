@@ -102,6 +102,9 @@ svg{flex:none}
 .fbar select{border:1px solid var(--line);background:var(--bg);padding:8px 11px;border-radius:var(--r-sm);
   font-size:12.5px;min-width:150px}
 .fbar input.fq{border:1px solid var(--line);background:var(--bg);padding:8px 11px;border-radius:var(--r-sm);font-size:12.5px;width:220px}
+.fbar .fqw{position:relative;display:inline-flex;align-items:center}
+.fbar .fqw svg{position:absolute;left:10px;color:var(--faint);pointer-events:none}
+.fbar .fqw input.fq{padding-left:32px}
 .stepv{display:flex;gap:0;margin-bottom:18px;border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
 .stepv .sp2{flex:1;padding:11px 14px;border-right:1px solid var(--line);cursor:pointer;background:var(--bg)}
 .stepv .sp2:last-child{border-right:0}
@@ -2054,14 +2057,18 @@ function t요약(b){
 
 /* ═══ 주차 탭 — 건물에 등록된 차량 명부. 한 줄이 차량 한 대, 계약은 칸 하나(계약 · 차량번호 순) → PRO-3
    계약 상세 주차 탭(fixK)은 같은 표를 그 계약 하나로 — 계약고유이름 칸 · 계약 필터만 없다 ═══ */
-let fpk={k:'',loc:'',fee:''};
+let fpk={k:'',loc:'',fee:'',q:''};
 const setFpk=(k,v)=>{fpk[k]=v;render(true);};
+/* 검색 — 칠 때마다 다시 그리므로 검색 칸에 커서를 되돌린다. 띄어쓰기 · 하이픈은 빼고 비교(「1234」 → 「12가 1234」, 「5678」 → 「010-1234-5678」) */
+const vqN=s=>(s||'').replace(/[\s-]/g,'').toLowerCase();
+function setVq(v){fpk.q=v;render(true);const e=document.getElementById('vq');if(e){e.focus();e.setSelectionRange(v.length,v.length);}}
 function t주차(b,fixK){
   const cs=fixK?CTRS.filter(c=>ckey(c)===fixK):CTRS.filter(c=>c.b===b.id&&c.st==='진행중'), keys=cs.map(ckey);
   /* 연장 계약(준비중) — 이전 계약의 차량이 시작일에 옮겨진다. 그 전까지는 옮겨질 차량을 보인다 */
   const fc=fixK&&cs[0], pend=fc&&fc.vehP&&!vehOf(fixK).length?fc.vehP:null, vOf=k=>pend||vehOf(k);
   const fk=fixK?'':(keys.includes(fpk.k)?fpk.k:''), all=pend||VEH.filter(v=>keys.includes(v.k));
-  const list=all.filter(v=>(!fk||v.k===fk)&&(!fpk.loc||v.loc===fpk.loc))
+  const q=fixK?'':vqN(fpk.q), hit=v=>{const c=ctrOfK(v.k); return [v.plate,v.own,v.tel,c&&cname(b.alias,c.no,c.ten)].some(x=>vqN(x).includes(q));};
+  const list=all.filter(v=>(!fk||v.k===fk)&&(!fpk.loc||v.loc===fpk.loc)&&(!q||hit(v)))
     .sort((x,y)=>keys.indexOf(x.k)-keys.indexOf(y.k)||(x.plate<y.plate?-1:1));
   const S=(f,opts,lab)=>`<select onchange="setFpk('${f}',this.value)"><option value="">${lab}</option>${opts.map(([v,t])=>`<option value="${v}" ${fpk[f]===v?'selected':''}>${t}</option>`).join('')}</select>`;
   const miss='<span style="color:var(--warn)">미확인</span>';
@@ -2079,7 +2086,7 @@ function t주차(b,fixK){
       <td class="c">${moreCell(pend?[{t:'상세',off:'시작일에 옮겨질 차량입니다'},{t:'수정',off:'이전 계약의 주차 탭에서 고칩니다'},{t:'삭제',off:'이전 계약의 주차 탭에서 고칩니다'}]
         :[{t:'상세',go:`vdOpen('${b.id}',${v.id})`},{t:'수정',go:`vehOpen('${b.id}',${v.id})`},{t:'삭제',go:`vehDel(${v.id})`}])}</td></tr>`;};
   return `
-  ${tabBar((fixK?'':S('k',cs.map(c=>[ckey(c),cname(b.alias,c.no,c.ten)]),'전체 계약'))+S('loc',VEH_LOC.map(v=>[v,v]),'전체 주차구분')
+  ${tabBar((fixK?'':`<span class="fqw">${ic('srch',14)}<input id="vq" class="fq" type="text" value="${fpk.q.replace(/"/g,'&quot;')}" placeholder="차량번호 · 소유자 · 연락처" oninput="setVq(this.value)"></span>`+S('k',cs.map(c=>[ckey(c),cname(b.alias,c.no,c.ten)]),'전체 계약'))+S('loc',VEH_LOC.map(v=>[v,v]),'전체 주차구분')
     +(one?`<span style="align-self:center">${sumOf(one)}</span>`:''),
     `<button class="btn pri" onclick="vehOpen('${b.id}'${fixK?`,0,'${fixK}'`:''})">+ 차량 추가</button>`)}
   ${pend?`<div class="fnd" style="margin:0 0 12px"><span class="h">계약 시작일에 옮겨집니다</span>이전 계약의 차량 ${pend.length}대가 <b>${fc.base.replace(/-/g,'.')}</b> 시작일에 이 계약으로 옮겨집니다. 그 전까지는 이전 계약의 주차 탭에서 고칩니다.</div>`:''}
@@ -2088,9 +2095,9 @@ function t주차(b,fixK){
     ${list.length?`<div class="tw"><table>
       <thead><tr><th>차량번호</th><th>차량 소유자</th><th>연락처</th><th>차종</th>${fixK?'':'<th>계약고유이름</th>'}<th>주차구분</th><th>요금부과</th><th class="c">더보기</th></tr></thead>
       <tbody>${list.map(vrow).join('')}</tbody>
-    </table></div>`:`<div class="empty">${all.length?'조건에 맞는 차량이 없습니다':'등록된 차량이 없습니다'}</div>`}
+    </table></div>`:`<div class="empty">${!all.length?'등록된 차량이 없습니다':q?'찾는 차량이 없습니다':'조건에 맞는 차량이 없습니다'}</div>`}
   </div>
-  <div class="hint">${fixK?'이 계약에 등록된 차량입니다. 위에 차량 대수가 보입니다.':'이 건물에 등록된 차량을 한 줄에 한 대씩, 계약 · 차량번호 순으로 봅니다. 계약을 고르면 그 계약의 차량 대수가 위에 보입니다.'} 무료 차량이 계약의 무료 주차 대수를 넘으면 <b>무료 ○대 초과</b>로 표시합니다(주차구분 기타는 세지 않음). 넘는 차량은 월정액으로 바꿔 주차비를 받습니다.<br>
+  <div class="hint">${fixK?'이 계약에 등록된 차량입니다. 위에 차량 대수가 보입니다.':'이 건물에 등록된 차량을 한 줄에 한 대씩, 계약 · 차량번호 순으로 봅니다. 검색은 차량번호 · 차량 소유자 · 연락처 · 계약고유이름에서 일부만 맞아도 찾습니다(띄어쓰기 · 하이픈 무시). 계약을 고르면 그 계약의 차량 대수가 위에 보입니다.'} 무료 차량이 계약의 무료 주차 대수를 넘으면 <b>무료 ○대 초과</b>로 표시합니다(주차구분 기타는 세지 않음). 넘는 차량은 월정액으로 바꿔 주차비를 받습니다.<br>
     비상시 연락해야 하므로 소유자 · 연락처가 비어 있는 차량은 <b>미확인</b>으로 표시합니다.</div>`;
 }
 
