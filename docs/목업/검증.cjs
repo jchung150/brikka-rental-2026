@@ -865,10 +865,10 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   PR.openCS('rent'); const hr = PR.csHTML(), rLock = /type="number" min="3" max="97" step="1" value="1" disabled/.test(hr) && /임대료 1 · 고정관리비 2는 모든 건물에서 같아/.test(hr);
   PR.openCS('elec'); const he = PR.csHTML(), eOpen = /type="number" min="3" max="97" step="1" value="3" +\n/.test(he) || (/min="3" max="97"/.test(he) && !/value="3" disabled/.test(he));
   PR.tab3 = '관리비'; const t = PR.PRO3('b1'), body = t.slice(t.indexOf('<tbody>'), t.indexOf('</tbody>'));
-  const rows = [...body.matchAll(/<td class="c"><b>(\d+)<\/b>/g)].map(m => +m[1]);
+  const rows = [...body.matchAll(/<td class="c"><b(?: class="prfx")?>(\d+)<\/b>/g)].map(m => +m[1]);
   const tail = rows.slice(-2).join() === '98,99' && /비정기 청구/.test(body) && /연체료/.test(body) && rows.every((n, i) => !i || n > rows[i - 1]);
-  const lockMark = (body.match(/<div class="c2" style="margin:0">고정<\/div>/g) || []).length === 4;
-  r6.push(['배분 우선순위 고정 — 임대료 1 · 고정관리비 2(건물 설정이 있어도) · 수정 패널에서 잠김 · 다른 항목은 3~97 · 관리비 탭 맨 아래 비정기 청구 98 · 연체료 99 잠긴 줄 · 「고정」 표시 4곳',
+  const lockMark = [...body.matchAll(/<b class="prfx">(\d+)<\/b>/g)].map(m => m[1]).join() === '1,2,98,99' && !/>고정</.test(body);
+  r6.push(['배분 우선순위 고정 — 임대료 1 · 고정관리비 2(건물 설정이 있어도) · 수정 패널에서 잠김 · 다른 항목은 3~97 · 관리비 탭 맨 아래 비정기 청구 98 · 연체료 99 잠긴 줄 · 고정 번호 4개는 흐린 색(「고정」 글자 없음)',
     fix && rLock && eOpen && PR.PR_MIN === 3 && PR.PR_MAX === 97 && tail && lockMark]); }
 /* 청구항목 상세 — 관리비 탭 더보기 ⋮(상세·수정) · 전기요금 상세에 계량기 보유 유닛과 최근 3개월 고지서 금액 · 임대료는 약정액 안내 */
 { const CD = new Function(stub + bare + '; return {cdOpen,cdHTML,ciDel,PRO3,MORE,BUILDINGS,BILL,set tab3(v){tab3=v;}};')();
