@@ -3643,8 +3643,9 @@ function payRec(dep){
 }
 function cancelWhyNot(kind,rec){
   /* 계약 보증금(목업 예시값)은 계약 시작 달의 기록이다 — 그 달은 이미 마감했다고 본다 */
-  if(rec.seed) return '마감한 달의 기록은 취소할 수 없습니다. 이번 달의 보증금 반환 · 예치로 바로잡습니다';
-  if(closedBy(bOfK(rec.k),rec.date.slice(0,7),TODAY_S)) return '마감한 달의 기록은 취소할 수 없습니다. 이번 달의 청구 추가 · 청구 감액으로 바로잡습니다';
+  if(rec.seed) return '마감한 달의 기록은 취소할 수 없습니다. 이번 달의 보증금 예치 · 반환으로 바로잡습니다';
+  /* 마감한 달 — 보증금 기록은 이번 달의 보증금 예치 · 반환으로(10-1), 청구 · 수납은 청구 추가 · 청구 감액으로(14-4) 바로잡는다 */
+  if(closedBy(bOfK(rec.k),rec.date.slice(0,7),TODAY_S)) return kind==='di'||kind==='dr'?'마감한 달의 기록은 취소할 수 없습니다. 이번 달의 보증금 예치 · 반환으로 바로잡습니다':'마감한 달의 기록은 취소할 수 없습니다. 이번 달의 청구 추가 · 청구 감액으로 바로잡습니다';
   if(kind==='adh'&&paidNet(rec.id)>0) return '입금이 배분된 청구는 취소할 수 없습니다. 먼저 수납을 무효 처리합니다';
   if(kind==='adh'&&cutOf(rec.id)>0) return '감액한 청구는 취소할 수 없습니다. 먼저 감액을 취소합니다';
   if(kind==='cut'&&rec.ex&&overOf(rec.k)<rec.ex) return '이 감액으로 생긴 과납을 이미 환불했거나 다음 청구에 썼습니다';
@@ -3701,7 +3702,7 @@ function ctrPay(k,ym){
   /* 받을 금액 = 청구액 − 감액. 그보다 많이 받았으면 과납이다 → 3.2 */
   const b=bOfK(k), closed=closedBy(b,ym,TODAY_S), D=closed?closeOn(b,ym):null;
   const by=(L,id)=>L.filter(x=>x.id===id&&dnum(x.date)<=dnum(D)).reduce((a,x)=>a+x.amt,0);
-  /* 마감한 달은 마감일의 모습 그대로 — 그 뒤의 감액은 다음 달의 전월 잔액을 바꾼다 → 4.3.6 */
+  /* 마감한 달은 마감일의 모습 그대로 — 그 뒤의 감액은 다음 달의 이월 미납액을 바꾼다 → 4.3.6 */
   /* 다 감액한 청구는 납부상태가 「감액」이다 — 받을 돈이 없다 */
   const it=BILLS.filter(i=>i.k===k&&i.ym===ym).map(i=>{const cut=D?by(CUTS,i.id):cutOf(i.id);
     const raw=D?paidBy(i.id,D)-by(MOVES,i.id):paidNet(i.id), net=i.amt-cut, due=Math.max(0,net-raw);
@@ -4282,8 +4283,10 @@ const feeBills=(dep,real)=>!pm.fee?[]:payKeys().map(k=>({k,amt:feeUntil(k,pm.dat
 const payFee=()=>payKeys().reduce((a,k)=>a+feeUntil(k,pm.date),0);
 function payPlan(){return rcPlan(pm.amt,payKeys(),PAID,feeBills(),pm.date);}
 const payNeed=()=>rcPlan(0,payKeys(),PAID,[],pm.date).all.reduce((s,l)=>s+l.due,0);
+/* 마감한 달 날짜로는 수납을 등록하지 않는다 — 마감을 취소한 뒤 등록한다 → 12-3 */
+const pmClosed=()=>closedBy(bOfK(pm.k),pm.date.slice(0,7),TODAY_S);
 function payConfirm(){
-  const pl=payPlan(); if(pl.rest>0||!pl.lines.length) return;
+  const pl=payPlan(); if(pl.rest>0||!pl.lines.length||pmClosed()) return;
   if(pm.how==='보증금상계'&&pm.amt>ledgerOf(pm.k).bal.임대보증금) return;
   const dep='m'+(++pmSeq), src=pm.how;   /* 날짜는 원장 날짜 칸에 있으니 이름에 붙이지 않는다 */
   /* 연체료를 함께 받으면 먼저 청구로 올리고(받은 날이 정리일) 같은 배분으로 채운다 */
@@ -4338,6 +4341,7 @@ function payHTML(){
       :`<div class="fg"><div class="fl">받은 돈</div>
         <div class="fr"><span class="fk">받은 날</span>
           <input type="date" value="${pm.date}" max="${TODAY_S}" onchange="setPm('date',this.value)"></div>
+        ${pmClosed()?`<div class="hint" style="margin:-3px 0 9px 114px;color:var(--danger)">${+pm.date.slice(5,7)}월은 마감했습니다. 그 달 날짜의 입금은 월 마감을 취소한 뒤 등록합니다.</div>`:''}
         <div class="fr"><span class="fk">결제수단</span>
           <select onchange="setPm('how',this.value)">${PAY_HOW.map(h=>`<option ${h===pm.how?'selected':''}>${h}</option>`).join('')}</select></div>
         <div class="fr"><span class="fk">받은 금액</span>
@@ -4361,7 +4365,7 @@ function payHTML(){
     </div>
     <div class="df">
       <button class="btn" onclick="closeDrawer()">취소</button>
-      <button class="btn pri" ${ok&&!pl.rest?'':'disabled'} onclick="payConfirm()">${isOff?'상계 확정':'수납 처리'}</button></div>
+      <button class="btn pri" ${ok&&!pl.rest&&!pmClosed()?'':'disabled'} onclick="payConfirm()">${isOff?'상계 확정':'수납 처리'}</button></div>
   </div></div>`;
 }
 
@@ -4487,7 +4491,7 @@ function diHTML(){
   </div></div>`;
 }
 /* ═══ 보증금 반환 — 원장 탭. 환불 패널과 같은 모양. 계약 중에도 쓴다(예: 1억 1백만원 받을 것을 1억 1천만원 받음 → 9백만원 반환).
-   퇴거 때는 수납 처리의 보증금상계로 미납을 먼저 정리하고 남은 잔액을 돌려준다. 보증금에서 빠지는 길은 상계와 반환 둘뿐이다 ═══ */
+   퇴거 때는 보증금 상계(원장 › 보증금 ▾)로 미납을 먼저 정리하고 남은 잔액을 돌려준다. 보증금에서 빠지는 길은 상계와 반환 둘뿐이다 ═══ */
 const DEP_RET=[];
 let dr=null;
 function openDepRet(k){const bal=ledgerOf(k).bal.임대보증금;
@@ -4509,7 +4513,7 @@ function drHTML(){
       <div class="fg"><div class="fl">돌려줄 돈</div>
         ${R('보증금 잔액',`<b style="color:var(--pri)">${won(bal)}</b>`)}
         ${R('반환할 금액',`<input type="text" inputmode="numeric" value="${dr.amt?num(dr.amt):''}" oninput="kwLive(this)" onchange="drSet('amt',this.value)" style="text-align:right"><span class="kw">${korWon(dr.amt)}</span>`,
-          '퇴거하는 계약은 남은 잔액 전부가 미리 들어갑니다. 미납이 있으면 먼저 수납 처리에서 보증금상계로 정리합니다')}
+          '퇴거하는 계약은 남은 잔액 전부가 미리 들어갑니다. 미납이 있으면 먼저 원장의 보증금 ▾ › 보증금 상계로 정리합니다')}
         ${dr.amt>bal?'<div class="c2" style="margin:-4px 0 9px 114px;color:var(--danger)">보증금 잔액보다 많이 돌려줄 수 없습니다</div>':''}
         ${R('사유 (필수)',`<input type="text" value="${dr.why}" placeholder="예: 보증금 더 받음 · 퇴거 정산" oninput="dr.why=this.value;document.getElementById('drok').disabled=!(this.value.trim()&&dr.amt>0&&dr.amt<=${bal})">`)}</div>
       <div class="fg"><div class="fl">보낸 기록</div>

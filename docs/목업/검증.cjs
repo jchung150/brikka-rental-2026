@@ -896,6 +896,16 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   const src = require('fs').readFileSync(file, 'utf8'), noAlert = !/alert\(/.test(src) && /function say\(/.test(src);
   r6.push(['비정기 청구 · 연체료 줄을 누르면 상세(연체료 근거 임대차계약서 · 계산식 · 수정 · 삭제 잠김) · 알림창 없음 — 항목명 빈칸 · 중복은 패널 안 빨간 글씨 · 목업에서 안 하는 동작은 화면 아래 안내(say)',
     clk && fee && adh && e1 && e2 && noAlert]); }
+/* 명세와 맞춤 — 마감한 달 날짜의 수납은 등록 안 됨(12-3) · 마감한 달 보증금 기록은 보증금 예치 · 반환으로 바로잡는다는 안내(10-1) · 보증금 반환 ⓘ는 원장 보증금 상계 경로 */
+{ const MS = new Function(stub + bare + '; seedJuly(); return {openPay,payHTML:typeof payHTML!=="undefined"?payHTML:null,drawerAll:typeof pmHTML!=="undefined"?pmHTML:null,cancelWhyNot,get pm(){return pm;}};')();
+  const src = require('fs').readFileSync(file, 'utf8');
+  MS.openPay('b1본관801호'); MS.pm.date = '2026-07-20';
+  const why = MS.cancelWhyNot('di', {k: 'b1본관801호', date: '2026-07-10'}), why2 = MS.cancelWhyNot('adh', {k: 'b1본관801호', date: '2026-07-10', id: 'x'});
+  const ok = /보증금 예치 · 반환으로 바로잡습니다/.test(why) && /청구 추가 · 청구 감액으로/.test(why2)
+    && !/수납 처리에서 보증금상계로/.test(src);
+  const hp = MS.payHTML(), blk = /7월은 마감했습니다\. 그 달 날짜의 입금은 월 마감을 취소한 뒤 등록합니다/.test(hp) && /<button class="btn pri" disabled onclick="payConfirm\(\)">/.test(hp);
+  MS.pm.date = '2026-08-10'; const open = !/월은 마감했습니다/.test(MS.payHTML());
+  r6.push(['명세와 맞춤 — 마감한 달(7월) 날짜 수납은 확정 안 됨 · 마감한 달 보증금 예치 취소 안내는 「보증금 예치 · 반환으로」 · 청구는 「청구 추가 · 청구 감액으로」 · 보증금 반환 ⓘ에 옛 경로 없음', ok && blk && open]); }
 /* 배분 우선순위 고정 — 임대료 1 · 고정관리비 2 · 비정기 청구 98 · 연체료 99는 모든 건물 같음 · 나머지는 3~97 · 관리비 탭 맨 아래에 98 · 99 잠긴 줄 → 명세변경 23 */
 { const PR = new Function(stub + bare + '; return {PRO3,openCS,csHTML,prioOf,BSET,PR_MIN,PR_MAX,set tab3(v){tab3=v;}};')();
   PR.BSET.rent = {pr: 7}; PR.BSET.mgmt = {pr: 9}; const fix = PR.prioOf('임대료') === 1 && PR.prioOf('고정관리비') === 2 && PR.prioOf('연체료') === 99;
