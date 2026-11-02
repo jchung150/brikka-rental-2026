@@ -372,7 +372,7 @@ r6.push(['금액 읽기 — 500만원 · 1억원 · 1억 2,345만 6,789원 · 55
     !inReg && row && row.date === '2026-08-10' && row.sup === 100000 && row.vat === 10000 && row.ttl === '엘리베이터 사용료' && hit && hit.pr === 98]); }
 /* 항목별 저장 — 저장해야 ✓. 주차비는 저장 전이라 정산 확정 불가. 저장 후 고치면 다시 저장 전 → PAY-10 */
 const SV = new Function(stub + bare + '; return {PAY10,saveItem,setDirect,SAVED,set pCode(v){pCode=v;}};')();
-const lockRe = /disabled onclick="alert\('정산 확정/; const h0 = SV.PAY10(); const block0 = lockRe.test(h0) && !/저장 전/.test(h0);
+const lockRe = /disabled onclick="say\('정산 확정/; const h0 = SV.PAY10(); const block0 = lockRe.test(h0) && !/저장 전/.test(h0);
 SV.saveItem('parking'); const ok1 = !!SV.SAVED.parking && !lockRe.test(SV.PAY10());
 SV.setDirect('parking', '본관801호', '80000'); const back = SV.SAVED.parking === null;
 r6.push(['관리비 정산 항목 저장 — 주차비 저장 전이면 정산 확정 불가 · 저장하면 풀림 · 고치면 다시 저장 전', block0 && ok1 && back]);
@@ -886,6 +886,16 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   const h0 = FC.PRO3('b1'); FC.fci.use = '0'; const h1 = FC.PRO3('b1'); FC.fci.use = '1'; const h2 = FC.PRO3('b1'); FC.fci.use = '';
   r6.push(['관리비 탭 사용여부 필터 — 「전체 사용여부」 · 미사용이면 가스요금(7)만 · 사용이면 가스요금만 빠짐(고정 줄 1 · 2 · 98 · 99는 사용) · 비정기 청구 · 연체료도 「사용」',
     /전체 사용여부/.test(h0) && /비정기 청구<\/td><td><span class="bd ok">사용<\/span>/.test(h0) && /연체료<\/td><td><span class="bd ok">사용<\/span>/.test(h0) && nums(h0) === '1,2,3,4,5,6,7,8,9,10,98,99' && nums(h1) === '7' && nums(h2) === '1,2,3,4,5,6,8,9,10,98,99']); }
+/* 비정기 청구 · 연체료 줄도 누르면 상세(공통 규칙 · 수정 · 삭제 잠김) · 알림창(alert) 없음 — 저장을 막는 이유는 패널 안 빨간 글씨, 목업에서 안 하는 동작은 화면 아래 안내 */
+{ const PX = new Function(stub + bare + '; return {PRO3,cdOpen,cdHTML,openCS,csHTML,csSet,csApply,MORE,get DRAWER(){return DRAWER;},set tab3(v){tab3=v;}};')();
+  PX.tab3 = '관리비'; PX.MORE.length = 0; const t = PX.PRO3('b1'), clk = /onclick="cdOpen\('adhoc'\)"/.test(t) && /onclick="cdOpen\('fee'\)"/.test(t);
+  PX.cdOpen('fee'); const hf = PX.cdHTML(), fee = /<div class="t">연체료<\/div>/.test(hf) && /임대차계약서/.test(hf) && /÷ 365/.test(hf) && /<button class="btn pri" disabled[^>]*>수정/.test(hf);
+  PX.cdOpen('adhoc'); const ha = PX.cdHTML(), adh = /<div class="t">비정기 청구<\/div>/.test(ha) && /<b>98<\/b>/.test(ha);
+  PX.openCS(); PX.csSet('item', '__new'); PX.csApply(); const e1 = /color:var\(--danger\)">항목명을 입력하세요/.test(PX.csHTML()) && PX.DRAWER === 'chargeset';
+  PX.csSet('name', '전기요금'); const e2 = /이미 있는 항목명입니다/.test(PX.csHTML());
+  const src = require('fs').readFileSync(file, 'utf8'), noAlert = !/alert\(/.test(src) && /function say\(/.test(src);
+  r6.push(['비정기 청구 · 연체료 줄을 누르면 상세(연체료 근거 임대차계약서 · 계산식 · 수정 · 삭제 잠김) · 알림창 없음 — 항목명 빈칸 · 중복은 패널 안 빨간 글씨 · 목업에서 안 하는 동작은 화면 아래 안내(say)',
+    clk && fee && adh && e1 && e2 && noAlert]); }
 /* 배분 우선순위 고정 — 임대료 1 · 고정관리비 2 · 비정기 청구 98 · 연체료 99는 모든 건물 같음 · 나머지는 3~97 · 관리비 탭 맨 아래에 98 · 99 잠긴 줄 → 명세변경 23 */
 { const PR = new Function(stub + bare + '; return {PRO3,openCS,csHTML,prioOf,BSET,PR_MIN,PR_MAX,set tab3(v){tab3=v;}};')();
   PR.BSET.rent = {pr: 7}; PR.BSET.mgmt = {pr: 9}; const fix = PR.prioOf('임대료') === 1 && PR.prioOf('고정관리비') === 2 && PR.prioOf('연체료') === 99;
