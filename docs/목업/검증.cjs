@@ -689,7 +689,7 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
     lock && open && L.bal.임대보증금 === b0 && L.rows.some(r => r.type === '보증금 예치 취소' && r.dec === 5000000) && L.rows.some(r => r.type === '보증금 반환 취소' && r.inc === b0 + 1000000)]); }
 /* 원장은 한 표 — 머리글 하나 · 위 받을 돈 · 빈 줄 · 아래 보증금 · 같은 칸(계정 칸 · 계정 필터 · 표 이름 없음) · 받을 돈은 10묶음씩 페이지 */
 { const LX = new Function(stub + bare + '; seedJuly(); return {CTR3,openOffset,payConfirm,issueAdhoc,hp,set tab3c(v){tab3c=v;}};')();
-  LX.tab3c = '원장'; const k = 'b1별관301호'; LX.openOffset(k); LX.payConfirm(); const h = LX.CTR3(k).split('<div class="hint">')[0];
+  LX.tab3c = '원장'; const k = 'b1별관301호'; LX.openOffset(k); LX.payConfirm(); const h = LX.CTR3(k).split('<div class="hint">')[0].replace(/<select[\s\S]*?<\/select>/g, '');   /* 필터 선택지 글자는 빼고 표만 본다 */
   const gap = h.indexOf('schr led gap'), A = h.slice(0, gap), B = h.slice(gap);
   const one = (h.match(/<div class="schr led hd">/g) || []).length === 1 && gap > 0 && !/<div>계정<\/div>/.test(h) && !/전체 계정/.test(h) && !/>받을 돈<|>보증금<span/.test(h);
   const split = /보증금상계 수납/.test(A) && !/>보증금 상계</.test(A) && />보증금 상계</.test(B) && />보증금 예치</.test(B) && !/>청구</.test(B);
@@ -1050,6 +1050,13 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   const due = m1.filter(m => m[0].t === '상세' && !m[0].off).length === 2 && m1.every(m => m[1].t === '청구서 보기') && m2.length && m2.every(m => m[0].off);
   r6.push(['계약 상세 청구·수납 탭 — 비씨에이전시 6·7월 줄 · 납부마감일 칸 · 월 마감일 칸(6월 07.03) · 더보기(상세 · 청구서 보기) · 미납 없는 달은 상세 흐림 · 합계 줄 없음',
     /2026년 07월분/.test(h) && /2026년 06월분/.test(h) && /<div>납부마감일<\/div>/.test(h) && /<div>2026\.07\.31<\/div>/.test(h) && /<div>납부마감일<\/div><div>월 마감일<\/div>/.test(h) && /<div>2026\.07\.03<\/div>/.test(h) && due && !/<div>합계<\/div>/.test(h)]); }
+{ const LF = new Function(stub + bare + '; seedJuly(); return {CTR3,f3,set tab3c(v){tab3c=v;},set g3All(v){g3All=v;}};')();
+  LF.tab3c = '원장'; LF.g3All = true; const k = 'b1별관301호';
+  const h0 = LF.CTR3(k); LF.f3.tp = '수납'; const h1 = LF.CTR3(k); LF.f3.tp = '환불'; const h2 = LF.CTR3(k); LF.f3.tp = '';
+  const tp = h => (h.match(/<span class="bd [^"]*">(청구|수납|감액|환불|보증금 [가-힣]+)( 취소)?<\/span>/g) || []).map(x => x.replace(/<[^>]+>/g, ''));
+  r6.push(['원장 거래유형 필터 — 전체 거래유형 · 청구 · 감액 · 수납 · 환불 · 보증금 예치 · 상계 · 반환 · 수납을 고르면 수납 줄만(잔액은 그대로) · 환불이 없으면 「조건에 맞는 거래가 없습니다」',
+    /전체 거래유형/.test(h0) && /<option value="보증금 상계"/.test(h0) && tp(h0).includes('청구') && tp(h1).length > 0 && tp(h1).every(x => /^수납/.test(x))
+    && /조건에 맞는 거래가 없습니다/.test(h2)]); }
 { const FT = new Function(stub + bare + '; seedJuly(); return {CTR3month,CTRS,f7,set g7All(v){g7All=v;}};')();
   const k = 'b1별관301호', c = FT.CTRS.find(x => x.b === 'b1' && x.no === '별관301호');
   const h0 = FT.CTR3month(c, k);

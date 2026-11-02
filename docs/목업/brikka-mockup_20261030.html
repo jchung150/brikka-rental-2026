@@ -5475,7 +5475,9 @@ function CTR3sum(c,k){
 }
 
 /* ═══ CTR-3 계약 원장 — 이 계약의 모든 돈 거래를 있는 그대로. 추가만 하고 고치지 않는다 ═══ */
-let f3={per:''};
+let f3={per:'',tp:''};
+/* 거래유형 필터 — 고른 유형과 그 취소 줄을 함께 보인다(수납 → 수납 · 수납 취소). 잔액 칸은 거르기 전 원장 그대로 */
+const F3TP=['청구','감액','수납','환불','보증금 예치','보증금 상계','보증금 반환'];
 const setF3=(k,v)=>{f3[k]=v;render();};
 /* 연체료는 비과세(일반내역서) → 4.4.3 */
 const isTaxItem=n=>{if(n==='연체료') return false; const m=MASTER.find(x=>x.name===n.split(' ')[0]);return m?isTax(m.bill):true;};
@@ -5659,7 +5661,7 @@ function CTR3(k){
   const L=ledgerOf(k);
   const from=f3.per?new Date((dnum(TODAY_S)-({'1':30,'3':91,'12':365}[f3.per]))*864e5)
     .toISOString().slice(0,10):null;
-  const rows=L.rows.filter(r=>!from||dnum(r.date)>=dnum(from)).slice().reverse();
+  const rows=L.rows.filter(r=>(!from||dnum(r.date)>=dnum(from))&&(!f3.tp||r.type.replace(/ 취소$/,'')===f3.tp)).slice().reverse();
   const TP={'청구':'ac','청구 취소':'mu','수납':'ok','수납 취소':'mu','보증금 예치':'mu','보증금 상계':'wa','보증금 반환':'da','감액':'wa2','감액 취소':'mu','보증금 상계 취소':'mu','보증금 예치 취소':'mu','보증금 반환 취소':'mu','환불':'da'};
   /* 매출채권 잔액이 0보다 작으면 과납이다 */
   const balTx=v=>won(v);
@@ -5701,7 +5703,7 @@ function CTR3(k){
    return {tog,html:`<div class="tbl schl">
       <div class="schr led hd"><div>날짜</div><div>거래유형</div><div>내용</div>
         <div class="n">차변</div><div class="n">대변</div><div class="n">잔액</div><div class="c">더보기</div></div>
-      ${A.body||(B.body?'':'<div class="empty">이 기간에 거래가 없습니다</div>')}
+      ${A.body||(B.body?'':`<div class="empty">${f3.tp?'조건에 맞는 거래가 없습니다':'이 기간에 거래가 없습니다'}</div>`)}
       ${A.body&&B.body?'<div class="schr led gap"></div>':''}${B.body}
       ${A.pager}
     </div>`};
@@ -5711,6 +5713,9 @@ function CTR3(k){
     <select onchange="setF3('per',this.value)">
       ${[['','전체 기간'],['1','최근 1개월'],['3','최근 3개월'],['12','최근 12개월']].map(([v,t])=>`<option value="${v}" ${f3.per===v?'selected':''}>${t}</option>`).join('')}
     </select>
+    <select onchange="setF3('tp',this.value)">
+      ${[['','전체 거래유형'],...F3TP.map(t=>[t,t])].map(([v,t])=>`<option value="${v}" ${(f3.tp||'')===v?'selected':''}>${t}</option>`).join('')}
+    </select>
     ${LT.tog}
     <span style="margin-left:auto;display:flex;gap:6px">   <!-- 돈을 다루는 버튼은 원장 탭에만 둔다 -->
       ${ledBtns(k,L)}
@@ -5718,7 +5723,7 @@ function CTR3(k){
   </div>
   ${LT.html}
   <div class="hint">
-    이 계약의 모든 돈 거래를 <b>받을 돈</b>(매출채권)과 <b>보증금</b>(임대보증금) 나눠, 위에 받을 돈 · 빈 줄 아래에 보증금을 둡니다. 잔액은 따로 셉니다. 보증금 상계는 양쪽에 함께 보입니다(받을 돈의 수납 · 보증금의 상계). 청구서 한 장, 입금 한 건을 한 줄로 묶었습니다. 펼치면 항목별로 보입니다. 사유 · 공급가액 · 부가세는 더보기의 <b>상세</b>에서 봅니다.<br>
+    이 계약의 모든 돈 거래를 <b>받을 돈</b>(매출채권)과 <b>보증금</b>(임대보증금) 나눠, 위에 받을 돈 · 빈 줄 아래에 보증금을 둡니다. 잔액은 따로 셉니다. 보증금 상계는 양쪽에 함께 보입니다(받을 돈의 수납 · 보증금의 상계). 청구서 한 장, 입금 한 건을 한 줄로 묶었습니다. 펼치면 항목별로 보입니다. 거래유형 필터는 고른 유형과 그 취소 줄을 함께 보입니다. 잔액 칸은 거르기 전 원장의 잔액 그대로입니다. 사유 · 공급가액 · 부가세는 더보기의 <b>상세</b>에서 봅니다.<br>
     최근 거래가 위에 있고, 잔액은 그 거래 직후의 금액입니다. 받을 돈은 10줄씩 나눠 보입니다.<br>
     원장은 고치지 않습니다. 잘못 넣은 청구 추가 · 청구 감액 · 수납 처리 · 보증금 예치 · 상계 · 반환은 더보기의 <b>취소</b>로 취소 줄을 더합니다(마감 전). 은행 입금은 입금 매칭에서 무효 처리합니다. 연체료는 정기 청구서 · 마지막 청구서(해지 처리)의 한 줄, 또는 수납 처리 · 보증금 상계에서 함께 받을 때 연체료 청구 한 줄로 올라옵니다. 함께 받은 연체료 청구는 그 수납을 취소하면 같이 취소됩니다.<br>
     잔액을 바꾸지 않는 안쪽 옮김(미납 이월 · 전월 과납액 배분 · 감액으로 넘친 수납)은 적지 않습니다. 잔액이 0보다 작으면 <b>과납</b>이며, 돌려줄 때는 위의 <b>수납 › 과납 환불</b>을 씁니다.<br>
