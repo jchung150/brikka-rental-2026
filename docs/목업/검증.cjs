@@ -665,7 +665,7 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   const L2 = GW.ledgerOf(k), back = !GW.BILLS.some(i => i.fee && !i.reg) && GW.FEE_CUT[k] === '2026-07-18' && GW.feeUntil(k, '2026-08-10') === f0
     && L2.bal.매출채권 === 5176383 && L2.rows.some(r => r.type === '청구 취소' && /연체료 \(08\.10까지\)/.test(r.item));
   r6.push(['연체료 연체료 포함 — 수납 처리 기본은 미납만(5,176,383) · 연체료 포함 체크하면 받을 금액 5,214,904(+38,521) · 확정하면 연체료 청구 한 줄(08.10까지 · 부가세 0) · 정리일 08.10 · 받을 돈 0 · 수납 취소하면 연체료 청구도 취소 · 정리일 7/18로 되돌림',
-    a0 === 5176383 && /<span class="fk">연체료 포함<\/span>/.test(h0) && /오늘 기준/.test(h0) && !/청구 전/.test(h0) && a1 === 5176383 + 38521 && /class="cb on"/.test(h1)
+    a0 === 5176383 && /<span class="fk">연체료 포함<i class="tip"/.test(h0) && /켜면 연체료 청구가 추가됩니다/.test(h0) && /확정하면 연체료 청구 38,521원이 원장에 추가됩니다/.test(h1) && /오늘 기준/.test(h0) && !/청구 전/.test(h0) && a1 === 5176383 + 38521 && /class="cb on"/.test(h1)
     && got && /함께 받은 연체료 청구도 취소/.test(ch) && back]); }
 /* 비정기 청구에는 연체료를 붙이지 않는다 — 엘리베이터 사용료를 청구 추가해도 그 달 연체료는 그대로(정기 청구만 센다) */
 { const NF = new Function(stub + bare + '; seedJuly(); return {issueAdhoc,lateCalc,BILLS};')();
