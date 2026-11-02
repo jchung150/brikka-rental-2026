@@ -633,9 +633,9 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   PK.tab3c = '주차'; const k = 'b1본관801호', h = PK.CTR3(k), mine = PK.VEH.filter(v => v.k === k);
   const others = PK.VEH.filter(v => v.k !== k && v.plate && !mine.some(m => m.plate === v.plate));
   PK.tab3c = '원장'; const hl = PK.CTR3(k);
-  r6.push(['계약 상세 주차 탭 — 탭 6개(요약 · 청구·수납 · 원장 · 주차 · 자료보관 · 이력) · 그 계약 차량만 펼친 채 · 계약 필터 없음 · 주차구분 필터 · 차량 추가는 그 계약 · 원장 출력은 아이콘(글자 버튼 없음)',
+  r6.push(['계약 상세 주차 탭 — 탭 6개(요약 · 청구·수납 · 원장 · 주차 · 자료보관 · 이력) · 그 계약 차량만 한 단(묶음 줄 · 펼치기 · 계약고유이름 없음 · 대수는 필터 줄) · 계약 필터 없음 · 주차구분 필터 · 차량 추가는 그 계약 · 원장 출력은 아이콘(글자 버튼 없음)',
     />주차<\/button>/.test(h) && mine.length > 0 && mine.every(v => h.includes(v.plate)) && others.every(v => !h.includes(v.plate))
-    && !/전체 계약/.test(h) && /전체 주차구분/.test(h) && h.includes(`vehOpen('b1',0,'${k}')`)
+    && !/전체 계약/.test(h) && /전체 주차구분/.test(h) && /<th>차량 소유자<\/th>/.test(h) && !/계약고유이름/.test(h) && !/전체 펼치기|전체 접기/.test(h) && !/class="grp"/.test(h) && /총 \d+대 · 무료/.test(h) && h.includes(`vehOpen('b1',0,'${k}')`)
     && !/>원장 출력<\/button>/.test(hl) && /title="원장 출력 — /.test(hl)]); }
 /* 전체 펼치기는 머리글 왼쪽 화살표 · 청구서 발행의 전체 선택은 머리글 체크박스 */
 { const TG = new Function(stub + bare + '; seedJuly(); return {PAY1,PAY2,PAY6,PRO3,CTR3,sel1,set tab3(v){tab3=v;},set tab3c(v){tab3c=v;},set f1b(v){f1.b=v;}};')();
