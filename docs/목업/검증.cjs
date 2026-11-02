@@ -1048,8 +1048,18 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
 { const MT = new Function(stub + bare + '; seedJuly(); return {CTR3,MORE,set tab3c(v){tab3c=v;}};')();
   MT.tab3c = '청구·수납'; MT.MORE.length = 0; const h = MT.CTR3('b1별관301호'); const m1 = MT.MORE.slice(); MT.MORE.length = 0; const h2 = MT.CTR3('b1본관101호'); const m2 = MT.MORE.slice();
   const due = m1.filter(m => m[0].t === '상세' && !m[0].off).length === 2 && m1.every(m => m[1].t === '청구서 보기') && m2.length && m2.every(m => m[0].off);
-  r6.push(['계약 상세 청구·수납 탭 — 비씨에이전시 6·7월 줄 · 납부마감일 칸 · 월 마감일 칸(6월 07.03) · 연체료 · 더보기(상세 · 청구서 보기) · 미납 없는 달은 상세 흐림 · 합계 미납 5,176,383',
-    /2026년 07월분/.test(h) && /2026년 06월분/.test(h) && /<div>납부마감일<\/div>/.test(h) && /<div>2026\.07\.31<\/div>/.test(h) && /<div>납부마감일<\/div><div>월 마감일<\/div>/.test(h) && /<div>2026\.07\.03<\/div>/.test(h) && /연체료 /.test(h) && due && /5,176,383원/.test(h)]); }
+  r6.push(['계약 상세 청구·수납 탭 — 비씨에이전시 6·7월 줄 · 납부마감일 칸 · 월 마감일 칸(6월 07.03) · 더보기(상세 · 청구서 보기) · 미납 없는 달은 상세 흐림 · 합계 줄 없음',
+    /2026년 07월분/.test(h) && /2026년 06월분/.test(h) && /<div>납부마감일<\/div>/.test(h) && /<div>2026\.07\.31<\/div>/.test(h) && /<div>납부마감일<\/div><div>월 마감일<\/div>/.test(h) && /<div>2026\.07\.03<\/div>/.test(h) && due && !/<div>합계<\/div>/.test(h)]); }
+{ const FT = new Function(stub + bare + '; seedJuly(); return {CTR3month,CTRS,f7,set g7All(v){g7All=v;}};')();
+  const k = 'b1별관301호', c = FT.CTRS.find(x => x.b === 'b1' && x.no === '별관301호');
+  const h0 = FT.CTR3month(c, k);
+  FT.f7.per = '1'; const h1 = FT.CTR3month(c, k); FT.f7.per = '';
+  FT.f7.st = '미납·부분납'; const h2 = FT.CTR3month(c, k); FT.f7.st = '완납'; const h3 = FT.CTR3month(c, k); FT.f7.st = '';
+  FT.g7All = true; const h4 = FT.CTR3month(c, k);
+  r6.push(['계약 상세 청구·수납 탭 필터 — 기간(청구년월 기준) · 납부상태 · 전체 펼치기 · 합계 줄 없음 · 최근 1개월이면 8월분만 · 비씨에이전시는 완납 달이 없음 · 전체 펼치면 항목 줄(임대료)',
+    /전체 기간/.test(h0) && /전체 납부상태/.test(h0) && /전체 펼치기/.test(h0) && !/임대료/.test(h0)
+    && /2026년 08월분/.test(h1) && !/2026년 07월분/.test(h1) && /2026년 06월분/.test(h2) && /2026년 07월분/.test(h2)
+    && /조건에 맞는 달이 없습니다/.test(h3) && /전체 접기/.test(h4) && /임대료/.test(h4)]); }
 const bad6 = r6.filter(x => !x[1]);
 if (bad6.length) fail = 1;
 console.log('⑥ 수납 기록 ' + (bad6.length ? '✗ ' + bad6.map(x => x[0]).join(' / ') : 'OK — ' + r6.length + '개 검산'));

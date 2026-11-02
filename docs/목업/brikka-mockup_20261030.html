@@ -5195,7 +5195,12 @@ function CTR3head(c,k){
   </div>`;
 }
 /* CTR-3 청구·수납 탭 — 수납 내역(PAY-6)과 같은 줄을 이 계약 하나로. 미납·연체료가 있는 달은 「상세」로 미납 상세 패널 */
-let g7={};
+let g7={}, g7All=false;
+const g7Open=ym=>(ym in g7)?g7[ym]:g7All;
+/* 필터 — 기간은 청구년월 기준(원장은 거래일 기준) · 납부상태. 바꾸면 첫 페이지로 */
+let f7={per:'',st:''};
+const setF7=(k,v,ck)=>{f7[k]=v;hp['m'+ck]=1;render();};
+const F7ST=[['','전체 납부상태'],['미납·부분납','미납 · 부분납'],['미납','미납'],['부분납','부분납'],['납부전','납부전'],['완납','완납']];
 /* 청구서 메일 받는 사람 — 담당자마다 「청구서 메일」 체크. 정하지 않았으면 대표 담당자. 아무도 없으면 이 계약은 청구서 메일을 보내지 않는다 → 19 */
 const billTo=c=>pplOf(c).filter((x,i)=>x.bill!=null?x.bill:i===0);
 /* 연체료 중지 안내 — 중지 중일 때만 청구·수납 탭 위에 한 줄 → 19 */
@@ -5216,25 +5221,29 @@ function CTR3monthT(c,k){
   const lastC=yms.find(ym=>closedBy(c.b,ym,TODAY_S)), nx=lastC&&ymNext(lastC), pend=nx&&!yms.includes(nx)&&carryAmt(k,lastC)>0?nx:null;
   if(pend) yms.unshift(pend);
   const A=arrears(c).months, late=new Set(A.map(m=>m.ym));
-  const rows=yms.map(ym=>({ym,x:{...ctrPay(k,ym),k}})).filter(r=>r.x.st);
-  /* 합계 — 청구액은 달마다의 청구만 더한다(이월 미납액은 앞 달 청구라 두 번 세지 않는다). 수납액은 실제로 받은 돈 */
-  const T=rows.reduce((a,r)=>{const g=rcvSum(r.x);return {bill:a.bill+r.x.bill,paid:a.paid+g.paid};},{bill:0,paid:0});
+  const all=yms.map(ym=>({ym,x:{...ctrPay(k,ym),k}})).filter(r=>r.x.st);
+  /* 최근 N개월 — 이 달(TODAY)부터 거슬러 N개 달 */
+  let from=null; if(f7.per){from=TODAY_S.slice(0,7); for(let i=1;i<+f7.per;i++) from=ymPrev(from);}
+  const rows=all.filter(r=>(!from||r.ym>=from)&&(!f7.st||(f7.st==='미납·부분납'?['미납','부분납'].includes(r.x.st):r.x.st===f7.st)));
+  const anyOp=rows.some(r=>g7Open(r.ym));
+  const fbar=!all.length?'':`<div class="fbar">
+    <select onchange="setF7('per',this.value,'${k}')">${[['','전체 기간'],['1','최근 1개월'],['3','최근 3개월'],['12','최근 12개월']].map(([v,t])=>`<option value="${v}" ${f7.per===v?'selected':''}>${t}</option>`).join('')}</select>
+    <select onchange="setF7('st',this.value,'${k}')">${F7ST.map(([v,t])=>`<option value="${v}" ${f7.st===v?'selected':''}>${t}</option>`).join('')}</select>
+    ${rows.length?`<button class="btn sm" onclick="g7All=${anyOp?'false':'true'};g7={};render(true)">${anyOp?'전체 접기':'전체 펼치기'}</button>`:''}
+  </div>`;
   const N=Math.max(1,Math.ceil(rows.length/HPER)), cur=Math.min(hp['m'+k]||1,N), P=rows.slice((cur-1)*HPER,cur*HPER);
   const hd=`<div class="schr ctm hd"><div>청구년월 · 청구항목</div><div>납부마감일</div><div>월 마감일</div><div class="n">청구액</div><div class="n">수납액</div><div class="n">미납액</div><div class="c">납부상태</div><div class="c">더보기</div></div>`;
-  if(!rows.length) return `<div class="tbl schl">${hd}<div class="schr ctm"><div style="grid-column:1/-1;text-align:center;padding:16px 0;color:var(--muted)">아직 발행한 청구서가 없습니다</div></div></div>`;
-  return `<div class="tbl schl">
+  if(!rows.length) return fbar+`<div class="tbl schl">${hd}<div class="schr ctm"><div style="grid-column:1/-1;text-align:center;padding:16px 0;color:var(--muted)">${all.length?'조건에 맞는 달이 없습니다':'아직 발행한 청구서가 없습니다'}</div></div></div>`;
+  return fbar+`<div class="tbl schl">
     ${hd}
-    ${P.map(r=>rcvRow(r.x,{cls:'ctm',op:!!g7[r.ym],tog:`g7['${r.ym}']=!g7['${r.ym}'];render(true)`,label:`${r.ym.replace('-','년 ')}월분`,ym:r.ym,
+    ${P.map(r=>rcvRow(r.x,{cls:'ctm',op:g7Open(r.ym),tog:`g7['${r.ym}']=!g7Open('${r.ym}');render(true)`,label:`${r.ym.replace('-','년 ')}월분`,ym:r.ym,
       dueCol:r.ym===pend?'<span class="c2" style="margin:0">청구서 발행 전</span>':dueStr(r.ym).replace(/-/g,'.'),
       closeCol:(d=>d?d.replace(/-/g,'.'):'<span class="c2" style="margin:0">마감 전</span>')(r.ym!==pend&&closedBy(c.b,r.ym,TODAY_S)?closeOn(c.b,r.ym):null),
       more:moreCell(r.ym===pend?[{t:'상세',off:'청구서 발행 전입니다. 이월 미납액의 내역은 앞 달의 상세에서 봅니다'},{t:'청구서 보기',off:'청구서 발행 전입니다'}]
         :[{t:'상세',go:`openDue('${k}','${r.ym}')`,off:late.has(r.ym)?null:'미납 · 연체료가 없는 달입니다'},{t:'청구서 보기',go:`billView('${k}','${r.ym}')`}])})).join('')}
-    <div class="schr ctm sum"><div>합계</div><div></div><div></div><div class="n">${won(T.bill)}</div><div class="n">${won(T.paid)}</div>
-      <div class="n">${(v=>v>0?`<span style="color:var(--warn)">${won(v)}</span>`:v<0?`<span style="color:var(--pri)">과납 ${won(-v)}</span>`:'—')(ledgerOf(k).bal.매출채권)}</div><div></div><div></div></div>
     ${pagerHTML(rows.length,cur,`(p=>{hp['m${k}']=p;render(true);})`)}
   </div>
-  <div class="hint">달마다 청구액·수납액·미납액을 봅니다. 줄을 누르면 항목별로 펼쳐집니다. 월 마감일은 그 달을 마감한 날입니다(마감 전이면 「마감 전」). 마감한 달의 미납은 다음 달 이월 미납액으로 넘어갑니다. 미납이나 연체료가 있는 달은 더보기의 <b>상세</b>로 그 달의 내역을 봅니다.<br>
-    합계의 미납액은 지금 남은 받을 돈(원장 잔액)입니다. 마감한 달의 미납은 다음 달 이월 미납액으로 넘어가므로 달별 미납액을 더한 값과 다를 수 있습니다.<br>
+  <div class="hint">달마다 청구액·수납액·미납액을 봅니다. 줄을 누르면 항목별로 펼쳐집니다. 기간 필터는 청구년월 기준입니다(최근 3개월 = 이 달 포함 3개 달의 청구서). 월 마감일은 그 달을 마감한 날입니다(마감 전이면 「마감 전」). 마감한 달의 미납은 다음 달 이월 미납액으로 넘어갑니다. 미납이나 연체료가 있는 달은 더보기의 <b>상세</b>로 그 달의 내역을 봅니다.<br>
     다음 달 청구서를 발행하기 전이면 그 달 줄(청구서 발행 전)에 이월 미납액만 보이고, 마감 뒤에 받은 돈은 거기에 붙습니다.<br>
     돈을 기록하는 일(청구 · 수납, 보증금)은 원장 탭에서 합니다.<br>
     연체료를 중지한 계약은 맨 위에 안내가 보입니다. 중지 · 재개는 요약 › 임대정보의 <b>연체료 부과</b> 줄에서, 청구서 메일 받는 사람은 요약 › 담당자에서 정합니다.</div>`;
