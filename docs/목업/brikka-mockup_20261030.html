@@ -4107,7 +4107,7 @@ function rcvRow(x,o){
       <div class="nm"><span class="tg ${op?'op':''}">${ic('chev',16)}</span>${o.label}</div>${o.dueCol!==undefined?`<div>${o.dueCol}</div>`:''}
       <div class="n">${won(g.bill)}${cutNote(g.cut)}</div>
       <div class="n">${g.paid?won(g.paid):dash}</div>
-      <div class="n">${g.due?`<b style="color:var(--warn)">${won(g.due)}</b>`:dash}${o.fee?`<div class="c2" style="margin:0">연체료 ${won(o.fee)}</div>`:''}</div>
+      <div class="n">${g.due?`<b style="color:var(--warn)">${won(g.due)}</b>`:dash}</div>
       <div class="c"><span class="bd ${PST[x.st]}">${x.st}</span></div>${o.more!==undefined?`<div class="c">${o.more}</div>`:''}</div>`+(pre?sub.replace(/(<div class="nm">[^<]*<\/div>)/g,'$1'+pre):sub);
 }
 
@@ -5215,7 +5215,7 @@ function CTR3monthT(c,k){
   /* 마지막으로 마감한 달의 미납이 넘어간 다음 달 — 청구서 발행 전이어도 이월 미납액만으로 한 줄을 보인다(마감 뒤 수납이 여기에 붙는다) */
   const lastC=yms.find(ym=>closedBy(c.b,ym,TODAY_S)), nx=lastC&&ymNext(lastC), pend=nx&&!yms.includes(nx)&&carryAmt(k,lastC)>0?nx:null;
   if(pend) yms.unshift(pend);
-  const A=arrears(c).months, feeOf=ym=>(A.find(m=>m.ym===ym)||{}).fee||0, late=new Set(A.map(m=>m.ym));
+  const A=arrears(c).months, late=new Set(A.map(m=>m.ym));
   const rows=yms.map(ym=>({ym,x:{...ctrPay(k,ym),k}})).filter(r=>r.x.st);
   /* 합계 — 청구액은 달마다의 청구만 더한다(이월 미납액은 앞 달 청구라 두 번 세지 않는다). 수납액은 실제로 받은 돈 */
   const T=rows.reduce((a,r)=>{const g=rcvSum(r.x);return {bill:a.bill+r.x.bill,paid:a.paid+g.paid};},{bill:0,paid:0});
@@ -5225,7 +5225,7 @@ function CTR3monthT(c,k){
   return `<div class="tbl schl">
     ${hd}
     ${P.map(r=>rcvRow(r.x,{cls:'ctm',op:!!g7[r.ym],tog:`g7['${r.ym}']=!g7['${r.ym}'];render(true)`,label:`${r.ym.replace('-','년 ')}월분`,ym:r.ym,
-      dueCol:r.ym===pend?'<span class="c2" style="margin:0">청구서 발행 전</span>':dueStr(r.ym).replace(/-/g,'.'),fee:feeOf(r.ym),
+      dueCol:r.ym===pend?'<span class="c2" style="margin:0">청구서 발행 전</span>':dueStr(r.ym).replace(/-/g,'.'),
       more:moreCell(r.ym===pend?[{t:'상세',off:'청구서 발행 전입니다. 이월 미납액의 내역은 앞 달의 상세에서 봅니다'},{t:'청구서 보기',off:'청구서 발행 전입니다'}]
         :[{t:'상세',go:`openDue('${k}','${r.ym}')`,off:late.has(r.ym)?null:'미납 · 연체료가 없는 달입니다'},{t:'청구서 보기',go:`billView('${k}','${r.ym}')`}])})).join('')}
     <div class="schr ctm sum"><div>합계</div><div></div><div class="n">${won(T.bill)}</div><div class="n">${won(T.paid)}</div>

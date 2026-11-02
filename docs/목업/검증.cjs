@@ -290,7 +290,7 @@ r6.push(['보증금상계 100만 — 미납 1,176,383 · 보증금 잔액 100만
     && L.rows.some(r => r.type === '보증금 반환' && r.dec === 9000000 && /보증금 더 받음/.test(r.why) && !/보증금 더 받음/.test(r.item)) && /반환할 금액/.test(html) && full]); }
 W.openPay('b1별관301호'); W.setPm('amt', 99999999); W.payConfirm();
 r6.push(['미납보다 많이 받으면 확정되지 않음', left('b1별관301호') === 1176383]);
-/* 연체료 — 연체료 포함를 고르지 않은 수납 · 상계는 청구 전 연체료를 건드리지 않는다. 그대로 다음 청구서로 → 18-3 */
+/* 연체료 — 연체료 포함을 고르지 않은 수납 · 상계는 청구 전 연체료를 건드리지 않는다. 그대로 다음 청구서로 → 18-3 */
 const fee0 = W.feeUntil('b1별관301호', '2026-08-10');
 W.openOffset('b1별관301호'); const amtF = W.pm.amt; W.payConfirm();
 const LF = W.ledgerOf('b1별관301호');
@@ -330,7 +330,7 @@ M.mcx.why = '수납 배분 재조정'; M.mcApply(); const undone = !M.MC.b1['202
 M.mcOpen('close'); M.mcApply();
 r6.push(['월 마감 — 카리나빌딩 7월 확인 6항목 통과 · 사유 없으면 취소 안 됨 · 취소 후 다시 마감 · 이력 2줄',
   okAll && kept && undone && !!M.MC.b1['2026-07'] && M.MC_LOG['b1|2026-07'].length === 2]);
-/* 수납 처리 — 기본은 미납만 받는다. 연체료 포함를 고르지 않으면 청구 전 연체료는 안내만 하고 다음 청구서로 → 18-3 */
+/* 수납 처리 — 기본은 미납만 받는다. 연체료 포함을 고르지 않으면 청구 전 연체료는 안내만 하고 다음 청구서로 → 18-3 */
 const H = new Function(stub + bare + '; seedJuly(); return {openPay,setPm,payConfirm,payHTML,ledgerOf,feeUntil,BILLS,get pm(){return pm;},PAY2};')();
 H.openPay('b1본관B201호'); const ruby = H.pm.amt === 0 && /<span>1,096원<\/span>/.test(H.payHTML());
 H.openPay('b1별관301호'); const hh = H.payHTML();
@@ -339,7 +339,7 @@ const panel = H.pm.amt === 5176383 && !/함께 정리/.test(hh) && !/전액 받�
   && /미납 내역/.test(hh) && /26\.06월분/.test(hh);
 H.setPm('amt', 3000000); H.payConfirm();
 const LH = H.ledgerOf('b1별관301호');
-r6.push(['수납 처리 — 기본은 미납만 · 함께 정리 · 연체료 처리 없음 · 미납액 합계 5,176,383 · 청구 전 연체료 38,521은 연체료 포함를 고르지 않으면 안내만 · 현금 300만 → 연체료 청구 안 생김 · 남은 받을 돈 2,176,383 · 루비뮤직은 받을 돈 0 · 청구 전 연체료 1,096만 안내',
+r6.push(['수납 처리 — 기본은 미납만 · 함께 정리 · 연체료 처리 없음 · 미납액 합계 5,176,383 · 청구 전 연체료 38,521은 연체료 포함을 고르지 않으면 안내만 · 현금 300만 → 연체료 청구 안 생김 · 남은 받을 돈 2,176,383 · 루비뮤직은 받을 돈 0 · 청구 전 연체료 1,096만 안내',
   ruby && panel && !H.BILLS.some(i => i.fee && !i.reg) && LH.bal.매출채권 === 2176383 && H.feeUntil('b1별관301호', '2026-08-10') === 38521]);
 r6.push(['면제가 없다 — 루비뮤직은 미납은 없지만 청구 전 연체료 1,096이 있어 미납 관리에 오름', /본관B201호/.test(H.PAY2())]);
 /* 계약 등록 — 진행중 계약과 기간이 겹치면 막고, 끝난 다음 날부터는 등록된다 → CTR-2 */
