@@ -1719,7 +1719,11 @@ function bphHTML(b){
    차량마다 계약 · 차량 소유자 · 차량번호 · 연락처 · 차종 · 주차구분 · 요금부과(무료 / 월정액).
    무료로 등록할 수 있는 대수는 그 계약의 무료 주차 대수까지다. 넘는 차량은 월정액 → 주차비 정산.
    카리나빌딩 실제 명부(대표 제공). 모르는 칸은 비워 두었다(소유자 · 연락처 미확인). 무료가 무료 주차 대수를 넘은 계약은 그대로 두고 화면에서 초과로 보인다 ═══ */
-const VEH_LOC=['지상','지하','기계식'], VEH_FEE=['무료','월정액'];
+const VEH_LOC=['지상','지하','기계식','기타'], VEH_FEE=['무료','월정액'];
+/* 기타 — 건물 밖 주차(예: 임대인이 지원하는 근처 호텔). 장소를 적고, 건물의 무료 주차 대수에는 세지 않는다 */
+const locTx=v=>v.loc==='기타'&&v.place?`기타 · ${v.place}`:v.loc;
+const vehCnt=vs=>({n:vs.length,fr:vs.filter(v=>v.loc!=='기타'&&v.fee==='무료').length,mo:vs.filter(v=>v.loc!=='기타'&&v.fee==='월정액').length,et:vs.filter(v=>v.loc==='기타').length});
+const vehCntTx=vs=>{const x=vehCnt(vs);return `총 ${x.n}대 · 무료 ${x.fr}대 + 월정액 ${x.mo}대${x.et?` · 기타 ${x.et}대`:''}`;};
 let VEH=[
  {id:1,k:'b1본관801호',own:'이한용',plate:'10버3291',tel:'010-4745-7585',model:'BMW 520 (2020)',loc:'기계식',fee:'무료'},
  {id:2,k:'b1본관801호',own:'김동철',plate:'17노1733',tel:'010-9703-9794',model:'벤츠 B200',loc:'기계식',fee:'무료'},
@@ -1730,7 +1734,7 @@ let VEH=[
  {id:7,k:'b1본관701호',own:'박기성',plate:'249라5397',tel:'010-9964-1518',model:'벤츠 E240',loc:'기계식',fee:'무료'},
  {id:8,k:'b1본관701호',own:'윤종찬',plate:'59루0389',tel:'010-9733-3121',model:'말리부 (2017)',loc:'기계식',fee:'월정액'},
  {id:9,k:'b1본관701호',own:'장택준',plate:'129주2644',tel:'010-2344-9444',model:'XM3 (2020)',loc:'기계식',fee:'월정액'},
- {id:10,k:'b1본관501호',own:'',plate:'202호8010',tel:'',model:'뉴그랜저',loc:'아난티',fee:'무료'},
+ {id:10,k:'b1본관501호',own:'',plate:'202호8010',tel:'',model:'뉴그랜저',loc:'기타',place:'아난티 호텔',fee:'무료'},
  {id:11,k:'b1본관501호',own:'서재호',plate:'110마3360',tel:'010-3731-5894',model:'뉴그랜저',loc:'기계식',fee:'무료'},
  {id:12,k:'b1본관501호',own:'서재호',plate:'06부5330',tel:'010-3731-5894',model:'그랜저',loc:'기계식',fee:'무료'},
  {id:13,k:'b1본관501호',own:'',plate:'186주3524',tel:'',model:'K5',loc:'기계식',fee:'무료'},
@@ -1758,19 +1762,20 @@ const ctrOfK=k=>CTRS.find(c=>ckey(c)===k);
 let vh=null;
 /* fixK — 계약 상세에서 열면 그 계약으로 정해져 있다 */
 function vehOpen(bid,id,fixK){const v=id?VEH.find(x=>x.id===id):null;
-  vh={bid,id:id||0,fixK:fixK||'',k:v?v.k:(fixK||''),own:v?v.own:'',plate:v?v.plate:'',tel:v?v.tel:'',model:v?v.model:'',loc:v?v.loc:'기계식',fee:v?v.fee:'무료',tried:false};
+  vh={bid,id:id||0,fixK:fixK||'',k:v?v.k:(fixK||''),own:v?v.own:'',plate:v?v.plate:'',tel:v?v.tel:'',model:v?v.model:'',loc:v?v.loc:'기계식',place:v&&v.place||'',fee:v?v.fee:'무료',tried:false};
   DRAWER='veh';render(true);}
 function vehMissing(){const m=[];
   if(!vh.k) m.push('계약'); if(!vh.plate.trim()) m.push('차량번호'); if(!vh.own.trim()) m.push('차량 소유자'); if(!vh.tel.trim()) m.push('연락처');
   const b=BUILDINGS.find(x=>x.id===vh.bid);
   if(vh.plate.trim()&&VEH.some(v=>v.id!==vh.id&&v.plate===vh.plate.trim()&&ctrOfK(v.k)&&ctrOfK(v.k).b===b.id)) m.push('차량번호(이미 등록됨)');
-  if(vh.k&&vh.fee==='무료'){const free=(CPARK[vh.k]||{}).free||0, n=vehOf(vh.k).filter(v=>v.id!==vh.id&&v.fee==='무료').length;
+  if(vh.loc==='기타'&&!vh.place.trim()) m.push('장소');
+  if(vh.k&&vh.fee==='무료'&&vh.loc!=='기타'){const free=(CPARK[vh.k]||{}).free||0, n=vehCnt(vehOf(vh.k).filter(v=>v.id!==vh.id)).fr;
     if(n+1>free) m.push(`요금부과(무료는 무료 주차 ${free}대까지 · 월정액으로)`);}
   return m;}
 function vehSave(){vh.tried=true; if(vehMissing().length){render(true);return;}
-  const b=BUILDINGS.find(x=>x.id===vh.bid), c=ctrOfK(vh.k), val={k:vh.k,own:vh.own.trim(),plate:vh.plate.trim(),tel:vh.tel.trim(),model:vh.model.trim(),loc:vh.loc,fee:vh.fee};
+  const b=BUILDINGS.find(x=>x.id===vh.bid), c=ctrOfK(vh.k), val={k:vh.k,own:vh.own.trim(),plate:vh.plate.trim(),tel:vh.tel.trim(),model:vh.model.trim(),loc:vh.loc,place:vh.loc==='기타'?vh.place.trim():'',fee:vh.fee};
   if(vh.id){const v=VEH.find(x=>x.id===vh.id), ch=[];
-    if(v.k!==val.k) ch.push(`계약 → ${cname(b.alias,c.no,c.ten)}`); if(v.fee!==val.fee) ch.push(`요금부과 ${v.fee} → ${val.fee}`); if(v.loc!==val.loc) ch.push(`주차구분 ${v.loc} → ${val.loc}`);
+    if(v.k!==val.k) ch.push(`계약 → ${cname(b.alias,c.no,c.ten)}`); if(v.fee!==val.fee) ch.push(`요금부과 ${v.fee} → ${val.fee}`); if(locTx(v)!==locTx(val)) ch.push(`주차구분 ${locTx(v)} → ${locTx(val)}`);
     if(v.tel!==val.tel||v.own!==val.own||v.model!==val.model) ch.push('소유자 정보 수정');
     Object.assign(v,val);}
   else VEH.push({id:vehSeq++,...val});
@@ -1788,11 +1793,11 @@ function vdHTML(){
     <div class="dh"><div><div class="t">${v.plate}</div><div class="s">${b.name} · 차량 상세</div></div>
       <button class="x" onclick="closeDrawer()">✕</button></div>
     <div class="db">
-      <div class="fg"><div class="fl">차량</div>${R('차량번호',v.plate)}${R('차종',v.model||'—')}${R('주차구분',v.loc)}
+      <div class="fg"><div class="fl">차량</div>${R('차량번호',v.plate)}${R('차종',v.model||'—')}${R('주차구분',locTx(v))}
         ${R('요금부과',v.fee==='월정액'?`<span class="bd wa2">월정액</span>${cp.fee?` <span class="c2">월 ${won(cp.fee)}</span>`:''}`:'<span class="bd mu">무료</span>')}</div>
       <div class="fg"><div class="fl">비상 연락</div>${R('차량 소유자',v.own||miss)}${R('연락처',v.tel||miss)}</div>
       <div class="fg"><div class="fl">계약</div>${R('계약고유이름',c?`<span class="plk" onclick="closeDrawer();tab3c='요약';go('ctr-3/${v.k}')">${cnameHTML(b.alias,c.no,c.ten)}</span>`:'—')}
-        ${R('이 계약 차량',`총 ${vehOf(v.k).length}대 · 무료 ${vehOf(v.k).filter(x=>x.fee==='무료').length}대 + 월정액 ${vehOf(v.k).filter(x=>x.fee==='월정액').length}대${cp.free!=null?` <span class="c2">(무료 주차 ${cp.free}대)</span>`:''}`)}</div>
+        ${R('이 계약 차량',`${vehCntTx(vehOf(v.k))}${cp.free!=null?` <span class="c2">(무료 주차 ${cp.free}대)</span>`:''}`)}</div>
     </div>
     <div class="df"><button class="btn pri" onclick="vehOpen('${b.id}',${v.id})">수정</button><button class="btn" onclick="closeDrawer();vehDel(${v.id})">삭제</button></div>
   </div></div>`;
@@ -1810,14 +1815,15 @@ function vehHTML(){
     <div class="db">
       ${R('계약',fixed?`<span class="fv">${cname(b.alias,fixed.no,fixed.ten)}</span>`
         :`<select onchange="vh.k=this.value;render(true)" style="${inp};max-width:100%"><option value="">선택</option>${cs.map(c=>`<option value="${ckey(c)}" ${vh.k===ckey(c)?'selected':''}>${cname(b.alias,c.no,c.ten)}</option>`).join('')}</select>`,1)}
-      ${cp?`<div class="c2" style="margin:-4px 0 10px 114px">무료 주차 ${cp.free}대 · 지금 무료 ${vehOf(vh.k).filter(v=>v.fee==='무료'&&v.id!==vh.id).length}대 등록</div>`:''}
+      ${cp?`<div class="c2" style="margin:-4px 0 10px 114px">무료 주차 ${cp.free}대 · 지금 무료 ${vehCnt(vehOf(vh.k).filter(v=>v.id!==vh.id)).fr}대 등록</div>`:''}
       ${R('차량번호',T('plate','예: 12가3456',160),1)}
       ${R('차량 소유자',T('own','',160),1)}
       ${R('연락처',T('tel','비상시 연락',160),1)}
       ${R('차종',T('model','예: 그랜저 IG'))}
-      ${R('주차구분',`<select onchange="vh.loc=this.value" style="${inp}">${VEH_LOC.map(v=>`<option ${vh.loc===v?'selected':''}>${v}</option>`).join('')}</select>`)}
+      ${R('주차구분',`<select onchange="vh.loc=this.value;render(true)" style="${inp}">${VEH_LOC.map(v=>`<option ${vh.loc===v?'selected':''}>${v}</option>`).join('')}</select>`)}
+      ${vh.loc==='기타'?R('장소',T('place','예: 아난티 호텔',200),1):''}
       ${R('요금부과',`<select onchange="vh.fee=this.value;render(true)" style="${inp}">${VEH_FEE.map(v=>`<option ${vh.fee===v?'selected':''}>${v}</option>`).join('')}</select>`)}
-      <div class="c2" style="margin:0;white-space:normal">무료는 계약의 무료 주차 대수까지입니다. 넘는 차량은 월정액이며 주차비로 청구합니다.</div>
+      <div class="c2" style="margin:0;white-space:normal">무료는 계약의 무료 주차 대수까지입니다. 넘는 차량은 월정액이며 주차비로 청구합니다. 주차구분 <b>기타</b>(건물 밖 주차)는 장소를 적고, 무료 주차 대수에 세지 않습니다.</div>
       ${miss.length?`<div class="fnd wa3" style="margin:10px 0 0"><span class="h">저장할 수 없습니다</span>빠진 항목: <b>${miss.join(' · ')}</b></div>`:''}
     </div>
     <div class="df"><button class="btn pri" onclick="vehSave()">${vh.id?'저장':'등록'}</button></div>
@@ -2055,24 +2061,28 @@ const gpkSet=v=>{gpkAll=v;gpk={};render(true);};
 /* fixK — 계약 상세 주차 탭. 같은 표를 그 계약 하나로 — 계약을 이미 알므로 묶음 줄 · 펼치기 없이 차량만 한 단으로 */
 function t주차(b,fixK){
   const cs=fixK?CTRS.filter(c=>ckey(c)===fixK):CTRS.filter(c=>c.b===b.id&&c.st==='진행중'), keys=cs.map(ckey);
-  const fk=fixK?'':fpk.k, all=VEH.filter(v=>keys.includes(v.k)), filt=!!(fk||fpk.loc);
+  /* 연장 계약(준비중) — 이전 계약의 차량이 시작일에 옮겨진다. 그 전까지는 옮겨질 차량을 보인다 */
+  const fc=fixK&&cs[0], pend=fc&&fc.vehP&&!vehOf(fixK).length?fc.vehP:null, vOf=k=>pend||vehOf(k);
+  const fk=fixK?'':fpk.k, all=pend||VEH.filter(v=>keys.includes(v.k)), filt=!!(fk||fpk.loc);
   const list=all.filter(v=>(!fk||v.k===fk)&&(!fpk.loc||v.loc===fpk.loc));
   const S=(f,opts,lab)=>`<select onchange="setFpk('${f}',this.value)"><option value="">${lab}</option>${opts.map(([v,t])=>`<option value="${v}" ${fpk[f]===v?'selected':''}>${t}</option>`).join('')}</select>`;
   /* 필터가 없으면 차량이 없어도 무료 주차가 있는 계약을 보인다(빈 자리를 알 수 있게) */
   const groups=cs.map(c=>({c,k:ckey(c),vs:list.filter(v=>v.k===ckey(c))})).filter(g=>g.vs.length||(!filt&&CPARK[g.k]));
   const anyOp=groups.some(g=>gpkOpen(g.k)), miss='<span style="color:var(--warn)">미확인</span>';
   /* 계약의 차량 대수 · 무료 초과 · 연락처 미확인 — 건물 탭은 묶음 줄에, 계약 탭은 필터 줄에 */
-  const sumOf=k=>{const cp=CPARK[k]||{}, vs=vehOf(k), fr=vs.filter(v=>v.fee==='무료').length, mo=vs.length-fr, over=cp.free!=null?fr-cp.free:0;
-    return `<span class="c2" style="margin:0 0 0 8px">총 ${vs.length}대 · 무료 ${fr}대 + 월정액 ${mo}대</span>
+  const sumOf=k=>{const cp=CPARK[k]||{}, vs=vOf(k), over=cp.free!=null?vehCnt(vs).fr-cp.free:0;
+    return `<span class="c2" style="margin:0 0 0 8px">${vehCntTx(vs)}</span>
       ${over>0?`<span class="bd wa" style="margin-left:8px">무료 ${over}대 초과</span>`:''}${vs.some(v=>!v.own||!v.tel)?'<span class="bd wa2" style="margin-left:6px">연락처 미확인</span>':''}`;};
-  const vrow=(v,pad)=>`<tr style="cursor:pointer" onclick="vdOpen('${b.id}',${v.id})"><td class="c1" style="font-weight:500${pad?';padding-left:44px':''}">${v.own||miss}</td><td>${v.plate}</td><td style="white-space:nowrap">${v.tel||miss}</td><td>${v.model||'—'}</td>
-          <td>${v.loc}</td><td>${v.fee==='월정액'?'<span class="bd wa2">월정액</span>':'<span class="bd mu">무료</span>'}</td>
-          <td class="c">${moreCell([{t:'상세',go:`vdOpen('${b.id}',${v.id})`},{t:'수정',go:`vehOpen('${b.id}',${v.id})`},{t:'삭제',go:`vehDel(${v.id})`}])}</td></tr>`;
+  const vrow=(v,pad)=>`<tr style="cursor:${pend?'default':'pointer'}" onclick="${pend?'':`vdOpen('${b.id}',${v.id})`}"><td class="c1" style="font-weight:500${pad?';padding-left:44px':''}">${v.own||miss}</td><td>${v.plate}</td><td style="white-space:nowrap">${v.tel||miss}</td><td>${v.model||'—'}</td>
+          <td>${locTx(v)}</td><td>${v.fee==='월정액'?'<span class="bd wa2">월정액</span>':'<span class="bd mu">무료</span>'}</td>
+          <td class="c">${moreCell(pend?[{t:'상세',off:'시작일에 옮겨질 차량입니다'},{t:'수정',off:'이전 계약의 주차 탭에서 고칩니다'},{t:'삭제',off:'이전 계약의 주차 탭에서 고칩니다'}]
+            :[{t:'상세',go:`vdOpen('${b.id}',${v.id})`},{t:'수정',go:`vehOpen('${b.id}',${v.id})`},{t:'삭제',go:`vehDel(${v.id})`}])}</td></tr>`;
   const cols=`<th>차량번호</th><th>연락처</th><th>차종</th><th>주차구분</th><th>요금부과</th><th class="c">더보기</th></tr></thead>`;
   return `
   ${tabBar((fixK?'':S('k',cs.map(c=>[ckey(c),cname(b.alias,c.no,c.ten)]),'전체 계약'))+S('loc',VEH_LOC.map(v=>[v,v]),'전체 주차구분')
     +(fixK?`<span style="align-self:center">${sumOf(fixK)}</span>`:''),
     `<button class="btn pri" onclick="vehOpen('${b.id}'${fixK?`,0,'${fixK}'`:''})">+ 차량 추가</button>`)}
+  ${pend?`<div class="fnd" style="margin:0 0 12px"><span class="h">계약 시작일에 옮겨집니다</span>이전 계약의 차량 ${pend.length}대가 <b>${fc.base.replace(/-/g,'.')}</b> 시작일에 이 계약으로 옮겨집니다. 그 전까지는 이전 계약의 주차 탭에서 고칩니다.</div>`:''}
   <div class="tbl">
     ${fixK?(list.length?`<div class="tw"><table>
       <thead><tr><th>차량 소유자</th>${cols}
@@ -4930,7 +4940,7 @@ function CTR2(rk){
         +FR('관리비 기산일',nc.rfMgmt);})())
     +card('보증금',R('보증금',N('dep','약정액'))+R('환불계좌',`${T('rbank','은행',90)}${T('racct','계좌번호')}${T('rname','예금주',90)}`))
     +card('주차',R('무료 주차',`${T('park','',70)}<span class="c2" style="margin:0">대</span>`)
-      +(RW?'':'<div class="c2" style="margin:0">등록 차량은 저장한 뒤 계약 상세의 주차정보에서 넣습니다</div>'))
+      +(RW?'':'<div class="c2" style="margin:0">등록 차량은 저장한 뒤 계약 상세의 주차 탭에서 넣습니다</div>'))
     +card('냉난방기',nc.hvs.map((x,i)=>{const H=(f,ph,w)=>`<input type="text" value="${x[f]}" placeholder="${ph||''}" onchange="nc.hvs[${i}].${f}=this.value"${w?` style="max-width:${w}px"`:''}>`;
         return `<div style="border:1px solid var(--line);border-radius:var(--r-sm);padding:10px 12px 2px;margin-bottom:10px">
           ${R('종류',H('n','예: 시스템에어컨')+`<button class="btn sm" onclick="nc.hvs.splice(${i},1);render(true)">삭제</button>`)}
@@ -5466,10 +5476,11 @@ function CTR3sum(c,k){
   ${CTR3adj(c,k)}
   <div class="two">${ppl}${ag}</div>
   <div class="two">
-    <div class="card"><div class="ct">주차정보<span class="ca">${moreCell([{t:'수정',go:`cpkOpen('${k}')`},{t:'차량 추가',go:`vehOpen('${c.b}',0,'${k}')`}])}</span></div><div class="cc"><dl class="dl">
+    <div class="card"><div class="ct">주차정보<span class="ca">${moreCell([{t:'수정',go:`cpkOpen('${k}')`}])}</span></div><div class="cc"><dl class="dl">
       <dt>무료 주차 대수</dt><dd>${CPARK[k]?`${CPARK[k].free}대`:'—'}</dd>
-      ${(V=>V.length?V.map((v,i)=>`<dt>${i?'':'등록 차량'}</dt><dd>${v.plate} · ${v.own}<span class="lock">${v.loc} · ${v.fee}${c.vehP?` · ${d8(c.base)} 시작일에 옮겨집니다`:''}</span></dd>`).join('')
-        :'<dt>등록 차량</dt><dd><span style="color:var(--muted)">없음</span></dd>')(c.vehP||vehOf(k))}
+      ${(V=>{const over=CPARK[k]?vehCnt(V).fr-CPARK[k].free:0;   /* 차량 목록은 주차 탭에서 — 여기는 대수와 경고만 */
+        return `<dt>등록 차량</dt><dd>${V.length?vehCntTx(V):'<span style="color:var(--muted)">없음</span>'}${over>0?` <span class="bd wa">무료 ${over}대 초과</span>`:''}${V.some(v=>!v.own||!v.tel)?' <span class="bd wa2">연락처 미확인</span>':''}
+          <span class="lock">${c.vehP?`${d8(c.base)} 시작일에 옮겨집니다 · `:''}<span class="plk" style="text-decoration:underline" onclick="tab3c='주차';render()">주차 탭에서 보기 →</span></span></dd>`;})(c.vehP||vehOf(k))}
     </dl></div></div>
     <div class="card"><div class="ct">냉난방기<span class="ca">${moreCell([{t:'수정',go:`chvOpen('${k}')`}])}</span></div><div class="cc"><dl class="dl">
       ${(H=>H.length?H.map(x=>`<dt>${x.n}</dt><dd>${x.q}대 · ${x.t}${x.m?`<span class="lock">${x.m}</span>`:''}</dd>`).join('')
