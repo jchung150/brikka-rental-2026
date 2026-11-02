@@ -1181,6 +1181,8 @@ function calc(m,raw){
 
 function csHTML(){
   if(DRAWER!=='chargeset'||!cs) return '';
+  /* 칸 설명은 칸 이름 옆 ⓘ에 — 마우스를 올리면 보인다. 저장을 막는 오류(우선순위 중복)만 칸 아래에 그대로 */
+  const TIP=t=>t?`<i class="tip" data-tip="${t}">i</i>`:'';
   const U=UNITS_B1, A=csAuto();
   const nM=cs.useMeter?cs.meters.length:0, nAll=U.length, nNo=nAll-nM;
   const byUse=cs.basis==='사용량', needM=needMeter(cs.basis);
@@ -1213,33 +1215,26 @@ function csHTML(){
               used.includes(x.name)&&x.code!==cs.item?' (사용 중)':''}</option>`).join('')}
             <option value="__new" ${cs.neu?'selected':''}>+ 새 청구항목 만들기</option>
           </select></div>
-        ${cs.neu?`<div class="fr"><span class="fk">항목명</span>
+        ${cs.neu?`<div class="fr"><span class="fk">항목명${TIP('이 건물에만 추가됩니다. 건물마다 청구항목을 따로 관리합니다.')}</span>
           <input type="text" value="${cs.name}" placeholder="예: 공용 회의실 사용료"
-            oninput="cs.name=this.value" onchange="csSet('name',this.value)"></div>
-          <div class="hint" style="margin:-3px 0 9px 114px">이 건물에만 추가됩니다. 건물마다 청구항목을 따로 관리합니다.</div>`:''}
-        <div class="fr"><span class="fk">사용 여부</span>
-          <span style="display:flex;align-items:center;gap:10px"><button class="tgl ${cs.use?'on':''}" ${cs.fixed?'disabled title="계약서 약정 항목은 늘 사용합니다"':''} aria-label="사용 여부" onclick="csSet('use',!cs.use)"></button>${cs.use?'사용':'미사용'}</span></div>
-        <div class="hint" style="margin:-3px 0 9px 114px">${cs.fixed?'임대료 · 고정관리비는 계약서 약정 항목이라 끌 수 없습니다.'
-          :cs.use&&!cs.use0?'저장하면 다시 사용합니다. 관리비 정산의 <b>+ 청구항목 추가</b>에서 이 달 정산에 넣습니다.'
+            oninput="cs.name=this.value" onchange="csSet('name',this.value)"></div>`:''}
+        <div class="fr"><span class="fk">사용 여부${TIP(cs.fixed?'임대료 · 고정관리비는 계약서 약정 항목이라 끌 수 없습니다.'
+          :cs.use&&!cs.use0?'저장하면 다시 사용합니다. 관리비 정산의 + 청구항목 추가에서 이 달 정산에 넣습니다.'
           :!cs.use&&cs.use0?'저장하면 이 달부터 이 건물에서 청구하지 않습니다. 작성 중인 정산에서도 빠집니다. 지난 정산 · 원장은 그대로이고, 언제든 다시 켤 수 있습니다.'
-          :cs.use?'끄면 이 건물에서 청구하지 않습니다. 항목과 설정은 남아 다시 켤 수 있습니다.':'켜면 다시 청구합니다. 항목과 설정은 남아 있습니다.'}</div>
-        <div class="fr"><span class="fk">발행 문서</span>
+          :cs.use?'끄면 이 건물에서 청구하지 않습니다. 항목과 설정은 남아 다시 켤 수 있습니다.':'켜면 다시 청구합니다. 항목과 설정은 남아 있습니다.')}</span>
+          <span style="display:flex;align-items:center;gap:10px"><button class="tgl ${cs.use?'on':''}" ${cs.fixed?'disabled title="계약서 약정 항목은 늘 사용합니다"':''} aria-label="사용 여부" onclick="csSet('use',!cs.use)"></button>${cs.use?'사용':'미사용'}</span></div>
+        <div class="fr"><span class="fk">발행 문서${TIP(((BILLDOC.find(b=>b.k===cs.bill)||{}).d||'')+'. 같은 문서끼리 묶여 계약당 1장으로 발행됩니다.')}</span>
           <select onchange="csSet('bill',this.value)">
             ${BILLDOC.map(b=>`<option value="${b.k}" ${cs.bill===b.k?'selected':''}>${b.k}(${b.t})</option>`).join('')}
           </select></div>
-        <div class="hint" style="margin:-3px 0 0 114px">${
-          (BILLDOC.find(b=>b.k===cs.bill)||{}).d||''}<br>
-          같은 문서끼리 묶여 계약당 1장으로 발행됩니다.</div>
-        <div class="fr"><span class="fk">반복 주기</span>
+        <div class="fr"><span class="fk">반복 주기${TIP(cs.fixed?'매월이 기본입니다. 다른 주기는 계약 상세 › 요약 › 임대정보에서 계약마다 바꿉니다.':'')}</span>
           <select onchange="csSet('cycle',this.value)" ${cs.fixed?'disabled':''}>
             ${(cs.fixed?['매월']:CYCLES).map(c=>`<option value="${c}" ${cs.cycle===c?'selected':''}>${c}</option>`).join('')}
           </select></div>
-        ${cs.fixed?'<div class="hint" style="margin:-3px 0 0 114px">매월이 기본입니다. 다른 주기는 계약 상세 › 요약 › 임대정보에서 계약마다 바꿉니다.</div>':''}
-        <div class="fr"><span class="fk">배분 우선순위</span>
+        <div class="fr"><span class="fk">배분 우선순위${TIP('입금이 모자랄 때 먼저 채우는 순서입니다. 숫자가 작을수록 먼저입니다. '+(cs.fixed?'임대료 1 · 고정관리비 2는 모든 건물에서 같아 바꿀 수 없습니다.':'3~97 중에서 고르고 건물 안에서 겹칠 수 없습니다. 1 · 2(임대료 · 고정관리비)와 98 · 99(비정기 청구 · 연체료)는 고정입니다.'))}</span>
           <input class="inp w" type="number" min="${PR_MIN}" max="${PR_MAX}" step="1" value="${cs.pr}" ${cs.fixed?'disabled':''}
             onchange="csSet('pr',Math.max(PR_MIN,Math.min(PR_MAX,parseInt(this.value)||PR_MAX)))"></div>
-        <div class="hint" style="margin:-3px 0 0 114px">입금이 모자랄 때 먼저 채우는 순서입니다. 숫자가 작을수록 먼저입니다. ${cs.fixed?'임대료 1 · 고정관리비 2는 모든 건물에서 같아 바꿀 수 없습니다.':'3~97 중에서 고르고 건물 안에서 겹칠 수 없습니다. 1 · 2(임대료 · 고정관리비)와 98 · 99(비정기 청구 · 연체료)는 고정입니다.'}${
-          (()=>{const d=!cs.fixed&&prDup();return d?`<br><span style="color:var(--danger)">${d}이(가) 이미 ${cs.pr}번을 씁니다. 다른 번호를 넣으세요.</span>`:'';})()}</div>
+        ${(()=>{const d=!cs.fixed&&prDup();return d?`<div class="hint" style="margin:-3px 0 0 114px;color:var(--danger)">${d}이(가) 이미 ${cs.pr}번을 씁니다. 다른 번호를 넣으세요.</div>`:'';})()}
       </div>
 
       <div class="fg"><div class="fl">근거 문서${cs.fixed?' · 계약서 약정이라 바꿀 수 없습니다':''}</div>
@@ -1253,18 +1248,17 @@ function csHTML(){
       </div>
 
       <div class="fg"><div class="fl">배분 방식${cs.fixed?' · 계약서 약정이라 바꿀 수 없습니다':''}</div>
-        <div class="fr"><span class="fk">배분 기준</span>
+        <div class="fr"><span class="fk">배분 기준${TIP((cs.fixed?'나누지 않는다. 계약마다 등록된 약정액(계약 상세 › 요약 › 임대정보)을 그대로 청구한다. 0원이면 청구하지 않는다.':(BASIS.find(o=>o.k===cs.basis)||{}).d||'')
+          +(cs.basis==='직접 입력'||cs.fixed?'':' 공용분은 언제나 전 유닛이 부담합니다. 계량기가 있어도 복도 · 화장실을 쓰기 때문입니다. 특정 유닛을 빼려면 정산 시 배율을 0으로 두세요.'))}</span>
           <select onchange="csBasis(this.value)" ${cs.fixed?'disabled':''}>
             ${(cs.fixed?[{k:'계약 약정액'}]:BASIS).map(o=>`<option value="${o.k}" ${cs.basis===o.k?'selected':''}>${o.k}</option>`).join('')}
           </select></div>
-        <div class="hint" style="margin-top:2px">${cs.fixed?'나누지 않는다. 계약마다 등록된 약정액(계약 상세 › 요약 › 임대정보)을 그대로 청구한다. 0원이면 청구하지 않는다.':(BASIS.find(o=>o.k===cs.basis)||{}).d||''}</div>
-        ${needM&&!cs.useMeter?`<div class="fr"><span class="fk">참조 항목</span>
+        ${needM&&!cs.useMeter?`<div class="fr"><span class="fk">참조 항목${TIP('계량기가 없으므로 다른 항목의 검침값으로 나눕니다.')}</span>
           <select onchange="csSet('ref',this.value||null)">
             <option value="">선택</option>
             ${MASTER.filter(x=>(METER[x.code]||[]).length).map(x=>
               `<option value="${x.code}" ${cs.ref===x.code?'selected':''}>${x.name} 검침값</option>`).join('')}
-          </select></div>
-          <div class="hint" style="margin:-3px 0 0 114px">계량기가 없으므로 다른 항목의 검침값으로 나눕니다.</div>`:''}
+          </select></div>`:''}
       </div>
 
 
@@ -1285,10 +1279,6 @@ function csHTML(){
         </div>
       </div>`:''}
 
-      ${cs.basis==='직접 입력'||cs.fixed?'':`
-      <div class="hint" style="margin-top:-4px">
-        <b>공용분은 언제나 전 유닛이 부담합니다.</b> 계량기가 있어도 복도·화장실을
-        쓰기 때문입니다. 특정 유닛을 빼려면 정산 시 배율을 0으로 두세요.</div>`}
       ${prev}
     </div>
     <div class="df">
@@ -2434,7 +2424,7 @@ function t청구(b){
         <td style="white-space:nowrap">${c.bill||m.bill||'—'} <span class="c2" style="margin:0 0 0 4px">${
           isTax(c.bill||m.bill)?'과세':(c.bill||m.bill)==='계산서'?'면세':'비과세'}</span></td>
         <td>${c.fixed?'매월':(c.cycle||m.cycle||'—')}</td>
-        <td>${c.fixed?'<span style="color:var(--muted)">계약 약정액</span>':(c.basis||'—')}${c.ref?`<div class="c2">${c.ref} 검침값 참조</div>`:''}</td>
+        <td>${c.fixed?'<span style="color:var(--muted)">계약 약정액</span>':(c.basis||'—')}</td>
         <td>${c.doc||`${st.by||m.src||''} ${st.doc||m.doc||''}`.trim()||'—'}</td>
         <td class="c">${moreCell([{t:'상세',go:`cdOpen(codeOf('${c.it}'))`},{t:'수정',go:`openCS(codeOf('${c.it}'))`},
           {t:'삭제',go:`ciDel(codeOf('${c.it}'))`,off:c.fixed?'계약서 약정 항목은 건물에서 빼지 않습니다':''}])}</td></tr>`}).join('')}

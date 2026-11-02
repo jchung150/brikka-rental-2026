@@ -871,6 +871,15 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   US.openCS('rent'); const lock = /<button class="tgl on" disabled title="계약서 약정 항목은 늘 사용합니다"/.test(US.csHTML());
   r6.push(['청구항목 사용 여부 — 수정 패널 스위치 · 미사용 가스요금을 켜고 저장 → 사용 · 관리비 정산 「+ 청구항목 추가」에 가스요금 · 전기요금을 끄고 저장 → 미사용 · 작성 중인 정산에서 빠짐 · 임대료 스위치 잠김 · 「이 청구항목 미사용」 확인 팝업 버튼 없음',
     off0 && hint && on && pick && hint2 && off && lock]); }
+/* 청구항목 설정 패널 — 칸 설명은 모두 ⓘ(마우스를 올리면) · 칸 아래 설명 문장 없음(우선순위 중복 오류만) · 관리비 탭 목록에 「검침값 참조」 없음 */
+{ const TP = new Function(stub + bare + '; return {openCS,csHTML,csSet,PRO3,set tab3(v){tab3=v;}};')();
+  TP.openCS('gas'); const h = TP.csHTML(), tips = [...h.matchAll(/<span class="fk">([^<]+)<i class="tip" data-tip="([^"]+)">i<\/i>/g)].map(m => m[1]);
+  const need = ['사용 여부', '발행 문서', '배분 우선순위', '배분 기준'].every(k => tips.includes(k)) && /data-tip="부가세 10%를 별도로 매긴다[^"]*같은 문서끼리 묶여 계약당 1장으로 발행됩니다\."/.test(h)
+    && /data-tip="켜면 다시 청구합니다/.test(h) && !/class="hint"/.test(h) && /공용분은 언제나 전 유닛이 부담합니다/.test(h);
+  TP.csSet('pr', 3); const dup = /class="hint"[^>]*color:var\(--danger\)">전기요금이\(가\) 이미 3번을 씁니다/.test(TP.csHTML());
+  TP.tab3 = '관리비'; const list = !/검침값 참조/.test(TP.PRO3('b1'));
+  r6.push(['청구항목 설정 패널 — 사용 여부 · 발행 문서 · 배분 우선순위 · 배분 기준 설명은 ⓘ · 칸 아래 설명 문장 없음 · 우선순위 중복 오류만 칸 아래 빨간 글씨 · 관리비 탭 목록에 「검침값 참조」 없음',
+    need && dup && list]); }
 /* 배분 우선순위 고정 — 임대료 1 · 고정관리비 2 · 비정기 청구 98 · 연체료 99는 모든 건물 같음 · 나머지는 3~97 · 관리비 탭 맨 아래에 98 · 99 잠긴 줄 → 명세변경 23 */
 { const PR = new Function(stub + bare + '; return {PRO3,openCS,csHTML,prioOf,BSET,PR_MIN,PR_MAX,set tab3(v){tab3=v;}};')();
   PR.BSET.rent = {pr: 7}; PR.BSET.mgmt = {pr: 9}; const fix = PR.prioOf('임대료') === 1 && PR.prioOf('고정관리비') === 2 && PR.prioOf('연체료') === 99;
