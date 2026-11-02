@@ -628,15 +628,17 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   const once = '수납 176383 / 수납 취소 5176383';
   r6.push(['같은 날 원장은 한 일 순서대로 — 현금 500만 → 취소 → 보증금 상계 500만 → 취소 · 잔액이 줄마다 맞음',
     seq === once + ' / 수납 176383' && seq2 === once + ' / ' + once]); }
-/* 전체 펼치기는 필터 옆(왼쪽) · 할 일 버튼만 오른쪽 끝 · 청구서 발행의 전체 선택은 머리글 체크박스 */
+/* 전체 펼치기는 머리글 왼쪽 화살표 · 청구서 발행의 전체 선택은 머리글 체크박스 */
 { const TG = new Function(stub + bare + '; seedJuly(); return {PAY1,PAY2,PAY6,PRO3,CTR3,sel1,set tab3(v){tab3=v;},set tab3c(v){tab3c=v;},set f1b(v){f1.b=v;}};')();
-  const left = h => { const fb = (h.match(/<div class="fbar">[\s\S]*?<\/div>/g) || []).find(x => /전체 (펼치기|접기)/.test(x)) || ''; const a = fb.indexOf('전체 펼치기'), m = fb.indexOf('margin-left:auto'); return a > 0 && (m < 0 || a < m); };
   TG.tab3 = '주차'; TG.tab3c = '원장'; TG.f1b = 'b1';
   const p1 = TG.PAY1(), hdr = (p1.match(/<div class="schr iss hd">[\s\S]*?<\/div>/) || [''])[0];
   const pick = /class="cb[^"]*" title="발행 대기 전체 선택" onclick="pickAll\(true\)"/.test(hdr) && !/>전체 선택<\/button>/.test(p1) && !/선택 해제/.test(p1);
   const before = Object.keys(TG.sel1).filter(k => TG.sel1[k]).length;
-  r6.push(['전체 펼치기 — 청구서 발행 · 미납 관리 · 수납 내역 · 주차 모두 필터 옆 · 할 일 버튼은 오른쪽 끝 · 청구서 발행 전체 선택은 머리글 체크박스(버튼 없음)',
-    [p1, TG.PAY2(), TG.PAY6(), TG.PRO3('b1')].every(left) && pick && before === 0]); }
+  /* 전체 펼치기 · 접기는 버튼이 아니라 머리글 왼쪽 화살표 */
+  const head = h => !/전체 (펼치기|접기)<\/button>/.test(h) && /<span class="tg [a-z]*" title="전체 펼치기"/.test(h);
+  TG.tab3c = '청구·수납'; const cm = TG.CTR3('b1별관301호'); TG.tab3c = '원장';
+  r6.push(['전체 펼치기 — 청구서 발행 · 미납 관리 · 수납 내역 · 주차 · 계약 청구·수납 · 원장 모두 머리글 왼쪽 화살표(버튼 없음) · 청구서 발행 전체 선택은 머리글 체크박스(버튼 없음)',
+    [p1, TG.PAY2(), TG.PAY6(), TG.PRO3('b1'), cm, TG.CTR3('b1본관801호')].every(head) && pick && before === 0]); }
 /* 원장은 전체 펼치기 버튼 대신 머리글 왼쪽 화살표(줄 화살표와 같은 자리) */
 { const TL = new Function(stub + bare + '; seedJuly(); return {CTR3,set tab3c(v){tab3c=v;},set g3All(v){g3All=v;}};')();
   TL.tab3c = '원장'; const h0 = TL.CTR3('b1별관301호'); TL.g3All = true; const h1 = TL.CTR3('b1별관301호');
@@ -1070,9 +1072,9 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   FT.f7.st = '미납·부분납'; const h2 = FT.CTR3month(c, k); FT.f7.st = '완납'; const h3 = FT.CTR3month(c, k); FT.f7.st = '';
   FT.g7All = true; const h4 = FT.CTR3month(c, k);
   r6.push(['계약 상세 청구·수납 탭 필터 — 기간(청구년월 기준) · 납부상태 · 전체 펼치기 · 합계 줄 없음 · 최근 1개월이면 8월분만 · 비씨에이전시는 완납 달이 없음 · 전체 펼치면 항목 줄(임대료)',
-    /전체 기간/.test(h0) && /전체 납부상태/.test(h0) && /전체 펼치기/.test(h0) && !/임대료/.test(h0)
+    /전체 기간/.test(h0) && /전체 납부상태/.test(h0) && /title="전체 펼치기"/.test(h0) && !/임대료/.test(h0)
     && /2026년 08월분/.test(h1) && !/2026년 07월분/.test(h1) && /2026년 06월분/.test(h2) && /2026년 07월분/.test(h2)
-    && /조건에 맞는 달이 없습니다/.test(h3) && /전체 접기/.test(h4) && /임대료/.test(h4)]); }
+    && /조건에 맞는 달이 없습니다/.test(h3) && /title="전체 접기"/.test(h4) && /임대료/.test(h4)]); }
 const bad6 = r6.filter(x => !x[1]);
 if (bad6.length) fail = 1;
 console.log('⑥ 수납 기록 ' + (bad6.length ? '✗ ' + bad6.map(x => x[0]).join(' / ') : 'OK — ' + r6.length + '개 검산'));
