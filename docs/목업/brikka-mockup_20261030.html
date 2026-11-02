@@ -398,7 +398,7 @@ tr.off td:not(:last-child):not(:nth-last-child(2)){opacity:.5}
 .tip{display:inline-flex;align-items:center;justify-content:center;width:13px;height:13px;margin-left:4px;border:1px solid var(--faint);border-radius:50%;
   color:var(--faint);font:italic 600 9px/1 Georgia,serif;cursor:help;vertical-align:1px}
 .tip:hover{border-color:var(--pri);color:var(--pri)}
-#tipbox{position:fixed;z-index:999;max-width:260px;padding:7px 10px;border-radius:var(--r-sm);background:var(--ink);color:var(--bg);
+#tipbox{position:fixed;z-index:999;max-width:300px;white-space:pre-line;padding:7px 10px;border-radius:var(--r-sm);background:var(--ink);color:var(--bg);
   font-size:12px;line-height:1.45;word-break:keep-all;pointer-events:none;display:none;box-shadow:0 4px 14px rgba(0,0,0,.18)}
 .two{display:grid;grid-template-columns:1fr 1fr;gap:16px}
 @media(max-width:1080px){.two{grid-template-columns:1fr}}
@@ -928,6 +928,13 @@ const BASIS=[
  {k:'사용량+임대면적', m:true,  d:'계량기 필수. 개별분은 검침 실측, 남은 공용분은 임대면적 비율로 나눈다. 일부 유닛만 계량기를 보유한 건물에 쓴다.'},
  {k:'직접 입력',     m:false, d:'안분하지 않는다. 관리비 정산의 금액 입력 절에서 계약별 금액을 직접 입력하며 입력 합계가 공급가액이 된다. 주차비처럼 면적·사용량과 무관한 항목에 쓴다.'},
 ];
+/* 청구항목 설정 패널의 ⓘ 설명 — 고른 값과 상관없이 그 칸 전체를 설명한다(고를 수 있는 값을 모두 적는다) */
+const CS_TIP={
+  use:'끄면 이 건물에서 청구하지 않습니다. 작성 중인 정산에서도 빠지고, 지난 정산 · 원장은 그대로입니다. 항목과 설정은 남습니다.\n다시 켜면 관리비 정산의 「+ 청구항목 추가」에서 이 달 정산에 넣습니다.\n임대료 · 고정관리비는 끌 수 없습니다.',
+  bill:BILLDOC.map(b=>`${b.k}(${b.t}): ${b.d}`).join('\n')+'\n같은 문서끼리 묶여 계약당 1장으로 발행됩니다.',
+  cycle:'고지서가 나오는 주기입니다(이번만 · 매월 · 격월 · 분기 · 반기 · 연1회).\n임대료 · 고정관리비는 매월이 기본이고, 다른 주기는 계약 상세 › 요약 › 임대정보에서 계약마다 바꿉니다.',
+  pr:'입금이 모자랄 때 먼저 채우는 순서입니다. 숫자가 작을수록 먼저입니다.\n3~97 중에서 건물마다 정하고, 건물 안에서 겹칠 수 없습니다.\n1(임대료) · 2(고정관리비) · 98(비정기 청구) · 99(연체료)는 모든 건물에서 고정입니다.',
+  basis:BASIS.map(o=>`${o.k}: ${o.d}`).join('\n')+'\n계약 약정액(임대료 · 고정관리비): 나누지 않고 계약마다 등록된 약정액을 그대로 청구한다.\n공용분은 언제나 전 유닛이 부담합니다. 계량기가 있어도 복도 · 화장실을 쓰기 때문입니다. 특정 유닛을 빼려면 정산 때 배율을 0으로 두세요.'};
 const needMeter=b=>!!(BASIS.find(o=>o.k===b)||{}).m;
 function csBasis(v){
   cs.basis=v;
@@ -1218,20 +1225,17 @@ function csHTML(){
         ${cs.neu?`<div class="fr"><span class="fk">항목명${TIP('이 건물에만 추가됩니다. 건물마다 청구항목을 따로 관리합니다.')}</span>
           <input type="text" value="${cs.name}" placeholder="예: 공용 회의실 사용료"
             oninput="cs.name=this.value" onchange="csSet('name',this.value)"></div>`:''}
-        <div class="fr"><span class="fk">사용 여부${TIP(cs.fixed?'임대료 · 고정관리비는 계약서 약정 항목이라 끌 수 없습니다.'
-          :cs.use&&!cs.use0?'저장하면 다시 사용합니다. 관리비 정산의 + 청구항목 추가에서 이 달 정산에 넣습니다.'
-          :!cs.use&&cs.use0?'저장하면 이 달부터 이 건물에서 청구하지 않습니다. 작성 중인 정산에서도 빠집니다. 지난 정산 · 원장은 그대로이고, 언제든 다시 켤 수 있습니다.'
-          :cs.use?'끄면 이 건물에서 청구하지 않습니다. 항목과 설정은 남아 다시 켤 수 있습니다.':'켜면 다시 청구합니다. 항목과 설정은 남아 있습니다.')}</span>
+        <div class="fr"><span class="fk">사용 여부${TIP(CS_TIP.use)}</span>
           <span style="display:flex;align-items:center;gap:10px"><button class="tgl ${cs.use?'on':''}" ${cs.fixed?'disabled title="계약서 약정 항목은 늘 사용합니다"':''} aria-label="사용 여부" onclick="csSet('use',!cs.use)"></button>${cs.use?'사용':'미사용'}</span></div>
-        <div class="fr"><span class="fk">발행 문서${TIP(((BILLDOC.find(b=>b.k===cs.bill)||{}).d||'')+'. 같은 문서끼리 묶여 계약당 1장으로 발행됩니다.')}</span>
+        <div class="fr"><span class="fk">발행 문서${TIP(CS_TIP.bill)}</span>
           <select onchange="csSet('bill',this.value)">
             ${BILLDOC.map(b=>`<option value="${b.k}" ${cs.bill===b.k?'selected':''}>${b.k}(${b.t})</option>`).join('')}
           </select></div>
-        <div class="fr"><span class="fk">반복 주기${TIP(cs.fixed?'매월이 기본입니다. 다른 주기는 계약 상세 › 요약 › 임대정보에서 계약마다 바꿉니다.':'')}</span>
+        <div class="fr"><span class="fk">반복 주기${TIP(CS_TIP.cycle)}</span>
           <select onchange="csSet('cycle',this.value)" ${cs.fixed?'disabled':''}>
             ${(cs.fixed?['매월']:CYCLES).map(c=>`<option value="${c}" ${cs.cycle===c?'selected':''}>${c}</option>`).join('')}
           </select></div>
-        <div class="fr"><span class="fk">배분 우선순위${TIP('입금이 모자랄 때 먼저 채우는 순서입니다. 숫자가 작을수록 먼저입니다. '+(cs.fixed?'임대료 1 · 고정관리비 2는 모든 건물에서 같아 바꿀 수 없습니다.':'3~97 중에서 고르고 건물 안에서 겹칠 수 없습니다. 1 · 2(임대료 · 고정관리비)와 98 · 99(비정기 청구 · 연체료)는 고정입니다.'))}</span>
+        <div class="fr"><span class="fk">배분 우선순위${TIP(CS_TIP.pr)}</span>
           <input class="inp w" type="number" min="${PR_MIN}" max="${PR_MAX}" step="1" value="${cs.pr}" ${cs.fixed?'disabled':''}
             onchange="csSet('pr',Math.max(PR_MIN,Math.min(PR_MAX,parseInt(this.value)||PR_MAX)))"></div>
         ${(()=>{const d=!cs.fixed&&prDup();return d?`<div class="hint" style="margin:-3px 0 0 114px;color:var(--danger)">${d}이(가) 이미 ${cs.pr}번을 씁니다. 다른 번호를 넣으세요.</div>`:'';})()}
@@ -1248,8 +1252,7 @@ function csHTML(){
       </div>
 
       <div class="fg"><div class="fl">배분 방식${cs.fixed?' · 계약서 약정이라 바꿀 수 없습니다':''}</div>
-        <div class="fr"><span class="fk">배분 기준${TIP((cs.fixed?'나누지 않는다. 계약마다 등록된 약정액(계약 상세 › 요약 › 임대정보)을 그대로 청구한다. 0원이면 청구하지 않는다.':(BASIS.find(o=>o.k===cs.basis)||{}).d||'')
-          +(cs.basis==='직접 입력'||cs.fixed?'':' 공용분은 언제나 전 유닛이 부담합니다. 계량기가 있어도 복도 · 화장실을 쓰기 때문입니다. 특정 유닛을 빼려면 정산 시 배율을 0으로 두세요.'))}</span>
+        <div class="fr"><span class="fk">배분 기준${TIP(CS_TIP.basis)}</span>
           <select onchange="csBasis(this.value)" ${cs.fixed?'disabled':''}>
             ${(cs.fixed?[{k:'계약 약정액'}]:BASIS).map(o=>`<option value="${o.k}" ${cs.basis===o.k?'selected':''}>${o.k}</option>`).join('')}
           </select></div>
@@ -5847,11 +5850,14 @@ function render(keep){
 }
 /* 화면을 옮기면 맨 위부터 보인다 — 이벤트 객체가 keep으로 들어가지 않게 감싼다 */
 addEventListener('hashchange',()=>render());
-/* ⓘ 설명 상자 — 마우스를 올리면 ⓘ 바로 아래에 띄운다 */
+/* ⓘ 설명 상자 — 마우스를 올리면 ⓘ 바로 아래에(모자라면 위에) 띄운다 */
 document.addEventListener('mouseover',e=>{const t=e.target.closest&&e.target.closest('.tip'),bx=document.querySelector('#tipbox');
   if(!t){bx.style.display='none';return;}
   const r=t.getBoundingClientRect();bx.textContent=t.dataset.tip;bx.style.display='block';
-  bx.style.left=Math.max(8,Math.min(r.left-6,innerWidth-bx.offsetWidth-8))+'px';bx.style.top=(r.bottom+6)+'px';});
+  bx.style.left=Math.max(8,Math.min(r.left-6,innerWidth-bx.offsetWidth-8))+'px';
+  /* 아래 공간이 모자라면 ⓘ 위로 띄운다(긴 설명이 화면 밖으로 잘리지 않게) */
+  const h=bx.offsetHeight, below=r.bottom+6+h<=innerHeight-8;
+  bx.style.top=(below?r.bottom+6:Math.max(8,r.top-6-h))+'px';});
 /* 7/19 7월 청구서 발행 — 전날(7/18)까지의 연체료를 정기 청구서에 한 줄로 넣고(→ 4.4.3), 6월에 생긴 과납이 7월 청구에서 빠진다. 7월 입금보다 먼저다 */
 issueFee('2026-07','2026-07-19');
 applyCredits('2026-07','2026-07-19');

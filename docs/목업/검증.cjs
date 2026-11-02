@@ -863,10 +863,10 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
 { const US = new Function(stub + bare + '; return {openCS,csHTML,csSet,csApply,BUILDINGS,BILL,openDrawer,drawerHTML,get DRAWER(){return DRAWER;}};')();
   const row = n => US.BUILDINGS[0].charge.find(c => c.it === n);
   US.openCS('gas'); const h0 = US.csHTML(), off0 = /<button class="tgl "[^>]*aria-label="사용 여부"/.test(h0) && /미사용<\/span>/.test(h0) && !/이 청구항목 미사용/.test(h0);
-  US.csSet('use', true); const h1 = US.csHTML(), hint = /저장하면 다시 사용합니다/.test(h1); const before = row('가스요금').use;
+  const tipOf = h => (h.match(/사용 여부<i class="tip" data-tip="([^"]+)"/) || [])[1]; US.csSet('use', true); const h1 = US.csHTML(), hint = tipOf(h1) === tipOf(h0) && /다시 켜면/.test(tipOf(h1)) && /끄면/.test(tipOf(h1)); const before = row('가스요금').use;
   US.csApply(); const on = before === 0 && row('가스요금').use === 1 && US.BILL.gas.on === false;
   US.openDrawer('additem'); const pick = /dToggle\('gas'\)/.test(US.drawerHTML());
-  US.openCS('elec'); US.csSet('use', false); const h2 = US.csHTML(), hint2 = /작성 중인 정산에서도 빠집니다/.test(h2); US.csApply();
+  US.openCS('elec'); US.csSet('use', false); const h2 = US.csHTML(), hint2 = tipOf(h2) === tipOf(h0); US.csApply();
   const off = row('전기요금').use === 0 && US.BILL.elec.on === false;
   US.openCS('rent'); const lock = /<button class="tgl on" disabled title="계약서 약정 항목은 늘 사용합니다"/.test(US.csHTML());
   r6.push(['청구항목 사용 여부 — 수정 패널 스위치 · 미사용 가스요금을 켜고 저장 → 사용 · 관리비 정산 「+ 청구항목 추가」에 가스요금 · 전기요금을 끄고 저장 → 미사용 · 작성 중인 정산에서 빠짐 · 임대료 스위치 잠김 · 「이 청구항목 미사용」 확인 팝업 버튼 없음',
@@ -874,16 +874,16 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
 /* 청구항목 설정 패널 — 칸 설명은 모두 ⓘ(마우스를 올리면) · 칸 아래 설명 문장 없음(우선순위 중복 오류만) · 관리비 탭 목록에 「검침값 참조」 없음 */
 { const TP = new Function(stub + bare + '; return {openCS,csHTML,csSet,PRO3,set tab3(v){tab3=v;}};')();
   TP.openCS('gas'); const h = TP.csHTML(), tips = [...h.matchAll(/<span class="fk">([^<]+)<i class="tip" data-tip="([^"]+)">i<\/i>/g)].map(m => m[1]);
-  const need = ['사용 여부', '발행 문서', '배분 우선순위', '배분 기준'].every(k => tips.includes(k)) && /data-tip="부가세 10%를 별도로 매긴다[^"]*같은 문서끼리 묶여 계약당 1장으로 발행됩니다\."/.test(h)
-    && /data-tip="켜면 다시 청구합니다/.test(h) && !/class="hint"/.test(h) && /공용분은 언제나 전 유닛이 부담합니다/.test(h);
+  const need = ['사용 여부', '발행 문서', '배분 우선순위', '배분 기준'].every(k => tips.includes(k)) && /data-tip="세금계산서\(과세\): 부가세 10%를 별도로 매긴다[^"]*계산서\(면세\)[^"]*일반내역서\(비과세\)[^"]*같은 문서끼리 묶여 계약당 1장으로 발행됩니다\."/.test(h)
+    && /data-tip="끄면 이 건물에서 청구하지 않습니다[^"]*다시 켜면/.test(h) && /data-tip="사용량: [^"]*임대면적: [^"]*직접 입력: /.test(h) && !/class="hint"/.test(h) && /공용분은 언제나 전 유닛이 부담합니다/.test(h);
   TP.csSet('pr', 3); const dup = /class="hint"[^>]*color:var\(--danger\)">전기요금이\(가\) 이미 3번을 씁니다/.test(TP.csHTML());
   TP.tab3 = '관리비'; const list = !/검침값 참조/.test(TP.PRO3('b1'));
-  r6.push(['청구항목 설정 패널 — 사용 여부 · 발행 문서 · 배분 우선순위 · 배분 기준 설명은 ⓘ · 칸 아래 설명 문장 없음 · 우선순위 중복 오류만 칸 아래 빨간 글씨 · 관리비 탭 목록에 「검침값 참조」 없음',
+  r6.push(['청구항목 설정 패널 — 사용 여부 · 발행 문서 · 배분 우선순위 · 배분 기준 설명은 ⓘ(고른 값과 상관없이 고를 수 있는 값을 모두 설명) · 칸 아래 설명 문장 없음 · 우선순위 중복 오류만 칸 아래 빨간 글씨 · 관리비 탭 목록에 「검침값 참조」 없음',
     need && dup && list]); }
 /* 배분 우선순위 고정 — 임대료 1 · 고정관리비 2 · 비정기 청구 98 · 연체료 99는 모든 건물 같음 · 나머지는 3~97 · 관리비 탭 맨 아래에 98 · 99 잠긴 줄 → 명세변경 23 */
 { const PR = new Function(stub + bare + '; return {PRO3,openCS,csHTML,prioOf,BSET,PR_MIN,PR_MAX,set tab3(v){tab3=v;}};')();
   PR.BSET.rent = {pr: 7}; PR.BSET.mgmt = {pr: 9}; const fix = PR.prioOf('임대료') === 1 && PR.prioOf('고정관리비') === 2 && PR.prioOf('연체료') === 99;
-  PR.openCS('rent'); const hr = PR.csHTML(), rLock = /type="number" min="3" max="97" step="1" value="1" disabled/.test(hr) && /임대료 1 · 고정관리비 2는 모든 건물에서 같아/.test(hr);
+  PR.openCS('rent'); const hr = PR.csHTML(), rLock = /type="number" min="3" max="97" step="1" value="1" disabled/.test(hr) && /1\(임대료\) · 2\(고정관리비\) · 98\(비정기 청구\) · 99\(연체료\)는 모든 건물에서 고정/.test(hr);
   PR.openCS('elec'); const he = PR.csHTML(), eOpen = /type="number" min="3" max="97" step="1" value="3" +\n/.test(he) || (/min="3" max="97"/.test(he) && !/value="3" disabled/.test(he));
   PR.tab3 = '관리비'; const t = PR.PRO3('b1'), body = t.slice(t.indexOf('<tbody>'), t.indexOf('</tbody>'));
   const rows = [...body.matchAll(/<td class="c"><b>(\d+)<\/b>/g)].map(m => +m[1]);
