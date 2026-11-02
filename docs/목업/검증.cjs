@@ -859,6 +859,18 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   MT.udOpen('b1', '본관601호'); MT.udEdit(); MT.ud.mt.elec = true; MT.udSave(); const back = MT.METER.elec.includes('본관601호');
   r6.push(['계량기 — 계량기 항목은 전기요금·수도요금·가스요금(카리나빌딩은 가스를 청구하지 않아도 표시) · 등록 때 전기만 체크 · 본관601호 계량기 떼기 · 다시 달기',
     its.join() === 'elec,water,gas' && /계량기 있음/.test(h) && on1 && off && back]); }
+/* 청구항목 사용 여부 — 수정 패널의 스위치(저장해야 바뀜) · 미사용 가스요금을 켜면 관리비 정산 「+ 청구항목 추가」에 나옴 · 끄면 작성 중인 정산에서도 빠짐 · 임대료는 끌 수 없음 · 확인 팝업 버튼 없음 */
+{ const US = new Function(stub + bare + '; return {openCS,csHTML,csSet,csApply,BUILDINGS,BILL,openDrawer,drawerHTML,get DRAWER(){return DRAWER;}};')();
+  const row = n => US.BUILDINGS[0].charge.find(c => c.it === n);
+  US.openCS('gas'); const h0 = US.csHTML(), off0 = /<button class="tgl "[^>]*aria-label="사용 여부"/.test(h0) && /미사용<\/span>/.test(h0) && !/이 청구항목 미사용/.test(h0);
+  US.csSet('use', true); const h1 = US.csHTML(), hint = /저장하면 다시 사용합니다/.test(h1); const before = row('가스요금').use;
+  US.csApply(); const on = before === 0 && row('가스요금').use === 1 && US.BILL.gas.on === false;
+  US.openDrawer('additem'); const pick = /dToggle\('gas'\)/.test(US.drawerHTML());
+  US.openCS('elec'); US.csSet('use', false); const h2 = US.csHTML(), hint2 = /작성 중인 정산에서도 빠집니다/.test(h2); US.csApply();
+  const off = row('전기요금').use === 0 && US.BILL.elec.on === false;
+  US.openCS('rent'); const lock = /<button class="tgl on" disabled title="계약서 약정 항목은 늘 사용합니다"/.test(US.csHTML());
+  r6.push(['청구항목 사용 여부 — 수정 패널 스위치 · 미사용 가스요금을 켜고 저장 → 사용 · 관리비 정산 「+ 청구항목 추가」에 가스요금 · 전기요금을 끄고 저장 → 미사용 · 작성 중인 정산에서 빠짐 · 임대료 스위치 잠김 · 「이 청구항목 미사용」 확인 팝업 버튼 없음',
+    off0 && hint && on && pick && hint2 && off && lock]); }
 /* 배분 우선순위 고정 — 임대료 1 · 고정관리비 2 · 비정기 청구 98 · 연체료 99는 모든 건물 같음 · 나머지는 3~97 · 관리비 탭 맨 아래에 98 · 99 잠긴 줄 → 명세변경 23 */
 { const PR = new Function(stub + bare + '; return {PRO3,openCS,csHTML,prioOf,BSET,PR_MIN,PR_MAX,set tab3(v){tab3=v;}};')();
   PR.BSET.rent = {pr: 7}; PR.BSET.mgmt = {pr: 9}; const fix = PR.prioOf('임대료') === 1 && PR.prioOf('고정관리비') === 2 && PR.prioOf('연체료') === 99;

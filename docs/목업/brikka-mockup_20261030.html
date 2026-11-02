@@ -899,7 +899,7 @@ function loadCS(code){
       ct:{...(CTMUL[code]||{})},
       /* 고정액 — 근거는 임대차계약서, 금액은 계약마다의 약정액. 두 값은 바꾸지 않는다 */
       doc:m.fixed?'계약서':b.doc||m.doc||'고지서', by:m.fixed?'임대차계약서':b.by||m.src||'',
-      fixed:!!m.fixed, pr:prioOf(m.name)};
+      fixed:!!m.fixed, pr:prioOf(m.name), use:row?!!row.use:true, use0:row?!!row.use:true};
 }
 function openCS(code){
   /* 건물당 청구항목은 최대 97개 — 우선순위 1~97과 짝(98 비정기 청구 · 99 연체료) */
@@ -912,7 +912,7 @@ function openCS(code){
   DRAWER='chargeset'; render();
 }
 function csNew(){
-  cs={neu:true, item:null, name:'', bill:'세금계산서', cycle:'매월', pr:18,
+  cs={neu:true, item:null, name:'', bill:'세금계산서', cycle:'매월', pr:18, use:true, use0:true,
       useMeter:false, meters:[], ct:{},
       basis:'임대면적', ref:null, editing:false};
 }
@@ -977,7 +977,7 @@ function csApply(){
   }else{
     const m=M(code); m.bill=cs.bill; m.cycle=cs.cycle; m.tax=isTax(cs.bill);
   }
-  if(cs.fixed){   /* 고정액 — 배분 설정이 없다. 발행 문서·주기만(우선순위는 1 · 2 고정) */
+  if(cs.fixed){   /* 고정액 — 배분 설정이 없다. 발행 문서·주기만(우선순위는 1 · 2 고정 · 늘 사용) */
     const row=BUILDINGS[0].charge.find(c=>c.it===cs.name);
     if(row) Object.assign(row,{bill:cs.bill,cycle:cs.cycle});
     DRAWER=null; cs=null; render(); return;
@@ -992,21 +992,12 @@ function csApply(){
   const mm=METER[code];
   const mt=mm.length===0?'없음':mm.length===UNITS_B1.length?`전체 ${mm.length}개`
     :mm.length<=2?mm.join(', '):`${mm.length}개 유닛`;
-  const data={it:m.name,use:1,bill:m.bill,cycle:m.cycle,meter:mt,mtr:A.charge,
+  /* 미사용 — 다음 회차부터 이 건물에서 청구하지 않는다. 작성 중인 정산에서도 뺀다. 지난 정산 · 원장은 그대로 */
+  if(!cs.use&&BILL[code]) BILL[code].on=false;
+  const data={it:m.name,use:cs.use?1:0,bill:m.bill,cycle:m.cycle,meter:mt,mtr:A.charge,
     rest:'전체 유닛',
     basis:cs.basis+' 비율'+(cs.ref&&cs.ref!==code?` · ${M(cs.ref).name} 참조`:'')};
   if(row) Object.assign(row,data); else bc.push(data);
-  DRAWER=null; cs=null; render();
-}
-function csDrop(){
-  const m=M(cs.item);
-  if(!confirm(m.name+'을 미사용으로 전환합니다.\n\n'+
-    '· 이후 회차부터 이 건물에서 청구되지 않습니다\n'+
-    '· 과거 회차의 정산 결과와 원장 기록은 그대로 유지됩니다\n'+
-    '· 항목 자체는 남아 있으며 언제든 다시 사용할 수 있습니다')) return;
-  const row=BUILDINGS[0].charge.find(c=>c.it===m.name);
-  if(row){row.use=0;}
-  BILL[cs.item].on=false;
   DRAWER=null; cs=null; render();
 }
 function openDrawer(k){DRAWER=k;dPick=[];render();}
@@ -1226,6 +1217,12 @@ function csHTML(){
           <input type="text" value="${cs.name}" placeholder="예: 공용 회의실 사용료"
             oninput="cs.name=this.value" onchange="csSet('name',this.value)"></div>
           <div class="hint" style="margin:-3px 0 9px 114px">이 건물에만 추가됩니다. 건물마다 청구항목을 따로 관리합니다.</div>`:''}
+        <div class="fr"><span class="fk">사용 여부</span>
+          <span style="display:flex;align-items:center;gap:10px"><button class="tgl ${cs.use?'on':''}" ${cs.fixed?'disabled title="계약서 약정 항목은 늘 사용합니다"':''} aria-label="사용 여부" onclick="csSet('use',!cs.use)"></button>${cs.use?'사용':'미사용'}</span></div>
+        <div class="hint" style="margin:-3px 0 9px 114px">${cs.fixed?'임대료 · 고정관리비는 계약서 약정 항목이라 끌 수 없습니다.'
+          :cs.use&&!cs.use0?'저장하면 다시 사용합니다. 관리비 정산의 <b>+ 청구항목 추가</b>에서 이 달 정산에 넣습니다.'
+          :!cs.use&&cs.use0?'저장하면 이 달부터 이 건물에서 청구하지 않습니다. 작성 중인 정산에서도 빠집니다. 지난 정산 · 원장은 그대로이고, 언제든 다시 켤 수 있습니다.'
+          :cs.use?'끄면 이 건물에서 청구하지 않습니다. 항목과 설정은 남아 다시 켤 수 있습니다.':'켜면 다시 청구합니다. 항목과 설정은 남아 있습니다.'}</div>
         <div class="fr"><span class="fk">발행 문서</span>
           <select onchange="csSet('bill',this.value)">
             ${BILLDOC.map(b=>`<option value="${b.k}" ${cs.bill===b.k?'selected':''}>${b.k}(${b.t})</option>`).join('')}
@@ -1295,7 +1292,6 @@ function csHTML(){
       ${prev}
     </div>
     <div class="df">
-      ${cs.editing?`<button class="btn ex" style="margin-right:auto" onclick="csDrop()" ${cs.fixed?'disabled title="계약서 약정 항목은 건물에서 빼지 않습니다"':''}>이 청구항목 미사용</button>`:''}
       <button class="btn" onclick="closeDrawer()">취소</button>
       <button class="btn pri" onclick="csApply()">저장</button></div>
   </div></div>`;
