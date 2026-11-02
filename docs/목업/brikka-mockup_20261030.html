@@ -2006,6 +2006,12 @@ function beHTML(){
 }
 function facDel(id,n){const b=BUILDINGS.find(x=>x.id===id); b.fac=b.fac.filter(x=>x!==n); render(true);}
 /* 상세 화면 탭(요약 제외)의 공통 모양 — 위에 필터 줄, 표, 아래 안내. 필터 줄 왼쪽은 필터, 오른쪽 끝은 할 일 버튼. 전체 펼치기 · 접기는 표 머리글 왼쪽 화살표(allTog). 요약 숫자는 적지 않는다 */
+/* 검색 칸 — 필터 줄 맨 앞. 칠 때마다 다시 그리므로 커서를 칸에 되돌린다. 띄어쓰기 · 하이픈 · | 는 빼고 일부만 맞아도 찾는다
+   (「1234」 → 「12가 1234」, 「5678」 → 「010-1234-5678」). 한글은 글자를 조합하는 동안 다시 그리면 조합이 깨지므로 한 글자가 끝날 때 거른다 */
+const vqN=s=>(s||'').replace(/[\s|-]/g,'').toLowerCase();
+const qHit=(q,xs)=>{const n=vqN(q); return !n||xs.some(x=>vqN(x).includes(n));};
+function qFocus(id){const e=document.getElementById(id);if(e){e.focus();e.setSelectionRange(e.value.length,e.value.length);}}
+const qBox=(id,val,ph,set)=>`<span class="fqw">${ic('srch',14)}<input id="${id}" class="fq" type="text" value="${(val||'').replace(/"/g,'&quot;')}" placeholder="${ph}" oninput="if(!event.isComposing){${set}('q',this.value);qFocus('${id}')}" oncompositionend="${set}('q',this.value);qFocus('${id}')"></span>`;
 const tabBar=(left,right)=>`<div class="fbar">${left||''}<span style="margin-left:auto;display:flex;gap:6px">${right||''}</span></div>`;
 function t요약(b){
   const d=dday(b.mgmtEnd);
@@ -2059,16 +2065,14 @@ function t요약(b){
    계약 상세 주차 탭(fixK)은 같은 표를 그 계약 하나로 — 계약고유이름 칸 · 계약 필터만 없다 ═══ */
 let fpk={k:'',loc:'',fee:'',q:''};
 const setFpk=(k,v)=>{fpk[k]=v;render(true);};
-/* 검색 — 칠 때마다 다시 그리므로 검색 칸에 커서를 되돌린다. 띄어쓰기 · 하이픈은 빼고 비교(「1234」 → 「12가 1234」, 「5678」 → 「010-1234-5678」) */
-const vqN=s=>(s||'').replace(/[\s-]/g,'').toLowerCase();
-function setVq(v){fpk.q=v;render(true);const e=document.getElementById('vq');if(e){e.focus();e.setSelectionRange(v.length,v.length);}}
+
 function t주차(b,fixK){
   const cs=fixK?CTRS.filter(c=>ckey(c)===fixK):CTRS.filter(c=>c.b===b.id&&c.st==='진행중'), keys=cs.map(ckey);
   /* 연장 계약(준비중) — 이전 계약의 차량이 시작일에 옮겨진다. 그 전까지는 옮겨질 차량을 보인다 */
   const fc=fixK&&cs[0], pend=fc&&fc.vehP&&!vehOf(fixK).length?fc.vehP:null, vOf=k=>pend||vehOf(k);
   const fk=fixK?'':(keys.includes(fpk.k)?fpk.k:''), all=pend||VEH.filter(v=>keys.includes(v.k));
-  const q=fixK?'':vqN(fpk.q), hit=v=>{const c=ctrOfK(v.k); return [v.plate,v.own,v.tel,c&&cname(b.alias,c.no,c.ten)].some(x=>vqN(x).includes(q));};
-  const list=all.filter(v=>(!fk||v.k===fk)&&(!fpk.loc||v.loc===fpk.loc)&&(!q||hit(v)))
+  const q=fixK?'':fpk.q.trim(), hit=v=>{const c=ctrOfK(v.k); return qHit(q,[v.plate,v.own,v.tel,c&&cname(b.alias,c.no,c.ten)]);};
+  const list=all.filter(v=>(!fk||v.k===fk)&&(!fpk.loc||v.loc===fpk.loc)&&hit(v))
     .sort((x,y)=>keys.indexOf(x.k)-keys.indexOf(y.k)||(x.plate<y.plate?-1:1));
   const S=(f,opts,lab)=>`<select onchange="setFpk('${f}',this.value)"><option value="">${lab}</option>${opts.map(([v,t])=>`<option value="${v}" ${fpk[f]===v?'selected':''}>${t}</option>`).join('')}</select>`;
   const miss='<span style="color:var(--warn)">미확인</span>';
@@ -2086,7 +2090,7 @@ function t주차(b,fixK){
       <td class="c">${moreCell(pend?[{t:'상세',off:'시작일에 옮겨질 차량입니다'},{t:'수정',off:'이전 계약의 주차 탭에서 고칩니다'},{t:'삭제',off:'이전 계약의 주차 탭에서 고칩니다'}]
         :[{t:'상세',go:`vdOpen('${b.id}',${v.id})`},{t:'수정',go:`vehOpen('${b.id}',${v.id})`},{t:'삭제',go:`vehDel(${v.id})`}])}</td></tr>`;};
   return `
-  ${tabBar((fixK?'':`<span class="fqw">${ic('srch',14)}<input id="vq" class="fq" type="text" value="${fpk.q.replace(/"/g,'&quot;')}" placeholder="차량번호 · 소유자 · 연락처" oninput="setVq(this.value)"></span>`+S('k',cs.map(c=>[ckey(c),cname(b.alias,c.no,c.ten)]),'전체 계약'))+S('loc',VEH_LOC.map(v=>[v,v]),'전체 주차구분')
+  ${tabBar((fixK?'':qBox('vq',fpk.q,'차량번호 · 소유자 · 연락처','setFpk')+S('k',cs.map(c=>[ckey(c),cname(b.alias,c.no,c.ten)]),'전체 계약'))+S('loc',VEH_LOC.map(v=>[v,v]),'전체 주차구분')
     +(one?`<span style="align-self:center">${sumOf(one)}</span>`:''),
     `<button class="btn pri" onclick="vehOpen('${b.id}'${fixK?`,0,'${fixK}'`:''})">+ 차량 추가</button>`)}
   ${pend?`<div class="fnd" style="margin:0 0 12px"><span class="h">계약 시작일에 옮겨집니다</span>이전 계약의 차량 ${pend.length}대가 <b>${fc.base.replace(/-/g,'.')}</b> 시작일에 이 계약으로 옮겨집니다. 그 전까지는 이전 계약의 주차 탭에서 고칩니다.</div>`:''}
@@ -4701,15 +4705,17 @@ function leftTag(c){const x=leftOf(c); if(!x) return '';
   return `<span class="bd wa" style="margin-left:6px" title="${t}">잔액 남음</span>`;}
 
 /* ═══ CTR-1 계약 목록 ═══ */
-let f1c={b:'',st:'진행중',dd:''};
+let f1c={b:'',st:'진행중',dd:'',q:''};
 const setF1c=(k,v)=>{f1c[k]=v;render();};
 /* 계약 표 — 계약 목록(CTR-1)과 건물 상세의 계약 탭이 같은 표 · 같은 필터를 쓴다. 건물 탭은 그 건물만 */
 function ctrRowsOf(f,b){
-  return CTRS.filter(c=>(!b||c.b===b)&&(!f.st||(f.st==='잔액남음'?!!leftOf(c):c.st===f.st))).map(c=>({c,end:ctrEnd(c),dd:dday(ctrEnd(c))}))
+  const B=c=>BUILDINGS.find(x=>x.id===c.b)||{};
+  return CTRS.filter(c=>(!b||c.b===b)&&qHit(f.q||'',[cname(B(c).alias,c.no,c.ten),B(c).name])&&(!f.st||(f.st==='잔액남음'?!!leftOf(c):c.st===f.st))).map(c=>({c,end:ctrEnd(c),dd:dday(ctrEnd(c))}))
     .filter(x=>!f.dd||(f.dd==='0'?x.dd<0:x.dd>=0&&x.dd<=+f.dd)).sort((a,b)=>a.dd-b.dd);
 }
 function ctrFbar(f,set,withB,right){
   return `<div class="fbar">
+    ${qBox('cq',f.q,'계약고유이름 · 건물',set)}
     ${withB?`<select onchange="${set}('b',this.value)"><option value="">전체 건물</option>
       ${BUILDINGS.map(b=>`<option value="${b.id}" ${f.b===b.id?'selected':''}>${b.name}</option>`).join('')}</select>`:''}
     <select onchange="${set}('st',this.value)">
@@ -4745,7 +4751,7 @@ function CTR1(){
     목업의 계약 종료일·보증금은 예시값입니다.</div>`;
 }
 /* 건물 상세 계약 탭 — 계약 목록과 같은 표. 건물 필터 대신 이 건물만. 등록 버튼은 이 건물을 골라 둔 채로 연다 */
-let fbc={st:'진행중',dd:''};
+let fbc={st:'진행중',dd:'',q:''};
 const setFbc=(k,v)=>{fbc[k]=v;render(true);};
 function t계약(b){
   return `${ctrFbar(fbc,'setFbc',false,`<button class="btn pri" ${bOp(b.id)==='비운영중'?'disabled title="비운영중인 건물은 계약을 등록할 수 없습니다"':''} onclick="nc=null;ncInit();nc.b='${b.id}';go('ctr-2')">+ 새로운 계약 등록</button>`)}

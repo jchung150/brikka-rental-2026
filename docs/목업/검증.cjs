@@ -1032,6 +1032,19 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   const only = rowsOf(h1) === n1 && !/뉴진스\|/.test(h1) && rowsOf(h2) === BT.CTRS.filter(c => c.b === 'b2' && c.st === '진행중').length && !/>전체 건물</.test(h1);
   BT.nc = null; const p = BT.CTR2(), hv = /<span class="fk">종류<\/span>/.test(p) || /냉난방기/.test(p) && !/placeholder="종류 \(예/.test(p);
   r6.push(['건물 상세 계약 탭 — 요약 · 계약 · 유닛 순서 · 계약 목록과 같은 표 · 그 건물 계약만(건물 필터 없음) · 냉난방기 카드는 종류 · 대수 · 소유 · 메모 줄', order && only && hv && /\+ 새로운 계약 등록/.test(h1)]); }
+/* 계약 목록 검색 — 계약고유이름(건물 별칭 · 유닛 · 임차인) · 건물 이름 일부, 띄어쓰기 · | 무시 · 필터와 함께 · 건물 상세 계약 탭도 같은 칸 */
+{ const CQ = new Function(stub + bare + '; seedJuly(); return {CTR1,PRO3,CTRS,get f1c(){return f1c;},get fbc(){return fbc;},set tab3(v){tab3=v;}};')();
+  const n = h => (h.match(/<tr onclick="tab3c='요약';go\('ctr-3\//g) || []).length;
+  const L = q => { CQ.f1c.q = q; return CQ.CTR1(); };
+  const all = n(L('')), box = /id="cq" class="fq"[^>]*placeholder="계약고유이름 · 건물"/.test(L(''));
+  const icb = n(L('아이씨비')) === CQ.CTRS.filter(c => c.st === '진행중' && /아이씨비/.test(c.ten)).length && n(L('아이씨비')) >= 2;
+  const unit = n(L('본관 801')) === 1 && n(L('카리나|본관801')) === 1, bld = n(L('카리나빌딩')) === CQ.CTRS.filter(c => c.b === 'b1' && c.st === '진행중').length;
+  const none = n(L('없는계약')) === 0 && /조건에 맞는 계약이 없습니다/.test(L('없는계약'));
+  CQ.f1c.st = ''; const wide = n(L('아이씨비')) >= n((CQ.f1c.st = '진행중', L('아이씨비'))); CQ.f1c.q = '';
+  CQ.tab3 = '계약'; CQ.fbc.q = '아이씨비'; const hb = CQ.PRO3('b1'); CQ.fbc.q = '';
+  const btab = /id="cq"/.test(hb) && n(hb) === n(L('아이씨비')); CQ.f1c.q = '';
+  r6.push(['계약 목록 검색 — 필터 줄 맨 앞 · 「아이씨비」는 그 임차인 계약 · 「본관 801」 · 「카리나|본관801」은 1건 · 건물 이름으로도 · 없으면 「조건에 맞는 계약이 없습니다」 · 계약상태 필터와 함께 · 건물 상세 계약 탭도 같은 검색 칸',
+    all > 0 && box && icb && unit && bld && none && wide && btab]); }
 /* 계약 상세 탭 4개 · 임대정보 수정 패널(두 항목 · 연체이자율 · 대납) · 담당자 · 계약자 · 대리인 */
 { const RT = new Function(stub + bare + '; seedJuly(); return {CTR3,ciOpen,ciSave,ciHTML,cx3Open,cx3Save,ISSUE,CTRS,CPPL,CPARTY,get ci(){return ci;},get cx3(){return cx3;},set tab3c(v){tab3c=v;}};')();
   RT.tab3c = '요약'; const h = RT.CTR3('b1본관801호'), hb = RT.CTR3('b1본관301호');
