@@ -954,7 +954,7 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
 { const PQ = new Function(stub + bare + '; return {PRO3,CTR3,get fpk(){return fpk;},set tab3(v){tab3=v;},set tab3c(v){tab3c=v;}};')();
   PQ.tab3 = '주차'; const n = h => (h.match(/onclick="vdOpen\('b1',\d+\)"><td class="c1"/g) || []).length;
   const Q = q => { PQ.fpk.q = q; const h = PQ.PRO3('b1'); return h; };
-  const box = /id="vq" class="fq"[^>]*placeholder="차량번호 · 소유자 · 연락처"/.test(Q(''));
+  const box = /id="vq" class="fq"/.test(Q('')) && !/id="vq"[^>]*placeholder/.test(Q(''));
   const h1 = Q('3291'), h2 = Q('10버 3291'), h3 = Q('4745-7585'), h4 = Q('47457585'), h5 = Q('이한용'), h6 = Q('본관801'), h7 = Q('없는차량');
   const one = [h1, h2, h3, h4, h5].every(h => n(h) === 1 && h.includes('10버3291'));
   const ctr = n(h6) === 4 && !h6.includes('26너4908'), none = n(h7) === 0 && /찾는 차량이 없습니다/.test(h7);
@@ -1035,7 +1035,7 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
 /* 건물 목록 검색 — 건물 이름 · 별칭 · 주소 · 건물주(공동 소유자 포함) · 건물관리자(두 번째 관리자 포함) 일부 · 필터와 함께 */
 { const BQ = new Function(stub + bare + '; return {PRO1,BUILDINGS,get f1p(){return f1p;}};')();
   const n = h => (h.match(/<tr onclick="go\('pro-3\//g) || []).length, L = q => { BQ.f1p.q = q; return BQ.PRO1(); };
-  const all = n(L('')), box = /id="bq" class="fq"[^>]*placeholder="건물 · 주소 · 건물주 · 건물관리자"/.test(L(''));
+  const all = n(L('')), box = /id="bq" class="fq"/.test(L(''));
   const one = ['카리나빌딩', '카리나 빌딩', '양화로 156', '윈터', '박현장'].every(q => { const h = L(q); return n(h) === 1 && h.includes("go('pro-3/b1')"); });
   const mapo = n(L('마포구')) === BQ.BUILDINGS.filter(b => /마포구/.test(b.addr)).length && n(L('마포구')) >= 2;
   const none = n(L('없는건물')) === 0; BQ.f1p.q = '';
@@ -1045,13 +1045,13 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
 { const SQ = new Function(stub + bare + '; seedJuly(); return {PRO3,CTR3,BUILDINGS,histB,get fdoc(){return fdoc;},get fh(){return fh;},set tab3(v){tab3=v;},set tab3c(v){tab3c=v;}};')();
   const docs = SQ.BUILDINGS[0].docs, nd = h => (h.match(/onclick="docOpen\('b1',\d+\)">/g) || []).length;
   const D = q => { SQ.fdoc.q = q; SQ.tab3 = '자료보관'; return SQ.PRO3('b1'); };
-  const dBox = /id="dq" class="fq"[^>]*placeholder="제목 · 파일 이름 · 메모 · 업로드한 사람"/.test(D(''));
+  const dBox = /id="dq" class="fq"/.test(D(''));
   const dOk = nd(D('위탁운영')) === 1 && nd(D('연이자 12')) === 0 && nd(D('연 12%')) === 1 && nd(D('박현장')) === docs.filter(d => d.by === '박현장').length && nd(D('박현장')) >= 1
     && nd(D('본관801호_아이씨비')) === 1 && /조건에 맞는 자료가 없습니다/.test(D('없는자료'));
   SQ.fdoc.q = '아이씨비'; SQ.tab3c = '자료보관'; const dc = SQ.CTR3('b1본관801호'); SQ.fdoc.q = '';
   const dCtr = /id="dq"/.test(dc) && nd(dc) >= 1;
   const nh = h => (h.match(/onclick="hdOpen\('bb1',\d+\)">/g) || []).length, H = q => { SQ.fh.q = q; SQ.tab3 = '이력'; return SQ.PRO3('b1'); };
-  const hBox = /id="hq" class="fq"[^>]*placeholder="대상 이름 · 변경 요약 · 사유 · 처리자"/.test(H(''));
+  const hBox = /id="hq" class="fq"/.test(H(''));
   const by = SQ.histB(SQ.BUILDINGS[0]).filter(r => r.by === '김관리').length;
   const hOk = nh(H('별관 301호')) > 0 && /별관301호/.test(H('별관 301호')) && nh(H('김관리')) === Math.min(10, by) && /조건에 맞는 이력이 없습니다/.test(H('없는이력'));
   SQ.fh.q = ''; SQ.tab3c = '이력'; const hc = SQ.CTR3('b1본관801호');
@@ -1061,7 +1061,7 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
 { const CQ = new Function(stub + bare + '; seedJuly(); return {CTR1,PRO3,CTRS,get f1c(){return f1c;},get fbc(){return fbc;},set tab3(v){tab3=v;}};')();
   const n = h => (h.match(/<tr onclick="tab3c='요약';go\('ctr-3\//g) || []).length;
   const L = q => { CQ.f1c.q = q; return CQ.CTR1(); };
-  const all = n(L('')), box = /id="cq" class="fq"[^>]*placeholder="계약고유이름 · 건물"/.test(L(''));
+  const all = n(L('')), box = /id="cq" class="fq"/.test(L(''));
   const icb = n(L('아이씨비')) === CQ.CTRS.filter(c => c.st === '진행중' && /아이씨비/.test(c.ten)).length && n(L('아이씨비')) >= 2;
   const unit = n(L('본관 801')) === 1 && n(L('카리나|본관801')) === 1, bld = n(L('카리나빌딩')) === CQ.CTRS.filter(c => c.b === 'b1' && c.st === '진행중').length;
   const none = n(L('없는계약')) === 0 && /조건에 맞는 계약이 없습니다/.test(L('없는계약'));
