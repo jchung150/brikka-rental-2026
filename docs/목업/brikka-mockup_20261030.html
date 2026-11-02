@@ -2407,8 +2407,12 @@ function cdHTML(){
       <button class="btn" ${c.fixed?'disabled title="계약서 약정 항목은 건물에서 빼지 않습니다"':''} onclick="ciDel('${cd.code}')">삭제</button></div>
   </div></div>`;
 }
+/* 관리비 탭 필터 — 사용여부만. 고정 번호 줄(임대료 1 · 고정관리비 2 · 98 · 99)은 배분 순서를 보이려고 필터와 상관없이 늘 보인다 */
+let fci={use:''};
+const setFci=(k,v)=>{fci[k]=v;render(true);};
 function t청구(b){
-  const add=tabBar('','<button class="btn pri" onclick="openCS()">+ 항목 추가</button>');
+  const fsel=`<select onchange="setFci('use',this.value)">${[['','전체 사용여부'],['1','사용'],['0','미사용']].map(([v,t])=>`<option value="${v}" ${fci.use===v?'selected':''}>${t}</option>`).join('')}</select>`;
+  const add=tabBar(b.charge.length?fsel:'','<button class="btn pri" onclick="openCS()">+ 항목 추가</button>');
   if(!b.charge.length) return `${add}<div class="tbl">
     <div class="empty"><div class="t">등록된 청구항목이 없습니다</div>이 건물에서 받을 청구항목을 추가하세요.</div></div>`;
   return `
@@ -2418,7 +2422,7 @@ function t청구(b){
       <thead><tr><th class="c">배분 우선순위</th><th>청구항목</th><th>사용여부</th><th>발행 문서</th><th>반복주기</th>
         <th>배분 기준</th><th>근거 문서</th>
         <th class="c">더보기</th></tr></thead>
-      <tbody>${[...b.charge].sort((x,y)=>prioOf(x.it)-prioOf(y.it)).map(c=>{const m=M(codeOf(c.it)), st=resolve(codeOf(c.it));
+      <tbody>${[...b.charge].filter(c=>c.fixed||!fci.use||(c.use?'1':'0')===fci.use).sort((x,y)=>prioOf(x.it)-prioOf(y.it)).map(c=>{const m=M(codeOf(c.it)), st=resolve(codeOf(c.it));
         /* 배분 우선순위 고정 줄(임대료 1 · 고정관리비 2, 아래 98 · 99)은 이월 미납액 줄과 같은 연한 배경. 임대료·고정관리비는 금액·주기·배분 방식이 계약서 약정이라 발행 문서만 수정에서 바꾼다 */
         return `<tr class="${c.fixed?'ni':''}" style="cursor:pointer;${c.use?'':'opacity:.55'}" onclick="cdOpen(codeOf('${c.it}'))">
         <td class="c"><b>${prioOf(c.it)}</b></td>
@@ -2438,7 +2442,7 @@ function t청구(b){
           <td class="c">${moreCell([{t:'상세',off:'청구항목이 아니라 설정이 없습니다'},{t:'수정',off:'모든 건물에서 같아 바꿀 수 없습니다'},{t:'삭제',off:'모든 건물에서 같아 뺄 수 없습니다'}])}</td></tr>`).join('')}</tbody>
     </table></div>
   </div>
-  <div class="hint">이 건물에서 받는 청구항목입니다. 배분 우선순위 순서로 보입니다. 줄을 누르면 설정과 최근 고지서 금액을 봅니다.<br>
+  <div class="hint">이 건물에서 받는 청구항목입니다. 배분 우선순위 순서로 보입니다. 줄을 누르면 설정과 최근 고지서 금액을 봅니다. 사용여부 필터를 걸어도 고정 번호 줄(1 · 2 · 98 · 99)은 늘 보입니다.<br>
     임대료 · 고정관리비는 계약서에서 정한 항목이라 건물에서 뺄 수 없습니다.<br>
     배분 우선순위 1(임대료) · 2(고정관리비) · 98(비정기 청구) · 99(연체료)는 모든 건물에서 같은 고정 번호라 연한 배경으로 구분합니다. 다른 청구항목은 3~97 중에서 건물마다 정합니다. 비정기 청구 · 연체료는 청구항목이 아니지만 배분 순서를 보이려고 맨 아래에 둡니다.</div>
 `;

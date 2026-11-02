@@ -880,6 +880,12 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   TP.tab3 = '관리비'; const list = !/검침값 참조/.test(TP.PRO3('b1'));
   r6.push(['청구항목 설정 패널 — 사용 여부 · 발행 문서 · 배분 우선순위 · 배분 기준 설명은 ⓘ(고른 값과 상관없이 고를 수 있는 값을 모두 설명) · 칸 아래 설명 문장 없음 · 우선순위 중복 오류만 칸 아래 빨간 글씨 · 관리비 탭 목록에 「검침값 참조」 없음',
     need && dup && list]); }
+/* 관리비 탭 사용여부 필터 — 미사용이면 가스요금 + 고정 줄 4개 · 사용이면 가스요금 없음 · 고정 줄은 늘 보임 */
+{ const FC = new Function(stub + bare + '; return {PRO3,get fci(){return fci;},set tab3(v){tab3=v;}};')();
+  FC.tab3 = '관리비'; const nums = h => { const b = h.slice(h.indexOf('<tbody>'), h.indexOf('</tbody>')); return [...b.matchAll(/<td class="c"><b>(\d+)<\/b>/g)].map(m => +m[1]).join(); };
+  const h0 = FC.PRO3('b1'); FC.fci.use = '0'; const h1 = FC.PRO3('b1'); FC.fci.use = '1'; const h2 = FC.PRO3('b1'); FC.fci.use = '';
+  r6.push(['관리비 탭 사용여부 필터 — 「전체 사용여부」 · 미사용이면 가스요금(7)과 고정 줄 1 · 2 · 98 · 99 · 사용이면 가스요금만 빠짐',
+    /전체 사용여부/.test(h0) && nums(h0) === '1,2,3,4,5,6,7,8,9,10,98,99' && nums(h1) === '1,2,7,98,99' && nums(h2) === '1,2,3,4,5,6,8,9,10,98,99']); }
 /* 배분 우선순위 고정 — 임대료 1 · 고정관리비 2 · 비정기 청구 98 · 연체료 99는 모든 건물 같음 · 나머지는 3~97 · 관리비 탭 맨 아래에 98 · 99 잠긴 줄 → 명세변경 23 */
 { const PR = new Function(stub + bare + '; return {PRO3,openCS,csHTML,prioOf,BSET,PR_MIN,PR_MAX,set tab3(v){tab3=v;}};')();
   PR.BSET.rent = {pr: 7}; PR.BSET.mgmt = {pr: 9}; const fix = PR.prioOf('임대료') === 1 && PR.prioOf('고정관리비') === 2 && PR.prioOf('연체료') === 99;
