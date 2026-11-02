@@ -565,6 +565,7 @@ table.nowr th,table.nowr td{white-space:nowrap}
 <script>
 /* ═══ 아이콘 ═══ */
 const I={
+ down:'<path d="M12 4v11M7 10l5 5 5-5M5 20h14"/>',
  dash:'<path d="M3 3h7v9H3zM14 3h7v5h-7zM14 12h7v9h-7zM3 16h7v5H3z"/>',
  bldg:'<path d="M3 21h18M5 21V5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v16M15 9h2a2 2 0 0 1 2 2v10M9 7h2M9 11h2M9 15h2"/>',
  file:'<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/>',
@@ -589,7 +590,7 @@ const I={
  back:'<path d="M9 14L4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-3"/>',
 };
 /* 머리글의 전체 펼치기 · 접기 화살표 — 줄 화살표와 같은 자리. 하나라도 펼쳐져 있으면 전부 접는다. tbl(표)은 줄 화살표처럼 모양을 직접 준다 */
-const allTog=(on,js,tbl)=>`<span class="tg ${on?'op':''}" title="${on?'전체 접기':'전체 펼치기'}" onclick="event.stopPropagation();${js}"${tbl?` style="display:inline-flex;width:20px;vertical-align:-4px;cursor:pointer;transition:transform .15s;${on?'transform:rotate(90deg)':''}"`:''}>${ic('chev',16)}</span>`;
+const allTog=(on,js,tbl)=>`<span class="tg ${on?'op':''}" title="${on?'전체 접기':'전체 펼치기'}" onclick="event.stopPropagation();${js}"${tbl?` style="display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;margin-left:-2px;vertical-align:middle;cursor:pointer;transition:transform .15s;${on?'transform:rotate(90deg)':''}"`:''}>${ic('chev',16)}</span>`;
 const ic=(k,s=17)=>`<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${I[k]||''}</svg>`;
 
 /* ═══ 메뉴 ═══ */
@@ -2051,24 +2052,26 @@ const setFpk=(k,v)=>{fpk[k]=v;render(true);};
 const gpkOpen=k=>(k in gpk)?gpk[k]:gpkAll;
 const gpkTog=k=>{gpk[k]=!gpkOpen(k);render(true);};
 const gpkSet=v=>{gpkAll=v;gpk={};render(true);};
-function t주차(b){
-  const cs=CTRS.filter(c=>c.b===b.id&&c.st==='진행중'), keys=cs.map(ckey);
-  const all=VEH.filter(v=>keys.includes(v.k)), filt=!!(fpk.k||fpk.loc);
-  const list=all.filter(v=>(!fpk.k||v.k===fpk.k)&&(!fpk.loc||v.loc===fpk.loc));
+/* fixK — 계약 상세 주차 탭. 같은 표를 그 계약 하나로 좁힌다(계약 필터 없음 · 묶음은 처음부터 펼침) */
+function t주차(b,fixK){
+  const cs=fixK?CTRS.filter(c=>ckey(c)===fixK):CTRS.filter(c=>c.b===b.id&&c.st==='진행중'), keys=cs.map(ckey);
+  const fk=fixK?'':fpk.k, all=VEH.filter(v=>keys.includes(v.k)), filt=!!(fk||fpk.loc);
+  const list=all.filter(v=>(!fk||v.k===fk)&&(!fpk.loc||v.loc===fpk.loc));
+  const isOp=k=>fixK?((k in gpk)?gpk[k]:true):gpkOpen(k);
   const S=(f,opts,lab)=>`<select onchange="setFpk('${f}',this.value)"><option value="">${lab}</option>${opts.map(([v,t])=>`<option value="${v}" ${fpk[f]===v?'selected':''}>${t}</option>`).join('')}</select>`;
   /* 필터가 없으면 차량이 없어도 무료 주차가 있는 계약을 보인다(빈 자리를 알 수 있게) */
   const groups=cs.map(c=>({c,k:ckey(c),vs:list.filter(v=>v.k===ckey(c))})).filter(g=>g.vs.length||(!filt&&CPARK[g.k]));
-  const anyOp=groups.some(g=>gpkOpen(g.k)), miss='<span style="color:var(--warn)">미확인</span>';
+  const anyOp=groups.some(g=>isOp(g.k)), miss='<span style="color:var(--warn)">미확인</span>';
   return `
-  ${tabBar(S('k',cs.map(c=>[ckey(c),cname(b.alias,c.no,c.ten)]),'전체 계약')+S('loc',VEH_LOC.map(v=>[v,v]),'전체 주차구분')
+  ${tabBar((fixK?'':S('k',cs.map(c=>[ckey(c),cname(b.alias,c.no,c.ten)]),'전체 계약'))+S('loc',VEH_LOC.map(v=>[v,v]),'전체 주차구분')
     ,
-    `<button class="btn pri" onclick="vehOpen('${b.id}')">+ 차량 추가</button>`)}
+    `<button class="btn pri" onclick="vehOpen('${b.id}'${fixK?`,0,'${fixK}'`:''})">+ 차량 추가</button>`)}
   <div class="tbl">
     ${groups.length?`<div class="tw"><table>
-      <thead><tr><th>${allTog(anyOp,`gpkSet(${anyOp?'false':'true'})`,1)}계약고유이름 · 차량 소유자</th><th>차량번호</th><th>연락처</th><th>차종</th><th>주차구분</th><th>요금부과</th><th class="c">더보기</th></tr></thead>
-      <tbody>${groups.map(g=>{const cp=CPARK[g.k]||{}, vs=vehOf(g.k), fr=vs.filter(v=>v.fee==='무료').length, mo=vs.length-fr, over=cp.free!=null?fr-cp.free:0, op=gpkOpen(g.k);
-        return `<tr class="grp" style="background:var(--soft);cursor:pointer" onclick="gpkTog('${g.k}')"><td colspan="7">
-          <span class="tg ${op?'op':''}" style="display:inline-flex;width:20px;color:var(--muted);vertical-align:-4px;transition:transform .15s;${op?'transform:rotate(90deg)':''}">${ic('chev',16)}</span>${cnameHTML(b.alias,g.c.no,g.c.ten)}
+      <thead><tr><th>${allTog(anyOp,fixK?`gpk['${fixK}']=${!anyOp};render(true)`:`gpkSet(${anyOp?'false':'true'})`,1)}계약고유이름 · 차량 소유자</th><th>차량번호</th><th>연락처</th><th>차종</th><th>주차구분</th><th>요금부과</th><th class="c">더보기</th></tr></thead>
+      <tbody>${groups.map(g=>{const cp=CPARK[g.k]||{}, vs=vehOf(g.k), fr=vs.filter(v=>v.fee==='무료').length, mo=vs.length-fr, over=cp.free!=null?fr-cp.free:0, op=isOp(g.k);
+        return `<tr class="grp" style="background:var(--soft);cursor:pointer" onclick="${fixK?`gpk['${g.k}']=${!op};render(true)`:`gpkTog('${g.k}')`}"><td colspan="7">
+          <span class="tg ${op?'op':''}" style="display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;margin-left:-2px;color:var(--muted);vertical-align:middle;transition:transform .15s;${op?'transform:rotate(90deg)':''}">${ic('chev',16)}</span>${cnameHTML(b.alias,g.c.no,g.c.ten)}
           <span class="c2" style="margin:0 0 0 8px">총 ${vs.length}대 · 무료 ${fr}대 + 월정액 ${mo}대</span>
           ${over>0?`<span class="bd wa" style="margin-left:8px">무료 ${over}대 초과</span>`:''}${vs.some(v=>!v.own||!v.tel)?'<span class="bd wa2" style="margin-left:6px">연락처 미확인</span>':''}</td></tr>`
         +(!op?'':g.vs.length?g.vs.map(v=>`<tr style="cursor:pointer" onclick="vdOpen('${b.id}',${v.id})"><td class="c1" style="font-weight:500;padding-left:44px">${v.own||miss}</td><td>${v.plate}</td><td style="white-space:nowrap">${v.tel||miss}</td><td>${v.model||'—'}</td>
@@ -5194,7 +5197,7 @@ function CTR3head(c,k){
     </div><span class="sid">CTR-3</span>
   </div>
   <div class="tabs">
-    ${['요약','청구·수납','원장','자료보관','이력'].map(t=>`<button class="${t===tab3c?'on':''}" onclick="tab3c='${t}';render()">${t}</button>`).join('')}
+    ${['요약','청구·수납','원장','주차','자료보관','이력'].map(t=>`<button class="${t===tab3c?'on':''}" onclick="tab3c='${t}';render()">${t}</button>`).join('')}
   </div>`;
 }
 /* CTR-3 청구·수납 탭 — 수납 내역(PAY-6)과 같은 줄을 이 계약 하나로. 미납·연체료가 있는 달은 「상세」로 미납 상세 패널 */
@@ -5658,7 +5661,7 @@ const g3Tog=k=>{g3[k]=!g3Open(k);render(true);};
 function CTR3(k){
   const c=CTRS.find(x=>ckey(x)===k);
   if(!c) return TODO('ctr-1');
-  if(tab3c!=='원장') return CTR3head(c,k)+(tab3c==='청구·수납'?CTR3month(c,k):tab3c==='이력'?histHTML(histC(c),'c'+k):tab3c==='자료보관'?t자료(BUILDINGS.find(x=>x.id===c.b)||BUILDINGS[0],k):CTR3sum(c,k));
+  if(tab3c!=='원장') return CTR3head(c,k)+(tab3c==='청구·수납'?CTR3month(c,k):tab3c==='이력'?histHTML(histC(c),'c'+k):tab3c==='주차'?t주차(BUILDINGS.find(x=>x.id===c.b)||BUILDINGS[0],k):tab3c==='자료보관'?t자료(BUILDINGS.find(x=>x.id===c.b)||BUILDINGS[0],k):CTR3sum(c,k));
   const bn=BUILDINGS.find(x=>x.id===c.b)||BUILDINGS[0];
   const L=ledgerOf(k);
   const from=f3.per?new Date((dnum(TODAY_S)-({'1':30,'3':91,'12':365}[f3.per]))*864e5)
@@ -5721,7 +5724,7 @@ function CTR3(k){
     </select>
     <span style="margin-left:auto;display:flex;gap:6px">   <!-- 돈을 다루는 버튼은 원장 탭에만 둔다 -->
       ${ledBtns(k,L)}
-      <button class="btn pri" title="지금 보이는 기간의 원장(받을 돈 · 보증금)을 PDF로 내려받습니다" onclick="alert('원장 출력 — 지금 보이는 기간의 원장(받을 돈 · 보증금)을 PDF로 내려받습니다.\n목업에서는 파일을 내려받지 않습니다.')">원장 출력</button></span>
+      <button class="btn" style="padding:7px 9px;display:inline-flex;align-items:center" title="원장 출력 — 지금 보이는 기간의 원장(받을 돈 · 보증금)을 PDF로 내려받습니다" onclick="alert('원장 출력 — 지금 보이는 기간의 원장(받을 돈 · 보증금)을 PDF로 내려받습니다.\n목업에서는 파일을 내려받지 않습니다.')">${ic('down',16)}</button></span>
   </div>
   ${LT.html}
   <div class="hint">
