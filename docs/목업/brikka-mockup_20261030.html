@@ -2432,9 +2432,9 @@ function t청구(b){
         <td class="c">${moreCell([{t:'상세',go:`cdOpen(codeOf('${c.it}'))`},{t:'수정',go:`openCS(codeOf('${c.it}'))`},
           {t:'삭제',go:`ciDel(codeOf('${c.it}'))`,off:c.fixed?'계약서 약정 항목은 건물에서 빼지 않습니다':''}])}</td></tr>`}).join('')}
         ${/* 비정기 청구 · 연체료 — 청구항목이 아니지만 배분 순서를 한눈에 보도록 맨 아래에 잠긴 줄로. 모든 건물 같음 */
-          [[98,'비정기 청구','등록할 때 고름','청구할 때마다','엘리베이터 사용료 · 수리비 · 위약금 등'],[99,'연체료','일반내역서 <span class="c2" style="margin:0 0 0 4px">비과세</span>','정기 청구서 · 수납 때','연 % 이율로 계산']].map(([n,t,d,cy,bs])=>`<tr class="ni" style="cursor:default">
+          [[98,'비정기 청구','등록할 때 고름','청구할 때마다','엘리베이터 사용료 · 수리비 · 위약금 등',''],[99,'연체료','일반내역서 <span class="c2" style="margin:0 0 0 4px">비과세</span>','정기 청구서 · 수납 때','연 % 이율로 계산','임대차계약서']].map(([n,t,d,cy,bs,doc])=>`<tr class="ni" style="cursor:default">
           <td class="c"><b>${n}</b></td><td class="c1">${t}</td><td><span style="color:var(--faint)">—</span></td>
-          <td style="white-space:nowrap">${d}</td><td>${cy}</td><td><span style="color:var(--muted)">${bs}</span></td><td><span style="color:var(--faint)">—</span></td>
+          <td style="white-space:nowrap">${d}</td><td>${cy}</td><td><span style="color:var(--muted)">${bs}</span></td><td>${doc||'<span style="color:var(--faint)">—</span>'}</td>
           <td class="c">${moreCell([{t:'상세',off:'청구항목이 아니라 설정이 없습니다'},{t:'수정',off:'모든 건물에서 같아 바꿀 수 없습니다'},{t:'삭제',off:'모든 건물에서 같아 뺄 수 없습니다'}])}</td></tr>`).join('')}</tbody>
     </table></div>
   </div>
