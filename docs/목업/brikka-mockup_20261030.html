@@ -320,7 +320,6 @@ tbody tr{cursor:pointer}
 tbody tr:hover{background:var(--side-hov)}
 tbody tr.fixr{background:var(--soft)}
 tbody tr.fixr:hover{background:var(--side-hov)}
-.prfx{color:var(--muted)}   /* 배분 우선순위 고정 번호(1 · 2 · 98 · 99) — 바꿀 수 없어 흐리게 */
 tbody tr:last-child td{border-bottom:0}
 td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
 td.c,th.c{text-align:center}
@@ -2431,9 +2430,9 @@ function t청구(b){
         <th>배분 기준</th><th>근거 문서</th>
         <th class="c">더보기</th></tr></thead>
       <tbody>${[...b.charge].sort((x,y)=>prioOf(x.it)-prioOf(y.it)).map(c=>{const m=M(codeOf(c.it)), st=resolve(codeOf(c.it));
-        /* 임대료·고정관리비는 금액·주기·배분 방식이 계약서 약정이다 — 줄 색을 달리한다. 발행 문서는 수정에서 바꾼다(우선순위 1 · 2 고정) */
-        return `<tr class="${c.fixed?'fixr':''}" style="cursor:pointer;${c.use?'':'opacity:.55'}" onclick="cdOpen(codeOf('${c.it}'))">
-        <td class="c"><b${c.fixed?' class="prfx"':''}>${prioOf(c.it)}</b></td>
+        /* 배분 우선순위 고정 줄(임대료 1 · 고정관리비 2, 아래 98 · 99)은 이월 미납액 줄과 같은 연한 배경. 임대료·고정관리비는 금액·주기·배분 방식이 계약서 약정이라 발행 문서만 수정에서 바꾼다 */
+        return `<tr class="${c.fixed?'ni':''}" style="cursor:pointer;${c.use?'':'opacity:.55'}" onclick="cdOpen(codeOf('${c.it}'))">
+        <td class="c"><b>${prioOf(c.it)}</b></td>
         <td class="c1">${c.it}</td>
         <td>${c.use?'<span class="bd ok">사용</span>':'<span class="bd mu">미사용</span>'}</td>
         <td style="white-space:nowrap">${c.bill||m.bill||'—'} <span class="c2" style="margin:0 0 0 4px">${
@@ -2444,15 +2443,15 @@ function t청구(b){
         <td class="c">${moreCell([{t:'상세',go:`cdOpen(codeOf('${c.it}'))`},{t:'수정',go:`openCS(codeOf('${c.it}'))`},
           {t:'삭제',go:`ciDel(codeOf('${c.it}'))`,off:c.fixed?'계약서 약정 항목은 건물에서 빼지 않습니다':''}])}</td></tr>`}).join('')}
         ${/* 비정기 청구 · 연체료 — 청구항목이 아니지만 배분 순서를 한눈에 보도록 맨 아래에 잠긴 줄로. 모든 건물 같음 */
-          [[98,'비정기 청구','등록할 때 고름','청구할 때마다','엘리베이터 사용료 · 수리비 · 위약금 등'],[99,'연체료','일반내역서 <span class="c2" style="margin:0 0 0 4px">비과세</span>','정기 청구서 · 수납 때','연 % 이율로 계산']].map(([n,t,d,cy,bs])=>`<tr class="fixr" style="cursor:default">
-          <td class="c"><b class="prfx">${n}</b></td><td class="c1">${t}</td><td><span style="color:var(--faint)">—</span></td>
+          [[98,'비정기 청구','등록할 때 고름','청구할 때마다','엘리베이터 사용료 · 수리비 · 위약금 등'],[99,'연체료','일반내역서 <span class="c2" style="margin:0 0 0 4px">비과세</span>','정기 청구서 · 수납 때','연 % 이율로 계산']].map(([n,t,d,cy,bs])=>`<tr class="ni" style="cursor:default">
+          <td class="c"><b>${n}</b></td><td class="c1">${t}</td><td><span style="color:var(--faint)">—</span></td>
           <td style="white-space:nowrap">${d}</td><td>${cy}</td><td><span style="color:var(--muted)">${bs}</span></td><td><span style="color:var(--faint)">—</span></td>
           <td class="c">${moreCell([{t:'상세',off:'청구항목이 아니라 설정이 없습니다'},{t:'수정',off:'모든 건물에서 같아 바꿀 수 없습니다'},{t:'삭제',off:'모든 건물에서 같아 뺄 수 없습니다'}])}</td></tr>`).join('')}</tbody>
     </table></div>
   </div>
   <div class="hint">이 건물에서 받는 청구항목입니다. 배분 우선순위 순서로 보입니다. 줄을 누르면 설정과 최근 고지서 금액을 봅니다.<br>
-    임대료 · 고정관리비는 계약서에서 정한 항목이라 줄 색이 다르고, 건물에서 뺄 수 없습니다.<br>
-    배분 우선순위 1(임대료) · 2(고정관리비) · 98(비정기 청구) · 99(연체료)는 모든 건물에서 같은 고정 번호라 흐리게 보입니다. 다른 청구항목은 3~97 중에서 건물마다 정합니다. 비정기 청구 · 연체료는 청구항목이 아니지만 배분 순서를 보이려고 맨 아래에 둡니다.</div>
+    임대료 · 고정관리비는 계약서에서 정한 항목이라 건물에서 뺄 수 없습니다.<br>
+    배분 우선순위 1(임대료) · 2(고정관리비) · 98(비정기 청구) · 99(연체료)는 모든 건물에서 같은 고정 번호라 연한 배경으로 구분합니다. 다른 청구항목은 3~97 중에서 건물마다 정합니다. 비정기 청구 · 연체료는 청구항목이 아니지만 배분 순서를 보이려고 맨 아래에 둡니다.</div>
 `;
 }
 
