@@ -859,6 +859,17 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   MT.udOpen('b1', '본관601호'); MT.udEdit(); MT.ud.mt.elec = true; MT.udSave(); const back = MT.METER.elec.includes('본관601호');
   r6.push(['계량기 — 계량기 항목은 전기요금·수도요금·가스요금(카리나빌딩은 가스를 청구하지 않아도 표시) · 등록 때 전기만 체크 · 본관601호 계량기 떼기 · 다시 달기',
     its.join() === 'elec,water,gas' && /계량기 있음/.test(h) && on1 && off && back]); }
+/* 배분 우선순위 고정 — 임대료 1 · 고정관리비 2 · 비정기 청구 98 · 연체료 99는 모든 건물 같음 · 나머지는 3~97 · 관리비 탭 맨 아래에 98 · 99 잠긴 줄 → 명세변경 23 */
+{ const PR = new Function(stub + bare + '; return {PRO3,openCS,csHTML,prioOf,BSET,PR_MIN,PR_MAX,set tab3(v){tab3=v;}};')();
+  PR.BSET.rent = {pr: 7}; PR.BSET.mgmt = {pr: 9}; const fix = PR.prioOf('임대료') === 1 && PR.prioOf('고정관리비') === 2 && PR.prioOf('연체료') === 99;
+  PR.openCS('rent'); const hr = PR.csHTML(), rLock = /type="number" min="3" max="97" step="1" value="1" disabled/.test(hr) && /임대료 1 · 고정관리비 2는 모든 건물에서 같아/.test(hr);
+  PR.openCS('elec'); const he = PR.csHTML(), eOpen = /type="number" min="3" max="97" step="1" value="3" +\n/.test(he) || (/min="3" max="97"/.test(he) && !/value="3" disabled/.test(he));
+  PR.tab3 = '관리비'; const t = PR.PRO3('b1'), body = t.slice(t.indexOf('<tbody>'), t.indexOf('</tbody>'));
+  const rows = [...body.matchAll(/<td class="c"><b>(\d+)<\/b>/g)].map(m => +m[1]);
+  const tail = rows.slice(-2).join() === '98,99' && /비정기 청구/.test(body) && /연체료/.test(body) && rows.every((n, i) => !i || n > rows[i - 1]);
+  const lockMark = (body.match(/<div class="c2" style="margin:0">고정<\/div>/g) || []).length === 4;
+  r6.push(['배분 우선순위 고정 — 임대료 1 · 고정관리비 2(건물 설정이 있어도) · 수정 패널에서 잠김 · 다른 항목은 3~97 · 관리비 탭 맨 아래 비정기 청구 98 · 연체료 99 잠긴 줄 · 「고정」 표시 4곳',
+    fix && rLock && eOpen && PR.PR_MIN === 3 && PR.PR_MAX === 97 && tail && lockMark]); }
 /* 청구항목 상세 — 관리비 탭 더보기 ⋮(상세·수정) · 전기요금 상세에 계량기 보유 유닛과 최근 3개월 고지서 금액 · 임대료는 약정액 안내 */
 { const CD = new Function(stub + bare + '; return {cdOpen,cdHTML,ciDel,PRO3,MORE,BUILDINGS,BILL,set tab3(v){tab3=v;}};')();
   CD.tab3 = '관리비'; CD.MORE.length = 0; const hrow = CD.PRO3('b1'); const dd = CD.MORE.some(x => x[0].t === '상세' && x[1].t === '수정');

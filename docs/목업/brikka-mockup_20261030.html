@@ -820,8 +820,9 @@ const PROG7={
  b4:{settle:'확정',inv:12,invN:12,amt:61200000,paid:61200000,paidN:12,closed:true,closedAt:'08-06',due:'07-31'},
 };
 const selItems=()=>MASTER.filter(m=>!m.fixed&&BILL[m.code].on);
-/* 배분 우선순위 — 건물 설정이 있으면 그것, 없으면 기준표 기본값 → PRO-3 · 4.3 */
-const prioOf=name=>{const m=MASTER.find(x=>x.name===name);if(!m)return 99;
+/* 배분 우선순위 — 임대료 1 · 고정관리비 2 · 비정기 청구 98 · 연체료 99는 고정. 나머지 청구항목은 3~97을 건물에서 정한다(건물 설정이 없으면 기준표 기본값) → PRO-3 · 4.3 · 명세변경 23 */
+const PR_MIN=3, PR_MAX=97;
+const prioOf=name=>{const m=MASTER.find(x=>x.name===name);if(!m)return 99; if(m.fixed) return m.pr;
   const b=BSET[m.code];return (b&&b.pr)||m.pr||99;};
 let pCode='elec';
 const setPStep=i=>{pStep=i;render()};
@@ -898,11 +899,11 @@ function loadCS(code){
       ct:{...(CTMUL[code]||{})},
       /* 고정액 — 근거는 임대차계약서, 금액은 계약마다의 약정액. 두 값은 바꾸지 않는다 */
       doc:m.fixed?'계약서':b.doc||m.doc||'고지서', by:m.fixed?'임대차계약서':b.by||m.src||'',
-      fixed:!!m.fixed, pr:(b&&b.pr)||m.pr||99};
+      fixed:!!m.fixed, pr:prioOf(m.name)};
 }
 function openCS(code){
-  /* 건물당 청구항목은 최대 99개 — 우선순위 1~99와 짝 */
-  if(!code&&BUILDINGS[0].charge.length>=99){alert('이 건물의 청구항목이 99개입니다. 더 추가할 수 없습니다.');return;}
+  /* 건물당 청구항목은 최대 97개 — 우선순위 1~97과 짝(98 비정기 청구 · 99 연체료) */
+  if(!code&&BUILDINGS[0].charge.length>=PR_MAX){alert('이 건물의 청구항목이 97개입니다. 더 추가할 수 없습니다.');return;}
   if(code) loadCS(code);
   else{
     const m=MASTER.find(x=>!BUILDINGS[0].charge.some(c=>c.it===x.name));
@@ -963,7 +964,7 @@ function csAll(v){cs.meters=v?UNITS_B1.map(u=>u.no):[];render();}
 const prDup=()=>{const d=BUILDINGS[0].charge.filter(c=>c.it!==cs.name&&prioOf(c.it)===cs.pr).map(c=>c.it);return d.join('·');};
 function csApply(){
   let code=cs.item;
-  if(prDup()){alert(`우선순위 ${cs.pr}번은 ${prDup()}이(가) 이미 씁니다. 다른 번호를 넣으세요.`);return;}
+  if(!cs.fixed&&prDup()){alert(`우선순위 ${cs.pr}번은 ${prDup()}이(가) 이미 씁니다. 다른 번호를 넣으세요.`);return;}
   if(cs.neu){
     const nm=(cs.name||'').trim();
     if(!nm){alert('항목명을 입력하세요.');return;}
@@ -976,8 +977,7 @@ function csApply(){
   }else{
     const m=M(code); m.bill=cs.bill; m.cycle=cs.cycle; m.tax=isTax(cs.bill);
   }
-  if(cs.fixed){   /* 고정액 — 배분 설정이 없다. 발행 문서·주기·우선순위만 */
-    BSET[code]={...(BSET[code]||{}),pr:cs.pr};
+  if(cs.fixed){   /* 고정액 — 배분 설정이 없다. 발행 문서·주기만(우선순위는 1 · 2 고정) */
     const row=BUILDINGS[0].charge.find(c=>c.it===cs.name);
     if(row) Object.assign(row,{bill:cs.bill,cycle:cs.cycle});
     DRAWER=null; cs=null; render(); return;
@@ -1213,7 +1213,7 @@ function csHTML(){
       <div class="s">카리나빌딩${cs.editing?' · 수정':''}</div></div>
       <button class="x" onclick="closeDrawer()">✕</button></div>
     <div class="db">
-      ${cs.fixed?'<div class="prev" style="margin:0 0 14px"><div class="pt">계약서 약정 항목</div>임대료·고정관리비는 금액·반복주기·근거 문서·배분 방식이 계약서로 정해집니다. 이 건물에서는 <b>발행 문서</b>와 <b>배분 우선순위</b>만 바꿉니다. 금액은 계약 상세 › 임대료·관리비에서 바꿉니다.</div>':''}
+      ${cs.fixed?'<div class="prev" style="margin:0 0 14px"><div class="pt">계약서 약정 항목</div>임대료·고정관리비는 금액·반복주기·근거 문서·배분 방식이 계약서로 정해집니다. 이 건물에서는 <b>발행 문서</b>만 바꿉니다. 배분 우선순위는 임대료 1 · 고정관리비 2로 고정입니다. 금액은 계약 상세 › 임대료·관리비에서 바꿉니다.</div>':''}
       <div class="fg"><div class="fl">항목</div>
         <div class="fr"><span class="fk">청구항목</span>
           <select onchange="csSet('item',this.value)" ${cs.fixed?'disabled':''}>
@@ -1239,10 +1239,10 @@ function csHTML(){
           </select></div>
         ${cs.fixed?'<div class="hint" style="margin:-3px 0 0 114px">매월이 기본입니다. 다른 주기는 계약 상세 › 요약 › 임대정보에서 계약마다 바꿉니다.</div>':''}
         <div class="fr"><span class="fk">배분 우선순위</span>
-          <input class="inp w" type="number" min="1" max="99" step="1" value="${cs.pr}"
-            onchange="csSet('pr',Math.max(1,Math.min(99,parseInt(this.value)||99)))"></div>
-        <div class="hint" style="margin:-3px 0 0 114px">입금이 모자랄 때 먼저 채우는 순서입니다. 숫자가 작을수록 먼저입니다. 건물 안에서 겹칠 수 없습니다.${
-          (()=>{const d=prDup();return d?`<br><span style="color:var(--danger)">${d}이(가) 이미 ${cs.pr}번을 씁니다. 다른 번호를 넣으세요.</span>`:'';})()}</div>
+          <input class="inp w" type="number" min="${PR_MIN}" max="${PR_MAX}" step="1" value="${cs.pr}" ${cs.fixed?'disabled':''}
+            onchange="csSet('pr',Math.max(PR_MIN,Math.min(PR_MAX,parseInt(this.value)||PR_MAX)))"></div>
+        <div class="hint" style="margin:-3px 0 0 114px">입금이 모자랄 때 먼저 채우는 순서입니다. 숫자가 작을수록 먼저입니다. ${cs.fixed?'임대료 1 · 고정관리비 2는 모든 건물에서 같아 바꿀 수 없습니다.':'3~97 중에서 고르고 건물 안에서 겹칠 수 없습니다. 1 · 2(임대료 · 고정관리비)와 98 · 99(비정기 청구 · 연체료)는 고정입니다.'}${
+          (()=>{const d=!cs.fixed&&prDup();return d?`<br><span style="color:var(--danger)">${d}이(가) 이미 ${cs.pr}번을 씁니다. 다른 번호를 넣으세요.</span>`:'';})()}</div>
       </div>
 
       <div class="fg"><div class="fl">근거 문서${cs.fixed?' · 계약서 약정이라 바꿀 수 없습니다':''}</div>
@@ -2430,9 +2430,9 @@ function t청구(b){
         <th>배분 기준</th><th>근거 문서</th>
         <th class="c">더보기</th></tr></thead>
       <tbody>${[...b.charge].sort((x,y)=>prioOf(x.it)-prioOf(y.it)).map(c=>{const m=M(codeOf(c.it)), st=resolve(codeOf(c.it));
-        /* 임대료·고정관리비는 금액·주기·배분 방식이 계약서 약정이다 — 줄 색을 달리한다. 발행 문서·우선순위는 수정에서 바꾼다 */
+        /* 임대료·고정관리비는 금액·주기·배분 방식이 계약서 약정이다 — 줄 색을 달리한다. 발행 문서는 수정에서 바꾼다(우선순위 1 · 2 고정) */
         return `<tr class="${c.fixed?'fixr':''}" style="cursor:pointer;${c.use?'':'opacity:.55'}" onclick="cdOpen(codeOf('${c.it}'))">
-        <td class="c"><b>${prioOf(c.it)}</b></td>
+        <td class="c"><b>${prioOf(c.it)}</b>${c.fixed?'<div class="c2" style="margin:0">고정</div>':''}</td>
         <td class="c1">${c.it}</td>
         <td>${c.use?'<span class="bd ok">사용</span>':'<span class="bd mu">미사용</span>'}</td>
         <td style="white-space:nowrap">${c.bill||m.bill||'—'} <span class="c2" style="margin:0 0 0 4px">${
@@ -2441,11 +2441,17 @@ function t청구(b){
         <td>${c.fixed?'<span style="color:var(--muted)">계약 약정액</span>':(c.basis||'—')}${c.ref?`<div class="c2">${c.ref} 검침값 참조</div>`:''}</td>
         <td>${c.doc||`${st.by||m.src||''} ${st.doc||m.doc||''}`.trim()||'—'}</td>
         <td class="c">${moreCell([{t:'상세',go:`cdOpen(codeOf('${c.it}'))`},{t:'수정',go:`openCS(codeOf('${c.it}'))`},
-          {t:'삭제',go:`ciDel(codeOf('${c.it}'))`,off:c.fixed?'계약서 약정 항목은 건물에서 빼지 않습니다':''}])}</td></tr>`}).join('')}</tbody>
+          {t:'삭제',go:`ciDel(codeOf('${c.it}'))`,off:c.fixed?'계약서 약정 항목은 건물에서 빼지 않습니다':''}])}</td></tr>`}).join('')}
+        ${/* 비정기 청구 · 연체료 — 청구항목이 아니지만 배분 순서를 한눈에 보도록 맨 아래에 잠긴 줄로. 모든 건물 같음 */
+          [[98,'비정기 청구','등록할 때 고름','청구할 때마다','엘리베이터 사용료 · 수리비 · 위약금 등'],[99,'연체료','일반내역서 <span class="c2" style="margin:0 0 0 4px">비과세</span>','정기 청구서 · 수납 때','연 % 이율로 계산']].map(([n,t,d,cy,bs])=>`<tr class="fixr" style="cursor:default">
+          <td class="c"><b>${n}</b><div class="c2" style="margin:0">고정</div></td><td class="c1">${t}</td><td><span style="color:var(--faint)">—</span></td>
+          <td style="white-space:nowrap">${d}</td><td>${cy}</td><td><span style="color:var(--muted)">${bs}</span></td><td><span style="color:var(--faint)">—</span></td>
+          <td class="c">${moreCell([{t:'상세',off:'청구항목이 아니라 설정이 없습니다'},{t:'수정',off:'모든 건물에서 같아 바꿀 수 없습니다'},{t:'삭제',off:'모든 건물에서 같아 뺄 수 없습니다'}])}</td></tr>`).join('')}</tbody>
     </table></div>
   </div>
   <div class="hint">이 건물에서 받는 청구항목입니다. 배분 우선순위 순서로 보입니다. 줄을 누르면 설정과 최근 고지서 금액을 봅니다.<br>
-    임대료 · 고정관리비는 계약서에서 정한 항목이라 줄 색이 다르고, 건물에서 뺄 수 없습니다.</div>
+    임대료 · 고정관리비는 계약서에서 정한 항목이라 줄 색이 다르고, 건물에서 뺄 수 없습니다.<br>
+    배분 우선순위 1(임대료) · 2(고정관리비) · 98(비정기 청구) · 99(연체료)는 모든 건물에서 같은 고정 번호입니다. 다른 청구항목은 3~97 중에서 건물마다 정합니다. 비정기 청구 · 연체료는 청구항목이 아니지만 배분 순서를 보이려고 맨 아래에 둡니다.</div>
 `;
 }
 
