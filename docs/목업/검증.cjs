@@ -652,8 +652,8 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   /* 전체 펼치기 · 접기는 버튼이 아니라 머리글 왼쪽 화살표 */
   const head = h => !/전체 (펼치기|접기)<\/button>/.test(h) && /<span class="tg [a-z]*" title="전체 펼치기"/.test(h);
   TG.tab3c = '청구·수납'; const cm = TG.CTR3('b1별관301호'); TG.tab3c = '원장';
-  r6.push(['전체 펼치기 — 청구서 발행 · 미납 관리 · 수납 내역 · 주차 · 계약 청구·수납 · 원장 모두 머리글 왼쪽 화살표(버튼 없음) · 청구서 발행 전체 선택은 머리글 체크박스(버튼 없음)',
-    [p1, TG.PAY2(), TG.PAY6(), TG.PRO3('b1'), cm, TG.CTR3('b1본관801호')].every(head) && pick && before === 0]); }
+  r6.push(['전체 펼치기 — 청구서 발행 · 미납 관리 · 수납 내역 · 계약 청구·수납 · 원장 모두 머리글 왼쪽 화살표(버튼 없음) · 청구서 발행 전체 선택은 머리글 체크박스(버튼 없음)',
+    [p1, TG.PAY2(), TG.PAY6(), cm, TG.CTR3('b1본관801호')].every(head) && pick && before === 0]); }
 /* 원장은 전체 펼치기 버튼 대신 머리글 왼쪽 화살표(줄 화살표와 같은 자리) */
 { const TL = new Function(stub + bare + '; seedJuly(); return {CTR3,set tab3c(v){tab3c=v;},set g3All(v){g3All=v;}};')();
   TL.tab3c = '원장'; const h0 = TL.CTR3('b1별관301호'); TL.g3All = true; const h1 = TL.CTR3('b1별관301호');
@@ -929,22 +929,27 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   BE.beOpen('b1', 'mgmt'); BE.be.f.me = '2028-02-29'; BE.beSave();
   r6.push(['요약 카드 수정 — 별칭 중복 막힘 · 지번 저장 · 기계식 6 → 총 주차면 다시 계산 · 지분 100% 아니면 막힘 · 채권 10억 · 공용시설 추가·삭제 · 위탁운영계약 종료일',
     dup && b.addr2 === '지번 바꿈' && pk && sh && b.owners[0].share === 50 && b.bondNow === 1e9 && fac && !b.fac.includes('라운지') && b.mgmtEnd === '2028-02-29']); }
-/* 주차 탭 — 실제 명부 31대 · 계약별로 접고 펼침 · 무료가 무료 주차 대수를 넘으면 초과 표시 · 기타(건물 밖 · 본관501호 호텔 1대)는 무료 대수에 안 셈 → 명세변경 22 · 연락처 미확인 · 새로 넣을 때는 무료 초과 막힘 · 차량번호 중복 막힘 · 필터 */
-{ const PT = new Function(stub + bare + '; return {PRO3,vehOpen,vehSave,vehMissing,vehDel,vehOf,gpkTog,gpkSet,vdOpen,vdHTML,get vh(){return vh;},set tab3(v){tab3=v;},get fpk(){return fpk;},get VEH(){return VEH;}};')();
+/* 주차 탭 — 실제 명부 31대를 한 줄에 한 대씩(계약 · 차량번호 순 · 계약은 칸) · 계약을 고르면 대수 · 무료 초과는 표 위 안내(누르면 그 계약) · 기타(건물 밖 · 본관501호 호텔 1대)는 무료 대수에 안 셈 → 명세변경 22 · 연락처 미확인 · 새로 넣을 때는 무료 초과 막힘 · 차량번호 중복 막힘 · 필터 */
+{ const PT = new Function(stub + bare + '; return {PRO3,vehOpen,vehSave,vehMissing,vehDel,vehOf,vdOpen,vdHTML,CPARK,get vh(){return vh;},set tab3(v){tab3=v;},get fpk(){return fpk;},get VEH(){return VEH;}};')();
   PT.tab3 = '요약'; const sum = PT.PRO3('b1'); PT.tab3 = '주차'; const h0 = PT.PRO3('b1');
   const order = h0.indexOf('>유닛<') < h0.indexOf('>주차<') && h0.indexOf('>주차<') < h0.indexOf('>관리비<');
-  const closed = !/10버3291/.test(h0) && !/무료 \d+대 초과/.test(h0) && /총 4대 · 무료 3대 \+ 월정액 0대 · 기타 1대/.test(h0) && /연락처 미확인/.test(h0) && !/주차면 32|등록 31대/.test(h0) && /\+ 차량 추가/.test(h0) && /계약고유이름 · 차량 소유자/.test(h0) && !/전체 요금부과/.test(h0);
-  PT.gpkTog('b1본관801호'); const h1 = PT.PRO3('b1'); const open1 = /10버3291/.test(h1) && !/45라0809/.test(h1);
-  PT.gpkSet(true); const h2 = PT.PRO3('b1'); const all = /45라0809/.test(h2) && /미확인/.test(h2);
-  const grp = /총 4대 · 무료 3대 \+ 월정액 1대/.test(h2) && /vdOpen\('b1',1\)/.test(h2); PT.vdOpen('b1', 1); const hd = PT.vdHTML(); const det = /비상 연락/.test(hd) && /이한용/.test(hd) && /무료 주차 3대/.test(hd);
+  const rows = (h0.match(/onclick="vdOpen\('b1',\d+\)"><td class="c1"/g) || []).length;
+  const flat = rows === 31 && /<th>차량번호<\/th><th>차량 소유자<\/th><th>연락처<\/th><th>차종<\/th><th>계약고유이름<\/th><th>주차구분<\/th>/.test(h0)
+    && !/class="grp"/.test(h0) && !/전체 (펼치기|접기)/.test(h0) && !/무료 \d+대 초과/.test(h0) && !/무료 주차를 넘은 계약/.test(h0)
+    && h0.indexOf('10버3291') < h0.indexOf('45라0809') && /미확인/.test(h0) && !/주차면 32|등록 31대/.test(h0) && /\+ 차량 추가/.test(h0) && !/전체 요금부과/.test(h0);
+  PT.fpk.k = 'b1본관501호'; const h1 = PT.PRO3('b1'); const pick = /총 4대 · 무료 3대 \+ 월정액 0대 · 기타 1대/.test(h1) && /연락처 미확인/.test(h1) && !/10버3291/.test(h1) && /기타 · 아난티 호텔/.test(h1);
+  PT.fpk.k = '';
+  PT.CPARK['b1본관801호'].free = 2; const h2 = PT.PRO3('b1'); PT.CPARK['b1본관801호'].free = 3;
+  const over = /무료 주차를 넘은 계약 1건/.test(h2) && /setFpk\('k','b1본관801호'\)/.test(h2) && /무료 1대 초과/.test(h2);
+  PT.vdOpen('b1', 1); const hd = PT.vdHTML(); const det = /비상 연락/.test(hd) && /이한용/.test(hd) && /무료 주차 3대/.test(hd);
   PT.vehOpen('b1'); Object.assign(PT.vh, {k:'b1본관801호', plate:'99거9999', own:'홍길동', tel:'010-0000-0001', fee:'무료'}); PT.vehSave();
   const overFree = PT.vehMissing().some(m => /무료 주차 3대까지/.test(m)); PT.vh.plate = '10버3291'; const dupP = PT.vehMissing().some(m => /이미 등록됨/.test(m));
   PT.vh.plate = '99거9999'; PT.vh.fee = '월정액'; PT.vehSave(); const ok = PT.vehOf('b1본관801호').length === 5;
   PT.vehOpen('b1'); Object.assign(PT.vh, {k:'b1본관801호', plate:'88너8888', own:'김호텔', tel:'010-0000-0002', fee:'무료', loc:'기타', place:''}); PT.vehSave();
-  const etc1 = PT.vehMissing().join() === '장소'; PT.vh.place = '아난티 호텔'; PT.vehSave(); PT.gpkSet(true); const h3 = PT.PRO3('b1');
+  const etc1 = PT.vehMissing().join() === '장소'; PT.vh.place = '아난티 호텔'; PT.vehSave(); PT.fpk.k = 'b1본관801호'; const h3 = PT.PRO3('b1'); PT.fpk.k = '';
   const etc = etc1 && PT.vehOf('b1본관801호').length === 6 && /기타 · 아난티 호텔/.test(h3) && /총 6대 · 무료 3대 \+ 월정액 2대 · 기타 1대/.test(h3);
-  r6.push(['주차 탭 — 유닛·주차·관리비 순 · 처음엔 접힘 · 본관501호는 호텔 1대가 기타라 초과 없음(무료 3 + 기타 1) · 기타는 장소 필수 · 무료 대수에 안 세서 무료로 넣어도 안 막힘 · 연락처 미확인 · 요약 숫자 줄 없음 · 펼치면 차량 · 묶음 줄 「총 4대 · 무료 3대 + 월정액 1대」 · 차량 줄을 누르면 상세 · 무료 초과로 새로 넣기 막힘 · 차량번호 중복 막힘 · 검색 칸 없음',
-    order && !/등록 차량/.test(sum) && closed && open1 && all && grp && det && overFree && dupP && ok && etc && !/class="fq"/.test(h0)]); }
+  r6.push(['주차 탭 — 유닛·주차·관리비 순 · 31대 한 단 명부(차량번호 · 소유자 · 연락처 · 차종 · 계약고유이름 · 주차구분 · 요금부과) · 묶음 줄 · 펼치기 없음 · 계약을 고르면 「총 4대 · 무료 3대 + 월정액 0대 · 기타 1대」 · 무료 초과면 표 위 안내(누르면 그 계약) · 기타는 장소 필수 · 무료 대수에 안 셈 · 차량 줄을 누르면 상세 · 무료 초과로 새로 넣기 막힘 · 차량번호 중복 막힘 · 검색 칸 없음',
+    order && !/등록 차량/.test(sum) && flat && pick && over && det && overFree && dupP && ok && etc && !/class="fq"/.test(h0)]); }
 /* 자료보관 줄을 누르면 상세 · 요약 탭 건물관리자에 회사·연락처·이메일·계정상태 */
 { const DM = new Function(stub + bare + '; return {PRO3,set tab3(v){tab3=v;}};')();
   DM.tab3 = '자료보관'; const hd = DM.PRO3('b1'); DM.tab3 = '요약'; const hs = DM.PRO3('b1');
