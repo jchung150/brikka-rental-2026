@@ -3710,9 +3710,8 @@ const addPay=(id,amt,date,src,dep)=>{PAID[id]=(PAID[id]||0)+amt;(PAYEV[id]=PAYEV
 /* 수납 기록 화면 상태 */
 /* 달마다 올린 거래내역 — 번호가 겹치지 않게 6월은 100번대 */
 const BANKS={'2026-06':parseBank(BANK_JUN,100),'2026-07':parseBank(BANK_RAW)};
-/* 거래내역의 출처 — 6월은 연동 전의 지난 내역이라 은행 파일로 올렸다. 7월부터 자동 수집이다 → 명세변경_261108 24-4 */
-BANKS['2026-06'].dep.forEach(d=>d.src='업로드');
-BANKS['2026-07'].dep.forEach(d=>d.src='자동 수집');
+/* 거래내역의 출처 — 목업의 6 · 7 · 8월은 모두 자동 수집(연동)으로 들어왔다. 업로드 · 직접 입력은 연동이 멈췄을 때만 쓴다 → 명세변경_261108 24-4 */
+['2026-06','2026-07'].forEach(ym=>BANKS[ym].dep.forEach(d=>d.src='자동 수집'));
 /* 8월 — 오늘 아침까지 자동으로 가져온 입금. 처음 보는 이름이라 미매칭으로 남았다 */
 BANKS['2026-08']={skip:0,head:[],map:{},rows:[],wd:[],dep:[{no:301,dt:'2026-08-07 11:02:15',kind:'타행이체',name:'미래상사',amt:1100000,out:0,src:'자동 수집'}]};
 /* 마지막으로 가져온 시각 — 1시간마다 · 청구서 발행 · 마감 · 해지 처리 직전 · 입금 매칭을 열 때 → 24-3 */
@@ -3958,6 +3957,7 @@ function seedMonth(ym,pk,ign){
   });
   QUIET=false; RC.cur=null; RC.f.ym=kf;
 }
+/* 6월도 자동 수집이다. 첫 달이라 등록된 입금자명이 없어 자동 확정된 것은 없다 */
 seedMonth('2026-06',{101:'루비뮤직',102:'케이큐엔터테이먼트',103:'케이더블유인터내셔널',104:'케이더블유인터내셔널',105:'아이씨비',
   106:'에스씨케이컴퍼니',107:'아마데우스',108:'고우컴퍼니',109:'유니버셜대부',112:'좋은생각사람들'},[114]);
 /* 전월 과납액 — 청구서를 발행할 때 남은 과납을 새 청구에 자동으로 먼저 배분한다 → 4.3.4
@@ -3994,7 +3994,7 @@ const LABEL6={'자동':'자동 매칭','지정':'미매칭','후보':'미매칭'
 const bkAccts=b=>b.acct===b.feeAcct?[{t:'임대료 · 관리비',a:b.acct,n:b.acctName}]
   :[{t:'임대료',a:b.acct,n:b.acctName},{t:'관리비',a:b.feeAcct,n:b.feeAcctName}];
 /* 목업에서 이미 올라가 있는 파일 — 카리나빌딩은 두 계좌가 같아 계좌 하나다 */
-const BKUP=[{b:'b1',ym:'2026-06',a:'국민은행 812-01-0455-118',file:'카리나빌딩_거래내역_202606.xlsx',at:'2026-07-01 09:12',by:'김관리'}];
+const BKUP=[];   /* 목업에서 올린 파일은 없다 — 모두 자동 수집 */
 const bkUps=()=>BKUP.filter(x=>x.b===RC.f.b&&x.ym===RC.f.ym);
 /* 입금 줄의 계좌 — 목업 거래내역은 건물·월마다 파일 하나라 그 파일의 계좌다 */
 const rcAcct=()=>(bkUps()[0]||{}).a||(bkAccts(BUILDINGS.find(x=>x.id===RC.f.b)||BUILDINGS[0])[0]||{}).a||'';
@@ -4028,16 +4028,18 @@ function bkHTML(){
    나중에 같은 거래가 은행에서 들어오면 이 줄에 붙여 「은행 확인됨」으로 바꾼다 → 명세변경_261108 24-4 ═══ */
 let bd=null;
 function bdOpen(){const b=BUILDINGS.find(x=>x.id===RC.f.b), A=bkAccts(b);
-  bd={b:b.id,a:A.length===1?A[0].a:'',dt:'',name:'',amt:0,memo:'',tried:false};DRAWER='bkd';render(true);}
+  bd={b:b.id,a:A.length===1?A[0].a:'',d:'',t:'',name:'',amt:0,memo:'',tried:false};DRAWER='bkd';render(true);}
+const bdTime=()=>{const m=String(bd.t||'').trim().match(/^(\d{1,2}):?(\d{2})$/); return m&&+m[1]<24&&+m[2]<60?`${m[1].padStart(2,'0')}:${m[2]}`:'';};
 function bdSet(f,v){bd[f]=f==='amt'?numOf(v):v;render(true);}
-function bdMissing(){const m=[];if(!bd.a) m.push('입금 계좌');if(!bd.dt) m.push('입금일시');if(!bd.name.trim()) m.push('입금자명');if(!(bd.amt>0)) m.push('입금액');
-  if(bd.dt&&bd.dt.slice(0,10)>TODAY_S) m.push('입금일시가 오늘 뒤입니다');
-  if(bd.dt&&mcLocked(bd.b,bd.dt.slice(0,7))) m.push(`${+bd.dt.slice(5,7)}월은 마감했습니다. 마감을 취소해야 넣을 수 있습니다`);
+function bdMissing(){const m=[];if(!bd.a) m.push('입금 계좌');if(!bd.d) m.push('입금일');if(!bdTime()) m.push(bd.t?'시각은 14:05처럼 넣습니다':'입금 시각');if(!bd.name.trim()) m.push('입금자명');if(!(bd.amt>0)) m.push('입금액');
+  if(bd.d&&bd.d>TODAY_S) m.push('입금일이 오늘 뒤입니다');
+  if(bd.d&&mcLocked(bd.b,bd.d.slice(0,7))) m.push(`${+bd.d.slice(5,7)}월은 마감했습니다. 마감을 취소해야 넣을 수 있습니다`);
   return m;}
 function bdSave(){bd.tried=true;if(bdMissing().length){render(true);return;}
-  const ym=bd.dt.slice(0,7), B=BANKS[ym]=BANKS[ym]||{skip:0,head:[],map:{},rows:[],dep:[],wd:[]};
+  if(bd.b!==RC.b){say('목업의 거래내역 자료는 카리나빌딩뿐입니다. 다른 건물은 패널만 봅니다.');return;}
+  const ym=bd.d.slice(0,7), B=BANKS[ym]=BANKS[ym]||{skip:0,head:[],map:{},rows:[],dep:[],wd:[]};
   const no=900+Object.values(BANKS).reduce((a,x)=>a+x.dep.filter(d=>d.src==='직접 입력').length,0)+1;
-  B.dep.push({no,dt:bd.dt.replace('T',' ')+':00',kind:'직접 입력',name:bd.name.trim(),amt:bd.amt,out:0,src:'직접 입력',by:'슈퍼관리자',at:`${TODAY_S} ${new Date().toTimeString().slice(0,5)}`,memo:bd.memo.trim(),bank:false,acct:bd.a});
+  B.dep.push({no,dt:`${bd.d} ${bdTime()}:00`,kind:'직접 입력',name:bd.name.trim(),amt:bd.amt,out:0,src:'직접 입력',by:'슈퍼관리자',at:`${TODAY_S} ${new Date().toTimeString().slice(0,5)}`,memo:bd.memo.trim(),bank:false,acct:bd.a});
   RC.f.ym=ym; RC.f.ten=''; RC.cur=no; DRAWER=null; bd=null;
   /* 들어온 입금은 자동 수집과 똑같이 매칭한다 — 등록된 입금자명이면 바로 확정 */
   rcConfirm(no,'only'); RC.cur=no; render(true);}
@@ -4050,8 +4052,10 @@ function bdHTML(){
       <button class="x" onclick="closeDrawer()">✕</button></div>
     <div class="db">
       ${R('입금 계좌',`<select ${A.length===1?'disabled':''} onchange="bdSet('a',this.value)">${A.length>1?'<option value="">입금 계좌 선택</option>':''}
-        ${A.map(x=>`<option value="${x.a}" ${bd.a===x.a?'selected':''}>${x.t} 계좌 · ${x.a} · ${x.n}</option>`).join('')}</select>`,1)}
-      ${R('입금일시',`<input type="datetime-local" value="${bd.dt}" max="${TODAY_S}T23:59" onchange="bdSet('dt',this.value)">`,1,'은행 앱 · 통장에 찍힌 날짜와 시각 그대로 넣습니다. 마감한 달은 넣을 수 없습니다')}
+        ${A.map(x=>`<option value="${x.a}" ${bd.a===x.a?'selected':''}>${x.t} 계좌 · ${x.a} · ${x.n}</option>`).join('')}</select>`,1,
+        A.length===1?'이 건물은 임대료와 관리비 납부 계좌가 같아 계좌가 하나입니다':'돈이 들어온 계좌를 고릅니다. 매칭과 배분은 계좌와 상관없이 같습니다')}
+      ${R('입금일',`<input type="date" value="${bd.d}" max="${TODAY_S}" onchange="bdSet('d',this.value)">`,1,'은행 앱 · 통장에 찍힌 날짜 그대로 넣습니다. 마감한 달은 넣을 수 없습니다')}
+      ${R('입금 시각',`<input type="text" inputmode="numeric" value="${bd.t}" placeholder="예: 14:05" maxlength="5" onchange="bdSet('t',this.value)" style="max-width:110px">`,1,'은행 거래내역의 시각입니다. 나중에 은행 기록과 맞출 때 씁니다')}
       ${R('입금자명',`<input type="text" value="${bd.name}" placeholder="통장에 찍힌 이름 그대로" onchange="bdSet('name',this.value)">`,1)}
       ${R('입금액',`<input type="text" inputmode="numeric" value="${bd.amt?num(bd.amt):''}" oninput="kwLive(this)" onchange="bdSet('amt',this.value)" style="text-align:right"><span class="kw">${korWon(bd.amt)}</span>`,1)}
       ${R('메모',`<input type="text" value="${bd.memo}" placeholder="예: 은행 연동 중단 · 통장 확인" oninput="bd.memo=this.value">`)}
@@ -4073,7 +4077,7 @@ function PAY13(){
   const head=`
   <div class="ph"><h1>입금 매칭</h1><span class="sid">PAY-13</span>
     <div class="act">
-      <button class="btn" ${RC.f.b===RC.b?'':'disabled title="목업의 거래내역 자료는 카리나빌딩뿐입니다"'} onclick="bdOpen()">거래내역 직접 입력</button>
+      <button class="btn" onclick="bdOpen()">거래내역 직접 입력</button>
       <button class="btn" ${mcLocked(RC.b,RC.f.ym)?'disabled':''} onclick="bkOpen()">은행 거래내역 업로드</button>
 </div>
   </div>
@@ -4120,7 +4124,7 @@ function PAY13(){
       .map(o=>({...o,no:ctOf(o.k).no,ten:ctOf(o.k).ten}));
     panel=`<div class="card"><div class="cc" style="padding:18px 20px">
       <div style="display:flex;align-items:center;gap:8px"><span class="bd ok">확정</span>
-        <span class="c2" style="margin:0">${d.dt} · 계좌이체 · 입금 계좌 ${d.acct||rcAcct()} · ${d.src||'업로드'}${d.src==='직접 입력'?` (${d.by} · ${d.bank?'은행 확인됨':'은행 확인 전'})`:''} · ${r.auto?'자동 확정 · 시스템':`은행거래내역매칭 · ${r.by||'슈퍼관리자'}`} · 매칭 근거 <b>${r.basis}</b></span>
+        <span class="c2" style="margin:0">${d.dt} · 계좌이체 · 입금 계좌 ${d.acct||rcAcct()} · ${d.src||'자동 수집'}${d.src==='직접 입력'?` (${d.by} · ${d.bank?'은행 확인됨':'은행 확인 전'})`:''} · ${r.auto?'자동 확정 · 시스템':`은행거래내역매칭 · ${r.by||'슈퍼관리자'}`} · 매칭 근거 <b>${r.basis}</b></span>
         <button class="btn sm" style="margin-left:auto" onclick="say('PAY-9 수납 내역 수정 및 취소 — 배분 재조정 또는 무효 처리. 입금액은 수정할 수 없다')">수정·취소</button></div>
       <div style="display:flex;align-items:baseline;gap:14px;margin-top:8px">
         <span style="font-size:17px;font-weight:700">${d.name}</span><span class="big">${won(d.amt)}</span>
@@ -4146,13 +4150,13 @@ function PAY13(){
   }else if(x.mis){
     const rf=x.mis.refund;
     panel=`<div class="card"><div class="cc" style="padding:18px 20px">
-      <div class="c2" style="margin:0">오납 — 잘못 들어온 돈입니다. 돌려줍니다 · ${d.dt} · 입금 계좌 ${rcAcct()}</div>
+      <div class="c2" style="margin:0">오납 — 잘못 들어온 돈입니다. 돌려줍니다 · ${d.dt} · 입금 계좌 ${d.acct||rcAcct()} · ${d.src||'자동 수집'}</div>
       <div style="font-size:15px;font-weight:700;margin:6px 0">${d.name}</div><div class="big">${won(d.amt)}</div>
       <div style="margin-top:14px;display:flex;gap:8px;align-items:center">${rf?`<span class="bd ok">환불함 · ${rf.date.slice(5).replace('-','.')}${rf.acct?' · '+rf.acct:''}</span>`
         :`<button class="btn sm pri" onclick="openMis(${d.no})">환불 기록</button><button class="btn sm" onclick="rcUnignore(${d.no})">되돌리기</button>`}</div></div></div>`;
   }else if(x.ex){
     panel=`<div class="card"><div class="cc" style="padding:18px 20px">
-      <div class="c2" style="margin:0">무시함 — 수납으로 기록하지 않습니다 · ${d.dt} · 입금 계좌 ${rcAcct()}</div>
+      <div class="c2" style="margin:0">무시함 — 수납으로 기록하지 않습니다 · ${d.dt} · 입금 계좌 ${d.acct||rcAcct()} · ${d.src||'자동 수집'}</div>
       <div style="font-size:15px;font-weight:700;margin:6px 0">${d.name}</div><div class="big">${won(d.amt)}</div>
       <div style="margin-top:14px"><button class="btn sm" onclick="rcUnignore(${d.no})">되돌리기</button></div></div></div>`;
   }else{
@@ -4182,7 +4186,7 @@ function PAY13(){
     <div class="card"><div class="cc" style="padding:18px 20px">
       <div style="display:flex;align-items:center;gap:8px">
         <span class="bd ${BADGE6[g.st]}">${LABEL6[g.st]}</span>
-        <span class="c2" style="margin:0">${d.dt} · ${d.kind} · 입금 계좌 ${d.acct||rcAcct()} · ${d.src||'업로드'}${d.src==='직접 입력'?` (${d.by} · 은행 확인 전${d.memo?' · '+d.memo:''})`:''} · 비교용 이름 <b>${g.nm}</b></span></div>
+        <span class="c2" style="margin:0">${d.dt} · ${d.kind} · 입금 계좌 ${d.acct||rcAcct()} · ${d.src||'자동 수집'}${d.src==='직접 입력'?` (${d.by} · 은행 확인 전${d.memo?' · '+d.memo:''})`:''} · 비교용 이름 <b>${g.nm}</b></span></div>
       <div style="display:flex;align-items:baseline;gap:14px;margin-top:8px">
         <span style="font-size:17px;font-weight:700">${d.name}</span><span class="big">${won(d.amt)}</span></div>
     </div></div>

@@ -800,13 +800,13 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   AU.setRC('ym', '2026-07'); AU.RC.cur = autoNo; const h7 = AU.PAY13();
   AU.f1b = 'b1'; const h1 = AU.PAY1(), w = AU.suOf('b1').wait;
   AU.setRC('ym', '2026-08'); const h8 = AU.PAY13();
-  AU.bdOpen(); AU.bdSet('dt', '2026-07-20T10:00'); AU.bdSet('name', '(주)비씨에이전시'); AU.bdSet('amt', '100000'); const closed = AU.bdMissing().some(m => /7월은 마감했습니다/.test(m));
-  const bal0 = AU.ledgerOf('b1별관301호').bal.매출채권; AU.bdSet('dt', '2026-08-09T10:00'); AU.bdSave();
+  AU.bdOpen(); AU.bdSet('d', '2026-07-20'); AU.bdSet('t', '1000'); const tOk = AU.bdMissing().every(m => !/시각/.test(m)); AU.bdSet('name', '(주)비씨에이전시'); AU.bdSet('amt', '100000'); const closed = AU.bdMissing().some(m => /7월은 마감했습니다/.test(m));
+  const bal0 = AU.ledgerOf('b1별관301호').bal.매출채권; AU.bdSet('d', '2026-08-09'); AU.bdSet('t', '25:00'); const tBad = AU.bdMissing().some(m => /14:05처럼/.test(m)); AU.bdSet('t', '10:00'); AU.bdSave();
   const nd = AU.BANKS['2026-08'].dep.find(d => d.src === '직접 입력'), x = AU.RC.dec[nd.no] || {}, h9 = AU.PAY13();
   r6.push(['은행 자동 수집 — 7월 입금 ' + nAuto + '건 자동 확정(시스템) · 나머지 ' + nHand + '건 담당자 · 확정 패널 「자동 수집 · 자동 확정 · 시스템」 · 마지막 수집 시각 · 8월 미래상사 미매칭 1건 → 청구서 발행 안내 · 수납 현황 1건 · 직접 입력: 7월(마감) 막힘 · 8/9 비씨에이전시 100,000 → 자동 확정 · 원장 −100,000 · 「직접 입력 · 은행 확인 전」',
     nAuto > 0 && nHand > 0 && /자동 수집 · 자동 확정 · 시스템/.test(h7) && /거래내역 <b[^>]*>08\.10 09:00<\/b>까지/.test(h7)
     && /미매칭 입금 1건이 있습니다/.test(h1) && /발행은 막지 않습니다/.test(h1) && w === 1 && /미래상사/.test(h8)
-    && closed && nd && nd.by === '슈퍼관리자' && x.done && x.done.auto && AU.ledgerOf('b1별관301호').bal.매출채권 === bal0 - 100000 && /직접 입력 · 은행 확인 전/.test(h9)]); }
+    && closed && tOk && tBad && nd && nd.dt === '2026-08-09 10:00:00' && nd.by === '슈퍼관리자' && x.done && x.done.auto && AU.ledgerOf('b1별관301호').bal.매출채권 === bal0 - 100000 && /직접 입력 · 은행 확인 전/.test(h9)]); }
 /* 연체료 일부 감면 — 청구서에 들어간 연체료 줄을 청구 감액으로 줄인다(일반내역서 · 부가세 없음) → 18-2 */
 { const CF = new Function(stub + bare + '; seedJuly(); return {fixOpen,fxSet,fxConfirm,fixHTML,ledgerOf,cutBills};')();
   const k = 'b1별관301호', can = CF.cutBills(k).some(i => i.reg && i.amt === 29911);
@@ -1220,13 +1220,14 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
 /* 은행 거래내역 업로드 — 계좌 선택 · 계좌가 하나면 잠김 · 같은 계좌 같은 파일은 막고, 다른 계좌면 올라간다 → PAY-13 */
 { const BK = new Function(stub + bare + '; seedJuly(); return {PAY13,bkOpen,bkSave,bkHTML,bkMissing,BKUP,RC,setRC,get bk(){return bk;},set DRAWER(v){DRAWER=v;}};')();
   BK.setRC('ym', '2026-06'); const p0 = BK.PAY13(); BK.bkOpen(); const one = BK.bk.a === '국민은행 812-01-0455-118' && /<select disabled/.test(BK.bkHTML());
-  const shown = /올린 거래내역/.test(p0) && /입금 계좌 국민은행 812-01-0455-118/.test(p0) && !/alert\('은행 거래내역/.test(p0);
+  const shown = !/올린 거래내역/.test(p0) && /입금 계좌 국민은행 812-01-0455-118/.test(p0) && /자동 수집/.test(p0) && !/alert\('은행 거래내역/.test(p0);
   BK.setRC('b', 'b2'); BK.bkOpen(); const two = BK.bk.a === '' && /임대료 계좌 · 신한은행 140-012-772301/.test(BK.bkHTML()) && /관리비 계좌 · 신한은행 140-012-772415/.test(BK.bkHTML());
   BK.bkSave(); const need = BK.bkMissing().join() === '입금 계좌,파일';
   Object.assign(BK.bk, {a:'신한은행 140-012-772301', file:'뉴진스_7월.xlsx'}); BK.bkSave(); const n1 = BK.BKUP.length;
   BK.bkOpen(); Object.assign(BK.bk, {a:'신한은행 140-012-772301', file:'뉴진스_7월.xlsx'}); BK.bkSave(); const dup = BK.BKUP.length === n1 && BK.bkMissing().some(m => /이미 올렸습니다/.test(m));
   Object.assign(BK.bk, {a:'신한은행 140-012-772415'}); BK.bkSave(); const other = BK.BKUP.length === n1 + 1;
-  r6.push(['은행 거래내역 업로드 — 오른쪽 패널 · 입금 계좌 선택(계좌 하나면 잠김) · 같은 계좌 같은 파일만 중복으로 막음 · 입금마다 입금 계좌 표시', one && shown && two && need && dup && other]); }
+  BK.setRC('b', 'b2'); const bdTwo = (() => { const H = new Function(stub + bare + '; RC.f.b="b2"; bdOpen(); return bdHTML();')(); return /입금 계좌 선택/.test(H) && /임대료 계좌 · 신한은행 140-012-772301/.test(H) && /관리비 계좌/.test(H); })();
+  r6.push(['은행 거래내역 업로드 — 오른쪽 패널 · 입금 계좌 선택(계좌 하나면 잠김) · 같은 계좌 같은 파일만 중복으로 막음 · 입금마다 입금 계좌 표시 · 6월도 자동 수집(올린 파일 없음) · 직접 입력도 계좌가 둘인 건물은 계좌를 고름', one && shown && two && need && dup && other && bdTwo]); }
 /* 건물 상세 계약 탭 — 요약과 유닛 사이 · 계약 목록과 같은 표 · 그 건물 계약만 · 등록 버튼은 건물을 골라 둔 채 · 냉난방기 칸은 다른 카드와 같은 줄 모양 */
 { const BT = new Function(stub + bare + '; seedJuly(); return {PRO3,CTR1,CTR2,CTRS,BUILDINGS,set tab3(v){tab3=v;},set nc(v){nc=v;}};')();
   BT.tab3 = '요약'; const h0 = BT.PRO3('b1'); BT.tab3 = '계약'; const h1 = BT.PRO3('b1'), h2 = BT.PRO3('b2');
