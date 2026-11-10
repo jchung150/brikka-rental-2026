@@ -84,7 +84,6 @@ run('PAY-12 월 마감 7월 (테온하우스 마감 대기)', "seedJuly();f12='2
 run('보증금 상계 패널 청구 전 연체료 안내', "seedJuly();openOffset('b1별관301호');payHTML()");
 for (const ym of ['2026-06','2026-07','2026-08'])
   run('PAY-12 월 마감 ' + ym, "seedJuly();f12='" + ym + "';PAY12()");
-run('PAY-12 보고서 건물 선택', "seedJuly();f12='2026-07';sel12={b1:true,b4:true};PAY12()");
 run('PAY-12 테온하우스 7월 마감 → 목록', "seedJuly();f12='2026-07';mc12('b2','close');mcApply();PAY12()");
 run('PAY-12 마감 패널', "s11={b:'b2',ym:'2026-07'};mcOpen('close');mcHTML()");
 run('PAY-12 마감 취소 패널', "mcOpen('undo');mcHTML()");
@@ -787,12 +786,12 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   r6.push(['수납 현황 PAY-14 — 카리나빌딩 미납 = 미납 관리 합계(5,176,383 · 2개 계약) · 연체료 · 최근 30일 수납액 > 0 · 미납 칸 → 미납 관리(그 건물) · 확인 필요 입금 칸 → 입금 매칭(그 건물)',
     /<h1>수납 현황<\/h1><span class="sid">PAY-14/.test(h) && b1.due === A.reduce((a, x) => a + x.due, 0) && b1.due === 5176383 && b1.dueN === 2 && b1.fee === A.reduce((a, x) => a + x.fee, 0)
     && b1.paid > 0 && /최근 30일 수납액/.test(h) && toB2 && toB1]); }
-/* 메뉴 그룹 이름 — 하위 화면에 있다가 누르면 그 그룹의 첫 화면(월 마감 · 수납 현황)으로 간다 · 첫 화면에서 누르면 접고 펼친다 */
+/* 메뉴 그룹 이름 — 하위 화면에 있다가 누르면 그 그룹의 첫 화면(청구 현황 · 수납 현황)으로 간다 · 첫 화면에서 누르면 접고 펼친다 */
 { const NV = new Function(stub + bare + '; return {toggleG,OPEN,loc:location};')();
   NV.loc.hash = '#/pay-1'; NV.toggleG('청구'); const a = NV.loc.hash;
   NV.loc.hash = '#/pay-13'; NV.toggleG('수납'); const b = NV.loc.hash;
   NV.loc.hash = '#/pay-12'; NV.OPEN['청구'] = true; NV.toggleG('청구'); const c = NV.loc.hash, folded = !NV.OPEN['청구'];
-  r6.push(['메뉴 그룹 이름 — 청구서 발행에서 「청구 관리」 → 월 마감 · 입금 매칭에서 「수납 관리」 → 수납 현황 · 월 마감에서 「청구 관리」 → 그대로 두고 접힘',
+  r6.push(['메뉴 그룹 이름 — 청구서 발행에서 「청구 관리」 → 청구 현황 · 입금 매칭에서 「수납 관리」 → 수납 현황 · 청구 현황에서 「청구 관리」 → 그대로 두고 접힘',
     a === '#/pay-12' && b === '#/pay-14' && c === '#/pay-12' && folded]); }
 /* 연체료 일부 감면 — 청구서에 들어간 연체료 줄을 청구 감액으로 줄인다(일반내역서 · 부가세 없음) → 18-2 */
 { const CF = new Function(stub + bare + '; seedJuly(); return {fixOpen,fxSet,fxConfirm,fixHTML,ledgerOf,cutBills};')();
@@ -1325,12 +1324,12 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
     /moreOpen\(/.test(h) && bc && sc && bc.map(i => i.t).join() === '입금 확인,청구서 보기,원장 보기' && !bc[0].off && !sc[0].off && sc[2].go.includes(`go('ctr-3/b1본관101호')`)
     && p2 && p2.map(i => i.t).join() === '입금 확인' && none && filt && back]); }
 /* 메뉴 — 정기 청구(정산 → 발행 → 마감, 순서대로)와 수납(입금 매칭 · 수납 내역 · 미납 관리, 아무 때나)을 나눈다 */
-{ const MN = new Function(stub + bare + '; seedJuly(); return {MENU,PAY12,mc12,mcApply,mcPick12,MC,set f12(v){f12=v;}};')();
+{ const MN = new Function(stub + bare + '; seedJuly(); return {MENU,PAY12,mc12,mcApply,MC,set f12(v){f12=v;}};')();
   const g = k => (MN.MENU.find(m => m.k === k) || {items: []}).items.map(i => i.n).join(' → ');
-  MN.f12 = '2026-07'; const h0 = MN.PAY12(); MN.mc12('b2', 'close'); MN.mcApply(); MN.mcPick12('b2'); const h1 = MN.PAY12();
-  r6.push(['메뉴 — 청구 관리: 관리비 정산 → 청구서 발행(누르면 월 마감 PAY-12) · 수납 관리: 입금 매칭 · 수납 내역 · 미납 관리(누르면 수납 현황 PAY-14) · 월 마감 화면은 달을 고르고 건물마다 정산 · 청구서 · 수납 · 미납 · 마감 · 7월 테온하우스 마감 → 체크 → 보고서 1건',
+  MN.f12 = '2026-07'; const h0 = MN.PAY12(); MN.mc12('b2', 'close'); MN.mcApply(); const h1 = MN.PAY12();
+  r6.push(['메뉴 — 청구 관리: 관리비 정산 → 청구서 발행(누르면 청구 현황 PAY-12) · 수납 관리: 입금 매칭 · 수납 내역 · 미납 관리(누르면 수납 현황 PAY-14) · 청구 현황은 달을 고르고 건물마다 정산 · 청구서 · 수납 · 미납 · 마감 · 7월 테온하우스 마감 → 마감 취소로 바뀜 · 보고서 발행 버튼 없음',
     g('청구') === '관리비 정산 → 청구서 발행' && g('수납') === '입금 매칭 → 수납 내역 → 미납 관리'
-    && /<h1>월 마감<\/h1><span class="sid">PAY-12/.test(h0) && /이 달 청구분 미납/.test(h0) && /mc12\('b2','close'\)/.test(h0) && MN.MC.b2['2026-07'] && /월 마감 보고서 발행 1건/.test(h1)
+    && /<h1>청구 현황<\/h1><span class="sid">PAY-12/.test(h0) && /이 달 청구분 미납/.test(h0) && /mc12\('b2','close'\)/.test(h0) && MN.MC.b2['2026-07'] && /mc12\('b2','undo'\)/.test(h1) && !/보고서 발행/.test(h0 + h1)
     && MN.MENU.find(m => m.k === '청구').g === '청구 관리' && MN.MENU.find(m => m.k === '수납').g === '수납 관리' && MN.MENU.find(m => m.k === '청구').over === 'pay-12' && MN.MENU.find(m => m.k === '수납').over === 'pay-14']); }
 /* 상계 취소를 막는 셋째 경우 — 상계로 채운 청구를 감액해 생긴 과납을 이미 환불했으면 취소할 수 없다 → 확인요청 답변 질문 7 */
 { const OX = new Function(stub + bare + '; seedJuly(); return {openOffset,payConfirm,addCut,openRefund,ovConfirm,cancelWhyNot,payRec,BILLS,PAYEV,overOf};')();
