@@ -5524,7 +5524,7 @@ function termHTML(){
     if(done) return `<div class="c2" style="margin:0;white-space:normal">마지막 청구는 이미 처리했습니다(${{now:'마지막 청구서 발행',reg:'정기 청구서 일할',after:'청구 감액 · 연체료 청구'}[TERMS[tm.k].act]||'처리'}). 고칠 때는 원장의 청구 감액 · 청구 추가로 합니다.</div>`;
     const bo=md(billOn(tm.out.slice(0,7)));
     if(mode==='now'){const R=lastBill(tm.k,tm.out,Object.fromEntries(termFix(tm.k,tm.out,tm.fix).map(f=>[f.n,{sup:f.sup,vat:f.vat}])));
-      return `<div class="c2" style="margin:0 0 8px;white-space:normal">해지일이 청구일(${bo}) 앞이라, 저장하면 <b>${ymL} 마지막 청구서</b>를 바로 발행합니다. 정산 항목은 싣지 않고 아래 청구 전 기간으로 받습니다.</div>`
+      return `<div class="c2" style="margin:0 0 8px;white-space:normal">해지일이 청구일(${bo}) 앞이라, 저장하면 <b>${ymL} 마지막 청구서</b>를 바로 발행합니다. 정산 항목은 싣지 않고 아래 퇴거 예상분으로 받습니다.</div>`
         +fixRows()+feeRow(R.fee,tm.out)+R_('합계',`<b>${won(R.sum)}</b><span class="c2" style="margin:0">부가세 포함</span>`);}
     if(mode==='reg') return `<div class="c2" style="margin:0 0 8px;white-space:normal">해지일이 청구일(${bo}) 뒤라, ${bo} 정기 청구서에 아래 금액이 들어가고 연체료는 해지일까지 들어갑니다. 저장할 때 따로 발행하지 않습니다.</div>`
         +fixRows()+feeRow(feeUntil(tm.k,tm.out),tm.out);
@@ -5551,15 +5551,14 @@ function termHTML(){
         ${R('해지사유 (필수)',`<input type="text" value="${tm.why}" oninput="tm.why=this.value;document.querySelectorAll('.tmok').forEach(b=>b.disabled=!(this.value.trim()&&tm.out))" style="${inp};width:100%">`)}
         ${TERM_DOCS.map(([f,n,doc])=>R(doc==='세금계산서'?`${n} (공급가액)`:n,N(f,doc),amtTip(doc))).join('')}</div>
       <div class="fg"><div class="fl">마지막 청구</div>
-        ${tm.out?last:'<div class="c2" style="margin:0">해지일을 넣으면 마지막 청구가 어떻게 되는지 보여 줍니다</div>'}</div>
-      <div class="fg"><div class="fl">청구 전 기간</div>
-        ${!tm.out?'<div class="c2" style="margin:0">해지일을 넣으면 정산 항목마다 아직 정기 청구서에 싣지 않은 기간을 보여 줍니다</div>'
-        :U.length?U.map(u=>`<div style="border:1px solid var(--line);border-radius:var(--r-sm);padding:9px 12px 1px;margin-bottom:8px">
+        ${tm.out?last:'<div class="c2" style="margin:0">해지일을 넣으면 마지막 청구가 어떻게 되는지 보여 줍니다</div>'}
+        ${!tm.out?''
+        :U.length?'<div class="c2" style="margin:12px 0 8px;white-space:normal">정산 항목 — 아직 정기 청구서에 싣지 않은 기간(청구 전 기간)은 퇴거 예상분으로 받습니다</div>'+U.map(u=>`<div style="border:1px solid var(--line);border-radius:var(--r-sm);padding:9px 12px 1px;margin-bottom:8px">
             ${R(u.n,`<span class="fv">${u.from.slice(5).replace('-','.')} ~ ${u.to.slice(5).replace('-','.')} · <b>${u.days}일</b> 청구 전</span>`)}
             ${R(u.doc==='세금계산서'?'예상 공급가액':'예상 금액',`<input type="text" inputmode="numeric" value="${tm.est[u.code]?num(numOf(tm.est[u.code])):''}" placeholder="직접 계산해 넣기"
               onchange="tm.est['${u.code}']=this.value;render(true)" style="${inp};text-align:right;max-width:140px"><span class="c2" style="margin:0">원</span>`,amtTip(u.doc))}</div>`).join('')
           +'<div class="c2" style="margin:0;white-space:normal">예상 금액은 담당자가 정합니다. 이미 온 고지서가 있으면 그 금액을 일할로 나눠 넣습니다. 넣은 금액은 해지 처리할 때 항목마다 비정기 청구서로 바로 발행됩니다. 나중에 그 기간의 고지서가 오면 이 유닛 몫은 건물주 부담으로 갑니다.</div>'
-        :`<div class="c2" style="margin:0">${c.b!=='b1'?'목업의 정산 자료는 카리나빌딩뿐입니다':['now','reg','after'].includes(mode)?'모든 정산 항목을 해지일까지 정기 청구서에 실었습니다':'이번 회차(8월) 해지만 계산합니다'}</div>`}</div>
+        :['now','reg','after'].includes(mode)&&!done?'<div class="c2" style="margin:12px 0 0">정산 항목은 해지일까지 정기 청구서에 모두 실었습니다</div>':''}</div>
     </div>
     <div class="df"><button class="btn" onclick="closeDrawer()">닫기</button>
       ${mode==='now'&&!done?`<button class="btn tmok" ${tm.out&&tm.why.trim()?'':'disabled'} onclick="termSave(false)">메일 없이 해지 처리</button>
