@@ -696,7 +696,7 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   r6.push(['해지 패널 카드 — 관리비 탭 항목 전부(전기 · 수도 · 전력기금 · TV수신료 · 주차비 08.01~08.17 · 교통유발부담금 · 정화조청소비는 기간 없음) · 임대료 체크 잠김 · 체크 푼 전기요금은 발행 안 됨 · 주차비 퇴거 예상분 발행 · 연체료 빼면 청구 안 하고 정리일만 08.17(감면)',
     U.map(u => u.n).join() === '전기요금,수도요금,전력기금,TV수신료,주차비,교통유발부담금,정화조청소비' && U.find(u => u.n === '주차비').from === '2026-08-01' && !U.find(u => u.n === '정화조청소비').from
     && /계약 약정액이라 뺄 수 없습니다/.test(h) && /이번 회차 고지서 없음/.test(h)
-    && !B.some(i => /전기요금 퇴거 예상분/.test(i.n)) && B.some(i => i.n === '주차비 퇴거 예상분 (08.01~08.17)' && i.sup === 50000)
+    && !B.some(i => /전기요금 퇴거 예상분/.test(i.n)) && B.some(i => i.n === '주차비 퇴거 예상분' && i.sup === 50000)
     && !B.some(i => i.fee) && TC.FEE_CUT[k] === '2026-08-17']); }
 /* 퇴거 ③ 8월 청구서를 이미 발행한 뒤 해지 — 청구서는 그대로, 임대료 · 고정관리비 일할 차이를 청구 감액 + 정리일 다음날 ~ 해지일 연체료 청구 한 건 → 확인요청 답변 질문 1 */
 { const PA = new Function(stub + bare + '; seedJuly(); return {issue1,termOpen,termSet,termSave,termHTML,BILLS,CUTS,FEE_CUT,feeUntil,ledgerOf,set f1b(v){f1.b=v;}};')();
@@ -725,6 +725,16 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
     lN.length === 2 && !N.BILLS.some(i => i.k === k && i.adhoc) && gN.length === 1 && gN[0] === 'bill2026-08'
     && aR.length === 2 && gR.length === 1 && gR[0] === 'term|' + k2 && xR && xR.ttl === '해지 청구서' && /해지 처리로 발행한 청구서/.test(R.cancelWhyNot('term', {k: k2, date: '2026-08-10'}))
     && gA.length === 2 && gA.some(i => i.fee) && gA.some(i => /전기요금 퇴거 예상분/.test(i.n))]); }
+/* 원장 — 청구서 안 항목은 배분 우선순위 순(임대료가 위 · 연체료가 맨 아래) · 항목명에 기간 없음 · 상계 패널은 남는 보증금을 보인다 */
+{ const LO = new Function(stub + bare + '; seedJuly(); return {issue1,termOpen,termSet,termSave,ledgerOf,openOffset,setPm,payHTML,get pm(){return pm;},set f1b(v){f1.b=v;},get tm(){return tm;}};')();
+  const k = 'b1별관301호'; LO.termOpen(k); LO.termSet('out', '2026-08-17'); LO.termSet('why', '퇴거'); LO.tm.est.parking = '50000'; LO.termSave(false);
+  const g = LO.ledgerOf(k).rows.filter(r => r.g === 'bill2026-08' && r.type === '청구').reverse();   /* 화면 순서(최근이 위) */
+  const k2 = 'b1본관501호'; LO.f1b = 'b1'; LO.issue1([k2]); const g2 = LO.ledgerOf(k2).rows.filter(r => r.g === 'bill2026-08').reverse();
+  LO.openOffset(k); const dep = LO.ledgerOf(k).bal.임대보증금; LO.setPm('amt', '100000'); const h = LO.payHTML();
+  r6.push(['원장 청구서 안 순서 — 해지 마지막 청구서 · 8월 정기 청구서 모두 임대료가 맨 위 · 연체료 맨 아래 · 「주차비 퇴거 예상분」 이름에 기간 없음 · 상계 100,000원이면 남는 보증금 = 잔액 − 100,000',
+    g[0].item.endsWith('임대료') && g.at(-1).item.endsWith('연체료') && g.some(r => r.item.endsWith('주차비 퇴거 예상분')) && !g.some(r => /\(08\./.test(r.item))
+    && g2[0].item.endsWith('임대료') && g2.every((r, i) => !i || (g2[i - 1].pr || 0) <= (r.pr || 0))
+    && h.includes(`남는 보증금 <b>${(dep - 100000).toLocaleString('ko-KR')}원</b>`)]); }
 /* 연체료 일부 감면 — 청구서에 들어간 연체료 줄을 청구 감액으로 줄인다(일반내역서 · 부가세 없음) → 18-2 */
 { const CF = new Function(stub + bare + '; seedJuly(); return {fixOpen,fxSet,fxConfirm,fixHTML,ledgerOf,cutBills};')();
   const k = 'b1별관301호', can = CF.cutBills(k).some(i => i.reg && i.amt === 29911);
@@ -878,7 +888,7 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   const row = TM.BILLS.find(r => r.k === 'b1본관501호' && r.adhoc);
   r6.push(['퇴거 ② 해지일 8/20(청구일 뒤) — 8/19 정기 청구서가 20/31일 일할 · 청구 전 기간: 전기요금 08.10~08.20 11일 · 수도요금 08.08~08.20 · 사유 없으면 안 됨 · 예상 공급가액 180,000원은 「전기요금 퇴거 예상분 (08.10~08.20)」 비정기 청구서 198,000(세금계산서 · 부가세 18,000)',
     noWhy && e && e.from === '2026-08-10' && e.days === 11 && w && w.from === '2026-08-08' && !/정산 항목 — /.test(h) && !/<div class="fl">청구 전 기간/.test(h) && /정기 청구서에 아래 금액이 들어가고/.test(h) && /<b>20일<\/b> \/ 31일 일할/.test(h) && !/\+ 부가세/.test(h)
-    && row && row.n === '전기요금 퇴거 예상분 (08.10~08.20)' && row.amt === 198000 && row.sup === 180000 && row.vat === 18000 && /예상 공급가액/.test(h) && TM.TERMS['b1본관501호'].out === '2026-08-20']);
+    && row && row.n === '전기요금 퇴거 예상분' && /\(08\.10~08\.20\)/.test(row.memo) && row.amt === 198000 && row.sup === 180000 && row.vat === 18000 && /예상 공급가액/.test(h) && TM.TERMS['b1본관501호'].out === '2026-08-20']);
   /* 위약금 · 원상복구비는 해지 패널에 없다 — 원장의 청구 추가로 */
   TM.termOpen('b1본관501호'); const th2 = TM.termHTML();
   r6.push(['해지 패널에 위약금 · 원상복구비 칸 없음(원장의 청구 추가로)', !/위약금/.test(th2) && !/원상복구비/.test(th2)]); }

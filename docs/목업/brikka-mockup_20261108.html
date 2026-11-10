@@ -3318,7 +3318,7 @@ function ISSUE(){
     }));
     const k=ckey(c);
     /* 해지일이 청구일 앞이면 퇴거 예상분도 이 마지막 청구서에 싣는다 — 해지 때 청구서는 한 장이다 → 28 */
-    if(tNow) ((TERMS[k]||{}).est||[]).forEach(e=>lines.push({n:e.n,bill:e.doc,src:'해지 처리 · 퇴거 예상분',
+    if(tNow) ((TERMS[k]||{}).est||[]).forEach(e=>lines.push({n:e.n,bill:e.doc,src:`해지 처리 · 퇴거 예상분${e.from?` (${e.from.slice(5).replace('-','.')}~${e.to.slice(5).replace('-','.')})`:''}`,
       supply:e.sup,vat:e.vat,amt:e.sup+e.vat,st:'약정',stc:'mu',est:true}));
     /* 연체료 — 이번 회차 청구서에 기본으로 넣는다(발행일 전날까지 쌓인 금액). 발행한 청구서는 발행 때 금액을 보인다.
        지난 회차는 발행할 때 넣은 연체료 청구를 보인다(6월분은 없음 · 7월분 7/18까지) → 18-2 */
@@ -4378,8 +4378,8 @@ function payHTML(){
         <div class="fr"><span class="fk">메모</span>
           <input type="text" value="${pm.memo}" oninput="pm.memo=this.value"></div>
       </div>
-      ${leftDue&&pm.amt?`<div class="prev warn2" style="margin:-4px 0 18px"><div class="pt">${won(pm.amt)}을 상계하면</div>
-        남는 미납 <b>${won(leftDue)}</b></div>`:''}
+      ${pm.amt&&!over?`<div class="prev${leftDue?' warn2':''}" style="margin:-4px 0 18px"><div class="pt">${won(pm.amt)}을 상계하면</div>
+        남는 보증금 <b>${won(depBal-pm.amt)}</b>${leftDue?` · 남는 미납 <b>${won(leftDue)}</b>`:''}</div>`:''}
       <div class="fg"><div class="fl">미납 내역</div>
         <div class="tbl" style="margin:0"><div class="schr unh hd"><div>청구년월</div><div class="n">미납액</div><div class="n">연체일수</div><div class="n">연체료</div></div>
         ${ARs.map(x=>x.months.slice().reverse().map(m=>`<div class="schr unh"><div class="nm">${many?`<span class="c2" style="margin:0 6px 0 0">${x.c.no}</span>`:''}${m.ym.slice(2).replace('-','.')}월분</div>
@@ -5504,11 +5504,11 @@ function termSave(mail){if(!tm.out||!tm.why.trim()) return;
      이미 발행한 것은 다시 발행하지 않는다(고칠 때는 청구 감액 · 청구 추가) */
   /* 금액은 청구 추가와 같다 — 세금계산서면 공급가액을 넣고 부가세 10%(원 미만 절사)가 붙는다 → 질문 13 */
   const EST=prev.act?[]:unbilled(c,out,mode).filter(u=>numOf(tm.est[u.code])&&!tm.off[u.code]).map(u=>{const V=vatSplit(numOf(tm.est[u.code]),u.doc);
-    return {n:`${u.n} 퇴거 예상분${u.from?` (${u.from.slice(5).replace('-','.')}~${u.to.slice(5).replace('-','.')})`:''}`,doc:u.doc,from:u.from,to:u.to,sup:V.sup,vat:V.vat};});
+    return {n:`${u.n} 퇴거 예상분`,doc:u.doc,from:u.from,to:u.to,sup:V.sup,vat:V.vat};});
   if(!prev.act) TERMS[k].est=EST;
   /* 해지 청구서 — 해지 때 따로 발행하는 것(퇴거 예상분 · 해지 연체료 청구)은 비정기 청구서 한 장으로 묶는다. 바로 발행(now)이면 마지막 청구서에 싣는다 → 28 */
   const inv=`term|${k}`, tb=b=>({...b,inv,ttl:'해지 청구서'});
-  if(mode!=='now') EST.forEach(e=>{issueAdhoc(k,e.n,e.sup+e.vat,e.doc,'퇴거 예상분 · 해지 처리',null,e.sup,e.vat);
+  if(mode!=='now') EST.forEach(e=>{issueAdhoc(k,e.n,e.sup+e.vat,e.doc,`퇴거 예상분 · 해지 처리${e.from?` (${e.from.slice(5).replace('-','.')}~${e.to.slice(5).replace('-','.')})`:''}`,null,e.sup,e.vat);
     const b=BILLS[BILLS.length-1]; b.inv=inv; b.ttl='해지 청구서';});
   /* 연체료 체크를 풀면 감면 — 정기 청구서에서 뺀 것과 같다. 정리일은 해지일로 옮긴다 → 18-2 */
   const feeOff=!!tm.off['연체료']; if(feeOff&&['now','reg'].includes(mode)) (OFF1[k]=OFF1[k]||{})['연체료']=1;
@@ -5755,8 +5755,8 @@ function ledgerOf(k){
   DEP_RET.filter(x=>x.k===k).forEach(x=>{const t='보증금 반환';
     rows.push({date:x.date,type:'보증금 반환',acc:'임대보증금',memo:t,item:t,why:x.why,acct:x.acct,g:'dr'+x.sq,dec:x.amt,sup:null,vat:null,ord:3,sq:x.sq});});
   /* 같은 날은 기록한 순서(sq)대로 — 수납 → 취소 → 다시 상계처럼 한 날 여러 번 해도 한 일 순서가 그대로 보인다.
-     sq가 없는 정기 청구 · 계약 보증금은 그날 맨 앞. 청구서 안의 항목은 배분 우선순위 순(화면은 최근이 위라 우선순위 1이 위 · 연체료가 맨 아래) */
-  rows.sort((a,b)=>dnum(a.date)-dnum(b.date)||(a.sq||0)-(b.sq||0)||a.ord-b.ord
+     sq가 없는 정기 청구 · 계약 보증금은 그날 맨 앞. 청구서 안의 항목은 기록 순서와 상관없이 배분 우선순위 순(화면은 최근이 위라 우선순위 1이 위 · 연체료가 맨 아래) */
+  rows.sort((a,b)=>dnum(a.date)-dnum(b.date)||(a.type==='청구'&&b.type==='청구'&&a.g===b.g&&!a.cxd&&!b.cxd?(b.pr||0)-(a.pr||0)||(a.inc||0)-(b.inc||0):0)||(a.sq||0)-(b.sq||0)||a.ord-b.ord
     ||(a.type==='청구'&&b.type==='청구'?(b.pr||0)-(a.pr||0)||(a.inc||0)-(b.inc||0):(a.pr||0)-(b.pr||0)));
   const bal={매출채권:0,임대보증금:0};
   rows.forEach(r=>{bal[r.acc]+=(r.inc||0)-(r.dec||0);r.bal=bal[r.acc];
