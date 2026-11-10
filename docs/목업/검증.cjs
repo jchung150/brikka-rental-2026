@@ -772,12 +772,12 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
 /* 원장 기간 지정 · 명세서 보내기 — 기간 지정이면 그 기간 줄만 · 명세서는 기간의 시작 · 끝 잔액(받을 돈 · 보증금) · 담당자에게 메일 · 이력에 남음 */
 { const SM = new Function(stub + bare + '; seedJuly(); return {CTR3,ledgerOf,stOpen,stSet,stHTML,stSend,stSum,setF3,CLOG,billTo,CTRS,set tab3c(v){tab3c=v;}};')();
   const k = 'b1별관301호', L = SM.ledgerOf(k); SM.tab3c = '원장';
-  SM.setF3('per', 'custom'); SM.setF3('from', '2026-07-01'); SM.setF3('to', '2026-07-31'); const h = SM.CTR3(k);
-  SM.stOpen(k); const h1 = SM.stHTML(); const S = SM.stSum(k, '2026-07-01', '2026-07-31'), A = SM.stSum(k, '2000-01-01', '2026-08-10');
+  SM.setF3('per', '1'); const h = SM.CTR3(k); SM.stOpen(k); const h0 = SM.stHTML(); SM.setF3('per', '');
+  SM.stOpen(k); SM.stSet('from', '2026-07-01'); SM.stSet('to', '2026-07-31'); const h1 = SM.stHTML(); const S = SM.stSum(k, '2026-07-01', '2026-07-31'), A = SM.stSum(k, '2000-01-01', '2026-08-10');
   const pre = L.rows.filter(r => r.acc === '매출채권' && r.date < '2026-07-01').at(-1), last = L.rows.filter(r => r.acc === '매출채권' && r.date <= '2026-07-31').at(-1);
   SM.stSend(); const lg = (SM.CLOG[k] || [])[0];
-  r6.push(['원장 기간 지정 7/1~7/31 — 26.07.19 청구 · 26.07.31 입금만 · 26.06.19 청구는 안 보임 · 명세서 기간이 원장 기간으로 미리 들어감 · 시작 잔액 = 6월 끝 잔액 · 끝 잔액 = 7/31 잔액 · 전체 기간 끝 잔액 = 지금 잔액(받을 돈 · 보증금) · 보내면 이력 「원장 명세서 메일」',
-    /type="date" value="2026-07-01"/.test(h) && /26\.07\.19/.test(h) && /26\.07\.31/.test(h) && !/26\.06\.19/.test(h) && /value="2026-07-01"/.test(h1) && /value="2026-07-31"/.test(h1)
+  r6.push(['명세서 보내기 — 원장 기간(최근 1개월 → 07.11부터)이 미리 들어감 · 원장에 기간 지정 없음 · 7/1~7/31 · 시작 잔액 = 6월 끝 잔액 · 끝 잔액 = 7/31 잔액 · 전체 기간 끝 잔액 = 지금 잔액(받을 돈 · 보증금) · 보내면 이력 「원장 명세서 메일」',
+    !/기간 지정/.test(h) && /value="2026-07-11"/.test(h0) && /value="2026-07-01"/.test(h1) && /value="2026-07-31"/.test(h1)
     && S.매출채권.open === pre.bal && S.매출채권.close === last.bal && A.매출채권.close === L.bal.매출채권 && A.임대보증금.close === L.bal.임대보증금
     && SM.billTo(SM.CTRS.find(c => c.no === '별관301호' && c.b === 'b1')).length > 0 && lg && /원장 명세서 메일 — 2026\.07\.01 ~ 2026\.07\.31/.test(lg.sum)]); }
 /* 연체료 일부 감면 — 청구서에 들어간 연체료 줄을 청구 감액으로 줄인다(일반내역서 · 부가세 없음) → 18-2 */
