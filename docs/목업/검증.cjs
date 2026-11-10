@@ -761,6 +761,14 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   const seq = P.map(r => r.item), iR = seq.findIndex(x => /08월분 임대료/.test(x)), iF = seq.findIndex(x => /08월분 고정관리비/.test(x)), iE = seq.findIndex(x => /08월분 전기요금/.test(x)), iO = seq.findIndex(x => x.endsWith('원상복구비'));
   r6.push(['원장 상계 수납 순서 — 배분 순서대로 위에서 아래(이월 미납액 → 8월분 임대료 → 고정관리비 → 전기요금 퇴거 예상분 → 원상복구비) · 전액 상계면 「상계 후 미납」 줄 없음',
     full > 0 && !/상계 후 미납/.test(h) && /상계 후 보증금/.test(h) && seq[0] === '이월 미납액' && iR > 0 && iR < iF && iF < iE && iE < iO]); }
+/* 과납 환불 취소 — 원래 줄은 「취소됨」으로 남고 「환불 취소」 줄이 더해진다 · 과납이 돌아온다 · 사유 필수 */
+{ const RF = new Function(stub + bare + '; seedJuly(); addCut("2026-07|본관101호|수도요금",18000,"2026-08-07","7월 수도 검침값 입력 오류"); return {overOf,ledgerOf,openRefund,ovSet,ovConfirm,CTR3,LEDG,ledMore,ledRec,cancelRec,set tab3c(v){tab3c=v;}};')();
+  const k = 'b1본관101호', o0 = RF.overOf(k); RF.openRefund(k); RF.ovSet('amt', '10000'); RF.ovConfirm(); const o1 = RF.overOf(k);
+  RF.tab3c = '원장'; RF.CTR3(k); const x = Object.values(RF.LEDG).find(g => g.type === '환불'), mm = x ? RF.ledMore(x).map(m => m.t + (m.off ? '×' : '')).join() : '';
+  const R0 = RF.ledRec(x), noWhy = !RF.cancelRec(R0.kind, R0.rec, ''), ok = RF.cancelRec(R0.kind, R0.rec, '금액 오기');
+  const L = RF.ledgerOf(k).rows, orig = L.find(r => r.type === '환불'), cx = L.find(r => r.type === '환불 취소');
+  r6.push(['과납 환불 취소 — 원장 환불 줄 ⋮ 상세 · 취소 · 사유 없으면 막힘 · 취소하면 원래 줄은 「취소됨」으로 남고 「환불 취소」 10,000 줄 추가 · 과납 18,000으로 돌아옴',
+    o0 === 18000 && o1 === 8000 && mm === '상세,취소' && noWhy && ok && orig && orig.cxd && cx && cx.dec === 10000 && cx.why === '금액 오기' && RF.overOf(k) === 18000]); }
 /* 연체료 일부 감면 — 청구서에 들어간 연체료 줄을 청구 감액으로 줄인다(일반내역서 · 부가세 없음) → 18-2 */
 { const CF = new Function(stub + bare + '; seedJuly(); return {fixOpen,fxSet,fxConfirm,fixHTML,ledgerOf,cutBills};')();
   const k = 'b1별관301호', can = CF.cutBills(k).some(i => i.reg && i.amt === 29911);
