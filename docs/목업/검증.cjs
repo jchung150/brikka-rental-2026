@@ -68,6 +68,7 @@ for (const b of ['b2', 'b4']) run('PRO-3 ' + b, "tab3='요약';PRO3('" + b + "')
 run('PRO-3 관리비 설정 패널 — 임대료 · 전기요금 같은 구성', "loadCS('rent');DRAWER='chargeset';const a=csHTML();loadCS('elec');const b=csHTML();if(!/근거 문서/.test(a)||!/배분 방식/.test(a)||!/disabled/.test(a))throw new Error('구성 다름')");
 run('PRO-3 카즈하타워 관리비', "tab3='관리비';PRO3('b4')");
 run('PAY-12', 'PAY12()');
+run('PAY-14 수납 현황', "seedJuly();PAY14()");
 run('PAY-1', 'PAY1()');
 for (const f of ["f1.b='b2'", "f1.b='b4'", "f1.st='발행 대기'", "f1.st='발행 완료'"])
   run('PAY-1 필터 ' + f, "f1={b:'b1',st:''};" + f + ';PAY1()');
@@ -779,6 +780,13 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
     !/기간 지정/.test(h) && /value="2026-07-11"/.test(h0) && /value="2026-07-01"/.test(h1) && /value="2026-07-31"/.test(h1)
     && S.매출채권.open === pre.bal && S.매출채권.close === last.bal && A.매출채권.close === L.bal.매출채권 && A.임대보증금.close === L.bal.임대보증금
     && SM.billTo(SM.CTRS.find(c => c.no === '별관301호' && c.b === 'b1')).length > 0 && lg && /원장 명세서 메일 — 2026\.07\.01 ~ 2026\.07\.31/.test(lg.sum)]); }
+/* 수납 현황 — 오늘 기준 건물마다 확인 필요 입금 · 미납(계약 수) · 연체료 · 과납 · 최근 30일 수납액 · 칸을 누르면 그 건물을 고른 채로 이동 */
+{ const SU = new Function(stub + bare + '; seedJuly(); return {PAY14,suOf,suGo,CTRS,arrears,f2,RC,get CUR(){return typeof CUR!=="undefined"?CUR:null;}};')();
+  const h = SU.PAY14(), b1 = SU.suOf('b1'), A = SU.CTRS.filter(c => c.b === 'b1').map(SU.arrears).filter(a => a.due > 0 || a.fee > 0);
+  SU.suGo('b2', 'pay-2'); const toB2 = SU.f2.b === 'b2'; SU.suGo('b1', 'pay-13'); const toB1 = SU.RC.f.b === 'b1';
+  r6.push(['수납 현황 PAY-14 — 카리나빌딩 미납 = 미납 관리 합계(5,176,383 · 2개 계약) · 연체료 · 최근 30일 수납액 > 0 · 미납 칸 → 미납 관리(그 건물) · 확인 필요 입금 칸 → 입금 매칭(그 건물)',
+    /<h1>수납 현황<\/h1><span class="sid">PAY-14/.test(h) && b1.due === A.reduce((a, x) => a + x.due, 0) && b1.due === 5176383 && b1.dueN === 2 && b1.fee === A.reduce((a, x) => a + x.fee, 0)
+    && b1.paid > 0 && /최근 30일 수납액/.test(h) && toB2 && toB1]); }
 /* 연체료 일부 감면 — 청구서에 들어간 연체료 줄을 청구 감액으로 줄인다(일반내역서 · 부가세 없음) → 18-2 */
 { const CF = new Function(stub + bare + '; seedJuly(); return {fixOpen,fxSet,fxConfirm,fixHTML,ledgerOf,cutBills};')();
   const k = 'b1별관301호', can = CF.cutBills(k).some(i => i.reg && i.amt === 29911);
@@ -1313,10 +1321,10 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
 { const MN = new Function(stub + bare + '; seedJuly(); return {MENU,PAY12,mc12,mcApply,mcPick12,MC,set f12(v){f12=v;}};')();
   const g = k => (MN.MENU.find(m => m.k === k) || {items: []}).items.map(i => i.n).join(' → ');
   MN.f12 = '2026-07'; const h0 = MN.PAY12(); MN.mc12('b2', 'close'); MN.mcApply(); MN.mcPick12('b2'); const h1 = MN.PAY12();
-  r6.push(['메뉴 — 정기 청구: 관리비 정산 → 청구서 발행(누르면 월 마감 PAY-12) · 수납: 입금 매칭 · 수납 내역 · 미납 관리 · 월 마감 화면은 달을 고르고 건물마다 정산 · 청구서 · 수납 · 미납 · 마감 · 7월 테온하우스 마감 → 체크 → 보고서 1건',
+  r6.push(['메뉴 — 청구 관리: 관리비 정산 → 청구서 발행(누르면 월 마감 PAY-12) · 수납 관리: 입금 매칭 · 수납 내역 · 미납 관리(누르면 수납 현황 PAY-14) · 월 마감 화면은 달을 고르고 건물마다 정산 · 청구서 · 수납 · 미납 · 마감 · 7월 테온하우스 마감 → 체크 → 보고서 1건',
     g('청구') === '관리비 정산 → 청구서 발행' && g('수납') === '입금 매칭 → 수납 내역 → 미납 관리'
     && /<h1>월 마감<\/h1><span class="sid">PAY-12/.test(h0) && /이 달 청구분 미납/.test(h0) && /mc12\('b2','close'\)/.test(h0) && MN.MC.b2['2026-07'] && /월 마감 보고서 발행 1건/.test(h1)
-    && MN.MENU.find(m => m.k === '청구').g === '청구 관리' && MN.MENU.find(m => m.k === '수납').g === '수납 관리' && MN.MENU.find(m => m.k === '청구').over === 'pay-12' && !MN.MENU.find(m => m.k === '수납').over]); }
+    && MN.MENU.find(m => m.k === '청구').g === '청구 관리' && MN.MENU.find(m => m.k === '수납').g === '수납 관리' && MN.MENU.find(m => m.k === '청구').over === 'pay-12' && MN.MENU.find(m => m.k === '수납').over === 'pay-14']); }
 /* 상계 취소를 막는 셋째 경우 — 상계로 채운 청구를 감액해 생긴 과납을 이미 환불했으면 취소할 수 없다 → 확인요청 답변 질문 7 */
 { const OX = new Function(stub + bare + '; seedJuly(); return {openOffset,payConfirm,addCut,openRefund,ovConfirm,cancelWhyNot,payRec,BILLS,PAYEV,overOf};')();
   const k = 'b1별관301호'; OX.openOffset(k); OX.payConfirm();

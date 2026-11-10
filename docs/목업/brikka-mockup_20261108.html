@@ -605,13 +605,13 @@ const MENU=[
  {id:'dash-1',n:'대시보드',sid:'DASH-1',i:'dash'},
  {id:'pro-1',n:'건물 관리',sid:'PRO-1',i:'bldg'},
  {id:'ctr-1',n:'계약 관리',sid:'CTR-1',i:'file'},
- /* 정기 청구 — 한 달에 한 번 순서대로 하는 일(정산 → 발행 → 마감). 수납 — 아무 때나 보는 돈의 상태.
+ /* 청구 관리 — 한 달에 한 번 순서대로 하는 일(정산 → 발행 → 마감, 누르면 월 마감). 수납 관리 — 아무 때나 보는 돈의 상태(누르면 수납 현황).
     은행 거래내역을 자동으로 가져오므로 입금 매칭은 월 프로세스의 한 단계가 아니다 → 명세변경_261108 24 */
  {k:'청구',g:'청구 관리',i:'calc',over:'pay-12',items:[
    {id:'pay-10',n:'관리비 정산',sid:'PAY-10',i:'calc'},
    {id:'pay-1',n:'청구서 발행',sid:'PAY-1',i:'mail'},
 ]},
- {k:'수납',g:'수납 관리',i:'wallet',items:[
+ {k:'수납',g:'수납 관리',i:'wallet',over:'pay-14',items:[
    {id:'pay-13',n:'입금 매칭',sid:'PAY-13',i:'card'},
    {id:'pay-6',n:'수납 내역',sid:'PAY-6',i:'list'},
    {id:'pay-2',n:'미납 관리',sid:'PAY-2',i:'wallet'}]},
@@ -2940,6 +2940,55 @@ function PAY12(){
     <b>미납이 남아 있어도 마감합니다.</b> 미납은 사라지지 않고 다음 달로 넘어가 미납 관리에 계속 보입니다.<br>
     청구서를 발행하기 전인 달은 마감할 수 없습니다. 마감 취소는 슈퍼관리자만 할 수 있고 사유를 남깁니다.
     마감·마감 취소 기록은 변경 이력에 남습니다.</div>`;
+}
+
+/* ═══ PAY-14 수납 현황 — 「수납 관리」 메뉴를 누르면 열린다. 오늘 기준으로 건물마다 돈의 상태를 본다(달을 고르지 않는다).
+   칸을 누르면 그 건물을 고른 채로 일하는 화면(입금 매칭 · 미납 관리 · 수납 내역)으로 간다 → 명세변경_261108 32 ═══ */
+/* 카리나빌딩 외 건물은 목업 예시값 */
+const SU_EX={b2:{wait:2,due:8420000,dueN:5,fee:0,over:330000,overN:1,paid:96500000},b4:{wait:0,due:1250000,dueN:1,fee:4110,over:0,overN:0,paid:61200000}};
+function suOf(b){
+  if(b!==RC.b) return SU_EX[b]||{wait:0,due:0,dueN:0,fee:0,over:0,overN:0,paid:0};
+  const cs=CTRS.filter(c=>c.b===b), A=cs.map(arrears).filter(a=>a.due>0||a.fee>0), O=cs.map(c=>overOf(ckey(c))).filter(v=>v>0);
+  /* 최근 30일 수납 — 원장에 들어온 수납(은행 입금 · 보증금 상계). 전월 과납 배분은 새로 들어온 돈이 아니라 뺀다 */
+  const from=dnum(TODAY_S)-30, ks=new Set(cs.map(ckey));
+  const paid=Object.entries(PAYEV).reduce((a,[id,L])=>{const bb=BILLS.find(i=>i.id===id), k=bb?bb.k:id.split('|')[1];
+    return ks.has(k)?a+L.filter(e=>!e.dep.startsWith('cr')&&dnum(e.date)>from).reduce((x,e)=>x+e.amt,0):a;},0);
+  return {wait:rcOpenN(),due:A.reduce((a,x)=>a+x.due,0),dueN:A.length,fee:A.reduce((a,x)=>a+x.fee,0),over:O.reduce((a,v)=>a+v,0),overN:O.length,paid};}
+const suGo=(b,to)=>{if(to==='pay-2') f2.b=b; else RC.f.b=b; go(to);};
+function PAY14(){
+  const dash='<span style="color:var(--faint)">—</span>';
+  const D=BUILDINGS.map(b=>({b,...suOf(b.id)}));
+  const T=D.reduce((a,x)=>{['wait','due','dueN','fee','over','overN','paid'].forEach(f=>a[f]+=x[f]);return a;},{wait:0,due:0,dueN:0,fee:0,over:0,overN:0,paid:0});
+  const rows=D.map(x=>`<tr>
+      <td><div class="c1">${x.b.name}</div><div class="c2">${x.b.kind} · ${x.b.unitCnt}유닛</div></td>
+      <td class="st n" onclick="suGo('${x.b.id}','pay-13')">${x.wait?`<b style="color:var(--warn)">${x.wait}건</b>`:'<span style="color:var(--faint)">0건</span>'}</td>
+      <td class="st n" onclick="suGo('${x.b.id}','pay-2')">${x.due?`<b style="color:var(--warn)">${won(x.due)}</b><div class="c2">${x.dueN}개 계약</div>`:dash}</td>
+      <td class="n">${x.fee?won(x.fee):dash}</td>
+      <td class="n">${x.over?`${won(x.over)}<div class="c2">${x.overN}개 계약</div>`:dash}</td>
+      <td class="st n" onclick="suGo('${x.b.id}','pay-6')">${x.paid?won(x.paid):dash}</td>
+    </tr>`).join('');
+  return `
+  <div class="ph"><h1>수납 현황</h1><span class="sid">PAY-14</span></div>
+  <div class="fbar"><span style="color:var(--muted);font-size:12px">${TODAY_S.replace(/-/g,'.')} 기준 · 건물 ${BUILDINGS.length}개</span></div>
+  <div class="two" style="grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px">
+    ${[['미납 합계',won(T.due),`${T.dueN}개 계약 · 연체료 ${won(T.fee)}`],
+       ['확인이 필요한 입금',`${T.wait}건`,'입금 매칭에서 확정 전'],
+       ['과납 합계',won(T.over),`${T.overN}개 계약`],
+       ['최근 30일 수납액',won(T.paid),'은행 입금 · 보증금 상계']]
+      .map(([k,v,d],i)=>`<div class="card" style="margin:0"><div class="cc" style="padding:14px 16px">
+        <div style="font-size:11.5px;color:var(--muted)">${k}</div>
+        <div style="font-size:17px;font-weight:700;margin:3px 0 1px;${(i===0&&T.due>0)||(i===1&&T.wait>0)?'color:var(--warn)':''}">${v}</div>
+        <div class="c2">${d}</div></div></div>`).join('')}
+  </div>
+  <div class="tbl"><div class="tw"><table class="pgrid">
+    <thead><tr><th>건물</th><th class="n">확인 필요 입금</th><th class="n">미납</th><th class="n">연체료</th><th class="n">과납</th><th class="n">최근 30일 수납액</th></tr></thead>
+    <tbody>${rows}
+      <tr class="sumr"><td>합계</td><td class="n">${T.wait}건</td><td class="n">${won(T.due)}</td><td class="n">${won(T.fee)}</td><td class="n">${won(T.over)}</td><td class="n">${won(T.paid)}</td></tr>
+    </tbody></table></div></div>
+  <div class="hint">
+    오늘 기준으로 건물마다 받을 돈의 상태를 봅니다. 확인 필요 입금 · 미납 · 수납액 칸을 누르면 그 건물을 고른 채로 입금 매칭 · 미납 관리 · 수납 내역으로 갑니다.<br>
+    미납은 납부마감일이 지난 청구의 남은 금액이고, 연체료는 아직 청구서에 들어가지 않은 연체료입니다. 과납은 계약 원장의 수납 › 과납 환불로 돌려주거나 다음 청구서에서 먼저 빠집니다.<br>
+    최근 30일 수납액은 원장에 들어온 수납(은행 입금 · 보증금 상계)의 합입니다. 전월 과납액을 새 청구에 배분한 것은 넣지 않습니다.</div>`;
 }
 
 /* ═══ 월 마감 자료 — 건물 × 월로 장부를 잠근다(화면은 PAY-12) ═══ */
@@ -6036,6 +6085,7 @@ function render(keep){
   else if(id==='ctr-3'){html=CTR3(decodeURIComponent(arg||''));const c=CTRS.find(x=>ckey(x)===decodeURIComponent(arg||''));
     crumb=`<span class="c" onclick="go('ctr-1')">계약 관리</span> <span>›</span> <b>${c?cname(BUILDINGS[0].alias,c.no,c.ten):'—'}</b>`;}
   else if(id==='pay-2'){html=PAY2();crumb='수납 관리 <span>›</span> <b>미납 관리</b>';}
+  else if(id==='pay-14'){html=PAY14();crumb='수납 관리 <span>›</span> <b>수납 현황</b>';}
   else if(id==='pay-13'){html=PAY13();crumb='수납 관리 <span>›</span> <b>입금 매칭</b>';}
   else{html=TODO(id);const g=MENU.find(m=>m.items&&m.items.some(i=>i.id===id));
     const m=ALL.find(i=>i.id===id);
