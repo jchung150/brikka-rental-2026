@@ -259,12 +259,12 @@ r6.push(['보증금 상계 패널 — 기본은 미납만 · 미납액 합계(�
 r6.push(['보증금 상계 — 진행중 계약에서도 열림 · 경고 없음 · 제목 「보증금 상계」 · 상계 확정 · 수납 처리 결제수단엔 없음',
   payNoOff && /<div class="t">보증금 상계<\/div>/.test(offHtml) && /상계 확정/.test(offHtml) && !/할 수 없습니다/.test(offHtml)]);
 W.setPm('amt', 1000000); W.payConfirm();
-/* 잔액 남음 — 끝난 계약인데 원장 잔액이 남음. 종료된 리틀브릿지(보증금 남음)에 붙고, 필터로 모인다 */
+/* 미정산 — 끝난 계약인데 원장 잔액이 남음. 종료된 리틀브릿지(보증금 남음)에 붙고, 필터로 모인다 */
 { const LT = new Function(stub + bare + '; seedJuly(); return {leftOf,leftTag,ctrRowsOf,CTRS};')();
   const ended = LT.CTRS.find(c => c.b === 'b2' && c.no === '1501호'), on = LT.CTRS.find(c => c.st === '진행중');
-  const rows = LT.ctrRowsOf({st: '잔액남음', dd: ''}, '');
-  r6.push(['잔액 남음 — 종료된 계약에 보증금이 남으면 표시 · 진행중 계약엔 없음 · 필터 「종료 · 잔액 남음」은 끝난 계약만',
-    !!LT.leftOf(ended) && /잔액 남음/.test(LT.leftTag(ended)) && /보증금/.test(LT.leftTag(ended)) && !LT.leftOf(on)
+  const rows = LT.ctrRowsOf({st: '미정산', dd: ''}, '');
+  r6.push(['미정산 — 종료된 계약에 보증금이 남으면 표시 · 진행중 계약엔 없음 · 필터 「종료 · 미정산」은 끝난 계약만',
+    !!LT.leftOf(ended) && /미정산/.test(LT.leftTag(ended)) && /보증금/.test(LT.leftTag(ended)) && !LT.leftOf(on)
     && rows.length > 0 && rows.every(x => x.c.st === '종료됨' || x.c.st === '파기됨')]); }
 const LD = W.ledgerOf('b1별관301호');
 r6.push(['보증금상계 100만 — 미납 1,176,383 · 보증금 잔액 100만 감소 · 보증금 상계 행',
@@ -820,16 +820,17 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   const U = TM.unbilled(c, '2026-08-20'), e = U.find(u => u.code === 'elec'), w = U.find(u => u.code === 'water');
   TM.tm.why = '이전'; TM.tm.est.elec = '180000'; const h = TM.termHTML(); TM.termSave();
   const row = TM.BILLS.find(r => r.k === 'b1본관501호' && r.adhoc);
-  r6.push(['계약 해지 — 해지일 8/20: 전기요금 08.10~08.20 11일 고지 전 · 수도요금 08.08~08.20 · 사유 없으면 안 됨 · 예상 180,000원은 「전기요금 퇴거 예상분 (08.10~08.20)」 비정기 청구서',
+  r6.push(['계약 해지 — 해지일 8/20: 전기요금 08.10~08.20 11일 고지 전 · 수도요금 08.08~08.20 · 사유 없으면 안 됨 · 예상 공급가액 180,000원은 「전기요금 퇴거 예상분 (08.10~08.20)」 비정기 청구서 198,000(세금계산서 · 부가세 18,000)',
     noWhy && e && e.from === '2026-08-10' && e.days === 11 && w && w.from === '2026-08-08' && /아직 고지되지 않은 기간/.test(h)
-    && row && row.n === '전기요금 퇴거 예상분 (08.10~08.20)' && row.amt === 180000 && TM.TERMS['b1본관501호'].out === '2026-08-20']);
+    && row && row.n === '전기요금 퇴거 예상분 (08.10~08.20)' && row.amt === 198000 && row.sup === 180000 && row.vat === 18000 && /예상 공급가액/.test(h) && TM.TERMS['b1본관501호'].out === '2026-08-20']);
   /* 위약금 · 원상복구비 — 보증금에서 바로 빼지 않고 비정기 청구서로. 다시 저장해도 한 번만 */
   TM.termOpen('b1본관501호'); TM.tm.pen = '5000000'; TM.tm.rest = '3300000'; TM.termSave();
   TM.termOpen('b1본관501호'); TM.termSave();
   const P = TM.BILLS.filter(r => r.k === 'b1본관501호' && r.adhoc && (r.n === '위약금' || r.n === '원상복구비'));
-  r6.push(['계약 해지 — 위약금 500만(일반내역서) · 원상복구비 330만(세금계산서)은 비정기 청구서 · 다시 저장해도 한 장씩',
+  r6.push(['계약 해지 — 위약금 500만(일반내역서 · 부가세 없음) · 원상복구비 공급가액 330만(세금계산서 → 합계 363만)은 비정기 청구서 · 다시 저장해도 한 장씩',
     P.length === 2 && P.some(r => r.n === '위약금' && r.amt === 5000000 && r.doc === '일반내역서')
-    && P.some(r => r.n === '원상복구비' && r.amt === 3300000 && r.doc === '세금계산서')]); }
+    && P.some(r => r.n === '원상복구비' && r.amt === 3630000 && r.sup === 3300000 && r.vat === 330000 && r.doc === '세금계산서')
+    && P.some(r => r.n === '위약금' && r.sup === 5000000 && r.vat === 0)]); }
 /* 유닛 등록 — 필수 빠지면 막힘 · 번호 중복 막힘 · 전용면적 > 임대면적 막힘 · 지하층 · 카드에 생김 */
 { const UN = new Function(stub + bare + '; return {unOpen,unSave,unMissing,unHTML,BUILDINGS,PRO3,get un(){return un;},set tab3(v){tab3=v;}};')();
   const b = UN.BUILDINGS[0], n0 = b.units.length;

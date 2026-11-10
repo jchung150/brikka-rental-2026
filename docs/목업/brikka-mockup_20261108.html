@@ -4388,16 +4388,22 @@ function fixOpen(k,mode){
   fz={k,mode:m,item:it,id:m==='cut'?billsOfItem(k,it)[0].id:'',name:'',doc:'세금계산서',amt:0,why:''};DRAWER='fix';render(true);
 }
 function fxSet(f,v){fz[f]=f==='amt'?numOf(v):v;
-  if(f==='item'){const b=billsOfItem(fz.k,v)[0];fz.id=b?b.id:'';fz.amt=0;}
-  if(f==='id') fz.amt=0;
+  if(f==='item'){const b=billsOfItem(fz.k,v)[0];fz.id=b?b.id:'';fz.amt=0;fz.all=false;}
+  if(f==='id'){fz.amt=0;fz.all=false;}
   render(true);}
 const fxBill=()=>BILLS.find(x=>x.id===fz.id);
 const fxName=()=>fz.mode==='add'?fz.name.trim():fz.item;
 const fxDoc=()=>{if(fz.mode==='add') return fz.doc; const i=fxBill(); return !i?'세금계산서':i.fee?'일반내역서':i.adhoc?i.doc:itemDoc(CTRS.find(c=>ckey(c)===fz.k),itemOfBill(i));};
 const fxLeft=()=>{const i=fxBill();return i?i.amt-cutOf(i.id):0;};
-function fxOK(){const V=vatSplit(fz.amt,fxDoc());
-  return fz.amt>0&&!!fz.why.trim()&&!!fxName()&&(fz.mode==='add'||!!fxBill()&&V.amt<=fxLeft());}
-function fxConfirm(mail){if(!fxOK()) return; const V=vatSplit(fz.amt,fxDoc());
+/* 청구 건의 공급가액 · 부가세 — 발행 때 나눈 값. 감액한 몫을 빼면 남은 공급가액 · 부가세다 */
+const billSV=i=>{const tax=i.adhoc?i.doc==='세금계산서':!i.fee&&isTaxItem(i.n), sup=i.sup!=null?i.sup:tax?Math.floor(i.amt*10/11):i.amt;return {sup,vat:i.vat!=null?i.vat:i.amt-sup};};
+const leftSV=i=>{const s=billSV(i), cs=CUTS.filter(x=>x.id===i.id), cp=cs.reduce((a,x)=>a+(x.sup!=null?x.sup:x.amt),0), ct=cs.reduce((a,x)=>a+x.amt,0);
+  return {sup:s.sup-cp,vat:(i.amt-ct)-(s.sup-cp),amt:i.amt-ct};};
+/* 남은 금액 전부 감액 — 원래 청구의 공급가액 · 부가세를 그대로 뺀다. 공급가액에 10%를 다시 붙이면 절사 때문에 1원이 남을 수 있다 → 26 */
+const fxV=()=>fz.mode==='cut'&&fz.all&&fxBill()?leftSV(fxBill()):vatSplit(fz.amt,fxDoc());
+function fxOK(){const V=fxV();
+  return (fz.all&&fz.mode==='cut'||fz.amt>0)&&!!fz.why.trim()&&!!fxName()&&(fz.mode==='add'||!!fxBill()&&V.amt<=fxLeft());}
+function fxConfirm(mail){if(!fxOK()) return; const V=fxV();
   if(fz.mode==='cut') addCut(fz.id,V.amt,TODAY_S,fz.why.trim(),V.sup,V.vat);
   else {issueAdhoc(fz.k,fxName(),V.amt,fz.doc,fz.why.trim(),null,V.sup,V.vat);
     const to=billTo(CTRS.find(x=>ckey(x)===fz.k));
@@ -4407,7 +4413,7 @@ function fixHTML(){
   if(DRAWER!=='fix'||!fz) return '';
   const c=CTRS.find(x=>ckey(x)===fz.k), bd=BUILDINGS.find(x=>x.id===c.b)||BUILDINGS[0], cut=fz.mode==='cut';
   const R=(k,b,tip)=>`<div class="fr"><span class="fk">${k}${tip?`<i class="tip" data-tip="${tip}">i</i>`:''}</span>${b}</div>`;
-  const V=vatSplit(fz.amt,fxDoc()), tax=fxDoc()==='세금계산서', I=cut?fxBill():null, left=cut?fxLeft():0;
+  const V=fxV(), all=cut&&!!fz.all, tax=fxDoc()==='세금계산서', I=cut?fxBill():null, left=cut?fxLeft():0;
   const paid=I?paidNet(I.id):0, over=I?Math.max(0,paid-Math.max(0,left-V.amt))-Math.max(0,paid-left):0;
   const list=cut?billsOfItem(fz.k,fz.item):[];
   return `<div class="dro"><div class="ov" onclick="closeDrawer()"></div><div class="pn">
@@ -4422,12 +4428,13 @@ function fixHTML(){
           :R('항목명',`<input type="text" value="${fz.name}" placeholder="예: 엘리베이터 사용료, 파손 수리비" onchange="fxSet('name',this.value)">`)
             +R('발행 문서',`<select onchange="fxSet('doc',this.value)">${ONCE_DOC.map(d=>`<option ${fz.doc===d?'selected':''}>${d}</option>`).join('')}</select>`,'세금계산서면 공급가액에 부가세 10%가 붙습니다')}</div>
       <div class="fg"><div class="fl">${cut?'줄일 돈':'받을 돈'}</div>
-        ${R(tax?'공급가액':'금액',`<input type="text" inputmode="numeric" value="${fz.amt?num(fz.amt):''}" placeholder="${tax?'부가세 제외':'부가세 없음'}" oninput="kwLive(this)" onchange="fxSet('amt',this.value)" style="text-align:right"><span class="kw">${korWon(fz.amt)}</span>`,
+        ${cut&&I?R('남은 금액 전부',`<label style="display:flex;align-items:center;gap:6px"><input type="checkbox" ${all?'checked':''} onchange="fxSet('all',this.checked)">남은 청구액 ${won(left)} 전부 감액</label>`,'원래 청구의 공급가액 · 부가세를 그대로 뺍니다. 공급가액을 넣어 전부 줄이면 부가세 원 미만 절사 때문에 1원이 남을 수 있습니다'):''}
+        ${R(tax?'공급가액':'금액',all?`<span class="fv">${won(V.sup)}</span>`:`<input type="text" inputmode="numeric" value="${fz.amt?num(fz.amt):''}" placeholder="${tax?'부가세 제외':'부가세 없음'}" oninput="kwLive(this)" onchange="fxSet('amt',this.value)" style="text-align:right"><span class="kw">${korWon(fz.amt)}</span>`,
           tax?'세금계산서 항목은 공급가액을 넣습니다. 부가세 10%가 자동으로 붙습니다':'계산서 · 일반내역서 항목은 부가세가 없습니다')}
-        ${tax&&fz.amt?R('부가세',`<span class="fv">${won(V.vat)}</span>`)+R('합계',`<b>${won(V.amt)}</b>`):''}
+        ${tax&&(fz.amt||all)?R('부가세',`<span class="fv">${won(V.vat)}</span>`)+R('합계',`<b>${won(V.amt)}</b>`):''}
         ${R('사유',`<input type="text" value="${fz.why}" placeholder="필수. 예: ${cut?'7월 검침값 입력 오류':'이사 · 엘리베이터 사용'}" onchange="fxSet('why',this.value)">`)}</div>
       ${cut&&I&&V.amt>left?`<div class="prev warn2"><div class="pt">청구액보다 많이 줄일 수 없습니다</div>남은 청구액 ${won(left)}까지 줄일 수 있습니다.</div>`
-       :fz.amt?`<div class="prev"><div class="pt">${cut?'감액 확정하면':'발행하면'}</div>${cut
+       :fz.amt||all?`<div class="prev"><div class="pt">${cut?'감액 확정하면':'발행하면'}</div>${cut
           ?`오늘(${TODAY_S.slice(5).replace('-','.')}) 날짜로 원장에 <b>${I?billLabel(I):''} 감액 ${won(V.amt)}</b>이 기록됩니다.${over>0?` 이미 낸 돈이 있어 <b>과납 ${won(over)}</b>이 생기고, 다음 청구서를 발행할 때 먼저 빠집니다.`:''}`
           :`「${fz.name||'새 항목'}」 ${won(V.amt)}의 <b>비정기 청구서</b>가 바로 발행되고, 오늘(${TODAY_S.slice(5).replace('-','.')}) 날짜로 원장에 청구가 기록됩니다. 납부마감일 <b>${dueStr(adYm()).replace(/-/g,'.')}</b>.${(to=>to.length?` 메일을 보내면 ${to.map(x=>x.n).join(', ')}에게 갑니다.`:' 청구서 메일 받는 담당자가 없어 메일은 보내지 않습니다.')(billTo(c))}`}</div>`:''}
     </div>
@@ -4497,14 +4504,17 @@ let dr=null;
 function openDepRet(k){const bal=ledgerOf(k).bal.임대보증금;
   dr={k,amt:isLeaving(k)?bal:0,date:TODAY_S,acct:refTx(k),why:''};DRAWER='depret';render(true);}
 function drSet(f,v){dr[f]=f==='amt'?numOf(v):v;render(true);}
+/* 퇴거하는 계약(해지 처리 · 종료됨 · 파기됨)은 미납이 남아 있으면 반환할 수 없다. 먼저 보증금 상계로 정리한다.
+   계약 중 반환(더 받은 보증금)은 막지 않는다 → 29 */
+const drOwed=k=>isLeaving(k)?Math.max(0,ledgerOf(k).bal.매출채권):0;
 function drConfirm(){const bal=ledgerOf(dr.k).bal.임대보증금;
-  if(!(dr.amt>0)||dr.amt>bal||!dr.why.trim()) return;
+  if(!(dr.amt>0)||dr.amt>bal||!dr.why.trim()||drOwed(dr.k)>0) return;
   DEP_RET.push({k:dr.k,amt:dr.amt,date:dr.date,acct:dr.acct.trim(),why:dr.why.trim(),sq:++paySeq});
   DRAWER=null;dr=null;render(true);}
 function drHTML(){
   if(DRAWER!=='depret'||!dr) return '';
   const c=CTRS.find(x=>ckey(x)===dr.k), bd=BUILDINGS.find(x=>x.id===c.b)||BUILDINGS[0], bal=ledgerOf(dr.k).bal.임대보증금;
-  const ok=dr.amt>0&&dr.amt<=bal&&dr.why.trim();
+  const owed=drOwed(dr.k), ok=dr.amt>0&&dr.amt<=bal&&dr.why.trim()&&!owed;
   const R=(k,b,tip)=>`<div class="fr"><span class="fk">${k}${tip?`<i class="tip" data-tip="${tip}">i</i>`:''}</span>${b}</div>`;
   return `<div class="dro"><div class="ov" onclick="closeDrawer()"></div><div class="pn">
     <div class="dh"><div><div class="t">보증금 반환</div><div class="s">${cname(bd.alias,c.no,c.ten)}</div></div>
@@ -4513,9 +4523,10 @@ function drHTML(){
       <div class="fg"><div class="fl">돌려줄 돈</div>
         ${R('보증금 잔액',`<b style="color:var(--pri)">${won(bal)}</b>`)}
         ${R('반환할 금액',`<input type="text" inputmode="numeric" value="${dr.amt?num(dr.amt):''}" oninput="kwLive(this)" onchange="drSet('amt',this.value)" style="text-align:right"><span class="kw">${korWon(dr.amt)}</span>`,
-          '퇴거하는 계약은 남은 잔액 전부가 미리 들어갑니다. 미납이 있으면 먼저 원장의 보증금 ▾ › 보증금 상계로 정리합니다')}
+          '퇴거하는 계약(해지 처리 · 종료됨 · 파기됨)은 남은 잔액 전부가 미리 들어가고, 미납이 남아 있으면 반환할 수 없습니다. 먼저 원장의 보증금 ▾ › 보증금 상계로 정리합니다. 계약 중 반환(더 받은 보증금)은 막지 않습니다')}
         ${dr.amt>bal?'<div class="c2" style="margin:-4px 0 9px 114px;color:var(--danger)">보증금 잔액보다 많이 돌려줄 수 없습니다</div>':''}
-        ${R('사유 (필수)',`<input type="text" value="${dr.why}" placeholder="예: 보증금 더 받음 · 퇴거 정산" oninput="dr.why=this.value;document.getElementById('drok').disabled=!(this.value.trim()&&dr.amt>0&&dr.amt<=${bal})">`)}</div>
+        ${owed?`<div class="c2" style="margin:-4px 0 9px 114px;color:var(--danger);white-space:normal">미납 ${won(owed)}이 남아 있어 반환할 수 없습니다. 먼저 원장의 보증금 ▾ › 보증금 상계로 정리합니다</div>`:''}
+        ${R('사유 (필수)',`<input type="text" value="${dr.why}" placeholder="예: 보증금 더 받음 · 퇴거 정산" oninput="dr.why=this.value;document.getElementById('drok').disabled=!(this.value.trim()&&dr.amt>0&&dr.amt<=${bal}&&!${owed})">`)}</div>
       <div class="fg"><div class="fl">보낸 기록</div>
         ${R('반환계좌',`<input type="text" value="${dr.acct}" placeholder="환불계좌 (계약 상세 › 보증금 정보)" onchange="drSet('acct',this.value)">`)}
         ${R('보낸 날',`<input type="date" value="${dr.date}" max="${TODAY_S}" onchange="drSet('date',this.value)">`)}
@@ -4722,7 +4733,7 @@ const refTx=k=>{const r=CREF[k];return r?`${r.rb} ${r.ra} (${r.rn})`:'';};
 const CPROXY={'b1본관601호':{n:'윤서아',tel:'010-7714-2208',mail:'proxy@sample.kr',addr:'서울특별시 용산구 한강대로 100'}};
 const man=n=>n>=1e8?(n/1e8).toFixed(n%1e8?1:0)+'억':n>=1e4?num(Math.round(n/1e4))+'만':num(n);
 
-/* 잔액 남음 — 끝난 계약(종료됨 · 파기됨)인데 원장 잔액이 남은 것. 계약상태가 아니라 원장 잔액으로 계산한 표시다.
+/* 미정산 — 끝난 계약(종료됨 · 파기됨)인데 원장 잔액이 남은 것. 계약상태가 아니라 원장 잔액으로 계산한 표시다.
    보증금을 아직 돌려주지 않았거나, 미납 · 과납이 남았다. 둘 다 0이 되면 사라진다 */
 function leftOf(c){
   if(c.st!=='종료됨'&&c.st!=='파기됨') return null;
@@ -4731,7 +4742,7 @@ function leftOf(c){
 }
 function leftTag(c){const x=leftOf(c); if(!x) return '';
   const t=[x.dep?`보증금 ${won(x.dep)}`:'',x.ar>0?`미납 ${won(x.ar)}`:x.ar<0?`과납 ${won(-x.ar)}`:''].filter(Boolean).join(' · ');
-  return `<span class="bd wa" style="margin-left:6px" title="${t}">잔액 남음</span>`;}
+  return `<span class="bd wa" style="margin-left:6px" title="${t}">미정산</span>`;}
 
 /* ═══ CTR-1 계약 목록 ═══ */
 let f1c={b:'',st:'진행중',dd:'',q:''};
@@ -4739,7 +4750,7 @@ const setF1c=(k,v)=>{f1c[k]=v;render();};
 /* 계약 표 — 계약 목록(CTR-1)과 건물 상세의 계약 탭이 같은 표 · 같은 필터를 쓴다. 건물 탭은 그 건물만 */
 function ctrRowsOf(f,b){
   const B=c=>BUILDINGS.find(x=>x.id===c.b)||{};
-  return CTRS.filter(c=>(!b||c.b===b)&&qHit(f.q||'',[cname(B(c).alias,c.no,c.ten),B(c).name])&&(!f.st||(f.st==='잔액남음'?!!leftOf(c):c.st===f.st))).map(c=>({c,end:ctrEnd(c),dd:dday(ctrEnd(c))}))
+  return CTRS.filter(c=>(!b||c.b===b)&&qHit(f.q||'',[cname(B(c).alias,c.no,c.ten),B(c).name])&&(!f.st||(f.st==='미정산'?!!leftOf(c):c.st===f.st))).map(c=>({c,end:ctrEnd(c),dd:dday(ctrEnd(c))}))
     .filter(x=>!f.dd||(f.dd==='0'?x.dd<0:x.dd>=0&&x.dd<=+f.dd)).sort((a,b)=>a.dd-b.dd);
 }
 function ctrFbar(f,set,withB,right){
@@ -4748,7 +4759,7 @@ function ctrFbar(f,set,withB,right){
     ${withB?`<select onchange="${set}('b',this.value)"><option value="">전체 건물</option>
       ${BUILDINGS.map(b=>`<option value="${b.id}" ${f.b===b.id?'selected':''}>${b.name}</option>`).join('')}</select>`:''}
     <select onchange="${set}('st',this.value)">
-      ${[['','전체 계약상태'],['준비중','준비중'],['진행중','진행중'],['종료됨','종료됨'],['파기됨','파기됨'],['잔액남음','종료 · 잔액 남음']].map(([v,t])=>`<option value="${v}" ${f.st===v?'selected':''}>${t}</option>`).join('')}</select>
+      ${[['','전체 계약상태'],['준비중','준비중'],['진행중','진행중'],['종료됨','종료됨'],['파기됨','파기됨'],['미정산','종료 · 미정산']].map(([v,t])=>`<option value="${v}" ${f.st===v?'selected':''}>${t}</option>`).join('')}</select>
     <select onchange="${set}('dd',this.value)">
       ${[['','만료 남은 일수 전체'],['0','만료됨'],['30','30일 이하'],['90','90일 이하'],['180','180일 이하']].map(([v,t])=>`<option value="${v}" ${f.dd===v?'selected':''}>${t}</option>`).join('')}</select>
     ${right?`<span style="margin-left:auto;display:flex;gap:6px">${right}</span>`:''}
@@ -5370,7 +5381,7 @@ function cx3HTML(){
       +(cx3.px_on?`<div class="fg">${F('대리인 이름',O('px','n',140))+F('연락처',O('px','tel',160))+F('이메일',O('px','mail'))+F('주소',O('px','addr'))}</div>`:'')+`</div>`
     :cx3.mode==='dep'?F('보증금 약정액',`<input type="text" inputmode="numeric" value="${num(numOf(cx3.dep))}" oninput="cx3.dep=this.value" style="${inp};width:160px;text-align:right"><span class="c2" style="margin:0">원</span>`)
       +F('환불계좌',O('rf','rb',90)+O('rf','ra')+O('rf','rn',100))
-      +`<div class="c2" style="white-space:normal">받은 보증금과 잔액은 원장의 「보증금 예치 · 차감 · 환급」으로만 바뀝니다.</div>`
+      +`<div class="c2" style="white-space:normal">받은 보증금과 잔액은 원장의 「보증금 예치 · 상계 · 반환」으로만 바뀝니다.</div>`
     :cx3.mode==='ag'?(F('중개사무소',I('an'))+F('대표자명',I('aceo',160))+F('등록번호',I('ano',180))+F('연락처',I('atel',160))+F('소재지',I('aaddr'))
         +F('중개 수수료율',`<input type="text" inputmode="decimal" value="${cx3.afee}" oninput="cx3.afee=this.value" style="${inp};width:70px;text-align:right"><span class="c2" style="margin:0">% · 모르면 비워 두고 나중에 넣습니다</span>`))
     :cx3.mode==='memo'?`<div class="fg"><div class="fl">메모</div><textarea rows="8" oninput="cx3.memo=this.value" placeholder="계약서에 없는 약속 · 특이사항" style="${inp};width:100%;box-sizing:border-box;resize:vertical;line-height:1.6">${cx3.memo}</textarea></div>`
@@ -5395,6 +5406,10 @@ function cx3HTML(){
    담당자가 예상 금액을 정해 비정기 청구서로 발행한다. 시스템은 평균을 내지 않는다.
    목업은 계약상태를 바꾸지 않고 해지 정보와 비정기 청구서만 남긴다 ═══ */
 const TERM_TYPES=['만기 종료','중도 해지(합의)','중도 해지(위반·분쟁)'];
+/* 해지 때 발행하는 비정기 청구 — 발행 문서 기본값(13-6) */
+const TERM_DOCS=[['pen','위약금','일반내역서'],['rest','원상복구비','세금계산서']];
+/* 금액 칸 아래 — 세금계산서면 부가세 · 합계를 보인다(청구 추가 패널과 같다) */
+const vatNote=(a,doc)=>{const V=vatSplit(numOf(a),doc);return doc==='세금계산서'&&V.sup?`<span class="c2" style="margin:0">+ 부가세 ${won(V.vat)} = ${won(V.amt)}</span>`:'';};
 const TERMS={};
 let tm=null;
 /* 고지 전 기간 — 정산 항목마다 마지막 부과 종료일 다음 날 ~ 퇴거일. 전력기금·TV수신료처럼 다른 항목 고지서에 함께 나오는 항목은 그 기간을 따른다 */
@@ -5413,10 +5428,11 @@ function termSave(){if(!tm.out||!tm.why.trim()) return;
   /* 위약금 · 원상복구비 · 퇴거 예상분 — 보증금에서 바로 빼지 않는다. 해지 처리할 때 비정기 청구서로 발행하고 보증금 상계로 받는다.
      이미 발행한 것은 다시 발행하지 않는다(고칠 때는 청구 감액 · 청구 추가) */
   const had=n=>adhocOf(tm.k).some(i=>i.n===n);
-  [['pen','위약금','일반내역서'],['rest','원상복구비','세금계산서']].forEach(([f,n,doc])=>{const a=numOf(tm[f]); if(a&&!had(n))
-    issueAdhoc(tm.k,n,a,doc,n);});
+  /* 금액은 청구 추가와 같다 — 세금계산서면 공급가액을 넣고 부가세 10%(원 미만 절사)가 붙는다 → 25 */
+  const iss=(n,a,doc,memo)=>{const V=vatSplit(a,doc); issueAdhoc(tm.k,n,V.amt,doc,memo,null,V.sup,V.vat);};
+  TERM_DOCS.forEach(([f,n,doc])=>{const a=numOf(tm[f]); if(a&&!had(n)) iss(n,a,doc,n);});
   unbilled(c,tm.out).forEach(u=>{const a=numOf(tm.est[u.code]); if(!a) return;
-    const n=`${u.n} 퇴거 예상분 (${u.from.slice(5).replace('-','.')}~${u.to.slice(5).replace('-','.')})`; if(!had(n)) issueAdhoc(tm.k,n,a,u.doc,'퇴거 예상분');});
+    const n=`${u.n} 퇴거 예상분 (${u.from.slice(5).replace('-','.')}~${u.to.slice(5).replace('-','.')})`; if(!had(n)) iss(n,a,u.doc,'퇴거 예상분');});
   /* 연체료 — 다음 청구서가 없으니 마지막 청구서에 해지일까지 넣는다. 해지일이 정리일 · 그 뒤로는 세지 않는다 → 18-5 */
   const fa=feeUntil(tm.k,tm.out), fid=`${tm.out.slice(0,7)}|${c.no}|연체료 (해지일까지)`;
   if(fa&&!BILLS.some(i=>i.id===fid)){BILLS.push({id:fid,ym:tm.out.slice(0,7),k:tm.k,no:c.no,n:'연체료',amt:fa,fee:true,reg:true,feeTo:tm.out,
@@ -5427,7 +5443,8 @@ function termHTML(){
   const c=CTRS.find(x=>ckey(x)===tm.k), bd=BUILDINGS.find(x=>x.id===c.b)||BUILDINGS[0], U=unbilled(c,tm.out);
   const inp='border:1px solid var(--line);border-radius:var(--r-sm);padding:7px 9px;font:inherit';
   const R=(k,b,tip)=>`<div class="fr"><span class="fk">${k}${tip?`<i class="tip" data-tip="${tip}">i</i>`:''}</span>${b}</div>`;
-  const N=f=>`<input type="text" inputmode="numeric" value="${tm[f]?num(numOf(tm[f])):''}" onchange="termSet('${f}',this.value)" style="${inp};text-align:right;max-width:140px"><span class="c2" style="margin:0">원</span>`;
+  const N=(f,doc)=>`<input type="text" inputmode="numeric" value="${tm[f]?num(numOf(tm[f])):''}" onchange="termSet('${f}',this.value)" style="${inp};text-align:right;max-width:140px"><span class="c2" style="margin:0">원</span>${vatNote(tm[f],doc)}`;
+  const amtTip=doc=>doc==='세금계산서'?`${doc} 항목이라 공급가액을 넣습니다. 부가세 10%가 붙습니다. 해지 처리하면 비정기 청구서로 바로 발행됩니다. 보증금에서 받을 때는 보증금 상계로 받습니다`:`${doc} 항목이라 부가세가 없습니다. 해지 처리하면 비정기 청구서로 바로 발행됩니다. 보증금에서 받을 때는 보증금 상계로 받습니다`;
   return `<div class="dro"><div class="ov" onclick="closeDrawer()"></div><div class="pn">
     <div class="dh"><div><div class="t">계약 해지</div><div class="s">${cname(bd.alias,c.no,c.ten)}</div></div>
       <button class="x" onclick="closeDrawer()">✕</button></div>
@@ -5436,13 +5453,13 @@ function termHTML(){
         ${R('해지유형',`<select onchange="termSet('type',this.value)" style="${inp}">${TERM_TYPES.map(v=>`<option ${tm.type===v?'selected':''}>${v}</option>`).join('')}</select>`)}
         ${R('해지일 (명도일)',`<input type="date" value="${tm.out}" onchange="termSet('out',this.value)" style="${inp}">`)}
         ${R('해지사유 (필수)',`<input type="text" value="${tm.why}" oninput="tm.why=this.value;document.getElementById('tmok').disabled=!(this.value.trim()&&tm.out)" style="${inp};width:100%">`)}
-        ${R('위약금',N('pen'),'해지 처리하면 비정기 청구서로 바로 발행됩니다. 보증금에서 받을 때는 보증금 상계로 받습니다')}${R('원상복구비',N('rest'),'해지 처리하면 비정기 청구서로 바로 발행됩니다. 보증금에서 받을 때는 보증금 상계로 받습니다')}${tm.out&&feeUntil(tm.k,tm.out)?R('연체료',`<span>${won(feeUntil(tm.k,tm.out))}</span><span class="c2" style="margin:0">${tm.out.slice(5).replace('-','.')}까지</span>`,'해지 처리하면 마지막 청구서에 해지일까지의 연체료가 들어갑니다. 해지일 뒤로 늦어진 날은 받지 않습니다'):''}</div>
+        ${TERM_DOCS.map(([f,n,doc])=>R(doc==='세금계산서'?`${n} (공급가액)`:n,N(f,doc),amtTip(doc))).join('')}${tm.out&&feeUntil(tm.k,tm.out)?R('연체료',`<span>${won(feeUntil(tm.k,tm.out))}</span><span class="c2" style="margin:0">${tm.out.slice(5).replace('-','.')}까지</span>`,'해지 처리하면 마지막 청구서에 해지일까지의 연체료가 들어갑니다. 해지일 뒤로 늦어진 날은 받지 않습니다'):''}</div>
       <div class="fg"><div class="fl">아직 고지되지 않은 기간</div>
         ${!tm.out?'<div class="c2" style="margin:0">해지일을 넣으면 정산 항목마다 고지서가 아직 나오지 않은 기간을 보여 줍니다</div>'
         :U.length?U.map(u=>`<div style="border:1px solid var(--line);border-radius:var(--r-sm);padding:9px 12px 1px;margin-bottom:8px">
             ${R(u.n,`<span class="fv">${u.from.slice(5).replace('-','.')} ~ ${u.to.slice(5).replace('-','.')} · <b>${u.days}일</b> 고지 전</span>`)}
-            ${R('예상 금액',`<input type="text" inputmode="numeric" value="${tm.est[u.code]?num(numOf(tm.est[u.code])):''}" placeholder="직접 계산해 넣기"
-              onchange="tm.est['${u.code}']=this.value;render(true)" style="${inp};text-align:right;max-width:140px"><span class="c2" style="margin:0">원</span>`)}</div>`).join('')
+            ${R(u.doc==='세금계산서'?'예상 공급가액':'예상 금액',`<input type="text" inputmode="numeric" value="${tm.est[u.code]?num(numOf(tm.est[u.code])):''}" placeholder="직접 계산해 넣기"
+              onchange="tm.est['${u.code}']=this.value;render(true)" style="${inp};text-align:right;max-width:140px"><span class="c2" style="margin:0">원</span>${vatNote(tm.est[u.code],u.doc)}`,amtTip(u.doc))}</div>`).join('')
           +'<div class="c2" style="margin:0;white-space:normal">넣은 금액은 해지 처리할 때 비정기 청구서로 바로 발행됩니다. 나중에 그 기간의 고지서가 오면 이 유닛 몫은 건물주 부담으로 갑니다.</div>'
         :`<div class="c2" style="margin:0">${c.b==='b1'?'모든 정산 항목이 해지일까지 고지되었습니다':'목업의 정산 자료는 카리나빌딩뿐입니다'}</div>`}</div>
     </div>
