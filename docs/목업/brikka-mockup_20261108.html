@@ -4408,9 +4408,15 @@ const billLabel=i=>`${i.ym.slice(2).replace('-','.')}월분 ${i.n}`;
 function fixOpen(k,mode){
   const m=mode||'add', it=m==='cut'?cutItems(k)[0]:'';
   if(m==='cut'&&!it) return;
-  fz={k,mode:m,item:it,id:m==='cut'?billsOfItem(k,it)[0].id:'',name:'',doc:'세금계산서',amt:0,why:''};DRAWER='fix';render(true);
+  fz={k,mode:m,item:it,id:m==='cut'?billsOfItem(k,it)[0].id:'',name:'',pick:'',doc:'세금계산서',amt:0,why:''};DRAWER='fix';render(true);
 }
-function fxSet(f,v){fz[f]=f==='amt'?numOf(v):v;
+/* 비정기 청구 항목명 — 자주 쓰는 이름을 고르거나 직접 넣는다. 이 건물에서 많이 쓴 순서로 보인다(같으면 아래 순서).
+   발행 문서는 이름에 따라 바꾸지 않는다. 담당자가 고른다 */
+const ONCE_NAMES=['엘리베이터 사용료','원상복구비','파손 수리비','위약금'];
+const onceNames=k=>{const b=bOfK(k), n=x=>BILLS.filter(i=>i.adhoc&&bOfK(i.k)===b&&i.n===x).length;
+  return ONCE_NAMES.map((x,i)=>({x,i,c:n(x)})).sort((a,b)=>b.c-a.c||a.i-b.i).map(o=>o.x);};
+function fxSet(f,v){if(f==='pick'){fz.pick=v; fz.name=v==='직접 입력'?'':v; render(true); return;}
+  fz[f]=f==='amt'?numOf(v):v;
   if(f==='item'){const b=billsOfItem(fz.k,v)[0];fz.id=b?b.id:'';fz.amt=0;fz.all=false;}
   if(f==='id'){fz.amt=0;fz.all=false;}
   render(true);}
@@ -4448,7 +4454,8 @@ function fixHTML(){
           +R('청구',list.length>1?`<select onchange="fxSet('id',this.value)">${list.map(i=>`<option value="${i.id}" ${i.id===fz.id?'selected':''}>${i.ym.slice(2).replace('-','.')}월분 · ${i.adhoc?'비정기':'정기'} · ${won(i.amt-cutOf(i.id))}</option>`).join('')}</select>`
             :`<span class="fv">${I?`${I.ym.slice(2).replace('-','.')}월분 · ${I.adhoc?'비정기':'정기'}`:''}</span>`)
           +(I?R('청구액',won(I.amt)+(cutOf(I.id)?` <span class="c2">감액 ${won(cutOf(I.id))}</span>`:''))+R('낸 금액',won(paid))+R('발행 문서',`<span class="fv">${fxDoc()}</span>`):'')
-          :R('항목명',`<input type="text" value="${fz.name}" placeholder="예: 엘리베이터 사용료, 파손 수리비" onchange="fxSet('name',this.value)">`)
+          :R('항목명',`<select onchange="fxSet('pick',this.value)"><option value="" ${fz.pick?'':'selected'}>항목을 고르세요</option>${onceNames(fz.k).map(x=>`<option ${fz.pick===x?'selected':''}>${x}</option>`).join('')}<option ${fz.pick==='직접 입력'?'selected':''}>직접 입력</option></select>`)
+            +(fz.pick==='직접 입력'?R('',`<input type="text" value="${fz.name}" placeholder="예: 7월 전기요금 정정" onchange="fxSet('name',this.value)">`):'')
             +R('발행 문서',`<select onchange="fxSet('doc',this.value)">${ONCE_DOC.map(d=>`<option ${fz.doc===d?'selected':''}>${d}</option>`).join('')}</select>`,'세금계산서면 공급가액에 부가세 10%가 붙습니다')}</div>
       <div class="fg"><div class="fl">${cut?'줄일 돈':'받을 돈'}</div>
         ${cut&&I?R('남은 금액 전부',`<label style="display:flex;align-items:center;gap:6px"><input type="checkbox" ${all?'checked':''} onchange="fxSet('all',this.checked)">남은 청구액 ${won(left)} 전부 감액</label>`,'원래 청구의 공급가액 · 부가세를 그대로 뺍니다. 공급가액을 넣어 전부 줄이면 부가세 원 미만 절사 때문에 1원이 남을 수 있습니다'):''}
@@ -5428,11 +5435,10 @@ function cx3HTML(){
      now    해지일이 청구일 앞 · 아직 발행 전      저장할 때 마지막 정기 청구서를 바로 발행(고정액 일할 + 해지일까지 연체료 · 정산 항목은 싣지 않음)
      reg    해지일이 청구일 뒤 · 아직 발행 전      청구일의 정기 청구서가 일할로 나간다(연체료는 해지일까지)
      after  그 달 정기 청구서를 이미 발행했다      저장할 때 청구 감액(일할 차이) + 연체료 청구 한 건(정리일 다음날 ~ 해지일)을 자동 기록
-   위약금 · 원상복구비 · 퇴거 예상분은 어느 경우든 항목마다 비정기 청구서로 바로 발행한다. 금액은 공급가액이다(청구 추가와 같다)
+   퇴거 예상분은 어느 경우든 항목마다 비정기 청구서로 바로 발행한다. 금액은 공급가액이다(청구 추가와 같다).
+   위약금 · 원상복구비는 해지 패널에 두지 않는다. 다른 비정기 청구처럼 원장의 청구 › 청구 추가로 넣는다(원상복구비는 보통 명도일에 나온다)
    목업은 계약상태를 바꾸지 않는다. 청구 계산은 카리나빌딩 · 이번 회차(8월) 해지만 한다 ═══ */
 const TERM_TYPES=['만기 종료','중도 해지(합의)','중도 해지(위반·분쟁)'];
-/* 해지 때 발행하는 비정기 청구 — 발행 문서 기본값(13-6) */
-const TERM_DOCS=[['pen','위약금','일반내역서'],['rest','원상복구비','세금계산서']];
 /* 금액 칸 아래 — 세금계산서면 부가세 · 합계를 보인다(청구 추가 패널과 같다) */
 const vatNote=(a,doc)=>{const V=vatSplit(numOf(a),doc);return doc==='세금계산서'&&V.sup?`<span class="c2" style="margin:0">+ 부가세 ${won(V.vat)} = ${won(V.amt)}</span>`:'';};
 const TERMS={};
@@ -5476,18 +5482,17 @@ function withTerm(k,out,fn,fix){const t=TERMS[k]; TERMS[k]={...(t||{}),out,...(f
 const lastBill=(k,out,fix)=>withTerm(k,out,()=>ISSUE().find(x=>x.k===k),fix);
 function termOpen(k){const t=TERMS[k]||{}, c=CTRS.find(x=>ckey(x)===k), ended=c&&c.st!=='진행중';
   /* 종료된 계약 — 만기 종료로, 해지일은 종료일 → 질문 3-1 */
-  tm={k,type:t.type||(ended?'만기 종료':'중도 해지(합의)'),out:t.out||(ended?ctrEnd(c):''),why:t.why||'',pen:t.pen||'',rest:t.rest||'',est:{},fix:{},feeOpen:false,ended};DRAWER='term';render(true);}
+  tm={k,type:t.type||(ended?'만기 종료':'중도 해지(합의)'),out:t.out||(ended?ctrEnd(c):''),why:t.why||'',est:{},fix:{},feeOpen:false,ended};DRAWER='term';render(true);}
 function termSet(f,v){tm[f]=v;render(true);}
 function termSave(mail){if(!tm.out||!tm.why.trim()) return;
   const c=CTRS.find(x=>ckey(x)===tm.k), k=tm.k, out=tm.out, mode=termMode(k,out), prev=TERMS[k]||{};
   const FX=['now','reg','after'].includes(mode)&&!prev.act?Object.fromEntries(termFix(k,out,tm.fix).map(f=>[f.n,{sup:f.sup,vat:f.vat}])):prev.fix;
-  TERMS[k]={at:`${TODAY_S} ${new Date().toTimeString().slice(0,5)}`,type:tm.type,out,why:tm.why.trim(),pen:numOf(tm.pen),rest:numOf(tm.rest),act:prev.act||'',fix:FX};
-  /* 위약금 · 원상복구비 · 퇴거 예상분 — 보증금에서 바로 빼지 않는다. 해지 처리할 때 비정기 청구서로 발행하고 보증금 상계로 받는다.
+  TERMS[k]={at:`${TODAY_S} ${new Date().toTimeString().slice(0,5)}`,type:tm.type,out,why:tm.why.trim(),act:prev.act||'',fix:FX};
+  /* 퇴거 예상분 — 보증금에서 바로 빼지 않는다. 해지 처리할 때 비정기 청구서로 발행하고 보증금 상계로 받는다.
      이미 발행한 것은 다시 발행하지 않는다(고칠 때는 청구 감액 · 청구 추가) */
   const had=n=>adhocOf(k).some(i=>i.n===n);
   /* 금액은 청구 추가와 같다 — 세금계산서면 공급가액을 넣고 부가세 10%(원 미만 절사)가 붙는다 → 질문 13 */
   const iss=(n,a,doc,memo)=>{const V=vatSplit(a,doc); issueAdhoc(k,n,V.amt,doc,memo,null,V.sup,V.vat);};
-  TERM_DOCS.forEach(([f,n,doc])=>{const a=numOf(tm[f]); if(a&&!had(n)) iss(n,a,doc,n);});
   unbilled(c,out,mode).forEach(u=>{const a=numOf(tm.est[u.code]); if(!a) return;
     const n=`${u.n} 퇴거 예상분 (${u.from.slice(5).replace('-','.')}~${u.to.slice(5).replace('-','.')})`; if(!had(n)) iss(n,a,u.doc,'퇴거 예상분');});
   /* 마지막 청구 — 한 번만 한다. 고칠 때는 청구 감액 · 청구 추가로 */
@@ -5539,7 +5544,6 @@ function termHTML(){
     return '<div class="c2" style="margin:0">목업의 청구 자료는 카리나빌딩뿐입니다</div>';})();
   const inp='border:1px solid var(--line);border-radius:var(--r-sm);padding:7px 9px;font:inherit';
   const R=(k,b,tip)=>`<div class="fr"><span class="fk">${k}${tip?`<i class="tip" data-tip="${tip}">i</i>`:''}</span>${b}</div>`;
-  const N=(f,doc)=>`<input type="text" inputmode="numeric" value="${tm[f]?num(numOf(tm[f])):''}" onchange="termSet('${f}',this.value)" style="${inp};text-align:right;max-width:140px"><span class="c2" style="margin:0">원</span>`;
   const amtTip=doc=>doc==='세금계산서'?`${doc} 항목이라 공급가액을 넣습니다. 부가세 10%가 붙습니다. 해지 처리하면 비정기 청구서로 바로 발행됩니다. 보증금에서 받을 때는 보증금 상계로 받습니다`:`${doc} 항목이라 부가세가 없습니다. 해지 처리하면 비정기 청구서로 바로 발행됩니다. 보증금에서 받을 때는 보증금 상계로 받습니다`;
   return `<div class="dro"><div class="ov" onclick="closeDrawer()"></div><div class="pn">
     <div class="dh"><div><div class="t">계약 해지</div><div class="s">${cname(bd.alias,c.no,c.ten)}</div></div>
@@ -5549,7 +5553,7 @@ function termHTML(){
         ${R('해지유형',`<select onchange="termSet('type',this.value)" style="${inp}" ${tm.ended?'disabled':''}>${TERM_TYPES.map(v=>`<option ${tm.type===v?'selected':''}>${v}</option>`).join('')}</select>`,tm.ended?'계약기간이 끝난 계약은 만기 종료로 해지 처리합니다. 해지일은 종료일입니다':'')}
         ${R('해지일 (명도일)',`<input type="date" value="${tm.out}" onchange="termSet('out',this.value)" style="${inp}" ${tm.ended?'disabled':''}>`,'보통 이사일입니다. 이날 명도를 확인하고 보증금을 정리합니다. 해지일 뒤로는 연체료를 세지 않습니다')}
         ${R('해지사유 (필수)',`<input type="text" value="${tm.why}" oninput="tm.why=this.value;document.querySelectorAll('.tmok').forEach(b=>b.disabled=!(this.value.trim()&&tm.out))" style="${inp};width:100%">`)}
-        ${TERM_DOCS.map(([f,n,doc])=>R(doc==='세금계산서'?`${n} (공급가액)`:n,N(f,doc),amtTip(doc))).join('')}</div>
+</div>
       <div class="fg"><div class="fl">마지막 청구</div>
         ${tm.out?last:'<div class="c2" style="margin:0">해지일을 넣으면 마지막 청구가 어떻게 되는지 보여 줍니다</div>'}
         ${!tm.out?''
@@ -5642,10 +5646,8 @@ function CTR3sum(c,k){
       <dt>해지유형</dt><dd>${TERMS[k].type}</dd>
       <dt>해지일</dt><dd>${TERMS[k].out.replace(/-/g,'.')}</dd>
       <dt>해지사유</dt><dd>${TERMS[k].why}</dd>
-      <dt>위약금</dt><dd>${TERMS[k].pen?won(TERMS[k].pen):'—'}</dd>
-      <dt>원상복구비</dt><dd>${TERMS[k].rest?won(TERMS[k].rest):'—'}</dd>
     </dl></div></div>`:''}
-  <div class="hint">목업의 해지 처리는 계약상태를 바꾸지 않고 해지 정보와 비정기 청구서(위약금 · 원상복구비 · 퇴거 예상분)만 남깁니다.</div>`;
+  <div class="hint">목업의 해지 처리는 계약상태를 바꾸지 않고 해지 정보와 마지막 청구(일할 · 연체료 · 퇴거 예상분)만 남깁니다. 위약금 · 원상복구비는 원장의 청구 추가로 넣습니다.</div>`;
 }
 
 /* ═══ CTR-3 계약 원장 — 이 계약의 모든 돈 거래를 있는 그대로. 추가만 하고 고치지 않는다 ═══ */

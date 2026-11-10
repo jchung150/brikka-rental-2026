@@ -855,14 +855,20 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   r6.push(['퇴거 ② 해지일 8/20(청구일 뒤) — 8/19 정기 청구서가 20/31일 일할 · 청구 전 기간: 전기요금 08.10~08.20 11일 · 수도요금 08.08~08.20 · 사유 없으면 안 됨 · 예상 공급가액 180,000원은 「전기요금 퇴거 예상분 (08.10~08.20)」 비정기 청구서 198,000(세금계산서 · 부가세 18,000)',
     noWhy && e && e.from === '2026-08-10' && e.days === 11 && w && w.from === '2026-08-08' && /청구 전 기간\)은 퇴거 예상분으로/.test(h) && !/<div class="fl">청구 전 기간/.test(h) && /정기 청구서에 아래 금액이 들어가고/.test(h) && /원 · 20\/31일 일할/.test(h) && !/\+ 부가세/.test(h)
     && row && row.n === '전기요금 퇴거 예상분 (08.10~08.20)' && row.amt === 198000 && row.sup === 180000 && row.vat === 18000 && /예상 공급가액/.test(h) && TM.TERMS['b1본관501호'].out === '2026-08-20']);
-  /* 위약금 · 원상복구비 — 보증금에서 바로 빼지 않고 비정기 청구서로. 다시 저장해도 한 번만 */
-  TM.termOpen('b1본관501호'); TM.tm.pen = '5000000'; TM.tm.rest = '3300000'; TM.termSave();
-  TM.termOpen('b1본관501호'); TM.termSave();
-  const P = TM.BILLS.filter(r => r.k === 'b1본관501호' && r.adhoc && (r.n === '위약금' || r.n === '원상복구비'));
-  r6.push(['계약 해지 — 위약금 500만(일반내역서 · 부가세 없음) · 원상복구비 공급가액 330만(세금계산서 → 합계 363만)은 비정기 청구서 · 다시 저장해도 한 장씩',
-    P.length === 2 && P.some(r => r.n === '위약금' && r.amt === 5000000 && r.doc === '일반내역서')
-    && P.some(r => r.n === '원상복구비' && r.amt === 3630000 && r.sup === 3300000 && r.vat === 330000 && r.doc === '세금계산서')
-    && P.some(r => r.n === '위약금' && r.sup === 5000000 && r.vat === 0)]); }
+  /* 위약금 · 원상복구비는 해지 패널에 없다 — 원장의 청구 추가로 */
+  TM.termOpen('b1본관501호'); const th2 = TM.termHTML();
+  r6.push(['해지 패널에 위약금 · 원상복구비 칸 없음(원장의 청구 추가로)', !/위약금/.test(th2) && !/원상복구비/.test(th2)]); }
+/* 청구 추가 항목명 — 드롭다운(이 건물에서 많이 쓴 순서 · 같으면 엘리베이터 사용료 · 원상복구비 · 파손 수리비 · 위약금) + 직접 입력 · 발행 문서는 이름 따라 안 바뀜 */
+{ const NM = new Function(stub + bare + '; seedJuly(); return {fixOpen,fxSet,fxConfirm,fixHTML,issueAdhoc,onceNames,BILLS,get fz(){return fz;}};')();
+  const k = 'b1본관B201호'; NM.fixOpen(k, 'add'); const h0 = NM.fixHTML(), ord0 = NM.onceNames(k).join();
+  NM.fxSet('pick', '위약금'); const doc = NM.fz.doc, nm = NM.fz.name; NM.fxSet('pick', '직접 입력'); const h1 = NM.fixHTML();
+  NM.fxSet('name', '7월 전기요금 정정'); NM.fxSet('amt', '10000'); NM.fxSet('why', '검침 오기'); NM.fxConfirm(false);
+  NM.issueAdhoc(k, '원상복구비', 110000, '세금계산서', '시험', null, 100000, 10000); NM.issueAdhoc('b1본관801호', '원상복구비', 110000, '세금계산서', '시험', null, 100000, 10000);
+  const ord1 = NM.onceNames(k).join();
+  r6.push(['청구 추가 항목명 — 「항목을 고르세요」 · 엘리베이터 사용료 · 원상복구비 · 파손 수리비 · 위약금 · 직접 입력 · 위약금을 골라도 발행 문서는 세금계산서 그대로 · 직접 입력이면 이름 칸 · 원상복구비를 두 번 쓰면 맨 위로',
+    /항목을 고르세요/.test(h0) && ord0 === '엘리베이터 사용료,원상복구비,파손 수리비,위약금' && /<option >직접 입력<\/option>|<option>직접 입력<\/option>/.test(h0)
+    && nm === '위약금' && doc === '세금계산서' && /placeholder="예: 7월 전기요금 정정"/.test(h1) && NM.BILLS.some(i => i.adhoc && i.n === '7월 전기요금 정정')
+    && ord1 === '원상복구비,엘리베이터 사용료,파손 수리비,위약금']); }
 /* 유닛 등록 — 필수 빠지면 막힘 · 번호 중복 막힘 · 전용면적 > 임대면적 막힘 · 지하층 · 카드에 생김 */
 { const UN = new Function(stub + bare + '; return {unOpen,unSave,unMissing,unHTML,BUILDINGS,PRO3,get un(){return un;},set tab3(v){tab3=v;}};')();
   const b = UN.BUILDINGS[0], n0 = b.units.length;
