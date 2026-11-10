@@ -4378,7 +4378,7 @@ function payHTML(){
         <div class="fr"><span class="fk">상계 금액<i class="tip" data-tip="미납 합계와 보증금 잔액 중 작은 쪽이 미리 들어갑니다. 이 계약의 미납에만 씁니다">i</i></span>
           <input type="text" inputmode="numeric" value="${pm.amt.toLocaleString('ko-KR')}" oninput="kwLive(this)" onchange="setPm('amt',this.value)" style="text-align:right"><span class="kw">${korWon(pm.amt)}</span></div>
         <div class="fr"><span class="fk">상계 후 보증금</span><b>${over?'—':won(depBal-pm.amt)}</b></div>
-        <div class="fr"><span class="fk">상계 후 미납</span><span>${won(leftDue)}</span></div>
+        ${leftDue?`<div class="fr"><span class="fk">상계 후 미납</span><span>${won(leftDue)}</span></div>`:''}
         <div class="fr"><span class="fk">메모</span>
           <input type="text" value="${pm.memo}" oninput="pm.memo=this.value"></div>
       </div>
@@ -5761,8 +5761,8 @@ function ledgerOf(k){
   DEP_RET.filter(x=>x.k===k).forEach(x=>{const t='보증금 반환';
     rows.push({date:x.date,type:'보증금 반환',acc:'임대보증금',memo:t,item:t,why:x.why,acct:x.acct,g:'dr'+x.sq,dec:x.amt,sup:null,vat:null,ord:3,sq:x.sq});});
   /* 같은 날은 기록한 순서(sq)대로 — 수납 → 취소 → 다시 상계처럼 한 날 여러 번 해도 한 일 순서가 그대로 보인다.
-     sq가 없는 정기 청구 · 계약 보증금은 그날 맨 앞. 청구서 안의 항목은 기록 순서와 상관없이 배분 우선순위 순(화면은 최근이 위라 우선순위 1이 위 · 연체료가 맨 아래) */
-  rows.sort((a,b)=>dnum(a.date)-dnum(b.date)||(a.type==='청구'&&b.type==='청구'&&a.g===b.g&&!a.cxd&&!b.cxd?(b.pr||0)-(a.pr||0)||(a.inc||0)-(b.inc||0):0)||(a.sq||0)-(b.sq||0)||a.ord-b.ord
+     sq가 없는 정기 청구 · 계약 보증금은 그날 맨 앞. 청구서 안의 항목은 기록 순서와 상관없이 배분 우선순위 순. 입금 · 상계 한 건 안의 항목은 배분한 순서(오래된 달 → 우선순위)대로 위에서 아래로(화면은 최근이 위라 우선순위 1이 위 · 연체료가 맨 아래) */
+  rows.sort((a,b)=>dnum(a.date)-dnum(b.date)||(a.g===b.g&&!a.cxd&&!b.cxd?a.type==='청구'&&b.type==='청구'?(b.pr||0)-(a.pr||0)||(a.inc||0)-(b.inc||0):a.type==='수납'&&b.type==='수납'?(b.sq||0)-(a.sq||0):0:0)||(a.sq||0)-(b.sq||0)||a.ord-b.ord
     ||(a.type==='청구'&&b.type==='청구'?(b.pr||0)-(a.pr||0)||(a.inc||0)-(b.inc||0):(a.pr||0)-(b.pr||0)));
   const bal={매출채권:0,임대보증금:0};
   rows.forEach(r=>{bal[r.acc]+=(r.inc||0)-(r.dec||0);r.bal=bal[r.acc];

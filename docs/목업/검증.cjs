@@ -748,6 +748,14 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   r6.push(['해지 연체료 줄이기 — 8/17 계산값 대신 10,000원(「감면」 표시) · 정리일 08.17 · 계산값보다 많이 넣으면 계산값 · 발행 뒤 8/25 연체료 청구 5,000원 · 보증금 반환 「보낸 날」 7/31(마감한 달)은 막힘',
     full > 10000 && /에서 [0-9,]+원 감면/.test(h) && fN && fN.amt === 10000 && N.FEE_CUT[k] === '2026-08-17' && fB && fB.amt === full
     && fA && fA.amt === 5000 && /7월은 마감했습니다/.test(dh) && !D.DEP_RET.length]); }
+/* 원장 — 상계 수납 한 건 안의 항목은 배분 순서대로 위에서 아래(오래된 달 → 임대료 · 고정관리비 → … ) · 미납이 안 남으면 「상계 후 미납」 줄 없음 */
+{ const OS = new Function(stub + bare + '; seedJuly(); return {termOpen,termSet,termSave,issueAdhoc,openOffset,setPm,payHTML,payConfirm,ledgerOf,get pm(){return pm;},get tm(){return tm;}};')();
+  const k = 'b1별관301호'; OS.termOpen(k); OS.termSet('out', '2026-08-17'); OS.termSet('why', '퇴거'); OS.tm.est.elec = '100000'; OS.termSave(false);
+  OS.issueAdhoc(k, '원상복구비', 1100000, '세금계산서', '퇴거', null, 1000000, 100000); OS.openOffset(k); const full = OS.pm.amt; const h = OS.payHTML(); OS.payConfirm();
+  const P = OS.ledgerOf(k).rows.filter(r => r.type === '수납' && r.hand).reverse();   /* 화면 순서 */
+  const seq = P.map(r => r.item), iR = seq.findIndex(x => /08월분 임대료/.test(x)), iF = seq.findIndex(x => /08월분 고정관리비/.test(x)), iE = seq.findIndex(x => /08월분 전기요금/.test(x)), iO = seq.findIndex(x => x.endsWith('원상복구비'));
+  r6.push(['원장 상계 수납 순서 — 배분 순서대로 위에서 아래(이월 미납액 → 8월분 임대료 → 고정관리비 → 전기요금 퇴거 예상분 → 원상복구비) · 전액 상계면 「상계 후 미납」 줄 없음',
+    full > 0 && !/상계 후 미납/.test(h) && /상계 후 보증금/.test(h) && seq[0] === '이월 미납액' && iR > 0 && iR < iF && iF < iE && iE < iO]); }
 /* 연체료 일부 감면 — 청구서에 들어간 연체료 줄을 청구 감액으로 줄인다(일반내역서 · 부가세 없음) → 18-2 */
 { const CF = new Function(stub + bare + '; seedJuly(); return {fixOpen,fxSet,fxConfirm,fixHTML,ledgerOf,cutBills};')();
   const k = 'b1별관301호', can = CF.cutBills(k).some(i => i.reg && i.amt === 29911);
