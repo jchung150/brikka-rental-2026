@@ -3440,7 +3440,7 @@ function PAY1(){
     발행 문서가 <b>세금계산서</b>인 항목만 부가세가 붙는다.<br>
     금액 칸의 <b style="color:var(--warn)">미산출</b>은 이번 회차 대상인데 금액이 없다는 뜻이다.
     그대로 발행하면 그 항목이 빠진 청구서가 나간다.<br>
-    <b>연체료</b>는 발행일 전날까지 쌓인 금액이 청구서에 한 줄로 기본으로 들어간다(일반내역서 · 비과세. 연체이자는 공급가액에 넣지 않는다 · 부가가치세법 29조 5항 5호). 발행하면 발행일 전날이 연체료 정리일이 된다. 발행일부터 쌓이는 연체료는 다음 청구서에 들어가거나 수납 처리에서 받는다. 면제는 없다 → 18<br>
+    <b>연체료</b>는 발행일 전날까지 쌓인 금액이 청구서에 한 줄로 기본으로 들어간다(일반내역서 · 비과세. 연체이자는 공급가액에 넣지 않는다 · 부가가치세법 29조 5항 5호). 발행하면 발행일 전날이 연체료 정리일이 된다. 발행일부터 쌓이는 연체료는 다음 청구서에 들어가거나 보증금 상계에서 받는다. 면제는 없다 → 18<br>
     <b>항목 체크박스</b>로 이번 청구서에 넣을 항목을 계약마다 고른다. 기본은 모두 넣기. <b>약정</b>(임대료 · 고정관리비)은 잠겨 뺄 수 없다. 뺀 항목은 계산은 그대로 하고 청구하지 않는다. <b>임대인 부담(감면)</b>이며 다음 청구서로 넘어가지 않는다. 연체료도 같다. 이번 청구서에만 적용하고 다음 회차는 다시 모두 넣기로 시작한다. 연체료 일부 감면은 발행 뒤 계약 상세의 <b>청구 감액</b>으로 연체료 줄을 줄인다<br>
     발행하면 원장에 <b>청구</b> 거래로 기록된다. 발행 버튼을 누르면 메일을 보낼지 묻고, <b>메일 보내고 발행</b>을 고르면 임차인 담당자에게 이메일이 발송된다(받는 사람은 계약 상세 › 요약 › 담당자에서 「청구서 메일」을 체크한 사람이다. 아무도 없는 계약은 메일을 보내지 않는다). 계약 하나만 발행하려면 더보기의 <b>청구서 발행</b>을 누른다.<br>
     발행한 청구서는 고치지 않는다. 입금이 없고 마감 전이면 <b>취소</b>하고 다시 발행한다(원장에 청구 취소). 입금 뒤에는 계약 상세의 <b>청구 감액</b>·<b>청구 추가</b>로 바로잡는다.</div>`;
@@ -3633,7 +3633,7 @@ function addCut(id,amt,date,why,sup,vat){
    막는 경우: 그 기록의 달을 마감했다 · 비정기 청구에 입금이 배분됐다 · 감액으로 생긴 과납을 이미 환불했거나 썼다.
    그때는 이번 달의 청구 추가 · 청구 감액으로 바로잡는다 */
 const CANCELS=[];   /* {kind:'adh'|'cut', rec, date, why} */
-/* 수납 — 원장의 한 입금(dep)이 여러 청구에 나뉘어 있다. 수납 처리(현금 · 카드 · 계좌이체)과 보증금 상계만 여기서 취소한다 */
+/* 수납 — 원장의 한 입금(dep)이 여러 청구에 나뉘어 있다. 보증금 상계만 여기서 취소한다. 은행 입금은 입금 무효(PAY-9) */
 function payRec(dep){
   const ev=[];Object.entries(PAYEV).forEach(([id,L])=>L.forEach(e=>{if(e.dep===dep) ev.push({id,...e});}));
   if(!ev.length) return null;
@@ -3650,7 +3650,10 @@ function cancelWhyNot(kind,rec){
   if(kind==='adh'&&cutOf(rec.id)>0) return '감액한 청구는 취소할 수 없습니다. 먼저 감액을 취소합니다';
   if(kind==='cut'&&rec.ex&&overOf(rec.k)<rec.ex) return '이 감액으로 생긴 과납을 이미 환불했거나 다음 청구에 썼습니다';
   /* 함께 받은 연체료 뒤로 연체료를 다시 청구했으면(청구서 발행 · 다음 수납) 정리일을 되돌릴 수 없다 */
-  if(kind==='pay'&&(rec.fee||[]).some(b=>FEE_CUT[b.k]!==b.feeTo)) return '이 수납 뒤에 연체료를 다시 청구했습니다. 그 청구서나 수납을 먼저 취소합니다';
+  if(kind==='pay'&&(rec.fee||[]).some(b=>FEE_CUT[b.k]!==b.feeTo)) return '이 상계 뒤에 연체료를 다시 청구했습니다. 그 청구서나 다음 상계를 먼저 취소합니다';
+  /* 상계로 채운 청구를 나중에 감액하면 넘친 돈이 과납이 된다. 그 과납을 이미 환불했거나 다음 청구에 썼으면 취소할 수 없다 → 확인요청 답변 질문 7 */
+  if(kind==='pay'&&((mv=>mv>0&&overOf(rec.k)<mv)(MOVES.filter(m=>m.dep===rec.dep).reduce((a,m)=>a+m.amt,0))
+    ||REFUNDS.some(r=>r.k===rec.k&&r.sq>Math.max(...rec.ev.map(e=>e.sq))))) return '이 상계로 생긴 과납을 이미 환불했거나 다음 청구에 썼습니다. 그 환불 · 청구서를 먼저 취소합니다';
   /* 보증금 잔액은 0 아래로 내려가지 않는다 — 이미 상계 · 반환에 쓴 보증금이면 그 기록을 먼저 취소한다 */
   if(kind==='di'&&ledgerOf(rec.k).bal.임대보증금<rec.amt) return '보증금 잔액이 0 아래로 내려갑니다. 이 보증금을 쓴 보증금 상계 · 반환을 먼저 취소합니다';
   return '';
@@ -3689,9 +3692,12 @@ const addPay=(id,amt,date,src,dep)=>{PAID[id]=(PAID[id]||0)+amt;(PAYEV[id]=PAYEV
 const BANKS={'2026-06':parseBank(BANK_JUN,100),'2026-07':parseBank(BANK_RAW)};
 const NO_BANK={skip:0,head:[],map:{},rows:[],dep:[],wd:[]};
 const RC={b:'b1',dec:{},op:{},alias:{},pre:{},reg:{},cur:null,
-          f:{b:'b1',ym:'2026-07',st:''},   /* 필터 — 건물 · 청구년월 · 납부상태 */
+          f:{b:'b1',ym:'2026-07',st:'',ten:''},   /* 필터 — 건물 · 청구년월 · 납부상태 · 임차인(입금 매칭) */
           get P(){return BANKS[this.f.ym]||NO_BANK;}};
-const setRC=(k,v)=>{RC.f[k]=v;render();};
+const setRC=(k,v)=>{RC.f[k]=v;if(k==='b')RC.f.ten='';render();};
+/* 입금 확인 — 그 임차인의 입금만 거른 입금 매칭. 받을 돈은 모두 건물 계좌로 들어오므로 「냈다」는 확인은 여기서 한다 → 명세변경_261108 25 */
+function depCheck(k){const c=CTRS.find(x=>ckey(x)===k); if(!c) return;
+  RC.f.b=c.b; RC.f.ym=Object.keys(BANKS).sort().pop(); RC.f.ten=normName(c.ten); RC.cur=null; closeDrawer(); go('pay-13');}
 /* 계약 × 청구년월 수납 — 청구액·수납액·미납액·납부상태 → PAY-6 · 3.2 */
 /* 납부마감일 — 카리나빌딩은 매월 말일 → 3.5 */
 const dueDate=ym=>new Date(dueStr(ym)+'T00:00:00Z');
@@ -3724,7 +3730,7 @@ function ctrPay(k,ym){
    납부마감일 다음날부터 오늘까지를 수납이 들어올 때마다 끊고, 구간마다 그 동안의 미납액 × 연체이자율 × 일수 ÷ 365.
    구간마다 원 미만 절사 후 합한다. 내역서의 줄과 합계가 맞아야 하기 때문이다 */
 const rateOf=k=>{const c=CTRS.find(x=>ckey(x)===k);return (c&&c.rate)||8;};
-/* 연체료 정리일 — 연체료를 청구한 마지막 날(정기 청구서는 발행일 전날 · 수납 처리에서 받으면 받은 날). 그날까지는 다시 세지 않는다 → 18-2 · 18-3 */
+/* 연체료 정리일 — 연체료를 청구한 마지막 날(정기 청구서는 발행일 전날 · 보증금 상계에서 함께 받으면 상계일 · 해지 처리는 해지일). 그날까지는 다시 세지 않는다 → 18-2 · 18-3 */
 const FEE_CUT={};
 /* 해지 처리한 계약의 해지일 — 마지막 청구서에 해지일까지 넣었다. 그 뒤로 늦어진 날은 받지 않는다(감면) → 18-5 */
 const FEE_END={};
@@ -3982,9 +3988,11 @@ function bkHTML(){
 function PAY13(){
   const B=rcBiz(), bn=BUILDINGS.find(x=>x.id===RC.b);
   const has=RC.f.b===RC.b&&!!BANKS[RC.f.ym];
-  const Q=has?rcQueue():[];
+  /* 임차인 거르기 — 확정한 입금은 붙인 임차인, 처리 전은 매칭 추정 임차인으로 본다(미납 관리 · 수납 내역의 입금 확인) */
+  const tenOf=q=>{const x=RC.dec[q.no]||{};return x.done?x.done.biz:rcGuess(q,B).biz||'';};
+  const Q=has?rcQueue().filter(q=>!RC.f.ten||tenOf(q)===RC.f.ten):[];
   const done=Q.filter(d=>!rcIsOpen(d)).length;
-  if(has&&(RC.cur==null||!Q.some(d=>d.no===RC.cur))) RC.cur=rcNext()||(Q[0]||{}).no;
+  if(has&&(RC.cur==null||!Q.some(d=>d.no===RC.cur))) RC.cur=(Q.find(rcIsOpen)||Q[0]||{}).no;
   const d=Q.find(x=>x.no===RC.cur);
   const head=`
   <div class="ph"><h1>입금 매칭</h1><span class="sid">PAY-13</span>
@@ -4000,12 +4008,17 @@ function PAY13(){
       ${[['2026-08','2026년 8월'],['2026-07','2026년 7월'],['2026-06','2026년 6월']].map(([v,t])=>
         `<option value="${v}" ${RC.f.ym===v?'selected':''}>${t}</option>`).join('')}
     </select>
+    <select onchange="setRC('ten',this.value)">
+      <option value="">전체 임차인</option>
+      ${Object.values(B).sort((a,b)=>a.n<b.n?-1:1).map(t=>`<option value="${t.k}" ${RC.f.ten===t.k?'selected':''}>${t.n}</option>`).join('')}
+    </select>
     ${Q.length?`<span class="c2" style="margin-left:auto">처리 <b style="color:var(--ink)">${done}</b> / ${Q.length}건</span>`:''}
   </div>
   ${bkUps().length?`<div class="c2" style="margin:-4px 0 12px;white-space:normal">올린 거래내역 ${bkUps().map(u=>{const t=(bkAccts(bn).find(x=>x.a===u.a)||{}).t;
     return `<span style="margin-left:10px"><b style="color:var(--ink-2)">${t?t+' 계좌':''} ${u.a}</b> · ${u.file} · ${u.at.slice(5).replace('-','.')} ${u.by}</span>`;}).join('')}</div>`:''}`;
-  if(!Q.length) return head+`<div class="tbl"><div class="empty"><div class="t">은행 거래내역이 없습니다</div>
-    이 건물·월의 거래내역을 올리면 입금이 대기열에 들어옵니다.</div></div>`;
+  if(!Q.length) return head+(has&&RC.f.ten?`<div class="tbl"><div class="empty"><div class="t">이 임차인의 입금이 없습니다</div>
+    다른 달을 고르거나 전체 임차인으로 바꿔 보세요. 처음 보는 이름으로 낸 입금은 미매칭이라 전체 임차인에서 보입니다.</div></div>`:`<div class="tbl"><div class="empty"><div class="t">은행 거래내역이 없습니다</div>
+    이 건물·월의 거래내역을 올리면 입금이 대기열에 들어옵니다.</div></div>`);
 
   /* 대기열 */
   const queue=Q.map(q=>{
@@ -4203,9 +4216,9 @@ function PAY6(){
   /* 그룹 행 — 들어온 미납액도 함께 더한다 */
   const T=rows.reduce((a,x)=>{const g=rcvSum(x);return {bill:a.bill+g.bill,paid:a.paid+g.paid,due:a.due+g.due};},{bill:0,paid:0,due:0});
   const dash='<span style="color:var(--faint)">—</span>';
-  /* 더보기 — 수납 처리는 받을 돈(미납·연체료)이 있는 계약만. 청구서 보기는 그 달 발행한 청구서. 원장 보기는 계약 상세 원장 탭으로 */
-  const more=x=>{const owe=arrears(x.c).due+feeUntil(x.k,TODAY_S)>0;
-    return moreCell([{t:'수납 처리',go:`openPay('${x.k}')`,off:owe?'':'받을 돈이 없습니다'},
+  /* 더보기 — 입금 확인은 그 임차인의 입금만 거른 입금 매칭. 청구서 보기는 그 달 발행한 청구서. 원장 보기는 계약 상세 원장 탭으로 */
+  const more=x=>{
+    return moreCell([{t:'입금 확인',go:`depCheck('${x.k}')`},
       {t:'청구서 보기',go:`billView('${x.k}','${RC.f.ym}')`},
       {t:'원장 보기',go:`tab3c='원장';go('ctr-3/${x.k}')`}]);};
   const body=rows.map(x=>rcvRow(x,{cls:'ctr',op:g6Open(x.k),tog:`g6Tog('${x.k}')`,label:cnameHTML(bn.alias,x.c.no,x.c.ten),ym:RC.f.ym,more:more(x)})).join('');
@@ -4239,63 +4252,57 @@ function PAY6(){
   </div>`}
   <div class="hint">
     선택한 달의 청구를 계약별로 다 받았는지 봅니다. 금액은 부가세 포함입니다.<br>
-    밀린 달 전부의 미납과 미납 안내는 미납 관리에서, 입금 한 건 한 건은 입금 매칭에서 봅니다. 현금·카드로 받은 돈은 더보기의 <b>수납 처리</b>로 기록합니다.<br>
+    밀린 달 전부의 미납과 미납 안내는 미납 관리에서, 입금 한 건 한 건은 입금 매칭에서 봅니다. 받을 돈은 모두 건물 계좌로 받고 입금 매칭에서 기록합니다. 「냈다」는 임차인의 입금은 더보기의 <b>입금 확인</b>으로 찾습니다.<br>
     <b>이월 미납액</b>은 지난달 마감 때 다 받지 못해 넘어온 돈, <b>전월 과납액</b>은 더 받아 넘어온 돈입니다(이 달 청구에서 먼저 빠짐). 마감한 달은 그 뒤로 바뀌지 않고, 들어온 돈은 이월 미납액부터 줄입니다.<br>
     <b>과납액</b>은 그 달 청구를 다 받고 남은 돈입니다. 입금은 우선순위대로 배분되므로 어느 항목의 돈이라고 할 수 없어 따로 한 줄로 둡니다.
     다음 달로 넘어가 다음 청구서를 발행할 때 먼저 배분되어 낼 돈이 줍니다. 청구항목이 아닌 줄(이월 미납액 · 전월 과납액 · 과납액)은 연한 배경으로 구분합니다.</div>`;
 }
 
-/* ═══ 수납 처리 — 현금·카드로 받았거나 보증금에서 뺀 돈. 은행 입금은 입금 매칭(PAY-13)에서 → PAY-2 · CTR-3 ═══ */
+/* ═══ 보증금 상계 — 미납을 보증금에서 뺀다(슈퍼관리자). 받는 돈은 모두 건물 계좌로 들어와 입금 매칭(PAY-13)에서만 기록한다.
+   현금 · 카드 · 계좌이체를 담당자가 직접 기록하는 수납 처리는 없다 → 명세변경_261108 25 · CTR-3 ═══ */
 let pm=null, pmSeq=0;
 const MANUAL_DEP=[];   /* 보증금상계 — 원장의 임대보증금에서 뺀다 */
-/* 수납 처리는 실제로 들어온 돈만. 보증금상계는 원장 탭 보증금 ▾ 메뉴의 보증금 상계 패널에서(슈퍼관리자 · 퇴거할 때) */
-const PAY_HOW=['현금','카드','계좌이체'];
 /* 퇴거하는 계약 — 해지 처리를 했거나 종료됨 · 파기됨. 보증금 반환 패널이 남은 잔액 전부를 미리 넣는 기준이다.
    보증금 상계는 이와 상관없이 계약 중 언제든 할 수 있다(슈퍼관리자) */
 const isLeaving=k=>{const c=CTRS.find(x=>ckey(x)===k);return !!TERMS[k]||!!c&&(c.st==='종료됨'||c.st==='파기됨');};
 /* 이 계약의 연체료 — 받은 날까지. 이미 청구한 연체료는 빼고 센다 */
 const feeUntil=(k,d)=>[...new Set(BILLS.filter(i=>i.k===k).map(i=>i.ym))].reduce((a,ym)=>a+lateCalc(k,ym,d).fee,0);
-function openPay(k){
+/* 청구서에 들어간 연체료는 미납의 한 줄로 채워진다. 아직 청구 안 된 연체료는 「연체료 포함」을 고르면 상계일까지를
+   연체료 청구 한 건으로 올리고 함께 상계한다. 고르지 않으면 다음 청구서에 들어간다 → 18-3 · 은행 입금은 청구된 금액만(18-4) */
+function openOffset(k){
   const c=CTRS.find(c=>ckey(c)===k), a=arrears(c);
-  /* 청구서에 들어간 연체료는 미납의 한 줄로 채워진다. 아직 청구 안 된 연체료는 「연체료 포함」을 고르면 받은 날까지를
-     연체료 청구 한 건으로 올리고 함께 받는다. 고르지 않으면 다음 청구서에 들어간다 → 18-3 · 은행 입금은 청구된 금액만(18-4) */
-  pm={k,date:TODAY_S,amt:a.due,how:'현금',memo:'',fee:false};
+  pm={k,date:TODAY_S,amt:Math.min(a.due,ledgerOf(k).bal.임대보증금),how:'보증금상계',memo:'',fee:false};
   DRAWER='pay';render(true);
 }
 const numOf=v=>Math.max(0,parseInt(String(v).replace(/[^0-9]/g,''))||0);
 function setPm(f,v){
   if(f==='amt') pm.amt=numOf(v); else pm[f]=v;
   /* 연체료 포함을 바꾸면 받을 금액을 정리할 돈에 다시 맞춘다 */
-  if(f==='fee'){const n=payNeed()+(pm.fee?payFee():0); pm.amt=pm.how==='보증금상계'?Math.min(n,ledgerOf(pm.k).bal.임대보증금):n;}
+  if(f==='fee'){const n=payNeed()+(pm.fee?payFee():0); pm.amt=Math.min(n,ledgerOf(pm.k).bal.임대보증금);}
   render(true);
 }
-/* 배분 — 입금 매칭과 같은 규칙. 현금·카드는 같은 임차인의 이 건물 계약 전체에,
-   보증금상계는 그 보증금이 걸린 이 계약에만 → 4.3.1 */
-function payKeys(){
-  const c=CTRS.find(x=>ckey(x)===pm.k);
-  return pm.how==='보증금상계'?[pm.k]
-    :CTRS.filter(x=>x.b===c.b&&(x.st==='진행중'||ckey(x)===pm.k)&&normName(x.ten)===normName(c.ten)).map(x=>ckey(x));
-}
-/* 함께 받는 연체료 — 계약마다 받은 날까지 쌓인 금액. 확정하면 연체료 청구 한 건(비과세)이 되고 받은 날이 정리일이다 → 18-3 */
+/* 배분 — 입금 매칭과 같은 규칙(4.3.1). 상계는 그 보증금이 걸린 이 계약에만 쓴다 */
+const payKeys=()=>[pm.k];
+/* 함께 상계하는 연체료 — 상계일까지 쌓인 금액. 확정하면 연체료 청구 한 건(비과세)이 되고 상계일이 정리일이다 → 18-3 */
 const feeBills=(dep,real)=>!pm.fee?[]:payKeys().map(k=>({k,amt:feeUntil(k,pm.date)})).filter(x=>x.amt>0).map(x=>{const c=CTRS.find(y=>ckey(y)===x.k);
   return {id:`fee|${x.k}|${dep||'new'}`,ym:adYm(),k:x.k,no:c.no,n:'연체료',amt:x.amt,fee:true,feeTo:pm.date,date:pm.date,dep,
-    memo:`연체료 (${pm.date.slice(5).replace('-','.')}까지) · 수납 처리`,cut0:FEE_CUT[x.k]||null,...(real?{sq:++paySeq}:{})};});
+    memo:`연체료 (${pm.date.slice(5).replace('-','.')}까지) · 보증금 상계`,cut0:FEE_CUT[x.k]||null,...(real?{sq:++paySeq}:{})};});
 const payFee=()=>payKeys().reduce((a,k)=>a+feeUntil(k,pm.date),0);
 function payPlan(){return rcPlan(pm.amt,payKeys(),PAID,feeBills(),pm.date);}
 const payNeed=()=>rcPlan(0,payKeys(),PAID,[],pm.date).all.reduce((s,l)=>s+l.due,0);
-/* 마감한 달 날짜로는 수납을 등록하지 않는다 — 마감을 취소한 뒤 등록한다 → 12-3 */
+/* 마감한 달 날짜로는 상계를 기록하지 않는다 — 마감을 취소한 뒤 기록한다 → 12-3 */
 const pmClosed=()=>closedBy(bOfK(pm.k),pm.date.slice(0,7),TODAY_S);
 function payConfirm(){
   const pl=payPlan(); if(pl.rest>0||!pl.lines.length||pmClosed()) return;
-  if(pm.how==='보증금상계'&&pm.amt>ledgerOf(pm.k).bal.임대보증금) return;
+  if(pm.amt>ledgerOf(pm.k).bal.임대보증금) return;
   const dep='m'+(++pmSeq), src=pm.how;   /* 날짜는 원장 날짜 칸에 있으니 이름에 붙이지 않는다 */
-  /* 연체료를 함께 받으면 먼저 청구로 올리고(받은 날이 정리일) 같은 배분으로 채운다 */
+  /* 연체료를 함께 상계하면 먼저 청구로 올리고(상계일이 정리일) 같은 배분으로 채운다 */
   feeBills(dep,true).forEach(b=>{BILLS.push(b); FEE_CUT[b.k]=pm.date;});
   rcPlan(pm.amt,payKeys(),PAID,[],pm.date).lines.forEach(l=>addPay(l.id,l.pay,pm.date,src,dep));
-  if(pm.how==='보증금상계') MANUAL_DEP.push({k:pm.k,date:pm.date,amt:pm.amt-pl.rest,dep,sq:++paySeq});
+  MANUAL_DEP.push({k:pm.k,date:pm.date,amt:pm.amt-pl.rest,dep,sq:++paySeq});
   DRAWER=null;pm=null;render(true);
 }
-/* 아직 청구 안 된 연체료 — 받은 날까지. 함께 받거나 다음 청구서로 넘긴다 */
+/* 아직 청구 안 된 연체료 — 상계일까지. 함께 상계하거나 다음 청구서로 넘긴다 */
 function feeNote(keys,d){
   const amt=keys.reduce((a,k)=>a+feeUntil(k,d),0);
   return amt?{amt}:null;
@@ -4304,18 +4311,18 @@ function payHTML(){
   if(DRAWER!=='pay'||!pm) return '';
   const c=CTRS.find(x=>ckey(x)===pm.k), bn=BUILDINGS.find(x=>x.id===c.b)||BUILDINGS[0];
   const a=arrears(c), pl=payPlan(), depBal=ledgerOf(pm.k).bal.임대보증금;
-  const over=pm.how==='보증금상계'&&pm.amt>depBal;
+  const over=pm.amt>depBal;
   const many=new Set(pl.all.map(l=>l.k)).size>1;
   /* 정리할 돈 — 원장에 올라온 미납(청구서에 들어간 연체료 포함) + 함께 받는 연체료. 받으면 남는 돈 */
   const fn=feeNote(payKeys(),pm.date), withFee=pm.fee&&fn?fn.amt:0;
   const need=pl.all.reduce((s,l)=>s+l.due,0), leftDue=need-pl.lines.reduce((s,l)=>s+l.pay,0);
   const ok=pm.amt>0&&pl.lines.length&&!over;
-  const isOff=pm.how==='보증금상계', tgt=isOff?Math.min(need,depBal):need;
-  /* 미납 내역 — 수납 처리 · 보증금 상계 같은 표. 수납 처리는 같은 임차인의 이 건물 계약 전체가 오른다 */
+  const tgt=Math.min(need,depBal);
+  /* 미납 내역 — 청구년월마다 미납액 · 연체일수 · 연체료 */
   const ARs=payKeys().map(k=>arrears(CTRS.find(x=>ckey(x)===k))).filter(x=>x.months.length);
   const arDue=ARs.reduce((t,x)=>t+x.due,0), arFee=ARs.reduce((t,x)=>t+x.fee,0);
   return `<div class="dro"><div class="ov" onclick="closeDrawer()"></div><div class="pn">
-    <div class="dh"><div><div class="t">${isOff?'보증금 상계':'수납 처리'}</div>
+    <div class="dh"><div><div class="t">보증금 상계</div>
       <div class="s">${cname(bn.alias,c.no,c.ten)}</div></div>
       <button class="x" onclick="closeDrawer()">✕</button></div>
     <div class="db">
@@ -4323,33 +4330,23 @@ function payHTML(){
         <div class="fr"><span class="fk"><b>미납액 합계</b></span>
           <b style="font-size:15px">${won(need-withFee)}</b>${many?'<span class="c2">이 임차인의 이 건물 계약 전체</span>':''}
           ${pm.amt!==tgt?`<button class="btn sm" style="margin-left:auto" onclick="setPm('amt','${tgt}')">이 금액으로</button>`:''}</div>
-        ${fn?`<div class="fr"><span class="fk">연체료<i class="tip" data-tip="아직 청구서에 들어가지 않은 연체료입니다. 연체료 포함을 고르면 받은 날까지의 연체료가 청구로 올라가고 이번에 함께 받습니다. 고르지 않으면 다음 청구서에 들어갑니다">i</i></span>
+        ${fn?`<div class="fr"><span class="fk">연체료<i class="tip" data-tip="아직 청구서에 들어가지 않은 연체료입니다. 연체료 포함을 고르면 상계일까지의 연체료가 청구로 올라가고 이번에 함께 상계합니다. 고르지 않으면 다음 청구서에 들어갑니다">i</i></span>
           <span>${won(fn.amt)}</span><span class="c2">${pm.date===TODAY_S?'오늘':pm.date.slice(5).replace('-','.')} 기준${feeStop(pm.k)?` · 연체료 중지 중(${feeStop(pm.k).slice(5).replace('-','.')}부터)`:''}</span></div>
-        <div class="fr"><span class="fk">연체료 포함<i class="tip" data-tip="켜면 받은 날까지의 연체료가 원장에 연체료 청구 한 줄(일반내역서 · 비과세)로 추가되고, 이번에 함께 받습니다. 수납을 취소하면 그 청구도 함께 취소됩니다">i</i></span>
+        <div class="fr"><span class="fk">연체료 포함<i class="tip" data-tip="켜면 상계일까지의 연체료가 원장에 연체료 청구 한 줄(일반내역서 · 비과세)로 추가되고, 이번에 함께 상계합니다. 상계를 취소하면 그 청구도 함께 취소됩니다">i</i></span>
           <span style="cursor:pointer" onclick="setPm('fee',${!pm.fee})"><span class="cb ${pm.fee?'on':''}"></span></span>
           <span class="c2">${pm.fee?`확정하면 연체료 청구 ${won(fn.amt)}이 원장에 추가됩니다`:'켜면 연체료 청구가 추가됩니다'}</span></div>`:''}
       </div>
-      ${isOff?`<div class="fg"><div class="fl">보증금에서 뺄 돈</div>
+      <div class="fg"><div class="fl">보증금에서 뺄 돈</div>
         <div class="fr"><span class="fk">보증금 잔액</span><b style="color:var(--pri)">${won(depBal)}</b></div>
         <div class="fr"><span class="fk">상계일</span>
           <input type="date" value="${pm.date}" max="${TODAY_S}" onchange="setPm('date',this.value)"></div>
+        ${pmClosed()?`<div class="hint" style="margin:-3px 0 9px 114px;color:var(--danger)">${+pm.date.slice(5,7)}월은 마감했습니다. 그 달 날짜의 상계는 월 마감을 취소한 뒤 기록합니다.</div>`:''}
         <div class="fr"><span class="fk">상계 금액<i class="tip" data-tip="미납 합계와 보증금 잔액 중 작은 쪽이 미리 들어갑니다. 이 계약의 미납에만 씁니다">i</i></span>
           <input type="text" inputmode="numeric" value="${pm.amt.toLocaleString('ko-KR')}" oninput="kwLive(this)" onchange="setPm('amt',this.value)" style="text-align:right"><span class="kw">${korWon(pm.amt)}</span></div>
         <div class="fr"><span class="fk">메모</span>
           <input type="text" value="${pm.memo}" oninput="pm.memo=this.value"></div>
-      </div>`
-      :`<div class="fg"><div class="fl">받은 돈</div>
-        <div class="fr"><span class="fk">받은 날</span>
-          <input type="date" value="${pm.date}" max="${TODAY_S}" onchange="setPm('date',this.value)"></div>
-        ${pmClosed()?`<div class="hint" style="margin:-3px 0 9px 114px;color:var(--danger)">${+pm.date.slice(5,7)}월은 마감했습니다. 그 달 날짜의 입금은 월 마감을 취소한 뒤 등록합니다.</div>`:''}
-        <div class="fr"><span class="fk">결제수단</span>
-          <select onchange="setPm('how',this.value)">${PAY_HOW.map(h=>`<option ${h===pm.how?'selected':''}>${h}</option>`).join('')}</select></div>
-        <div class="fr"><span class="fk">받은 금액</span>
-          <input type="text" inputmode="numeric" value="${pm.amt.toLocaleString('ko-KR')}" oninput="kwLive(this)" onchange="setPm('amt',this.value)" style="text-align:right"><span class="kw">${korWon(pm.amt)}</span></div>
-        <div class="fr"><span class="fk">메모</span>
-          <input type="text" value="${pm.memo}" placeholder="예: 카드 승인번호, 영수증 번호" oninput="pm.memo=this.value"></div>
-      </div>`}
-      ${leftDue&&pm.amt?`<div class="prev warn2" style="margin:-4px 0 18px"><div class="pt">${won(pm.amt)}을 ${isOff?'상계하면':'받으면'}</div>
+      </div>
+      ${leftDue&&pm.amt?`<div class="prev warn2" style="margin:-4px 0 18px"><div class="pt">${won(pm.amt)}을 상계하면</div>
         남는 미납 <b>${won(leftDue)}</b></div>`:''}
       <div class="fg"><div class="fl">미납 내역</div>
         <div class="tbl" style="margin:0"><div class="schr unh hd"><div>청구년월</div><div class="n">미납액</div><div class="n">연체일수</div><div class="n">연체료</div></div>
@@ -4361,11 +4358,10 @@ function payHTML(){
         ${pl.rest>0?`<div class="prev warn2" style="margin-top:10px"><div class="pt">남는 금액 ${won(pl.rest)}</div>미납액 합계보다 많습니다. 금액을 미납액 합계에 맞추세요.</div>`:''}
         ${over?`<div class="prev warn2" style="margin-top:10px"><div class="pt">보증금보다 많습니다</div>보증금 잔액 ${won(depBal)}까지만 뺄 수 있습니다.</div>`:''}
       </div>
-      ${isOff?'':`<div class="c2" style="margin:0;white-space:normal">이월 미납액부터, 같은 달 안에서는 배분 우선순위대로 채웁니다. 연체료는 맨 나중입니다. 확정하면 원장에 수납으로 기록됩니다.${pm.fee&&fn?' 함께 받는 연체료는 그보다 먼저 연체료 청구로 올라갑니다.':''}</div>`}
     </div>
     <div class="df">
       <button class="btn" onclick="closeDrawer()">취소</button>
-      <button class="btn pri" ${ok&&!pl.rest&&!pmClosed()?'':'disabled'} onclick="payConfirm()">${isOff?'상계 확정':'수납 처리'}</button></div>
+      <button class="btn pri" ${ok&&!pl.rest&&!pmClosed()?'':'disabled'} onclick="payConfirm()">상계 확정</button></div>
   </div></div>`;
 }
 
@@ -4448,7 +4444,7 @@ function fixHTML(){
 const extraOpen=k=>fixOpen(k,'add');
 const cutSet=fxSet, cutConfirm=fxConfirm, extraSave=fxConfirm;
 const extraSet=(f,v)=>fxSet(f==='n'?'name':f==='memo'?'why':f,v);
-/* ═══ 원장 탭 버튼 — 청구 ▾(청구 추가 · 청구 감액) · 수납 ▾(수납 처리 · 과납 환불) · 보증금 ▾(슈퍼관리자만 → 3.7). 할 수 없는 일은 흐리게, 이유는 마우스를 올리면 → 3.8 ═══ */
+/* ═══ 원장 탭 버튼 — 청구 ▾(청구 추가 · 청구 감액) · 수납 ▾(과납 환불. 받는 돈은 모두 입금 매칭에서) · 보증금 ▾(슈퍼관리자만 → 3.7). 할 수 없는 일은 흐리게, 이유는 마우스를 올리면 → 3.8 ═══ */
 function menuBtn(t,items,title){const id=MORE.push(items)-1;
   return `<button class="btn" ${title?`title="${title}"`:''} onclick="event.stopPropagation();moreOpen(${id},this)">${t} ▾</button>`;}
 function ledBtns(k,L){
@@ -4456,7 +4452,6 @@ function ledBtns(k,L){
       {t:'청구 추가',go:`fixOpen('${k}','add')`},
       {t:'청구 감액',go:`fixOpen('${k}','cut')`,off:cutBills(k).length?'':'줄일 청구가 없습니다'}])
     +menuBtn('수납',[
-      {t:'수납 처리',go:`openPay('${k}')`},
       {t:'과납 환불',go:`openRefund('${k}')`,off:overOf(k)?'':'돌려줄 과납이 없습니다'}])
     +menuBtn('보증금',[
       {t:'보증금 예치',go:`openDepIn('${k}')`},
@@ -4464,8 +4459,7 @@ function ledBtns(k,L){
       {t:'보증금 반환',go:`openDepRet('${k}')`,off:L.bal.임대보증금>0?'':'돌려줄 보증금이 없습니다'}],
       '슈퍼관리자만 — 관리자는 매달 도는 청구 · 수납만 다룬다');
 }
-/* 보증금 상계 — 자기 패널(제목 · 칸이 다르다). 배분 계산은 수납 처리와 같다. 원장에는 보증금 상계 + 결제수단 보증금상계인 수납 */
-function openOffset(k){openPay(k); pm.how='보증금상계'; pm.amt=Math.min(pm.amt,ledgerOf(k).bal.임대보증금); render(true);}
+/* 보증금 상계 — 배분 계산은 입금 매칭과 같다. 원장에는 보증금 상계 + 결제수단 보증금상계인 수납 */
 /* ═══ 보증금 예치 — 받은 보증금. 덜 들어와 더 받을 때도 쓴다. 반환 패널과 같은 모양 ═══ */
 const DEP_IN=[];
 let di=null;
@@ -4605,7 +4599,7 @@ function dueHTML(){
       </div>`;}).join('')}
     </div>
     <div class="df"><button class="btn" onclick="closeDrawer()">닫기</button>
-      <button class="btn pri" onclick="openPay('${dk}')">수납 처리</button></div>
+      <button class="btn pri" onclick="depCheck('${dk}')">입금 확인</button></div>
   </div></div>`;
 }
 /* ═══ PAY-2 미납 관리 — 미납이 있는 계약을 따로 관리한다. 계약별로 지금까지 쌓인 미납액 전부. 청구년월로 자르지 않는다 ═══ */
@@ -4661,7 +4655,7 @@ function PAY2(){
       <div class="n">${a.days?`${a.days}일`:dash}</div>
       <div class="n">연 ${a.rate}%</div>
       <div class="n">${a.fee?won(a.fee):dash}</div>
-      <div class="c">${moreCell([{t:'수납 처리',go:`openPay('${a.k}')`,off:a.due||a.fee?'':'받을 돈이 없습니다'}])}</div>
+      <div class="c">${moreCell([{t:'입금 확인',go:`depCheck('${a.k}')`}])}</div>
     </div>`+(!op?'':a.months.map(m=>`
     <div class="schr arr sub mo" style="cursor:default">
       <div class="nm">${m.ym.replace('-','년 ')}월분</div>
@@ -4703,8 +4697,8 @@ function PAY2(){
   </div>`}
   <div class="hint">
     미납이 있는 계약을 모았습니다. 청구서에 들어간 연체료도 미납입니다. 아직 청구 전인 연체료는 연체료 칸에 따로 보입니다. 계약 줄을 누르면 달별 미납이 펼쳐지고, 달별 줄의 <b>상세</b>를 누르면 그 달의 미납 내역이 오른쪽에 열립니다.<br>
-    현금·카드로 받았으면 계약 줄 더보기의 <b>수납 처리</b>를 누르세요. 은행 입금은 입금 매칭에서 처리합니다. 보증금 상계는 계약 상세 원장 탭의 <b>보증금</b> 메뉴에서 합니다(슈퍼관리자 · 퇴거할 때).<br>
-    연체료는 다 낼 때까지 매일 쌓입니다. 다음 정기 청구서(발행일 전날까지 · 퇴거 때는 해지 처리의 마지막 청구서)에 한 줄로 들어가고, 수납 처리 · 보증금 상계에서 「연체료 포함」을 고르면 받은 날까지를 그 자리에서 받습니다. 은행 입금은 청구된 금액만 채웁니다. 감면은 청구서 발행에서 체크를 풀거나(전액) 발행 뒤 청구 감액(일부)으로 합니다.</div>`;
+    받을 돈은 모두 건물 계좌로 받고 입금 매칭에서 기록합니다. 거래내역은 1시간마다 자동으로 가져오고, 등록된 입금자명이면 자동으로 확정됩니다. 「냈다」는 임차인은 계약 줄 더보기의 <b>입금 확인</b>으로 그 임차인의 입금을 찾습니다. 보증금 상계는 계약 상세 원장 탭의 <b>보증금</b> 메뉴에서 합니다(슈퍼관리자 · 퇴거할 때).<br>
+    연체료는 다 낼 때까지 매일 쌓입니다. 다음 정기 청구서(발행일 전날까지 · 퇴거 때는 해지 처리의 마지막 청구서)에 한 줄로 들어가고, 보증금 상계에서 「연체료 포함」을 고르면 상계일까지를 그 자리에서 받습니다. 은행 입금은 청구된 금액만 채웁니다. 감면은 청구서 발행에서 체크를 풀거나(전액) 발행 뒤 청구 감액(일부)으로 합니다.</div>`;
 }
 
 /* 계약 조건 — 종료일은 기본값(시작일로부터 2년 후 전날), 보증금은 예시값(월 임대료 × 10) → 3.5 */
@@ -5610,7 +5604,7 @@ function ledgerOf(k){
       rows.push({date:r.date,type:'보증금 반환',acc:'임대보증금',memo:'보증금 반환',item:'보증금 반환',why:r.why,acct:r.acct,g:'dr'+r.sq,dec:r.amt,sup:null,vat:null,ord:3,sq:r.sq,cxd:x});
       rows.push({date:x.date,type:'보증금 반환 취소',acc:'임대보증금',memo:'보증금 반환 취소',item:'보증금 반환 취소',why:x.why,g:'cx'+x.sq,inc:r.amt,sup:null,vat:null,ord:2.3,sq:x.sq});}
     else if(x.kind==='adh'){
-      /* 수납 처리에서 함께 받은 연체료 청구는 그 수납 취소와 함께 취소된다 */
+      /* 보증금 상계에서 함께 받은 연체료 청구는 그 상계 취소와 함께 취소된다 */
       if(r.fee) rows.push({date:r.date,type:'청구',acc:'매출채권',memo:r.memo,item:r.memo,ttl:r.memo,g:'fee'+r.id,ym:r.ym,inc:r.amt,sup:null,vat:null,ord:1,pr:99,sq:r.sq,cxd:x});
       else rows.push({date:r.date,type:'청구',acc:'매출채권',memo:r.n,item:r.n,ttl:r.n,why:r.memo,g:'adh'+r.id,ym:r.ym,inc:r.amt,sup:r.sup,vat:r.vat,ord:1,pr:98,sq:r.sq,cxd:x});
       rows.push({date:x.date,type:'청구 취소',acc:'매출채권',memo:`${r.fee?r.memo:r.n} 취소`,item:`${r.fee?r.memo:r.n} 취소`,why:x.why,g:'cx'+x.sq,dec:r.amt,sup:r.sup,vat:r.vat,ord:2.3,sq:x.sq});}
@@ -5799,15 +5793,15 @@ function CTR3(k){
   <div class="hint">
     이 계약의 모든 돈 거래를 <b>받을 돈</b>(매출채권)과 <b>보증금</b>(임대보증금) 나눠, 위에 받을 돈 · 빈 줄 아래에 보증금을 둡니다. 잔액은 따로 셉니다. 보증금 상계는 양쪽에 함께 보입니다(받을 돈의 수납 · 보증금의 상계). 청구서 한 장, 입금 한 건을 한 줄로 묶었습니다. 펼치면 항목별로 보입니다. 거래유형 필터는 고른 유형과 그 취소 줄을 함께 보입니다. 잔액 칸은 거르기 전 원장의 잔액 그대로입니다. 사유 · 공급가액 · 부가세는 더보기의 <b>상세</b>에서 봅니다.<br>
     최근 거래가 위에 있고, 잔액은 그 거래 직후의 금액입니다. 받을 돈은 10줄씩 나눠 보입니다.<br>
-    원장은 고치지 않습니다. 잘못 넣은 청구 추가 · 청구 감액 · 수납 처리 · 보증금 예치 · 상계 · 반환은 더보기의 <b>취소</b>로 취소 줄을 더합니다(마감 전). 은행 입금은 입금 매칭에서 무효 처리합니다. 연체료는 정기 청구서 · 마지막 청구서(해지 처리)의 한 줄, 또는 수납 처리 · 보증금 상계에서 함께 받을 때 연체료 청구 한 줄로 올라옵니다. 함께 받은 연체료 청구는 그 수납을 취소하면 같이 취소됩니다.<br>
+    원장은 고치지 않습니다. 잘못 넣은 청구 추가 · 청구 감액 · 보증금 예치 · 상계 · 반환은 더보기의 <b>취소</b>로 취소 줄을 더합니다(마감 전). 은행 입금은 입금 매칭에서 무효 처리합니다. 연체료는 정기 청구서 · 마지막 청구서(해지 처리)의 한 줄, 또는 보증금 상계에서 함께 받을 때 연체료 청구 한 줄로 올라옵니다. 함께 받은 연체료 청구는 그 상계를 취소하면 같이 취소됩니다.<br>
     잔액을 바꾸지 않는 안쪽 옮김(미납 이월 · 전월 과납액 배분 · 감액으로 넘친 수납)은 적지 않습니다. 잔액이 0보다 작으면 <b>과납</b>이며, 돌려줄 때는 위의 <b>수납 › 과납 환불</b>을 씁니다.<br>
-    받을 돈을 바꾸는 일(청구 추가 · 청구 감액)은 <b>청구</b>, 받은 돈 · 돌려준 돈은 <b>수납</b> 메뉴에서 기록합니다.</div>`;
+    받을 돈을 바꾸는 일(청구 추가 · 청구 감액)은 <b>청구</b>, 돌려준 과납은 <b>수납</b> 메뉴에서 기록합니다. 받은 돈은 입금 매칭에서만 기록합니다.</div>`;
 }
 
 /* 원장 거래 상세 — 더보기 › 상세. 목록에는 사유를 적지 않고 여기서 본다 → CTR-3 */
 const LEDG={};
 let ldk=null, lcx=null;
-/* 원장 줄의 기록 — 비정기 청구 · 감액 · 수납(수납 처리 · 보증금 상계)을 여기서 취소한다.
+/* 원장 줄의 기록 — 비정기 청구 · 감액 · 수납(보증금 상계)을 여기서 취소한다.
    보증금 상계는 「보증금 상계」 줄과 「수납」 줄 두 곳에 보이며, 어느 줄에서 취소해도 같은 수납 취소다. 은행 입금은 입금 매칭에서 하므로 취소 메뉴 자체가 없다 */
 function ledRec(x){
   if(x.items[0].cxd) return null;
