@@ -793,6 +793,20 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   NV.loc.hash = '#/pay-12'; NV.OPEN['청구'] = true; NV.toggleG('청구'); const c = NV.loc.hash, folded = !NV.OPEN['청구'];
   r6.push(['메뉴 그룹 이름 — 청구서 발행에서 「청구 관리」 → 청구 현황 · 입금 매칭에서 「수납 관리」 → 수납 현황 · 청구 현황에서 「청구 관리」 → 그대로 두고 접힘',
     a === '#/pay-12' && b === '#/pay-14' && c === '#/pay-12' && folded]); }
+/* 은행 자동 수집 — 7월 입금 중 등록된 입금자명은 시스템이 자동 확정 · 8월 미매칭 입금 1건은 청구서 발행 · 수납 현황에 보임 · 직접 입력은 매칭을 거쳐 자동 확정 · 마감한 달은 못 넣음 → 24 */
+{ const AU = new Function(stub + bare + '; seedJuly(); return {RC,BANKS,PAY1,PAY13,PAY14,suOf,rcOpenB,bdOpen,bdSet,bdSave,bdMissing,bdHTML,ledgerOf,setRC,get bd(){return bd;},set f1b(v){f1.b=v;}};')();
+  const D7 = AU.BANKS['2026-07'].dep.map(d => AU.RC.dec[d.no]).filter(x => x && x.done), nAuto = D7.filter(x => x.done.auto && x.done.by === '시스템').length, nHand = D7.filter(x => !x.done.auto).length;
+  const autoNo = AU.BANKS['2026-07'].dep.find(d => (AU.RC.dec[d.no] || {}).done && AU.RC.dec[d.no].done.auto).no;
+  AU.setRC('ym', '2026-07'); AU.RC.cur = autoNo; const h7 = AU.PAY13();
+  AU.f1b = 'b1'; const h1 = AU.PAY1(), w = AU.suOf('b1').wait;
+  AU.setRC('ym', '2026-08'); const h8 = AU.PAY13();
+  AU.bdOpen(); AU.bdSet('dt', '2026-07-20T10:00'); AU.bdSet('name', '(주)비씨에이전시'); AU.bdSet('amt', '100000'); const closed = AU.bdMissing().some(m => /7월은 마감했습니다/.test(m));
+  const bal0 = AU.ledgerOf('b1별관301호').bal.매출채권; AU.bdSet('dt', '2026-08-09T10:00'); AU.bdSave();
+  const nd = AU.BANKS['2026-08'].dep.find(d => d.src === '직접 입력'), x = AU.RC.dec[nd.no] || {}, h9 = AU.PAY13();
+  r6.push(['은행 자동 수집 — 7월 입금 ' + nAuto + '건 자동 확정(시스템) · 나머지 ' + nHand + '건 담당자 · 확정 패널 「자동 수집 · 자동 확정 · 시스템」 · 마지막 수집 시각 · 8월 미래상사 미매칭 1건 → 청구서 발행 안내 · 수납 현황 1건 · 직접 입력: 7월(마감) 막힘 · 8/9 비씨에이전시 100,000 → 자동 확정 · 원장 −100,000 · 「직접 입력 · 은행 확인 전」',
+    nAuto > 0 && nHand > 0 && /자동 수집 · 자동 확정 · 시스템/.test(h7) && /거래내역 <b[^>]*>08\.10 09:00<\/b>까지/.test(h7)
+    && /미매칭 입금 1건이 있습니다/.test(h1) && /발행은 막지 않습니다/.test(h1) && w === 1 && /미래상사/.test(h8)
+    && closed && nd && nd.by === '슈퍼관리자' && x.done && x.done.auto && AU.ledgerOf('b1별관301호').bal.매출채권 === bal0 - 100000 && /직접 입력 · 은행 확인 전/.test(h9)]); }
 /* 연체료 일부 감면 — 청구서에 들어간 연체료 줄을 청구 감액으로 줄인다(일반내역서 · 부가세 없음) → 18-2 */
 { const CF = new Function(stub + bare + '; seedJuly(); return {fixOpen,fxSet,fxConfirm,fixHTML,ledgerOf,cutBills};')();
   const k = 'b1별관301호', can = CF.cutBills(k).some(i => i.reg && i.amt === 29911);
@@ -1205,7 +1219,7 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
     calc && opened && made && links && undone && rf2 && late3 && !/계약유형/.test(l0) && />더보기</.test(l0) && /⋮/.test(h0)]); }
 /* 은행 거래내역 업로드 — 계좌 선택 · 계좌가 하나면 잠김 · 같은 계좌 같은 파일은 막고, 다른 계좌면 올라간다 → PAY-13 */
 { const BK = new Function(stub + bare + '; seedJuly(); return {PAY13,bkOpen,bkSave,bkHTML,bkMissing,BKUP,RC,setRC,get bk(){return bk;},set DRAWER(v){DRAWER=v;}};')();
-  BK.setRC('ym', '2026-07'); const p0 = BK.PAY13(); BK.bkOpen(); const one = BK.bk.a === '국민은행 812-01-0455-118' && /<select disabled/.test(BK.bkHTML());
+  BK.setRC('ym', '2026-06'); const p0 = BK.PAY13(); BK.bkOpen(); const one = BK.bk.a === '국민은행 812-01-0455-118' && /<select disabled/.test(BK.bkHTML());
   const shown = /올린 거래내역/.test(p0) && /입금 계좌 국민은행 812-01-0455-118/.test(p0) && !/alert\('은행 거래내역/.test(p0);
   BK.setRC('b', 'b2'); BK.bkOpen(); const two = BK.bk.a === '' && /임대료 계좌 · 신한은행 140-012-772301/.test(BK.bkHTML()) && /관리비 계좌 · 신한은행 140-012-772415/.test(BK.bkHTML());
   BK.bkSave(); const need = BK.bkMissing().join() === '입금 계좌,파일';
