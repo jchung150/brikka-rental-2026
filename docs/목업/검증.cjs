@@ -687,6 +687,17 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   r6.push(['해지 달 금액 고치기 — 임대료(공급가액) 칸에 일할 기본값 1,727,419 · 1,700,000으로 고치면 「일할 기본값에서 고침」 · 마지막 청구서 임대료 1,870,000(부가세 170,000) · 연체 내역 보기를 누르면 달마다 구간 표 · 원상복구비 등 부가세 합계 문구 없음',
     /value="1,727,419"/.test(h0) && /연체 내역 보기/.test(h0) && /청구년월 · 기간/.test(h1) && /26\.06월분 · /.test(h1) && /일할 기본값 1,727,419원에서 고침/.test(h2)
     && r && r.sup === 1700000 && r.vat === 170000 && r.amt === 1870000 && !/\+ 부가세/.test(h0)]); }
+/* 해지 패널 카드 — 정기 청구서처럼 건물 관리비 탭에서 쓰는 항목을 모두 올린다(주차비 · 기간 모르는 항목 포함) · 체크를 풀면 뺀다 · 연체료를 빼면 감면 */
+{ const TC = new Function(stub + bare + '; seedJuly(); return {termOpen,termSet,termSave,termHTML,unbilled,BILLS,CTRS,FEE_CUT,get tm(){return tm;}};')();
+  const k = 'b1별관301호', c = TC.CTRS.find(x => x.b === 'b1' && x.no === '별관301호'), U = TC.unbilled(c, '2026-08-17', 'now');
+  TC.termOpen(k); TC.termSet('out', '2026-08-17'); TC.termSet('why', '퇴거'); TC.tm.est.parking = '50000'; TC.tm.est.elec = '300000'; TC.tm.off.elec = true; TC.tm.off['연체료'] = true;
+  const h = TC.termHTML(); TC.termSave(false);
+  const B = TC.BILLS.filter(i => i.k === k && (i.ym === '2026-08' || i.adhoc));
+  r6.push(['해지 패널 카드 — 관리비 탭 항목 전부(전기 · 수도 · 전력기금 · TV수신료 · 주차비 08.01~08.17 · 교통유발부담금 · 정화조청소비는 기간 없음) · 임대료 체크 잠김 · 체크 푼 전기요금은 발행 안 됨 · 주차비 퇴거 예상분 발행 · 연체료 빼면 청구 안 하고 정리일만 08.17(감면)',
+    U.map(u => u.n).join() === '전기요금,수도요금,전력기금,TV수신료,주차비,교통유발부담금,정화조청소비' && U.find(u => u.n === '주차비').from === '2026-08-01' && !U.find(u => u.n === '정화조청소비').from
+    && /계약 약정액이라 뺄 수 없습니다/.test(h) && /이번 회차 고지서 없음/.test(h)
+    && !B.some(i => /전기요금 퇴거 예상분/.test(i.n)) && B.some(i => i.n === '주차비 퇴거 예상분 (08.01~08.17)' && i.sup === 50000)
+    && !B.some(i => i.fee) && TC.FEE_CUT[k] === '2026-08-17']); }
 /* 퇴거 ③ 8월 청구서를 이미 발행한 뒤 해지 — 청구서는 그대로, 임대료 · 고정관리비 일할 차이를 청구 감액 + 정리일 다음날 ~ 해지일 연체료 청구 한 건 → 확인요청 답변 질문 1 */
 { const PA = new Function(stub + bare + '; seedJuly(); return {issue1,termOpen,termSet,termSave,termHTML,BILLS,CUTS,FEE_CUT,feeUntil,ledgerOf,set f1b(v){f1.b=v;}};')();
   const k = 'b1별관301호'; PA.f1b = 'b1'; PA.issue1([k]);

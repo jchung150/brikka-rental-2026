@@ -5447,16 +5447,22 @@ function termMode(k,out){const c=CTRS.find(x=>ckey(x)===k); if(!out||!c) return 
   const ym=out.slice(0,7); if(ym<SETTLE.ym||closedBy(c.b,ym,TODAY_S)) return 'none'; if(c.b!=='b1') return 'other'; if(ym>SETTLE.ym) return 'later';
   const z=ISS[k]; if(z) return z.term?'done':'after';
   return dnum(out)<dnum(billOn(ym))?'now':'reg';}
-/* 청구 전 기간 — 정산 항목마다 「마지막으로 정기 청구서에 실은 정산 기간의 다음날 ~ 해지일」. 그 몫을 퇴거 예상분으로 받는다.
-   now: 이번 회차 정산을 싣지 않으므로 이번 회차 정산 기간의 첫날부터. reg · after: 이번 회차 정산을 실으므로 그 끝 다음날부터.
-   전력기금 · TV수신료처럼 다른 항목 고지서에 함께 나오는 항목은 그 기간을 따른다 → 확인요청 답변 질문 2-2 · 9 */
+/* 정산 항목 카드 — 정기 청구서처럼 건물 관리비 탭에서 쓰는 항목을 모두 올린다. 담당자는 금액을 넣거나 체크를 풀어 뺀다.
+   청구 전 기간 = 「마지막으로 정기 청구서에 실은 정산 기간의 다음날 ~ 해지일」. 그 몫을 퇴거 예상분으로 받는다 → 확인요청 답변 질문 2-2 · 9
+     고지서 기간이 있는 항목   now: 이번 회차 정산을 싣지 않으므로 이번 정산 기간의 첫날부터 · reg · after: 이번 정산 기간 끝 다음날부터
+     직접 입력 항목(주차비)    now: 그 달 1일부터(달 단위 요금) · reg · after: 이번 회차 정기 청구서에 실리므로 카드 없음
+     기간을 모르는 항목        이번 회차에 고지서가 없는 항목(정화조청소비 등) — 기간 없이 금액만
+   전력기금 · TV수신료처럼 다른 항목 고지서에 함께 나오는 항목은 그 기간을 따른다 */
 function unbilled(c,out,mode){
   if(c.b!=='b1'||!out||!['now','reg','after'].includes(mode)) return [];
-  return selItems().map(m=>{const rf=resolve(m.code).ref, P=BILL[m.code].to?BILL[m.code]:rf?BILL[rf]:null;
-    if(!P||!P.to) return null;
+  const bd=BUILDINGS.find(x=>x.id===c.b)||{}, names=(bd.charge||[]).filter(x=>x.use&&!x.fixed).map(x=>x.it);
+  return names.map(n=>{const code=codeOf(n), m=M(code); if(!m||m.name!==n) return null; const rf=resolve(code).ref;
+    if(isDirect(code)){if(mode!=='now') return null; const from=out.slice(0,8)+'01'; return {code,n,from,to:out,days:daysIn(from,out),doc:m.bill};}
+    const P=BILL[code]&&BILL[code].to?BILL[code]:rf&&BILL[rf]&&BILL[rf].to?BILL[rf]:null;
+    if(!P) return {code,n,from:null,to:out,days:0,doc:m.bill};
     const from=mode==='now'?P.from:nstr(dnum(P.to)+1);
     if(dnum(out)<dnum(from)) return null;
-    return {code:m.code,n:m.name,from,to:out,days:daysIn(from,out),doc:m.bill};}).filter(Boolean);
+    return {code,n,from,to:out,days:daysIn(from,out),doc:m.bill};}).filter(Boolean);
 }
 /* 해지 처리로 바뀌는 고정액 — 발행한 청구 건과 일할 청구의 공급가액 · 부가세 차이를 그대로 뺀다(10%를 다시 붙이지 않는다) → 질문 1 */
 function termCuts(k,out,inp){if(!ISS[k]) return [];
@@ -5482,7 +5488,7 @@ function withTerm(k,out,fn,fix){const t=TERMS[k]; TERMS[k]={...(t||{}),out,...(f
 const lastBill=(k,out,fix)=>withTerm(k,out,()=>ISSUE().find(x=>x.k===k),fix);
 function termOpen(k){const t=TERMS[k]||{}, c=CTRS.find(x=>ckey(x)===k), ended=c&&c.st!=='진행중';
   /* 종료된 계약 — 만기 종료로, 해지일은 종료일 → 질문 3-1 */
-  tm={k,type:t.type||(ended?'만기 종료':'중도 해지(합의)'),out:t.out||(ended?ctrEnd(c):''),why:t.why||'',est:{},fix:{},feeOpen:false,ended};DRAWER='term';render(true);}
+  tm={k,type:t.type||(ended?'만기 종료':'중도 해지(합의)'),out:t.out||(ended?ctrEnd(c):''),why:t.why||'',est:{},fix:{},off:{},feeOpen:false,ended};DRAWER='term';render(true);}
 function termSet(f,v){tm[f]=v;render(true);}
 function termSave(mail){if(!tm.out||!tm.why.trim()) return;
   const c=CTRS.find(x=>ckey(x)===tm.k), k=tm.k, out=tm.out, mode=termMode(k,out), prev=TERMS[k]||{};
@@ -5493,8 +5499,10 @@ function termSave(mail){if(!tm.out||!tm.why.trim()) return;
   const had=n=>adhocOf(k).some(i=>i.n===n);
   /* 금액은 청구 추가와 같다 — 세금계산서면 공급가액을 넣고 부가세 10%(원 미만 절사)가 붙는다 → 질문 13 */
   const iss=(n,a,doc,memo)=>{const V=vatSplit(a,doc); issueAdhoc(k,n,V.amt,doc,memo,null,V.sup,V.vat);};
-  unbilled(c,out,mode).forEach(u=>{const a=numOf(tm.est[u.code]); if(!a) return;
-    const n=`${u.n} 퇴거 예상분 (${u.from.slice(5).replace('-','.')}~${u.to.slice(5).replace('-','.')})`; if(!had(n)) iss(n,a,u.doc,'퇴거 예상분');});
+  unbilled(c,out,mode).forEach(u=>{const a=numOf(tm.est[u.code]); if(!a||tm.off[u.code]) return;
+    const n=`${u.n} 퇴거 예상분${u.from?` (${u.from.slice(5).replace('-','.')}~${u.to.slice(5).replace('-','.')})`:''}`; if(!had(n)) iss(n,a,u.doc,'퇴거 예상분');});
+  /* 연체료 체크를 풀면 감면 — 정기 청구서에서 뺀 것과 같다. 정리일은 해지일로 옮긴다 → 18-2 */
+  const feeOff=!!tm.off['연체료']; if(feeOff&&['now','reg'].includes(mode)) (OFF1[k]=OFF1[k]||{})['연체료']=1;
   /* 마지막 청구 — 한 번만 한다. 고칠 때는 청구 감액 · 청구 추가로 */
   if(!prev.act){
     if(mode==='now'){const R=lastBill(k,out);
@@ -5502,7 +5510,7 @@ function termSave(mail){if(!tm.out||!tm.why.trim()) return;
     else if(mode==='after'){const L=`${(+out.slice(8,10)+1+'').padStart(2,'0')}~${mDays(out.slice(0,7))}`;
       termCuts(k,out,tm.fix).forEach(x=>{if(x.ok) addCut(x.b.id,x.amt,TODAY_S,`해지 일할 (${out.slice(5,7)}.${L})`,x.sup,x.vat);});
       const F=termFee(k,out);
-      if(F.add){BILLS.push({id:`fee|${k}|term`,ym:adYm(),k,no:c.no,n:'연체료',amt:F.add,fee:true,feeTo:out,date:TODAY_S,sq:++paySeq,
+      if(F.add&&!feeOff){BILLS.push({id:`fee|${k}|term`,ym:adYm(),k,no:c.no,n:'연체료',amt:F.add,fee:true,feeTo:out,date:TODAY_S,sq:++paySeq,
         memo:`연체료 (${out.slice(5).replace('-','.')}까지) · 해지 처리`,cut0:FEE_CUT[k]||null});}
       if(F.less){const fb=(ISS[k].bills||[]).find(b=>b.fee); if(fb) addCut(fb.id,F.less,TODAY_S,`해지일 뒤 연체료 (${nstr(dnum(out)+1).slice(5).replace('-','.')}~${F.cut.slice(5).replace('-','.')})`,F.less,0);}
       FEE_CUT[k]=out;}
@@ -5517,13 +5525,16 @@ function termHTML(){
   const md=d=>d.slice(5).replace('-','.'), ymL=tm.out?`${+tm.out.slice(5,7)}월분`:'';
   /* 마지막 청구 — 해지 달 임대료 · 고정관리비(일할 기본값 · 고칠 수 있음) · 연체료(연체 내역 링크). 저장하면 무엇이 기록되는지 미리 보인다 */
   /* 항목마다 카드 하나 — 이름 · 기간 줄, 그 아래 금액 줄. 정산 항목(퇴거 예상분) 카드와 같은 모양이다 */
-  const card=body=>`<div style="border:1px solid var(--line);border-radius:var(--r-sm);padding:9px 12px 1px;margin-bottom:8px">${body}</div>`;
+  const card=(body,off)=>`<div style="border:1px solid var(--line);border-radius:var(--r-sm);padding:9px 12px 1px;margin-bottom:8px${off?';opacity:.5':''}">${body}</div>`;
+  /* 체크박스 — 정기 청구서(PAY-1)와 같다. 약정(임대료 · 고정관리비)은 잠그고, 연체료 · 정산 항목은 뺄 수 있다(뺀 연체료는 감면) */
+  const cbOn=`<span class="cb on dis" title="계약 약정액이라 뺄 수 없습니다" style="margin-right:6px"></span>`;
+  const cbT=id=>`<span class="cb ${tm.off[id]?'':'on'}" title="넣기 · 빼기" style="margin-right:6px;cursor:pointer" onclick="tm.off['${id}']=!tm.off['${id}'];render(true)"></span>`;
   const fixCards=X=>termFix(tm.k,tm.out,tm.fix).map(f=>{const x=(X||[]).find(y=>y.b.n===f.n);
-    return card(R_(f.n,`<span class="fv">${md(tm.out.slice(0,8)+'01')} ~ ${md(tm.out)} · <b>${f.d}일</b>${f.d<f.dn?` / ${f.dn}일 일할`:''}</span>`)
+    return card(R_(cbOn+f.n,`<span class="fv">${md(tm.out.slice(0,8)+'01')} ~ ${md(tm.out)} · <b>${f.d}일</b>${f.d<f.dn?` / ${f.dn}일 일할`:''}</span>`)
       +R_(f.tax?'공급가액':'금액',`<input type="text" inputmode="numeric" value="${num(f.sup)}" onchange="tm.fix['${f.n}']=this.value;render(true)" style="border:1px solid var(--line);border-radius:var(--r-sm);padding:7px 9px;font:inherit;text-align:right;max-width:140px"><span class="c2" style="margin:0">원${f.edited?` · 일할 기본값 ${won(f.def.sup)}에서 고침`:''}</span>`)
       +(x?R_('감액',`<span>${won(x.amt)}</span><span class="c2" style="margin:0">발행한 ${won(x.b.amt)}에서 · 공급가액 ${won(x.sup)} · 부가세 ${won(x.vat)}</span>`):''));}).join('');
-  const feeCard=(amt,to,lbl,less)=>amt||less?card(R_('연체료',`<span class="fv">${md(to)}까지 · 연 ${rateOf(tm.k)}%</span><span class="lk" style="margin-left:8px" onclick="tm.feeOpen=!tm.feeOpen;render(true)">연체 내역 ${tm.feeOpen?'접기':'보기'}</span>`)
-      +(amt?R_(lbl||'금액',`<span>${won(amt)}</span>`):'')+(less||'')+(tm.feeOpen?feeTbl(to):'')):'';
+  const feeCard=(amt,to,lbl,less)=>amt||less?card(R_(cbT('연체료')+'연체료',`<span class="fv">${md(to)}까지 · 연 ${rateOf(tm.k)}%</span><span class="lk" style="margin-left:8px" onclick="tm.feeOpen=!tm.feeOpen;render(true)">연체 내역 ${tm.feeOpen?'접기':'보기'}</span>`)
+      +(amt?R_(lbl||'금액',`<span>${won(amt)}</span>${tm.off['연체료']?'<span class="c2" style="margin:0">빼면 감면합니다</span>':''}`):'')+(less||'')+(tm.feeOpen?feeTbl(to):''),tm.off['연체료']):'';
   /* 연체 내역 — 달마다 구간(입금이 들어온 날마다 끊는다) · 밀린 금액 · 일수 · 연체료. 미납 관리의 미납 상세와 같은 표 */
   const feeTbl=to=>{const yms=[...new Set(BILLS.filter(i=>i.k===tm.k).map(i=>i.ym))].sort(), M=yms.map(ym=>({ym,...lateCalc(tm.k,ym,to)})).filter(m=>m.fee>0);
     const td='style="padding:7px 10px"';
@@ -5561,9 +5572,9 @@ function termHTML(){
       <div class="fg"><div class="fl">마지막 청구</div>
         ${tm.out?last:'<div class="c2" style="margin:0">해지일을 넣으면 마지막 청구가 어떻게 되는지 보여 줍니다</div>'}
         ${!tm.out?''
-        :U.length?U.map(u=>`<div style="border:1px solid var(--line);border-radius:var(--r-sm);padding:9px 12px 1px;margin-bottom:8px">
-            ${R(u.n,`<span class="fv">${u.from.slice(5).replace('-','.')} ~ ${u.to.slice(5).replace('-','.')} · <b>${u.days}일</b> 청구 전</span>`)}
-            ${R(u.doc==='세금계산서'?'예상 공급가액':'예상 금액',`<input type="text" inputmode="numeric" value="${tm.est[u.code]?num(numOf(tm.est[u.code])):''}" placeholder="직접 계산해 넣기"
+        :U.length?U.map(u=>`<div style="border:1px solid var(--line);border-radius:var(--r-sm);padding:9px 12px 1px;margin-bottom:8px${tm.off[u.code]?';opacity:.5':''}">
+            ${R(cbT(u.code)+u.n,`<span class="fv">${u.from?`${u.from.slice(5).replace('-','.')} ~ ${u.to.slice(5).replace('-','.')} · <b>${u.days}일</b> 청구 전`:'이번 회차 고지서 없음 · 기간은 담당자가 정함'}</span>`)}
+            ${R(u.doc==='세금계산서'?'예상 공급가액':'예상 금액',`<input type="text" inputmode="numeric" value="${tm.est[u.code]?num(numOf(tm.est[u.code])):''}" placeholder="직접 계산해 넣기" ${tm.off[u.code]?'disabled':''}
               onchange="tm.est['${u.code}']=this.value;render(true)" style="${inp};text-align:right;max-width:140px"><span class="c2" style="margin:0">원</span>`,amtTip(u.doc))}</div>`).join('')
           +'<div class="c2" style="margin:0;white-space:normal">예상 금액은 담당자가 정합니다. 이미 온 고지서가 있으면 그 금액을 일할로 나눠 넣습니다. 넣은 금액은 해지 처리할 때 항목마다 비정기 청구서로 바로 발행됩니다. 나중에 그 기간의 고지서가 오면 이 유닛 몫은 건물주 부담으로 갑니다.</div>'
         :['now','reg','after'].includes(mode)&&!done?'<div class="c2" style="margin:12px 0 0">정산 항목은 해지일까지 정기 청구서에 모두 실었습니다</div>':''}</div>
