@@ -1316,7 +1316,7 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   r6.push(['메뉴 — 정기 청구: 관리비 정산 → 청구서 발행(누르면 월 마감 PAY-12) · 수납: 입금 매칭 · 수납 내역 · 미납 관리 · 월 마감 화면은 달을 고르고 건물마다 정산 · 청구서 · 수납 · 미납 · 마감 · 7월 테온하우스 마감 → 체크 → 보고서 1건',
     g('청구') === '관리비 정산 → 청구서 발행' && g('수납') === '입금 매칭 → 수납 내역 → 미납 관리'
     && /<h1>월 마감<\/h1><span class="sid">PAY-12/.test(h0) && /이 달 청구분 미납/.test(h0) && /mc12\('b2','close'\)/.test(h0) && MN.MC.b2['2026-07'] && /월 마감 보고서 발행 1건/.test(h1)
-    && MN.MENU.find(m => m.k === '청구').g === '정기 청구' && MN.MENU.find(m => m.k === '청구').over === 'pay-12' && !MN.MENU.find(m => m.k === '수납').over]); }
+    && MN.MENU.find(m => m.k === '청구').g === '청구 관리' && MN.MENU.find(m => m.k === '수납').g === '수납 관리' && MN.MENU.find(m => m.k === '청구').over === 'pay-12' && !MN.MENU.find(m => m.k === '수납').over]); }
 /* 상계 취소를 막는 셋째 경우 — 상계로 채운 청구를 감액해 생긴 과납을 이미 환불했으면 취소할 수 없다 → 확인요청 답변 질문 7 */
 { const OX = new Function(stub + bare + '; seedJuly(); return {openOffset,payConfirm,addCut,openRefund,ovConfirm,cancelWhyNot,payRec,BILLS,PAYEV,overOf};')();
   const k = 'b1별관301호'; OX.openOffset(k); OX.payConfirm();
