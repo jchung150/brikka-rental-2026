@@ -456,8 +456,8 @@ r6.push(['임대정보 · 임대료 인상 예약(요약 탭) — 분기 · 기�
   /* 청구 감액 패널 — 사유가 없으면 막는다. 미납보다 많으면 과납이 된다고 미리 알린다 */
   OV.fixOpen(k, 'cut'); const hEmpty = OV.fixHTML(); OV.fxSet('item', OV.cutItems(k)[0]); OV.fxSet('amt', '5000'); OV.fxConfirm(); const noWhy = OV.ledgerOf(k).rows.filter(r => r.type === '감액').length === 1;
   const warn = /과납/.test(OV.fixHTML());
-  r6.push(['청구 감액 패널 — 「항목을 고르세요」로 시작(청구 칸 없음) · 수도요금 감액한 적 있으니 맨 앞 · 마감한 달 청구도 줄일 수 있음 · 사유 없으면 막힘 · 미납보다 많으면 「과납이 됩니다」',
-  /<option value="" selected>항목을 고르세요/.test(hEmpty) && !/<span class="fk">청구<\/span>/.test(hEmpty) && OV.cutItems(k)[0] === '수도요금' && /마감한 달의 청구도 줄일 수 있고/.test(hEmpty) && noWhy && warn]); }
+  r6.push(['청구 감액 패널 — 「청구년월을 고르세요」로 시작(항목 칸 없음) · 수도요금 감액한 적 있으니 항목 맨 앞 · 마감한 달 청구도 줄일 수 있음 · 사유 없으면 막힘 · 미납보다 많으면 「과납이 됩니다」',
+  /<option value="" selected>청구년월을 고르세요/.test(hEmpty) && !/청구항목/.test(hEmpty) && OV.cutItems(k)[0] === '수도요금' && /마감한 달의 청구도 줄일 수 있고/.test(hEmpty) && noWhy && warn]); }
 /* 오납 — 7월 SK렌터카(주) 1,938,620 입금을 오납으로 → 7월 마감 확인에 걸림 · 입금 매칭에서 환불 기록하면 풀림. 원장에는 없다 → 4.3.5 */
 { const MS = new Function(stub + bare + '; seedJuly(); return {RC,rcUnignore,rcMis,rcOpenN,PAY13,mcChecks,openMis,ovSet,ovConfirm,ledgerOf};')();
   MS.RC.f.ym = '2026-07'; MS.rcUnignore(55); MS.rcMis(55); MS.RC.cur = 55;
@@ -523,17 +523,21 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   r6.push(['전월 과납액은 우선순위가 가장 낮은 수도요금(6)에 18,000을 채움 → 13,200,000 입금은 임대료 한 줄',
     d7.lines.length === 1 && d7.lines[0].n === '임대료' && d7.lines[0].pay === 13200000]); }
 /* 청구 추가 · 청구 감액 — 청구 추가는 새 항목만(항목명 · 발행 문서). 청구 감액은 청구항목을 고르면 그 항목의 청구만 보인다 · 사유 필수 */
-{ const FX = new Function(stub + bare + '; seedJuly(); return {fixOpen,fxSet,fxConfirm,fixHTML,BILLS,ISSUE,get fz(){return fz;}};')();
-  FX.fixOpen('b1별관301호', 'cut'); FX.fxSet('item', '수도요금'); const hc = FX.fixHTML();
+{ const FX = new Function(stub + bare + '; seedJuly(); return {fixOpen,fixOpenRow,fxSet,fxConfirm,fixHTML,BILLS,ISSUE,ledgerOf,CTR3,ledMore,LEDG,get fz(){return fz;},set tab3c(v){tab3c=v;}};')();
+  FX.fixOpen('b1별관301호', 'cut'); const h0 = FX.fixHTML(); FX.fxSet('ym', '2026-07'); FX.fxSet('item', '수도요금'); const hc = FX.fixHTML(), pick = FX.fz.id;
+  const yms = (h0.match(/fxSet\('ym'[^]*?<\/select>/) || [''])[0], opts = (hc.match(/fxSet\('id'[^]*?<\/select>/) || [''])[0];
+  /* 원장 26.07월분 청구서 줄의 ⋮ › 감액 — 그 청구서를 고른 채로 */
+  FX.tab3c = '원장'; FX.CTR3('b1별관301호');
+  const x = Object.values(FX.LEDG).find(g => g.type === '청구' && /26\.07월분 청구서/.test(g.title) && g.items.some(r => r.bill && /별관301호/.test(r.bill)));
+  const mm = x ? FX.ledMore(x).map(m => m.t).join() : ''; if (x) FX.fixOpenRow(x.key); const hr = FX.fixHTML();
   FX.fixOpen('b1본관101호', 'add'); const ha = FX.fixHTML();
-  const opts = (hc.match(/fxSet\('id'[^]*?<\/select>/) || [''])[0];
-  const look = /<div class="t">청구 감액<\/div>/.test(hc) && /청구항목/.test(hc) && /<option[^>]*>임대료<\/option>/.test(hc)
-    && /26\.07월분 · 정기/.test(opts) && /26\.06월분 · 정기/.test(opts) && !/임대료/.test(opts) && /감액 확정/.test(hc)
+  const look = /<div class="t">청구 감액<\/div>/.test(hc) && yms.indexOf('26.07월분') < yms.indexOf('26.06월분') && /<option[^>]*>임대료<\/option>/.test(opts) && pick === '2026-07|별관301호|수도요금' && /감액 확정/.test(hc)
+    && mm === '상세,감액' && /<span class="fk">청구서<\/span><span class="fv">26\.07\.19 · 26\.07월분 청구서/.test(hr) && !/청구년월을 고르세요/.test(hr) && /<option[^>]*>수도요금<\/option>/.test(hr)
     && /<div class="t">청구 추가<\/div>/.test(ha) && /항목명/.test(ha) && /발행 문서/.test(ha) && /메일 없이 발행/.test(ha) && /메일 보내고 발행/.test(ha) && !/내역<\/div>/.test(ha + hc);
   FX.fxSet('name', '파손 수리비'); FX.fxSet('amt', '50000'); FX.fxConfirm(); const noWhy = !FX.BILLS.some(i => i.adhoc);
   FX.fxSet('why', '출입문 파손'); FX.fxConfirm();
   const r = FX.BILLS.find(i => i.adhoc), ln = FX.ISSUE().find(c => c.no === '본관101호').lines.find(l => l.n === '파손 수리비');
-  r6.push(['청구 추가 · 청구 감액 — 추가는 새 항목만 · 감액은 항목 → 그 항목의 청구(수도요금 → 26.07 · 26.06) · 내역 목록 없음 · 추가는 메일 없이 / 메일 보내고 발행 · 사유 없으면 막힘 · 수리비 공급가액 50,000 → 비정기 청구서 55,000 · 정기 청구서엔 없음',
+  r6.push(['청구 추가 · 청구 감액 — 추가는 새 항목만 · 감액은 청구년월(26.07이 26.06 위) → 그 달 항목 · 원장 7월분 청구서 줄 ⋮ 상세 · 감액 → 그 청구서를 고른 채로 · 내역 목록 없음 · 추가는 메일 없이 / 메일 보내고 발행 · 사유 없으면 막힘 · 수리비 공급가액 50,000 → 비정기 청구서 55,000 · 정기 청구서엔 없음',
     look && noWhy && r && r.n === '파손 수리비' && r.doc === '세금계산서' && r.amt === 55000 && !ln]); }
 /* 실수 바로잡기 — 잘못 낸 비정기 청구는 청구 감액으로. 감액은 고른 그 청구를 줄인다 → 청구·수납 탭에서 그 줄이 「감액」 */
 { const MX = new Function(stub + bare + '; seedJuly(); return {issueAdhoc,adhocOf,ledgerOf,fixOpen,fxSet,fxConfirm,fixHTML,ctrPay,CTR3,ledOpen,ledHTML,LEDG,set tab3c(v){tab3c=v;}};')();

@@ -4402,8 +4402,9 @@ function payHTML(){
 /* ═══ 청구 추가 · 청구 감액 — 원장 탭 청구 ▾ 메뉴에서 각자 패널로 연다. 칸 순서는 같다 → CTR-3 ═══
    청구 추가: 항목명 · 발행 문서 · 금액 · 사유 → [메일 없이 발행] · [메일 보내고 발행]. 비정기 청구서 한 장(오늘 날짜 청구).
      메일은 정기 청구서와 같이 청구서 메일 담당자에게 간다(아무도 없으면 보내지 않는다) → 14-2 · 19-4
-   청구 감액: 청구항목 → 그 항목의 청구(청구년월) → 금액 · 사유 → [감액 확정]. 고른 청구 건을 줄인다.
-     목록이 길어지지 않게 항목을 먼저 고르고, 그 항목의 청구만 보인다. 남은 금액이 있는 청구만 오른다
+   청구 감액: 청구년월(최근 달이 위) → 그 달의 청구항목 → 금액 · 사유 → [감액 확정]. 고른 청구 건을 줄인다.
+     원장 청구 줄의 ⋮ › 감액으로 열면 그 청구서를 고른 채로 열린다 — 몇 년 치 청구는 원장의 기간 필터 · 페이지로 찾는다.
+     남은 금액이 있는 청구만 오른다
    실수는 지우지 않고 반대 방향으로 바로잡는다 — 잘못 낸 청구는 청구 감액, 잘못 한 감액은 청구 추가 */
 let fz=null;
 /* 감액할 수 있는 청구 — 이 계약의 발행한 청구 중 남은 금액이 있는 것(정기 · 비정기). 청구서에 들어간 연체료도 줄인다(일부 감면) → 18-2 */
@@ -4413,11 +4414,21 @@ const itemOfBill=i=>i.adhoc?i.n:i.n.split(' ')[0];
 const cutItems=k=>{const b=bOfK(k), n=x=>CUTS.filter(c=>bOfK(c.k)===b&&itemOfBill(BILLS.find(i=>i.id===c.id)||{n:c.n,adhoc:false})===x).length;
   return [...new Set(cutBills(k).map(itemOfBill))].map((x,i)=>({x,i,c:n(x),p:prioOf(x)})).sort((a,b)=>b.c-a.c||a.p-b.p||a.i-b.i).map(o=>o.x);};
 const billsOfItem=(k,n)=>cutBills(k).filter(i=>itemOfBill(i)===n);
+const cutYms=k=>[...new Set(cutBills(k).map(i=>i.ym))].sort().reverse();
+const fxCands=()=>!fz||fz.mode!=='cut'?[]:fz.ids?cutBills(fz.k).filter(i=>fz.ids.includes(i.id)):fz.ym?cutBills(fz.k).filter(i=>i.ym===fz.ym):[];
 const billLabel=i=>`${i.ym.slice(2).replace('-','.')}월분 ${i.n}`;
 function fixOpen(k,mode){
   const m=mode||'add';
   if(m==='cut'&&!cutItems(k).length) return;
-  fz={k,mode:m,item:'',id:'',name:'',pick:'',doc:'세금계산서',amt:0,why:''};DRAWER='fix';render(true);
+  fz={k,mode:m,ym:'',ids:null,item:'',id:'',name:'',pick:'',doc:'세금계산서',amt:0,why:''};DRAWER='fix';render(true);
+}
+/* 원장 청구 줄의 ⋮ › 감액 — 그 청구서를 고른 채로 연다. 오래된 청구는 원장에서 찾는다(기간 필터 · 페이지) */
+const rowCutBills=x=>{const k=rowK(x), ids=x.items.map(r=>r.bill).filter(Boolean); return k?cutBills(k).filter(i=>ids.includes(i.id)):[];};
+const rowK=x=>{const id=(x.items.find(r=>r.bill)||{}).bill, b=id&&BILLS.find(i=>i.id===id); return b?b.k:'';};
+function fixOpenRow(key){const x=LEDG[key], C=x&&rowCutBills(x); if(!C||!C.length) return;
+  fz={k:rowK(x),mode:'cut',ym:'',ids:C.map(i=>i.id),ttl:`${x.date.slice(2).replace(/-/g,'.')} · ${x.title}`,item:'',id:'',name:'',pick:'',doc:'세금계산서',amt:0,why:''};
+  if(C.length===1){fz.id=C[0].id;fz.item=itemOfBill(C[0]);}
+  DRAWER='fix';render(true);
 }
 /* 비정기 청구 항목명 — 자주 쓰는 이름을 고르거나 직접 넣는다. 이 건물에서 많이 쓴 순서로 보인다(같으면 아래 순서).
    발행 문서는 이름에 따라 바꾸지 않는다. 담당자가 고른다 */
@@ -4426,8 +4437,10 @@ const onceNames=k=>{const b=bOfK(k), n=x=>BILLS.filter(i=>i.adhoc&&bOfK(i.k)===b
   return ONCE_NAMES.map((x,i)=>({x,i,c:n(x)})).sort((a,b)=>b.c-a.c||a.i-b.i).map(o=>o.x);};
 function fxSet(f,v){if(f==='pick'){fz.pick=v; fz.name=v==='직접 입력'?'':v; render(true); return;}
   fz[f]=f==='amt'?numOf(v):v;
-  if(f==='item'){const b=billsOfItem(fz.k,v)[0];fz.id=b?b.id:'';fz.amt=0;fz.all=false;}
-  if(f==='id'){fz.amt=0;fz.all=false;}
+  /* 항목 이름으로 고르면 그 항목의 가장 최근 청구(청구년월도 함께) */
+  if(f==='item'){const C=fxCands(), b=C.find(i=>itemOfBill(i)===v)||billsOfItem(fz.k,v)[0];fz.id=b?b.id:'';if(b&&!fz.ids) fz.ym=b.ym;fz.amt=0;fz.all=false;}
+  if(f==='ym'){fz.id='';fz.item='';fz.amt=0;fz.all=false;}
+  if(f==='id'){const b=fxBill();fz.item=b?itemOfBill(b):'';fz.amt=0;fz.all=false;}
   render(true);}
 const fxBill=()=>BILLS.find(x=>x.id===fz.id);
 const fxName=()=>fz.mode==='add'?fz.name.trim():fz.item;
@@ -4453,15 +4466,15 @@ function fixHTML(){
   const R=(k,b,tip)=>`<div class="fr"><span class="fk">${k}${tip?`<i class="tip" data-tip="${tip}">i</i>`:''}</span>${b}</div>`;
   const V=fxV(), all=cut&&!!fz.all, tax=fxDoc()==='세금계산서', I=cut?fxBill():null, left=cut?fxLeft():0;
   const paid=I?paidNet(I.id):0, over=I?Math.max(0,paid-Math.max(0,left-V.amt))-Math.max(0,paid-left):0;
-  const list=cut?billsOfItem(fz.k,fz.item):[];
+  const list=cut?(o=>fxCands().slice().sort((a,b)=>o.indexOf(itemOfBill(a))-o.indexOf(itemOfBill(b))))(cutItems(fz.k)):[];
   return `<div class="dro"><div class="ov" onclick="closeDrawer()"></div><div class="pn">
     <div class="dh"><div><div class="t">${cut?'청구 감액':'청구 추가'}</div><div class="s">${cname(bd.alias,c.no,c.ten)}</div></div>
       <button class="x" onclick="closeDrawer()">✕</button></div>
     <div class="db">
       <div class="fg"><div class="fl">청구</div>
-        ${cut?R('청구항목',`<select onchange="fxSet('item',this.value)"><option value="" ${fz.item?'':'selected'}>항목을 고르세요</option>${cutItems(fz.k).map(n=>`<option ${fz.item===n?'selected':''}>${n}</option>`).join('')}</select>`,'남은 금액이 있는 청구의 항목만 보입니다. 마감한 달의 청구도 줄일 수 있고, 감액은 오늘 날짜로 기록됩니다')
-          +(!fz.item?'':R('청구',list.length>1?`<select onchange="fxSet('id',this.value)">${list.map(i=>`<option value="${i.id}" ${i.id===fz.id?'selected':''}>${i.ym.slice(2).replace('-','.')}월분 · ${i.adhoc?'비정기':'정기'} · ${won(i.amt-cutOf(i.id))}</option>`).join('')}</select>`
-            :`<span class="fv">${I?`${I.ym.slice(2).replace('-','.')}월분 · ${I.adhoc?'비정기':'정기'}`:''}</span>`))
+        ${cut?(fz.ids?R('청구서',`<span class="fv">${fz.ttl}</span>`)
+            :R('청구년월',`<select onchange="fxSet('ym',this.value)"><option value="" ${fz.ym?'':'selected'}>청구년월을 고르세요</option>${cutYms(fz.k).map(y=>`<option value="${y}" ${fz.ym===y?'selected':''}>${y.slice(2).replace('-','.')}월분</option>`).join('')}</select>`,'최근 달이 위에 있습니다. 오래된 청구는 원장에서 그 청구서 줄의 ⋮ › 감액으로 엽니다. 마감한 달의 청구도 줄일 수 있고, 감액은 오늘 날짜로 기록됩니다'))
+          +(!list.length?'':R('청구항목',`<select onchange="fxSet('id',this.value)"><option value="" ${fz.id?'':'selected'}>항목을 고르세요</option>${list.map(i=>`<option value="${i.id}" ${i.id===fz.id?'selected':''}>${itemOfBill(i)}${list.filter(j=>itemOfBill(j)===itemOfBill(i)).length>1?` · ${i.adhoc?'비정기':'정기'} · ${won(i.amt-cutOf(i.id))}`:''}</option>`).join('')}</select>`,'줄일 금액이 남은 항목만 보입니다'))
           +(I?R('청구액',won(I.amt)+(cutOf(I.id)?` <span class="c2">감액 ${won(cutOf(I.id))}</span>`:''))+R('낸 금액',won(paid))+R('발행 문서',`<span class="fv">${fxDoc()}</span>`):'')
           :R('항목명',`<select onchange="fxSet('pick',this.value)"><option value="" ${fz.pick?'':'selected'}>항목을 고르세요</option>${onceNames(fz.k).map(x=>`<option ${fz.pick===x?'selected':''}>${x}</option>`).join('')}<option ${fz.pick==='직접 입력'?'selected':''}>직접 입력</option></select>`)
             +(fz.pick==='직접 입력'?R('',`<input type="text" value="${fz.name}" placeholder="예: 7월 전기요금 정정" onchange="fxSet('name',this.value)">`):'')
@@ -5698,7 +5711,7 @@ function ledgerOf(k){
   BILLS.filter(i=>i.k===k).forEach(i=>{
     const tax=i.adhoc?i.doc==='세금계산서':isTaxItem(i.n), sup=i.sup!=null?i.sup:tax?Math.floor(i.amt*10/11):i.amt;
     const ymL=i.ym.slice(2).replace('-','.')+'월분';
-    rows.push({date:i.date||billOn(i.ym),type:'청구',acc:'매출채권',memo:i.adhoc?i.n:i.memo||`${ymL} ${i.n}`,item:i.adhoc?i.n:i.memo||`${ymL} ${i.n}`,bid:i.fee?null:i.id,
+    rows.push({date:i.date||billOn(i.ym),type:'청구',acc:'매출채권',memo:i.adhoc?i.n:i.memo||`${ymL} ${i.n}`,item:i.adhoc?i.n:i.memo||`${ymL} ${i.n}`,bid:i.fee?null:i.id,bill:i.id,
       g:i.inv?i.inv:i.reg?'bill'+i.ym:i.fee?'fee'+i.id:i.adhoc?'adh'+i.id:'bill'+i.ym,ym:i.ym,ttl:i.ttl||(i.adhoc?i.n:i.memo),why:i.adhoc?i.memo:'',
       inc:i.amt,sup,vat:i.vat!=null?i.vat:i.amt-sup,ord:1,pr:prioOf(i.n.split(' ')[0]),sq:i.sq});
     (PAYEV[i.id]||[]).filter(e=>!e.dep.startsWith('cr')).forEach(e=>rows.push({date:e.date,type:'수납',acc:'매출채권',
@@ -5961,6 +5974,7 @@ function ledRec(x){
   return null;
 }
 function ledMore(x){const R=ledRec(x), m=[{t:'상세',go:`ledOpen('${x.key}')`}];
+  if(x.type==='청구'&&!x.items[0].cxd) m.push({t:'감액',go:`fixOpenRow('${x.key}')`,off:rowCutBills(x).length?'':'줄일 금액이 남은 항목이 없습니다'});
   if(R){const no=cancelWhyNot(R.kind,R.rec); m.push({t:'취소',go:`lcxOpen('${x.key}')`,off:no});}
   return m;}
 function lcxOpen(key){lcx={key,why:''};DRAWER='lcx';render(true);}
