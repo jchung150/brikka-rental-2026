@@ -712,6 +712,19 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
     rent.amt === 3465000 && cr && cr.amt === 670646 && cr.sup === 609679 && cr.vat === 60967 && /해지 일할 \(08\.26~31\)/.test(cr.why)
     && fb && fb.amt === fAdd && fAdd > 0 && /해지 처리/.test(fb.memo) && PA.FEE_CUT[k] === '2026-08-25' && /이미 발행/.test(th) && !/메일 보내고 해지 처리/.test(th)
     && lf && lf.amt > 0 && PB.FEE_CUT[k] === '2026-08-05']); }
+/* 해지 때 청구서는 한 장 — now: 퇴거 예상분을 마지막 청구서에 · reg · after: 퇴거 예상분(+ 해지 연체료 청구)을 해지 청구서 한 장으로 · 해지 청구서는 취소 안 됨 → 28 */
+{ const G = (pre) => new Function(stub + bare + '; seedJuly(); return {issue1,termOpen,termSet,termSave,ISSUE,BILLS,ledgerOf,cancelWhyNot,set f1b(v){f1.b=v;},get tm(){return tm;}};')();
+  const k = 'b1별관301호', grp = (X, k) => { const L = X.ledgerOf(k).rows.filter(r => r.type === '청구' && r.date === '2026-08-10'); return [...new Set(L.map(r => r.g))]; };
+  const N = G(); N.termOpen(k); N.termSet('out', '2026-08-17'); N.termSet('why', '퇴거'); N.tm.est.elec = '300000'; N.tm.est.parking = '50000'; N.termSave(false);
+  const gN = grp(N, k), lN = N.ISSUE().find(c => c.k === k).lines.filter(l => l.est);
+  const R = G(); const k2 = 'b1본관501호'; R.termOpen(k2); R.termSet('out', '2026-08-20'); R.termSet('why', '이전'); R.tm.est.elec = '180000'; R.tm.est.water = '20000'; R.termSave(false);
+  const aR = R.BILLS.filter(i => i.k === k2 && i.adhoc), gR = grp(R, k2), xR = R.ledgerOf(k2).rows.find(r => r.g === 'term|' + k2);
+  const A = G(); A.f1b = 'b1'; A.issue1([k]); A.termOpen(k); A.termSet('out', '2026-08-25'); A.termSet('why', '퇴거'); A.tm.est.elec = '100000'; A.termSave(false);
+  const gA = A.BILLS.filter(i => i.k === k && i.inv === 'term|' + k);
+  r6.push(['해지 때 청구서 한 장 — 8/17(바로 발행): 전기 · 주차비 퇴거 예상분이 마지막 청구서(08월분 청구서)에 실림 · 비정기 청구서 없음 · 8/20: 전기 · 수도 퇴거 예상분이 「해지 청구서」 한 장 · 발행 뒤 8/25: 연체료 청구 + 전기 퇴거 예상분이 해지 청구서 한 장 · 해지 청구서는 취소 안 됨',
+    lN.length === 2 && !N.BILLS.some(i => i.k === k && i.adhoc) && gN.length === 1 && gN[0] === 'bill2026-08'
+    && aR.length === 2 && gR.length === 1 && gR[0] === 'term|' + k2 && xR && xR.ttl === '해지 청구서' && /해지 처리로 발행한 청구서/.test(R.cancelWhyNot('term', {k: k2, date: '2026-08-10'}))
+    && gA.length === 2 && gA.some(i => i.fee) && gA.some(i => /전기요금 퇴거 예상분/.test(i.n))]); }
 /* 연체료 일부 감면 — 청구서에 들어간 연체료 줄을 청구 감액으로 줄인다(일반내역서 · 부가세 없음) → 18-2 */
 { const CF = new Function(stub + bare + '; seedJuly(); return {fixOpen,fxSet,fxConfirm,fixHTML,ledgerOf,cutBills};')();
   const k = 'b1별관301호', can = CF.cutBills(k).some(i => i.reg && i.amt === 29911);
