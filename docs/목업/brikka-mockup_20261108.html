@@ -5536,7 +5536,7 @@ function termHTML(){
     const bo=md(billOn(tm.out.slice(0,7)));
     if(mode==='now'){const R=lastBill(tm.k,tm.out,Object.fromEntries(termFix(tm.k,tm.out,tm.fix).map(f=>[f.n,{sup:f.sup,vat:f.vat}])));
       return `<div class="c2" style="margin:0 0 8px;white-space:normal">해지일이 청구일(${bo}) 앞이라, 저장하면 <b>${ymL} 마지막 청구서</b>를 바로 발행합니다. 정산 항목은 싣지 않고 아래 퇴거 예상분으로 받습니다.</div>`
-        +fixCards()+feeCard(R.fee,tm.out)+R_('마지막 청구서 합계',`<b>${won(R.sum)}</b><span class="c2" style="margin:0">부가세 포함</span>`);}
+        +fixCards()+feeCard(R.fee,tm.out);}
     if(mode==='reg') return `<div class="c2" style="margin:0 0 8px;white-space:normal">해지일이 청구일(${bo}) 뒤라, ${bo} 정기 청구서에 아래 금액이 들어가고 연체료는 해지일까지 들어갑니다. 저장할 때 따로 발행하지 않습니다.</div>`
         +fixCards()+feeCard(feeUntil(tm.k,tm.out),tm.out);
     if(mode==='after'){const X=termCuts(tm.k,tm.out,tm.fix), F=termFee(tm.k,tm.out);
