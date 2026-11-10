@@ -1324,6 +1324,7 @@ function drawerHTML(){
   if(DRAWER==='depin') return diHTML();
   if(DRAWER==='ldet') return ledHTML();
   if(DRAWER==='lcx') return lcxHTML();
+  if(DRAWER==='stmt') return stHTML();
   if(DRAWER==='bank') return bkHTML();
   if(DRAWER==='pay') return payHTML();
   if(DRAWER==='mclose') return mcHTML();
@@ -5697,7 +5698,10 @@ function CTR3sum(c,k){
 }
 
 /* ═══ CTR-3 계약 원장 — 이 계약의 모든 돈 거래를 있는 그대로. 추가만 하고 고치지 않는다 ═══ */
-let f3={per:'',tp:''};
+let f3={per:'',tp:'',from:'',to:''};
+/* 원장 기간 — 최근 1 · 3 · 12개월 또는 기간 지정(시작일 · 끝일). 몇 년 치 원장에서 원하는 달만 본다 */
+const f3Range=()=>f3.per==='custom'?[f3.from||null,f3.to||null]
+  :[f3.per?new Date((dnum(TODAY_S)-({'1':30,'3':91,'12':365}[f3.per]))*864e5).toISOString().slice(0,10):null,null];
 /* 거래유형 필터 — 고른 유형과 그 취소 줄을 함께 보인다(수납 → 수납 · 수납 취소). 잔액 칸은 거르기 전 원장 그대로 */
 const F3TP=['청구','감액','수납','환불','보증금 예치','보증금 상계','보증금 반환'];
 const setF3=(k,v)=>{f3[k]=v;render();};
@@ -5891,9 +5895,8 @@ function CTR3(k){
   if(tab3c!=='원장') return CTR3head(c,k)+(tab3c==='청구·수납'?CTR3month(c,k):tab3c==='이력'?histHTML(histC(c),'c'+k):tab3c==='주차'?t주차(BUILDINGS.find(x=>x.id===c.b)||BUILDINGS[0],k):tab3c==='자료보관'?t자료(BUILDINGS.find(x=>x.id===c.b)||BUILDINGS[0],k):CTR3sum(c,k));
   const bn=BUILDINGS.find(x=>x.id===c.b)||BUILDINGS[0];
   const L=ledgerOf(k);
-  const from=f3.per?new Date((dnum(TODAY_S)-({'1':30,'3':91,'12':365}[f3.per]))*864e5)
-    .toISOString().slice(0,10):null;
-  const rows=L.rows.filter(r=>(!from||dnum(r.date)>=dnum(from))&&(!f3.tp||r.type.replace(/ 취소$/,'')===f3.tp)).slice().reverse();
+  const [from,to]=f3Range();
+  const rows=L.rows.filter(r=>(!from||dnum(r.date)>=dnum(from))&&(!to||dnum(r.date)<=dnum(to))&&(!f3.tp||r.type.replace(/ 취소$/,'')===f3.tp)).slice().reverse();
   const TP={'청구':'ac','청구 취소':'mu','수납':'ok','수납 취소':'mu','보증금 예치':'mu','보증금 상계':'wa','보증금 반환':'da','감액':'wa2','감액 취소':'mu','보증금 상계 취소':'mu','보증금 예치 취소':'mu','보증금 반환 취소':'mu','환불':'da','환불 취소':'mu'};
   /* 매출채권 잔액이 0보다 작으면 과납이다 */
   const balTx=v=>won(v);
@@ -5944,13 +5947,16 @@ function CTR3(k){
   return CTR3head(c,k)+`
   <div class="fbar">
     <select onchange="setF3('per',this.value)">
-      ${[['','전체 기간'],['1','최근 1개월'],['3','최근 3개월'],['12','최근 12개월']].map(([v,t])=>`<option value="${v}" ${f3.per===v?'selected':''}>${t}</option>`).join('')}
+      ${[['','전체 기간'],['1','최근 1개월'],['3','최근 3개월'],['12','최근 12개월'],['custom','기간 지정']].map(([v,t])=>`<option value="${v}" ${f3.per===v?'selected':''}>${t}</option>`).join('')}
     </select>
+    ${f3.per==='custom'?`<input type="date" value="${f3.from}" max="${f3.to||TODAY_S}" onchange="setF3('from',this.value)" title="시작일"><span class="c2" style="margin:0">~</span>
+      <input type="date" value="${f3.to}" min="${f3.from}" max="${TODAY_S}" onchange="setF3('to',this.value)" title="끝일">`:''}
     <select onchange="setF3('tp',this.value)">
       ${[['','전체 거래유형'],...F3TP.map(t=>[t,t])].map(([v,t])=>`<option value="${v}" ${(f3.tp||'')===v?'selected':''}>${t}</option>`).join('')}
     </select>
     <span style="margin-left:auto;display:flex;gap:6px">   <!-- 돈을 다루는 버튼은 원장 탭에만 둔다 -->
       ${ledBtns(k,L)}
+      <button class="btn" onclick="stOpen('${k}')">명세서 보내기</button>
       <button class="btn" style="padding:7px 9px;display:inline-flex;align-items:center" title="원장 출력 — 지금 보이는 기간의 원장(받을 돈 · 보증금)을 PDF로 내려받습니다" onclick="say('원장 출력 — 지금 보이는 기간의 원장(받을 돈 · 보증금)을 PDF로 내려받습니다.\n목업에서는 파일을 내려받지 않습니다.')">${ic('down',16)}</button></span>
   </div>
   ${LT.html}
@@ -5962,6 +5968,46 @@ function CTR3(k){
     받을 돈을 바꾸는 일(청구 추가 · 청구 감액)은 <b>청구</b>, 돌려준 과납은 <b>수납</b> 메뉴에서 기록합니다. 받은 돈은 입금 매칭에서만 기록합니다.</div>`;
 }
 
+/* ═══ 원장 명세서 보내기 — 기간을 정해 그 기간의 원장(받을 돈 · 보증금)을 PDF로 붙여 임차인 청구서 메일 담당자에게 보낸다.
+   퇴거 정산 때 「이렇게 상계하고 이만큼 돌려드립니다」를 알리는 데 쓴다. 보낸 일은 이력에 남는다 → 명세변경_261108 30 ═══ */
+let st=null;
+function stOpen(k){const [f,t]=f3Range(), c=CTRS.find(x=>ckey(x)===k);
+  st={k,from:f||c.base,to:t||TODAY_S,memo:''};DRAWER='stmt';render(true);}
+function stSet(f,v){st[f]=v;render(true);}
+/* 기간의 시작 잔액 · 늘어난 돈 · 줄어든 돈 · 끝 잔액 — 계정(받을 돈 · 보증금)마다 */
+function stSum(k,from,to){const rows=ledgerOf(k).rows, o={};
+  ['매출채권','임대보증금'].forEach(a=>{const R=rows.filter(r=>r.acc===a), pre=R.filter(r=>dnum(r.date)<dnum(from)), inn=R.filter(r=>dnum(r.date)>=dnum(from)&&dnum(r.date)<=dnum(to));
+    const open=pre.length?pre.at(-1).bal:0;
+    o[a]={open,up:inn.reduce((x,r)=>x+(r.inc||0),0),down:inn.reduce((x,r)=>x+(r.dec||0),0),n:inn.length};
+    o[a].close=open+o[a].up-o[a].down;});
+  return o;}
+function stSend(){if(!st) return; const c=CTRS.find(x=>ckey(x)===st.k), to=billTo(c); if(!to.length||dnum(st.from)>dnum(st.to)) return;
+  clog(st.k,'청구','발송',`원장 명세서 메일 — ${st.from.replace(/-/g,'.')} ~ ${st.to.replace(/-/g,'.')} · ${to.map(x=>x.n).join(', ')}`,st.memo.trim());
+  DRAWER=null;st=null;render(true);}
+function stHTML(){
+  if(DRAWER!=='stmt'||!st) return '';
+  const c=CTRS.find(x=>ckey(x)===st.k), bd=BUILDINGS.find(x=>x.id===c.b)||BUILDINGS[0], to=billTo(c), bad=dnum(st.from)>dnum(st.to), S=bad?null:stSum(st.k,st.from,st.to);
+  const R=(k,b,tip)=>`<div class="fr"><span class="fk">${k}${tip?`<i class="tip" data-tip="${tip}">i</i>`:''}</span>${b}</div>`;
+  const bt=v=>v<0?`과납 ${won(-v)}`:won(v);
+  const acc=(t,a,up,down)=>`<div class="fg"><div class="fl">${t}</div>${R('시작 잔액',`<span class="fv">${bt(a.open)}</span>`)}${R(up,`<span class="fv">${won(a.up)}</span>`)}${R(down,`<span class="fv">${won(a.down)}</span>`)}${R('끝 잔액',`<b>${bt(a.close)}</b>`)}</div>`;
+  return `<div class="dro"><div class="ov" onclick="closeDrawer()"></div><div class="pn">
+    <div class="dh"><div><div class="t">명세서 보내기</div><div class="s">${cname(bd.alias,c.no,c.ten)}</div></div>
+      <button class="x" onclick="closeDrawer()">✕</button></div>
+    <div class="db">
+      <div class="fg"><div class="fl">기간</div>
+        ${R('시작일',`<input type="date" value="${st.from}" max="${TODAY_S}" onchange="stSet('from',this.value)">`)}
+        ${R('끝일',`<input type="date" value="${st.to}" max="${TODAY_S}" onchange="stSet('to',this.value)">`,'원장에서 고른 기간이 미리 들어갑니다. 전체 기간이면 계약 시작일 ~ 오늘입니다')}
+        ${bad?'<div class="c2" style="margin:-4px 0 9px 114px;color:var(--danger)">시작일이 끝일보다 늦습니다</div>':''}</div>
+      ${S?acc('받을 돈',S.매출채권,'청구 (차변)','감액 · 수납 (대변)')+acc('보증금',S.임대보증금,'예치 (대변)','상계 · 반환 (차변)'):''}
+      <div class="fg"><div class="fl">보낼 곳</div>
+        ${R('받는 사람',to.length?`<span class="fv">${to.map(x=>x.n).join(', ')}</span>`:'<span class="fv" style="color:var(--danger)">청구서 메일 받는 담당자가 없습니다(요약 › 담당자)</span>')}
+        ${R('메모',`<input type="text" value="${st.memo}" placeholder="메일 본문에 붙일 말 (선택)" oninput="st.memo=this.value">`)}
+        <div class="c2" style="margin:2px 0 0;white-space:normal">그 기간의 원장(받을 돈 · 보증금, 거래마다 날짜 · 내용 · 금액 · 잔액)을 PDF로 붙여 보냅니다. 원장 출력 PDF와 같은 내용입니다.</div></div>
+    </div>
+    <div class="df"><button class="btn" onclick="closeDrawer()">닫기</button>
+      <button class="btn pri" ${to.length&&!bad?'':'disabled'} onclick="stSend()">메일 보내기</button></div>
+  </div></div>`;
+}
 /* 원장 거래 상세 — 더보기 › 상세. 목록에는 사유를 적지 않고 여기서 본다 → CTR-3 */
 const LEDG={};
 let ldk=null, lcx=null;

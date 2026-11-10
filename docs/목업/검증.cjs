@@ -769,6 +769,17 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   const L = RF.ledgerOf(k).rows, orig = L.find(r => r.type === '환불'), cx = L.find(r => r.type === '환불 취소');
   r6.push(['과납 환불 취소 — 원장 환불 줄 ⋮ 상세 · 취소 · 사유 없으면 막힘 · 취소하면 원래 줄은 「취소됨」으로 남고 「환불 취소」 10,000 줄 추가 · 과납 18,000으로 돌아옴',
     o0 === 18000 && o1 === 8000 && mm === '상세,취소' && noWhy && ok && orig && orig.cxd && cx && cx.dec === 10000 && cx.why === '금액 오기' && RF.overOf(k) === 18000]); }
+/* 원장 기간 지정 · 명세서 보내기 — 기간 지정이면 그 기간 줄만 · 명세서는 기간의 시작 · 끝 잔액(받을 돈 · 보증금) · 담당자에게 메일 · 이력에 남음 */
+{ const SM = new Function(stub + bare + '; seedJuly(); return {CTR3,ledgerOf,stOpen,stSet,stHTML,stSend,stSum,setF3,CLOG,billTo,CTRS,set tab3c(v){tab3c=v;}};')();
+  const k = 'b1별관301호', L = SM.ledgerOf(k); SM.tab3c = '원장';
+  SM.setF3('per', 'custom'); SM.setF3('from', '2026-07-01'); SM.setF3('to', '2026-07-31'); const h = SM.CTR3(k);
+  SM.stOpen(k); const h1 = SM.stHTML(); const S = SM.stSum(k, '2026-07-01', '2026-07-31'), A = SM.stSum(k, '2000-01-01', '2026-08-10');
+  const pre = L.rows.filter(r => r.acc === '매출채권' && r.date < '2026-07-01').at(-1), last = L.rows.filter(r => r.acc === '매출채권' && r.date <= '2026-07-31').at(-1);
+  SM.stSend(); const lg = (SM.CLOG[k] || [])[0];
+  r6.push(['원장 기간 지정 7/1~7/31 — 26.07.19 청구 · 26.07.31 입금만 · 26.06.19 청구는 안 보임 · 명세서 기간이 원장 기간으로 미리 들어감 · 시작 잔액 = 6월 끝 잔액 · 끝 잔액 = 7/31 잔액 · 전체 기간 끝 잔액 = 지금 잔액(받을 돈 · 보증금) · 보내면 이력 「원장 명세서 메일」',
+    /type="date" value="2026-07-01"/.test(h) && /26\.07\.19/.test(h) && /26\.07\.31/.test(h) && !/26\.06\.19/.test(h) && /value="2026-07-01"/.test(h1) && /value="2026-07-31"/.test(h1)
+    && S.매출채권.open === pre.bal && S.매출채권.close === last.bal && A.매출채권.close === L.bal.매출채권 && A.임대보증금.close === L.bal.임대보증금
+    && SM.billTo(SM.CTRS.find(c => c.no === '별관301호' && c.b === 'b1')).length > 0 && lg && /원장 명세서 메일 — 2026\.07\.01 ~ 2026\.07\.31/.test(lg.sum)]); }
 /* 연체료 일부 감면 — 청구서에 들어간 연체료 줄을 청구 감액으로 줄인다(일반내역서 · 부가세 없음) → 18-2 */
 { const CF = new Function(stub + bare + '; seedJuly(); return {fixOpen,fxSet,fxConfirm,fixHTML,ledgerOf,cutBills};')();
   const k = 'b1별관301호', can = CF.cutBills(k).some(i => i.reg && i.amt === 29911);
