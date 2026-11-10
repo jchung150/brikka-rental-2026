@@ -668,7 +668,7 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   const L = PF.ledgerOf(k), due0 = L.bal.매출채권;
   PF.openOffset(k); const amt = PF.pm.amt; PF.payConfirm();
   r6.push([`퇴거 ① 해지일 08.17(청구일 앞) — 저장하면 8월분 마지막 청구서 바로 발행: 임대료 1,900,161 · 고정관리비 735,935(17/31일 일할) · 연체료 ${f17.toLocaleString()}(08.17까지) · 정산 항목 없음 · 패널 「메일 보내고 해지 처리」 · 청구서 발행 화면 「해지 처리로 발행」 · 정리일 08.17 뒤로 안 셈 · 보증금 상계 한 번으로 받을 돈 0`,
-    f17 > 38521 && /마지막 청구서/.test(th) && /메일 보내고 해지 처리/.test(th) && /메일 없이 해지 처리/.test(th) && /17\/31일 일할/.test(th)
+    f17 > 38521 && /마지막 청구서/.test(th) && /메일 보내고 해지 처리/.test(th) && /메일 없이 해지 처리/.test(th) && /<b>17일<\/b> \/ 31일 일할/.test(th) && /연체 내역 보기/.test(th)
     && get('임대료') === 1900161 && get('고정관리비') === 735935 && get('연체료') === f17 && B8.length === 3 && PF.ISS[k].term && PF.ISS[k].mail
     && row.st === '발행 완료' && row.lines.every(l => l.st === '약정' || l.fee) && /해지 처리로 발행/.test(p1)
     && PF.FEE_END[k] === '2026-08-17' && PF.feeUntil(k, '2026-08-31') === 0
@@ -853,7 +853,7 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   TM.tm.why = '이전'; TM.tm.est.elec = '180000'; const h = TM.termHTML(); TM.termSave();
   const row = TM.BILLS.find(r => r.k === 'b1본관501호' && r.adhoc);
   r6.push(['퇴거 ② 해지일 8/20(청구일 뒤) — 8/19 정기 청구서가 20/31일 일할 · 청구 전 기간: 전기요금 08.10~08.20 11일 · 수도요금 08.08~08.20 · 사유 없으면 안 됨 · 예상 공급가액 180,000원은 「전기요금 퇴거 예상분 (08.10~08.20)」 비정기 청구서 198,000(세금계산서 · 부가세 18,000)',
-    noWhy && e && e.from === '2026-08-10' && e.days === 11 && w && w.from === '2026-08-08' && /청구 전 기간\)은 퇴거 예상분으로/.test(h) && !/<div class="fl">청구 전 기간/.test(h) && /정기 청구서에 아래 금액이 들어가고/.test(h) && /원 · 20\/31일 일할/.test(h) && !/\+ 부가세/.test(h)
+    noWhy && e && e.from === '2026-08-10' && e.days === 11 && w && w.from === '2026-08-08' && !/정산 항목 — /.test(h) && !/<div class="fl">청구 전 기간/.test(h) && /정기 청구서에 아래 금액이 들어가고/.test(h) && /<b>20일<\/b> \/ 31일 일할/.test(h) && !/\+ 부가세/.test(h)
     && row && row.n === '전기요금 퇴거 예상분 (08.10~08.20)' && row.amt === 198000 && row.sup === 180000 && row.vat === 18000 && /예상 공급가액/.test(h) && TM.TERMS['b1본관501호'].out === '2026-08-20']);
   /* 위약금 · 원상복구비는 해지 패널에 없다 — 원장의 청구 추가로 */
   TM.termOpen('b1본관501호'); const th2 = TM.termHTML();

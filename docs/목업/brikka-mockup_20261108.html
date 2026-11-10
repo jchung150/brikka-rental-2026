@@ -5516,8 +5516,14 @@ function termHTML(){
   const R_=(k,b)=>`<div class="fr"><span class="fk">${k}</span>${b}</div>`;
   const md=d=>d.slice(5).replace('-','.'), ymL=tm.out?`${+tm.out.slice(5,7)}월분`:'';
   /* 마지막 청구 — 해지 달 임대료 · 고정관리비(일할 기본값 · 고칠 수 있음) · 연체료(연체 내역 링크). 저장하면 무엇이 기록되는지 미리 보인다 */
-  const fixRows=()=>termFix(tm.k,tm.out,tm.fix).map(f=>R_(`${f.n}${f.tax?' (공급가액)':''}`,`<input type="text" inputmode="numeric" value="${num(f.sup)}" onchange="tm.fix['${f.n}']=this.value;render(true)" style="border:1px solid var(--line);border-radius:var(--r-sm);padding:7px 9px;font:inherit;text-align:right;max-width:140px"><span class="c2" style="margin:0">원 · ${f.edited?`일할 기본값 ${won(f.def.sup)}에서 고침`:`${f.d}/${f.dn}일 일할`}</span>`)).join('');
-  const feeRow=(amt,to,lbl)=>amt?R_(lbl||'연체료',`<span>${won(amt)}</span><span class="c2" style="margin:0">${md(to)}까지</span><span class="lk" style="margin-left:6px" onclick="tm.feeOpen=!tm.feeOpen;render(true)">연체 내역 ${tm.feeOpen?'접기':'보기'}</span>`)+(tm.feeOpen?feeTbl(to):''):'';
+  /* 항목마다 카드 하나 — 이름 · 기간 줄, 그 아래 금액 줄. 정산 항목(퇴거 예상분) 카드와 같은 모양이다 */
+  const card=body=>`<div style="border:1px solid var(--line);border-radius:var(--r-sm);padding:9px 12px 1px;margin-bottom:8px">${body}</div>`;
+  const fixCards=X=>termFix(tm.k,tm.out,tm.fix).map(f=>{const x=(X||[]).find(y=>y.b.n===f.n);
+    return card(R_(f.n,`<span class="fv">${md(tm.out.slice(0,8)+'01')} ~ ${md(tm.out)} · <b>${f.d}일</b>${f.d<f.dn?` / ${f.dn}일 일할`:''}</span>`)
+      +R_(f.tax?'공급가액':'금액',`<input type="text" inputmode="numeric" value="${num(f.sup)}" onchange="tm.fix['${f.n}']=this.value;render(true)" style="border:1px solid var(--line);border-radius:var(--r-sm);padding:7px 9px;font:inherit;text-align:right;max-width:140px"><span class="c2" style="margin:0">원${f.edited?` · 일할 기본값 ${won(f.def.sup)}에서 고침`:''}</span>`)
+      +(x?R_('감액',`<span>${won(x.amt)}</span><span class="c2" style="margin:0">발행한 ${won(x.b.amt)}에서 · 공급가액 ${won(x.sup)} · 부가세 ${won(x.vat)}</span>`):''));}).join('');
+  const feeCard=(amt,to,lbl,less)=>amt||less?card(R_('연체료',`<span class="fv">${md(to)}까지 · 연 ${rateOf(tm.k)}%</span><span class="lk" style="margin-left:8px" onclick="tm.feeOpen=!tm.feeOpen;render(true)">연체 내역 ${tm.feeOpen?'접기':'보기'}</span>`)
+      +(amt?R_(lbl||'금액',`<span>${won(amt)}</span>`):'')+(less||'')+(tm.feeOpen?feeTbl(to):'')):'';
   /* 연체 내역 — 달마다 구간(입금이 들어온 날마다 끊는다) · 밀린 금액 · 일수 · 연체료. 미납 관리의 미납 상세와 같은 표 */
   const feeTbl=to=>{const yms=[...new Set(BILLS.filter(i=>i.k===tm.k).map(i=>i.ym))].sort(), M=yms.map(ym=>({ym,...lateCalc(tm.k,ym,to)})).filter(m=>m.fee>0);
     const td='style="padding:7px 10px"';
@@ -5530,15 +5536,13 @@ function termHTML(){
     const bo=md(billOn(tm.out.slice(0,7)));
     if(mode==='now'){const R=lastBill(tm.k,tm.out,Object.fromEntries(termFix(tm.k,tm.out,tm.fix).map(f=>[f.n,{sup:f.sup,vat:f.vat}])));
       return `<div class="c2" style="margin:0 0 8px;white-space:normal">해지일이 청구일(${bo}) 앞이라, 저장하면 <b>${ymL} 마지막 청구서</b>를 바로 발행합니다. 정산 항목은 싣지 않고 아래 퇴거 예상분으로 받습니다.</div>`
-        +fixRows()+feeRow(R.fee,tm.out)+R_('합계',`<b>${won(R.sum)}</b><span class="c2" style="margin:0">부가세 포함</span>`);}
+        +fixCards()+feeCard(R.fee,tm.out)+R_('마지막 청구서 합계',`<b>${won(R.sum)}</b><span class="c2" style="margin:0">부가세 포함</span>`);}
     if(mode==='reg') return `<div class="c2" style="margin:0 0 8px;white-space:normal">해지일이 청구일(${bo}) 뒤라, ${bo} 정기 청구서에 아래 금액이 들어가고 연체료는 해지일까지 들어갑니다. 저장할 때 따로 발행하지 않습니다.</div>`
-        +fixRows()+feeRow(feeUntil(tm.k,tm.out),tm.out);
+        +fixCards()+feeCard(feeUntil(tm.k,tm.out),tm.out);
     if(mode==='after'){const X=termCuts(tm.k,tm.out,tm.fix), F=termFee(tm.k,tm.out);
       return `<div class="c2" style="margin:0 0 8px;white-space:normal">${ymL} 청구서를 이미 발행했습니다. 청구서는 그대로 두고, 해지 달 금액과의 차이를 청구 감액으로 원장에 기록합니다.</div>`
-        +fixRows()
-        +X.map(x=>R_(`${x.b.n} 감액`,`<span>${won(x.amt)}</span><span class="c2" style="margin:0">공급가액 ${won(x.sup)} · 부가세 ${won(x.vat)}</span>`)).join('')
-        +feeRow(F.add,tm.out,'연체료 청구')
-        +(F.less?R_('연체료 감액',`<span>${won(F.less)}</span><span class="c2" style="margin:0">해지일 뒤 ${md(nstr(dnum(tm.out)+1))}~${md(F.cut)}</span>`):'');}
+        +fixCards(X)
+        +feeCard(F.add,tm.out,'연체료 청구',F.less?R_('감액',`<span>${won(F.less)}</span><span class="c2" style="margin:0">해지일 뒤 ${md(nstr(dnum(tm.out)+1))}~${md(F.cut)}</span>`):'');}
     if(mode==='later') return '<div class="c2" style="margin:0;white-space:normal">해지일이 있는 달의 청구에서 처리합니다. 목업은 이번 회차(8월) 해지만 계산합니다.</div>';
     if(mode==='none') return '<div class="c2" style="margin:0;white-space:normal">해지일이 마감한 달입니다. 청구는 바뀌지 않습니다. 해지일 뒤로는 연체료를 세지 않습니다.</div>';
     return '<div class="c2" style="margin:0">목업의 청구 자료는 카리나빌딩뿐입니다</div>';})();
@@ -5557,7 +5561,7 @@ function termHTML(){
       <div class="fg"><div class="fl">마지막 청구</div>
         ${tm.out?last:'<div class="c2" style="margin:0">해지일을 넣으면 마지막 청구가 어떻게 되는지 보여 줍니다</div>'}
         ${!tm.out?''
-        :U.length?'<div class="c2" style="margin:12px 0 8px;white-space:normal">정산 항목 — 아직 정기 청구서에 싣지 않은 기간(청구 전 기간)은 퇴거 예상분으로 받습니다</div>'+U.map(u=>`<div style="border:1px solid var(--line);border-radius:var(--r-sm);padding:9px 12px 1px;margin-bottom:8px">
+        :U.length?U.map(u=>`<div style="border:1px solid var(--line);border-radius:var(--r-sm);padding:9px 12px 1px;margin-bottom:8px">
             ${R(u.n,`<span class="fv">${u.from.slice(5).replace('-','.')} ~ ${u.to.slice(5).replace('-','.')} · <b>${u.days}일</b> 청구 전</span>`)}
             ${R(u.doc==='세금계산서'?'예상 공급가액':'예상 금액',`<input type="text" inputmode="numeric" value="${tm.est[u.code]?num(numOf(tm.est[u.code])):''}" placeholder="직접 계산해 넣기"
               onchange="tm.est['${u.code}']=this.value;render(true)" style="${inp};text-align:right;max-width:140px"><span class="c2" style="margin:0">원</span>`,amtTip(u.doc))}</div>`).join('')
