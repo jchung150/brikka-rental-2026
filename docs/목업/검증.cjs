@@ -658,15 +658,41 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   const hd = h => (h.match(/<div class="schr led hd">[\s\S]*?<\/div>/) || [''])[0];
   r6.push(['원장 전체 펼치기 — 버튼 없음 · 머리글 날짜 칸 왼쪽 화살표(전체 펼치기) · 펼치면 돌아간 화살표(전체 접기)',
     !/전체 (펼치기|접기)<\/button>/.test(h0) && /<span class="tg " title="전체 펼치기"/.test(hd(h0)) && /<span class="tg op" title="전체 접기"/.test(hd(h1))]); }
-/* 퇴거 — 해지 처리하면 마지막 청구서에 해지일까지의 연체료 · 그 뒤로는 세지 않는다 · 보증금 상계 한 번으로 정리 → 18-5 */
-{ const PF = new Function(stub + bare + '; seedJuly(); return {termOpen,termSet,termSave,termHTML,openOffset,payConfirm,ledgerOf,feeUntil,BILLS,FEE_END,get pm(){return pm;}};')();
+/* 퇴거 ① 해지일이 청구일(8/19) 앞 — 저장하면 8월분 마지막 청구서를 바로 발행(고정액 1~17일 일할 + 08.17까지 연체료 · 정산 항목 없음)
+   · 청구서 발행 화면엔 「해지 처리로 발행」 · 그 뒤로 연체료를 세지 않음 · 보증금 상계 한 번으로 받을 돈 0 → 4.2.3 · 18-5 · 확인요청 답변 질문 2 */
+{ const PF = new Function(stub + bare + '; seedJuly(); return {termOpen,termSet,termSave,termHTML,openOffset,payConfirm,ledgerOf,feeUntil,BILLS,FEE_END,ISS,ISSUE,PAY1,get pm(){return pm;},set f1b(v){f1.b=v;}};')();
   const k = 'b1별관301호', f17 = PF.feeUntil(k, '2026-08-17');
-  PF.termOpen(k); PF.termSet('out', '2026-08-17'); PF.termSet('why', '퇴거'); const th = PF.termHTML(); PF.termSave();
-  const b = PF.BILLS.find(i => i.k === k && i.reg && i.feeTo === '2026-08-17'), L = PF.ledgerOf(k);
+  PF.termOpen(k); PF.termSet('out', '2026-08-17'); PF.termSet('why', '퇴거'); const th = PF.termHTML(); PF.termSave(true);
+  const B8 = PF.BILLS.filter(i => i.k === k && i.ym === '2026-08' && !i.adhoc), get = n => (B8.find(i => i.n === n) || {}).amt;
+  PF.f1b = 'b1'; const row = PF.ISSUE().find(c => c.k === k), p1 = PF.PAY1();
+  const L = PF.ledgerOf(k), due0 = L.bal.매출채권;
   PF.openOffset(k); const amt = PF.pm.amt; PF.payConfirm();
-  r6.push([`퇴거 — 해지일 08.17 해지 처리 → 마지막 청구서에 연체료 ${f17.toLocaleString()}(08.17까지 · 패널에 미리 보임) · 정리일 08.17 · 그 뒤로 세지 않음 · 보증금 상계 한 번(미납 5,176,383 + 연체료)으로 받을 돈 0`,
-    f17 > 38521 && /연체료/.test(th) && b && b.amt === f17 && PF.FEE_END[k] === '2026-08-17' && PF.feeUntil(k, '2026-08-31') === 0
-    && L.rows.some(r => r.type === '청구' && /마지막 청구서/.test(r.item)) && amt === 5176383 + f17 && PF.ledgerOf(k).bal.매출채권 === 0]); }
+  r6.push([`퇴거 ① 해지일 08.17(청구일 앞) — 저장하면 8월분 마지막 청구서 바로 발행: 임대료 1,900,161 · 고정관리비 735,935(17/31일 일할) · 연체료 ${f17.toLocaleString()}(08.17까지) · 정산 항목 없음 · 패널 「메일 보내고 해지 처리」 · 청구서 발행 화면 「해지 처리로 발행」 · 정리일 08.17 뒤로 안 셈 · 보증금 상계 한 번으로 받을 돈 0`,
+    f17 > 38521 && /마지막 청구서/.test(th) && /메일 보내고 해지 처리/.test(th) && /메일 없이 해지 처리/.test(th) && /17\/31일 일할/.test(th)
+    && get('임대료') === 1900161 && get('고정관리비') === 735935 && get('연체료') === f17 && B8.length === 3 && PF.ISS[k].term && PF.ISS[k].mail
+    && row.st === '발행 완료' && row.lines.every(l => l.st === '약정' || l.fee) && /해지 처리로 발행/.test(p1)
+    && PF.FEE_END[k] === '2026-08-17' && PF.feeUntil(k, '2026-08-31') === 0
+    && due0 === 5176383 + 1900161 + 735935 + f17 && amt === due0 && PF.ledgerOf(k).bal.매출채권 === 0]); }
+/* 해지 처리 없이 끝난 계약 — 해지 메뉴가 열리고 만기 종료 · 해지일 = 종료일(잠김) · 마감한 달이라 청구는 그대로 · 연체료는 종료일 뒤로 안 셈 → 확인요청 답변 질문 3 */
+{ const EN = new Function(stub + bare + '; seedJuly(); return {ctrMore,termOpen,termHTML,lateCalc,CTRS,ckey,MORE,get tm(){return tm;}};')();
+  const c = EN.CTRS.find(x => x.b === 'b2' && x.no === '1501호'), k = EN.ckey(c); EN.MORE.length = 0; EN.ctrMore(c, k);
+  const it = EN.MORE.flat().find(i => i.t === '해지'); EN.termOpen(k); const h = EN.termHTML();
+  r6.push(['해지 처리 없이 끝난 계약(리틀브릿지) — 해지 메뉴 열림 · 만기 종료 · 해지일 = 종료일 2025.01.31(잠김) · 「해지일이 마감한 달」 · 버튼 하나',
+    c.st === '종료됨' && it && !it.off && EN.tm.type === '만기 종료' && EN.tm.out === '2025-01-31' && /disabled>/.test(h) && /해지일이 마감한 달/.test(h) && !/메일 보내고 해지 처리/.test(h)]); }
+/* 퇴거 ③ 8월 청구서를 이미 발행한 뒤 해지 — 청구서는 그대로, 임대료 · 고정관리비 일할 차이를 청구 감액 + 정리일 다음날 ~ 해지일 연체료 청구 한 건 → 확인요청 답변 질문 1 */
+{ const PA = new Function(stub + bare + '; seedJuly(); return {issue1,termOpen,termSet,termSave,termHTML,BILLS,CUTS,FEE_CUT,feeUntil,ledgerOf,set f1b(v){f1.b=v;}};')();
+  const k = 'b1별관301호'; PA.f1b = 'b1'; PA.issue1([k]);
+  const rent = PA.BILLS.find(i => i.k === k && i.ym === '2026-08' && i.n === '임대료'), fAdd = PA.feeUntil(k, '2026-08-25');
+  PA.termOpen(k); PA.termSet('out', '2026-08-25'); PA.termSet('why', '퇴거'); const th = PA.termHTML(); PA.termSave(false);
+  const cr = PA.CUTS.find(x => x.id === rent.id), fb = PA.BILLS.find(i => i.id === `fee|${k}|term`);
+  /* 해지일이 발행일보다 앞이면 이미 넣은 해지일 뒤 연체료를 감액 */
+  const PB = new Function(stub + bare + '; seedJuly(); return {issue1,termOpen,termSet,termSave,BILLS,CUTS,FEE_CUT,set f1b(v){f1.b=v;}};')();
+  PB.f1b = 'b1'; PB.issue1([k]); PB.termOpen(k); PB.termSet('out', '2026-08-05'); PB.termSet('why', '퇴거'); PB.termSave(false);
+  const lf = PB.CUTS.find(x => /해지일 뒤 연체료 \(08\.06~08\.09\)/.test(x.why));
+  r6.push(['퇴거 ③ 발행 뒤 해지(08.25) — 임대료 3,465,000 → 25/31일 2,794,354 · 감액 670,646(공급가액 609,679 · 부가세 60,967 — 원래와 일할의 차이 그대로) · 연체료 청구 한 건(08.10~08.25 · 「해지 처리」) · 정리일 08.25 · 버튼은 「해지 처리」 하나 · 해지일 08.05면 이미 넣은 08.06~08.09 연체료를 감액',
+    rent.amt === 3465000 && cr && cr.amt === 670646 && cr.sup === 609679 && cr.vat === 60967 && /해지 일할 \(08\.26~31\)/.test(cr.why)
+    && fb && fb.amt === fAdd && fAdd > 0 && /해지 처리/.test(fb.memo) && PA.FEE_CUT[k] === '2026-08-25' && /이미 발행/.test(th) && !/메일 보내고 해지 처리/.test(th)
+    && lf && lf.amt > 0 && PB.FEE_CUT[k] === '2026-08-05']); }
 /* 연체료 일부 감면 — 청구서에 들어간 연체료 줄을 청구 감액으로 줄인다(일반내역서 · 부가세 없음) → 18-2 */
 { const CF = new Function(stub + bare + '; seedJuly(); return {fixOpen,fxSet,fxConfirm,fixHTML,ledgerOf,cutBills};')();
   const k = 'b1별관301호', can = CF.cutBills(k).some(i => i.reg && i.amt === 29911);
@@ -811,15 +837,15 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   PR.prcOpen('elec', '본관701호'); PR.prc.amt = '0'; PR.prc.why = '퇴거 때 추정액으로 받음'; PR.prcApply();
   const R2 = PR.calc(m), r2 = R2.rows.find(r => r.no === '본관701호');
   r6.push(['일할 계산 — 금액을 직접 0원으로 고치면 그대로 · 사유 남음 · 검증 일치', r2.amt === 0 && r2.pro.why === '퇴거 때 추정액으로 받음' && R2.diff === 0]); }
-/* 계약 해지 — 해지일 8/20이면 전기요금 08.10~08.20(11일)이 고지 전 · 예상 금액은 비정기 청구서로 · 사유 없으면 안 됨 */
-{ const TM = new Function(stub + bare + '; seedJuly(); return {termOpen,termSave,unbilled,TERMS,BILLS,CTRS,termHTML,get tm(){return tm;}};')();
+/* 퇴거 ② 해지일 8/20이면 8/19 정기 청구서가 일할 · 전기요금 08.10~08.20(11일)이 청구 전 기간 · 예상 금액은 비정기 청구서로 · 사유 없으면 안 됨 */
+{ const TM = new Function(stub + bare + '; seedJuly(); return {termOpen,termSave,unbilled,TERMS,BILLS,CTRS,termHTML,ISSUE,get tm(){return tm;},set f1b(v){f1.b=v;}};')();
   const c = TM.CTRS.find(x => x.no === '본관501호');
   TM.termOpen('b1본관501호'); TM.tm.out = '2026-08-20'; TM.termSave(); const noWhy = !TM.TERMS['b1본관501호'];
-  const U = TM.unbilled(c, '2026-08-20'), e = U.find(u => u.code === 'elec'), w = U.find(u => u.code === 'water');
+  const U = TM.unbilled(c, '2026-08-20', 'reg'), e = U.find(u => u.code === 'elec'), w = U.find(u => u.code === 'water');
   TM.tm.why = '이전'; TM.tm.est.elec = '180000'; const h = TM.termHTML(); TM.termSave();
   const row = TM.BILLS.find(r => r.k === 'b1본관501호' && r.adhoc);
-  r6.push(['계약 해지 — 해지일 8/20: 전기요금 08.10~08.20 11일 고지 전 · 수도요금 08.08~08.20 · 사유 없으면 안 됨 · 예상 공급가액 180,000원은 「전기요금 퇴거 예상분 (08.10~08.20)」 비정기 청구서 198,000(세금계산서 · 부가세 18,000)',
-    noWhy && e && e.from === '2026-08-10' && e.days === 11 && w && w.from === '2026-08-08' && /아직 고지되지 않은 기간/.test(h)
+  r6.push(['퇴거 ② 해지일 8/20(청구일 뒤) — 8/19 정기 청구서가 20/31일 일할 · 청구 전 기간: 전기요금 08.10~08.20 11일 · 수도요금 08.08~08.20 · 사유 없으면 안 됨 · 예상 공급가액 180,000원은 「전기요금 퇴거 예상분 (08.10~08.20)」 비정기 청구서 198,000(세금계산서 · 부가세 18,000)',
+    noWhy && e && e.from === '2026-08-10' && e.days === 11 && w && w.from === '2026-08-08' && /청구 전 기간/.test(h) && /정기 청구서에 임대료 · 고정관리비가 <b>20\/31일 일할/.test(h)
     && row && row.n === '전기요금 퇴거 예상분 (08.10~08.20)' && row.amt === 198000 && row.sup === 180000 && row.vat === 18000 && /예상 공급가액/.test(h) && TM.TERMS['b1본관501호'].out === '2026-08-20']);
   /* 위약금 · 원상복구비 — 보증금에서 바로 빼지 않고 비정기 청구서로. 다시 저장해도 한 번만 */
   TM.termOpen('b1본관501호'); TM.tm.pen = '5000000'; TM.tm.rest = '3300000'; TM.termSave();
@@ -1191,12 +1217,12 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   r6.push(['수납 처리 없음 — 수납 내역 · 미납 관리 더보기는 「입금 확인」 · 원장 수납 ▾는 과납 환불만 · 입금 확인은 그 임차인 입금만 거른 입금 매칭(비씨에이전시 7월은 07.31 한 건) · 전체 임차인으로 되돌림',
     /moreOpen\(/.test(h) && bc && sc && bc.map(i => i.t).join() === '입금 확인,청구서 보기,원장 보기' && !bc[0].off && !sc[0].off && sc[2].go.includes(`go('ctr-3/b1본관101호')`)
     && p2 && p2.map(i => i.t).join() === '입금 확인' && none && filt && back]); }
-/* 메뉴 — 월 청구(정산 → 발행 → 마감, 순서대로)와 수납(입금 매칭 · 수납 내역 · 미납 관리, 아무 때나)을 나눈다 */
+/* 메뉴 — 정기 청구(정산 → 발행 → 마감, 순서대로)와 수납(입금 매칭 · 수납 내역 · 미납 관리, 아무 때나)을 나눈다 */
 { const MN = new Function(stub + bare + '; return {MENU};')();
   const g = k => (MN.MENU.find(m => m.k === k) || {items: []}).items.map(i => i.n).join(' → ');
-  r6.push(['메뉴 — 월 청구: 관리비 정산 → 청구서 발행 → 월 마감(누르면 월 청구 현황) · 수납: 입금 매칭 · 수납 내역 · 미납 관리',
+  r6.push(['메뉴 — 정기 청구: 관리비 정산 → 청구서 발행 → 월 마감(누르면 정기 청구 현황) · 수납: 입금 매칭 · 수납 내역 · 미납 관리',
     g('청구') === '관리비 정산 → 청구서 발행 → 월 마감' && g('수납') === '입금 매칭 → 수납 내역 → 미납 관리'
-    && MN.MENU.find(m => m.k === '청구').g === '월 청구' && MN.MENU.find(m => m.k === '청구').over === 'pay-12' && !MN.MENU.find(m => m.k === '수납').over]); }
+    && MN.MENU.find(m => m.k === '청구').g === '정기 청구' && MN.MENU.find(m => m.k === '청구').over === 'pay-12' && !MN.MENU.find(m => m.k === '수납').over]); }
 /* 상계 취소를 막는 셋째 경우 — 상계로 채운 청구를 감액해 생긴 과납을 이미 환불했으면 취소할 수 없다 → 확인요청 답변 질문 7 */
 { const OX = new Function(stub + bare + '; seedJuly(); return {openOffset,payConfirm,addCut,openRefund,ovConfirm,cancelWhyNot,payRec,BILLS,PAYEV,overOf};')();
   const k = 'b1별관301호'; OX.openOffset(k); OX.payConfirm();
