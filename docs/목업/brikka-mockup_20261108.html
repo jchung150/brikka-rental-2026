@@ -610,7 +610,7 @@ const MENU=[
  {k:'청구',g:'정기 청구',i:'calc',over:'pay-12',items:[
    {id:'pay-10',n:'관리비 정산',sid:'PAY-10',i:'calc'},
    {id:'pay-1',n:'청구서 발행',sid:'PAY-1',i:'mail'},
-   {id:'pay-11',n:'월 마감',sid:'PAY-11',i:'lock'}]},
+]},
  {k:'수납',g:'수납',i:'wallet',items:[
    {id:'pay-13',n:'입금 매칭',sid:'PAY-13',i:'card'},
    {id:'pay-6',n:'수납 내역',sid:'PAY-6',i:'list'},
@@ -2876,76 +2876,73 @@ function row4(r,m,cls){
     <td class="c">${r.st==='사용중'&&!isDirect(m.code)?moreCell([{t:'일할 계산',go:`prcOpen('${m.code}','${r.no}')`}]):''}</td></tr>`;
 }
 
-/* ═══ PAY-12 정기 청구 현황 — 「정기 청구」 메뉴를 누르면 열린다 ═══ */
+/* ═══ PAY-12 월 마감 — 「정기 청구」 메뉴를 누르면 열린다. 달을 고르고 건물마다 그 달이 어디까지 왔는지(정산 → 발행 → 수납) 보고 마감한다.
+   진행 현황과 마감이 같은 칸(정산 · 청구서 · 청구액 · 수납 · 미납 · 마감)을 보므로 한 화면이다 ═══ */
 let f12='2026-08';
-/* 카리나빌딩 7월 — 원장에서 센다. 청구 계약 수 · 청구액 · 수납액 · 완납 계약 수. 8/5 월 마감 */
-function prog7b1(){
-  const ks=[...new Set(BILLS.filter(i=>i.ym==='2026-07'&&i.k.startsWith('b1')).map(i=>i.k))];
-  const P=ks.map(k=>ctrPay(k,'2026-07'));
-  return {settle:'확정',inv:ks.length,invN:ks.length,amt:P.reduce((a,p)=>a+p.bill,0),paid:P.reduce((a,p)=>a+p.paid,0),
-    paidN:P.filter(p=>p.st==='완납').length,closed:true,closedAt:'08-05',due:'07-31'};
-}
-const progOf=id=>{const p=f12==='2026-08'?PROG[id]:id==='b1'?prog7b1():PROG7[id], c=(MC[id]||{})[f12];
-  return {...p,closed:!!c,closedAt:c?c.at.slice(0,5):null};};
+let sel12={};   /* 보고서를 발행할 건물 — 고른 달을 마감한 건물만 */
+function mc12(b,mode){s11={b,ym:f12};mcOpen(mode);}
+function mcPick12(b,e){if(e)e.stopPropagation();sel12[b]=!sel12[b];render(true);}
+/* 월 마감 보고서 — 고른 건물마다 PDF 한 부. 마감한 숫자 그대로라 다시 뽑아도 같다 */
+function mcReport12(){const bs=BUILDINGS.filter(x=>sel12[x.id]&&mcState(x.id,f12).k==='마감'); if(!bs.length) return;
+  say(`월 마감 보고서 ${bs.length}부 발행\n${f12.replace('-','년 ')}월 · ${bs.map(x=>x.name).join(', ')}\n\n`
+    +'담는 내용: 청구서 발행 건수 · 청구액 · 수납액 · 이 달 청구분 미납 · 다음 달로 넘어가는 미납(계약별) · 마감일시·마감자');}
 function PAY12(){
-  const S={설정:{c:'mu',t:'미착수'},미착수:{c:'mu'},작성중:{c:'wa'},확정:{c:'ok'}};
-  const rows=BUILDINGS.map(b=>{
-    const p=progOf(b.id);
-    const rate=p.invN?Math.round(p.paidN/p.invN*100):0;
-    const unpaid=p.amt-p.paid;
-    return `<tr>
-      <td><div class="c1">${b.name}</div><div class="c2">${b.kind} · ${b.unitCnt}유닛</div></td>
-      <td class="st c" onclick="go('pay-10')">
-        <span class="stp"><span class="dot2" style="background:var(--${p.settle==='확정'?'ok':p.settle==='작성중'?'warn':'faint'})"></span>
-        ${p.settle}</span></td>
-      <td class="st n" onclick="go('pay-1')">${p.inv?`<b>${p.inv} / ${p.invN}건</b><div class="c2">발행 / 대상</div>`
-        :`<span style="color:var(--faint)">0 / ${p.invN}건</span><div class="c2">발행 / 대상</div>`}</td>
-      <td class="n">${p.amt?won(p.amt):'—'}</td>
-      <td class="st n" onclick="go('pay-6')">${p.inv?`<b>${p.paidN} / ${p.invN}</b>
-        <div class="bar ${rate<100?'part':''}"><i style="width:${rate}%"></i></div>`:'—'}</td>
-      <td class="n">${unpaid>0?`<b style="color:var(--warn)">${won(unpaid)}</b>`
-        :p.inv?'<span class="bd ok">완납</span>':'—'}</td>
-      <td class="st c" onclick="go('pay-11')">${p.closed
-        ?`<span class="bd ok">마감</span><div class="c2">${p.closedAt}</div>`
-        :'<span class="bd mu">열림</span>'}</td>
-    </tr>`}).join('');
-  const T=BUILDINGS.reduce((a,b)=>{const p=progOf(b.id);
-    a.inv+=p.inv;a.invN+=p.invN;a.amt+=p.amt;a.paid+=p.paid;a.paidN+=p.paidN;
-    a.done+=(p.settle==='확정'?1:0);a.closed+=(p.closed?1:0);return a;},
-    {inv:0,invN:0,amt:0,paid:0,paidN:0,done:0,closed:0});
-  const rate=T.amt?Math.round(T.paid/T.amt*100):0;
+  const dash='<span style="color:var(--faint)">—</span>';
+  const D=BUILDINGS.map(b=>{const S=mcState(b.id,f12), N=mcNum(b.id,f12), set=f12<'2026-08'?'확정':PROG[b.id].settle;
+    return {b,S,N,set,due:N.due!=null?N.due:N.bill-N.paid};});
+  const rows=D.map(({b,S,N,set,due})=>{const can=S.k==='마감', on=can&&!!sel12[b.id];
+    const act=S.k==='마감'?`<span class="more" onclick="mc12('${b.id}','undo')">마감 취소</span>`
+      :S.k==='진행 중'?`<span class="more off" title="청구서 발행 전이라 마감할 수 없습니다">마감</span>`
+      :`<span class="more" onclick="mc12('${b.id}','close')">마감</span>`;
+    return `<tr class="${on?'on':''}">
+      <td>${can?`<span class="cb ${on?'on':''}" style="cursor:pointer" onclick="mcPick12('${b.id}',event)"></span>`:'<span class="cb dis" title="마감한 건물만 보고서를 발행할 수 있습니다"></span>'}
+        <span style="display:inline-block;vertical-align:middle;margin-left:8px"><div class="c1">${b.name}</div><div class="c2">${b.kind} · ${b.unitCnt}유닛</div></span></td>
+      <td class="st c" onclick="go('pay-10')"><span class="stp"><span class="dot2" style="background:var(--${set==='확정'?'ok':set==='작성중'?'warn':'faint'})"></span>${set}</span></td>
+      <td class="st n" onclick="go('pay-1')">${N.n?`${N.n} / ${N.N}건`:`<span style="color:var(--faint)">0 / ${N.N}건</span>`}</td>
+      <td class="n">${N.bill?won(N.bill):dash}</td>
+      <td class="st n" onclick="go('pay-6')">${N.bill?won(N.paid):dash}</td>
+      <td class="n">${due>0?`<span style="color:var(--warn)">${won(due)}</span>`:N.bill?'<span class="bd ok">완납</span>':dash}</td>
+      <td class="c">${S.k==='마감'?'<span class="bd ok">마감</span>':S.k==='진행 중'?'<span class="bd mu">진행 중</span>':'<span class="bd wa">열림</span>'}</td>
+      <td class="c2">${S.k==='마감'?`${S.c.at.replace('-','.')} · ${S.c.by}`:''}</td>
+      <td class="c">${act}</td>
+    </tr>`;}).join('');
+  const T=D.reduce((a,x)=>{a.n+=x.N.n;a.N+=x.N.N;a.bill+=x.N.bill||0;a.paid+=x.N.paid||0;a.due+=Math.max(0,x.due||0);
+    a.done+=x.set==='확정'?1:0;a.closed+=x.S.k==='마감'?1:0;return a;},{n:0,N:0,bill:0,paid:0,due:0,done:0,closed:0});
+  const rate=T.bill?Math.round(T.paid/T.bill*100):0, nSel=D.filter(x=>sel12[x.b.id]&&x.S.k==='마감').length;
   return `
-  <div class="ph"><h1>정기 청구 현황</h1><span class="sid">PAY-12</span></div>
+  <div class="ph"><h1>월 마감</h1><span class="sid">PAY-12</span>
+    <div class="act"><button class="btn pri" ${nSel?'':'disabled'} onclick="mcReport12()">월 마감 보고서 발행${nSel?` ${nSel}건`:''}</button></div></div>
   <div class="fbar">
-    <select onchange="f12=this.value;render()">${[['2026-08','2026년 8월'],['2026-07','2026년 7월']].map(([v,t])=>`<option value="${v}" ${f12===v?'selected':''}>${t}</option>`).join('')}</select>
+    <select onchange="f12=this.value;sel12={};render()">${MC_YMS.slice().reverse().map(v=>`<option value="${v}" ${f12===v?'selected':''}>${v.replace('-','년 ').replace(/년 0/,'년 ')}월</option>`).join('')}</select>
     <span style="color:var(--muted);font-size:12px">건물 ${BUILDINGS.length}개 · 정산 확정 ${T.done} · 월 마감 ${T.closed}</span>
   </div>
   <div class="two" style="grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px">
-    ${[['청구 금액',won(T.amt),`${T.inv}건 발행`],
-       ['수납 금액',won(T.paid),`${T.paidN} / ${T.inv}건`],
-       ['미납 금액',won(T.amt-T.paid),`수납률 ${rate}%`],
+    ${[['청구 금액',won(T.bill),`${T.n}건 발행`],
+       ['수납 금액',won(T.paid),`수납률 ${rate}%`],
+       ['이 달 청구분 미납',won(T.due),`마감 ${T.closed} / ${BUILDINGS.length}개 건물`],
        ['정산 미확정',`${BUILDINGS.length-T.done}개 건물`,'청구 발행 불가']]
       .map(([k,v,d],i)=>`<div class="card" style="margin:0"><div class="cc" style="padding:14px 16px">
         <div style="font-size:11.5px;color:var(--muted)">${k}</div>
-        <div style="font-size:17px;font-weight:700;margin:3px 0 1px;${i===2&&T.amt>T.paid?'color:var(--warn)':''}${i===3&&T.done<BUILDINGS.length?'color:var(--warn)':''}">${v}</div>
+        <div style="font-size:17px;font-weight:700;margin:3px 0 1px;${i===2&&T.due>0?'color:var(--warn)':''}${i===3&&T.done<BUILDINGS.length?'color:var(--warn)':''}">${v}</div>
         <div class="c2">${d}</div></div></div>`).join('')}
   </div>
-  <div class="tbl"><div class="tw"><table class="pgrid">
-    <thead><tr><th>건물</th><th class="c">정산</th><th class="n">청구서</th><th class="n">청구 금액</th>
-      <th class="n">수납</th><th class="n">미납 금액</th><th class="c">월 마감</th></tr></thead>
+  <div class="tbl"><div class="tw"><table class="pgrid mcl">
+    <thead><tr><th>건물</th><th class="c">정산</th><th class="n">청구서</th><th class="n">청구액</th><th class="n">수납액</th>
+      <th class="n">이 달 청구분 미납</th><th class="c">마감</th><th>마감일시 · 마감자</th><th class="c">더보기</th></tr></thead>
     <tbody>${rows}
-      <tr class="sumr"><td>합계</td><td class="c">${T.done} / ${BUILDINGS.length}</td>
-        <td class="n">${T.inv}건</td><td class="n">${won(T.amt)}</td>
-        <td class="n">${T.paidN} / ${T.inv}</td><td class="n">${won(T.amt-T.paid)}</td>
-        <td class="c">${T.closed} / ${BUILDINGS.length}</td></tr>
+      <tr class="sumr"><td>합계</td><td class="c">${T.done} / ${BUILDINGS.length}</td><td class="n">${T.n} / ${T.N}건</td><td class="n">${won(T.bill)}</td>
+        <td class="n">${won(T.paid)}</td><td class="n">${won(T.due)}</td><td class="c">${T.closed} / ${BUILDINGS.length}</td><td></td><td></td></tr>
     </tbody></table></div></div>
   <div class="hint">
-    각 칸을 클릭하면 해당 화면으로 이동한다. 정산이 확정되어야 청구서를 발행할 수 있다.<br>
-    <b>월 마감</b>은 그 달의 장부를 잠그는 것이다. 마감 후에는 청구·수납을 수정할 수 없다. 확정한 정산은 마감과 관계없이 고치지 않는다.
-    <b>미납이 남아 있어도 마감한다.</b> 미납액은 채권으로 이월된다.</div>`;
+    달을 고르면 건물마다 그 달이 어디까지 왔는지(정산 → 청구서 발행 → 수납 → 마감) 보입니다. 정산 · 청구서 · 수납액 칸을 누르면 그 화면으로 갑니다.<br>
+    <b>월 마감</b>은 그 달의 장부를 잠그는 일입니다. 마감한 달의 청구·수납은 고칠 수 없고, 정정은 이번 달의 청구 추가·청구 감액으로 합니다. 확정한 정산은 마감을 취소해도 고치지 않습니다.<br>
+    마감한 건물을 체크하고 <b>월 마감 보고서 발행</b>을 누르면 고른 건물마다 보고서가 한 부씩 나옵니다.<br>
+    <b>미납이 남아 있어도 마감합니다.</b> 미납은 사라지지 않고 다음 달로 넘어가 미납 관리에 계속 보입니다.<br>
+    청구서를 발행하기 전인 달은 마감할 수 없습니다. 마감 취소는 슈퍼관리자만 할 수 있고 사유를 남깁니다.
+    마감·마감 취소 기록은 변경 이력에 남습니다.</div>`;
 }
 
-/* ═══ PAY-11 월 마감 — 건물 × 월로 장부를 잠근다. 건물 하나를 골라 달마다 본다 ═══ */
+/* ═══ 월 마감 자료 — 건물 × 월로 장부를 잠근다(화면은 PAY-12) ═══ */
 const MC_YMS=['2026-06','2026-07','2026-08'];
 /* 마감 기록 — 카리나빌딩 외에는 예시값. 테온하우스는 납부마감이 익월 10일(오늘)이라 7월이 아직 열려 있다 */
 const MC={
@@ -2981,7 +2978,7 @@ function mcNum(b,ym){
   const p=PROG7[b];
   return ym==='2026-07'?{n:p.inv,N:p.invN,bill:p.amt,paid:p.paid}:{n:p.inv,N:p.invN,bill:p.amt,paid:p.amt};
 }
-/* 마감 전 확인 — 걸리는 것이 있어도 막지 않는다. 관리자가 판단한다 → PAY-11 */
+/* 마감 전 확인 — 걸리는 것이 있어도 막지 않는다. 관리자가 판단한다 → PAY-12 */
 function mcChecks(b,ym){
   const settle=ym<'2026-08'?'확정':PROG[b].settle, N=mcNum(b,ym), due=mcDue(b,ym);
   const wait=b==='b1'?(ym==='2026-07'?rcOpenN():0):((MC_WAIT[b]||{})[ym]||0);
@@ -3036,74 +3033,18 @@ function mcHTML(){
       <button class="btn pri" id="mcok" ${undo&&(!mcx.why.trim()||mcCarryUsed(b,ym))?'disabled':''} onclick="mcApply()">${undo?'마감 취소':'마감'}</button></div>
   </div></div>`;
 }
-/* 마감한 달 — 그 달의 청구서 발행 · 입금 매칭 · 관리비 정산을 잠근다 → PAY-11 */
+/* 마감한 달 — 그 달의 청구서 발행 · 입금 매칭 · 관리비 정산을 잠근다 → PAY-12 */
 const mcLocked=(b,ym)=>!!((MC[b]||{})[ym]);
 /* 이 건물에서 지금 마감할 차례인 달 — 열려 있는 가장 오래된 달. 없으면 진행 중인 이번 달 */
 const mcNext=b=>MC_YMS.find(v=>mcState(b,v).k==='열림')||MC_YMS[MC_YMS.length-1];
-let sel11={};                                 /* 보고서를 발행할 달 — 마감한 달만 고를 수 있다 */
-function mcBld(b){s11={b,ym:mcNext(b)};sel11={};render();}
-function mcPick(v,e){if(e)e.stopPropagation();sel11[v]=!sel11[v];render(true);}
-/* 월 마감 보고서 — 고른 달마다 PDF 한 부. 마감한 숫자 그대로라 다시 뽑아도 같다 → PAY-11 */
-function mcReport(){
-  const bn=BUILDINGS.find(x=>x.id===s11.b), vs=MC_YMS.filter(v=>sel11[v]&&mcState(s11.b,v).k==='마감');
-  if(!vs.length) return;
-  say(`월 마감 보고서 ${vs.length}부 발행\n${bn.name} · ${vs.map(v=>v.replace('-','년 ')+'월').join(', ')}\n\n`
-    +'담는 내용: 청구서 발행 건수 · 청구액 · 수납액 · 이 달 청구분 미납 · 다음 달로 넘어가는 미납(계약별) · 마감일시·마감자');
-}
-function mcDo(v,mode){s11={b:s11.b,ym:v};mcOpen(mode);}
-function PAY11(){
-  const {b}=s11;
-  const ymL=v=>v.replace('-','년 ').replace(/년 0/,'년 ')+'월';
-  const dash='<span style="color:var(--faint)">—</span>';
-  /* 달 목록 — 고른 연도의 달. 최근 달이 위 */
-  const rows=MC_YMS.slice().reverse().map(v=>{const S=mcState(b,v), N=mcNum(b,v), can=S.k==='마감', on=can&&!!sel11[v];
-    const set=v<'2026-08'?'확정':PROG[b].settle;
-    const act=S.k==='마감'?`<span class="more" onclick="mcDo('${v}','undo')">마감 취소</span>`
-      :S.k==='진행 중'?`<span class="more off" title="청구서 발행 전이라 마감할 수 없습니다">마감</span>`
-      :`<span class="more" onclick="mcDo('${v}','close')">마감</span>`;
-    return `<tr class="${on?'on':''}">
-      <td>${can?`<span class="cb ${on?'on':''}" style="cursor:pointer" onclick="mcPick('${v}',event)"></span>`:'<span class="cb dis" title="마감한 달만 보고서를 발행할 수 있습니다"></span>'}
-        <b style="margin-left:8px">${ymL(v)}</b></td>
-      <td class="c"><span class="stp"><span class="dot2" style="background:var(--${set==='확정'?'ok':set==='작성중'?'warn':'faint'})"></span>${set}</span></td>
-      <td class="n">${N.n?`${N.n} / ${N.N}건`:`<span style="color:var(--faint)">미발행</span>`}</td>
-      <td class="n">${N.bill?won(N.bill):dash}</td>
-      <td class="n">${N.bill?won(N.paid):dash}</td>
-      <td class="n">${(N.due!=null?N.due:N.bill-N.paid)>0?`<span style="color:var(--warn)">${won(N.due!=null?N.due:N.bill-N.paid)}</span>`:N.bill?'<span class="bd ok">완납</span>':dash}</td>
-      <td class="c">${S.k==='마감'?'<span class="bd ok">마감</span>':S.k==='진행 중'?'<span class="bd mu">진행 중</span>'
-        :`<span class="bd wa">열림</span>`}</td>
-      <td class="c2">${S.k==='마감'?`${S.c.at.replace('-','.')} · ${S.c.by}`:''}</td>
-      <td class="c">${act}</td>
-    </tr>`;}).join('');
-  const nSel=MC_YMS.filter(v=>sel11[v]&&mcState(b,v).k==='마감').length;
-  return `
-  <div class="ph"><h1>월 마감</h1><span class="sid">PAY-11</span>
-    <div class="act"><button class="btn pri" ${nSel?'':'disabled'} onclick="mcReport()">월 마감 보고서 발행${nSel?` ${nSel}건`:''}</button></div></div>
-  <div class="fbar">
-    <select onchange="mcBld(this.value)">
-      ${BUILDINGS.map(x=>`<option value="${x.id}" ${b===x.id?'selected':''}>${x.name}</option>`).join('')}
-    </select>
-    <select title="목업 자료는 2026년만 있습니다"><option selected>2026년</option></select>
-  </div>
-  <div class="tbl"><div class="tw"><table class="pgrid mcl">
-    <thead><tr><th>청구년월</th><th class="c">정산</th><th class="n">청구서</th><th class="n">청구액</th><th class="n">수납액</th>
-      <th class="n">이 달 청구분 미납</th><th class="c">마감</th><th>마감일시 · 마감자</th><th class="c">더보기</th></tr></thead>
-    <tbody>${rows}</tbody></table></div></div>
-  <div class="hint">
-    <b>월 마감</b>은 그 달의 장부를 잠그는 일입니다. 마감한 달의 청구·수납은 고칠 수 없고, 정정은 이번 달의 청구 추가·청구 감액으로 합니다. 확정한 정산은 마감을 취소해도 고치지 않습니다.<br>
-    마감한 달을 체크하고 <b>월 마감 보고서 발행</b>을 누르면 고른 달마다 보고서가 한 부씩 나옵니다.<br>
-    <b>미납이 남아 있어도 마감합니다.</b> 미납은 사라지지 않고 다음 달로 넘어가 미납 관리에 계속 보입니다.<br>
-    청구서를 발행하기 전인 달은 마감할 수 없습니다. 마감 취소는 슈퍼관리자만 할 수 있고 사유를 남깁니다.
-    마감·마감 취소 기록은 변경 이력에 남습니다.</div>`;
-}
-
 /* ═══ 미구현 ═══ */
 function TODO(id){
   const m=ALL.find(i=>i.id===id);
   return `<div class="ph"><h1>${m?m.n:id}</h1>${m?`<span class="sid">${m.sid}</span>`:''}</div>
   <div class="tbl"><div class="empty"><div class="t">아직 만들지 않은 화면입니다</div>
     구현된 화면 — <b>PRO-1</b> 건물 목록 · <b>PRO-3</b> 건물 상세 ·
-    <b>PAY-12</b> 정기 청구 현황 · <b>PAY-10</b> 관리비 정산 · <b>PAY-1</b> 청구서 발행 ·
-    <b>PAY-13</b> 입금 매칭 · <b>PAY-6</b> 수납 내역 · <b>PAY-2</b> 미납 관리 · <b>PAY-11</b> 월 마감</div></div>`;   /* PAY-8 수납 내역은 PAY-6에 합쳤다 */
+    <b>PAY-12</b> 월 마감 · <b>PAY-10</b> 관리비 정산 · <b>PAY-1</b> 청구서 발행 ·
+    <b>PAY-13</b> 입금 매칭 · <b>PAY-6</b> 수납 내역 · <b>PAY-2</b> 미납 관리</div></div>`;   /* PAY-8 수납 내역은 PAY-6에 합쳤다 */
 }
 
 /* ═══ PAY-1 · 청구 약정 ═══ */
@@ -3418,7 +3359,7 @@ function PAY1(){
   </div>
   ${PAST_CTX?(lk?`<div class="fnd"><span class="h">${ic('lock',14)} 마감된 회차입니다</span>
     ${ymL}은 ${lk.at.replace('-','.')}에 마감했습니다(${lk.by}). 발행한 청구서를 볼 수만 있습니다.
-    고치려면 월 마감에서 <b>마감 취소</b>를 먼저 하세요. <b class="lk" onclick="s11={b:'${f1.b}',ym:'${PAST_CTX}'};go('pay-11')">월 마감으로 이동 →</b></div>`
+    고치려면 월 마감에서 <b>마감 취소</b>를 먼저 하세요. <b class="lk" onclick="f12='${PAST_CTX}';go('pay-12')">월 마감으로 이동 →</b></div>`
    :`<div class="fnd wa3"><span class="h">발행이 끝난 회차입니다</span>
     ${ymL} 청구서는 이미 발행했습니다. 입금이 없는 청구서는 더보기의 <b>청구서 취소</b>로 취소할 수 있습니다.</div>`):''}
   ${stop?`<div class="fnd wa3"><span class="h">비운영중인 건물입니다</span>
@@ -4173,7 +4114,7 @@ function PAY13(){
   return head+`
   ${lk?`<div class="fnd"><span class="h">${ic('lock',14)} 마감된 회차입니다</span>
     ${RC.f.ym.replace('-','년 ').replace(/년 0/,'년 ')}월은 ${lkc.at.replace('-','.')}에 마감했습니다(${lkc.by}). 입금을 확정·무시하거나 고칠 수 없고 볼 수만 있습니다.
-    고치려면 월 마감에서 <b>마감 취소</b>를 먼저 하세요. <b class="lk" onclick="s11={b:'${RC.b}',ym:'${RC.f.ym}'};go('pay-11')">월 마감으로 이동 →</b></div>`
+    고치려면 월 마감에서 <b>마감 취소</b>를 먼저 하세요. <b class="lk" onclick="f12='${RC.f.ym}';go('pay-12')">월 마감으로 이동 →</b></div>`
   :allDone?`<div class="fnd"><span class="h">모든 입금을 처리했습니다</span>
     계약별로 다 받았는지는 수납 내역에서 확인하세요. <b class="lk" onclick="go('pay-6')">수납 내역으로 이동 →</b></div>`:''}
   <div class="mw">
@@ -6085,8 +6026,7 @@ function render(keep){
   else if(id==='pro-3'){const b=BUILDINGS.find(x=>x.id===arg)||BUILDINGS[0];
     html=PRO3(arg);crumb=`<span class="c" onclick="go('pro-1')">건물 관리</span> <span>›</span> <b>${b.name}</b>`;}
   else if(id==='pay-10'){html=PAY10();crumb='정기 청구 <span>›</span> <b>관리비 정산</b>';}
-  else if(id==='pay-12'){html=PAY12();crumb='<b>정기 청구</b>';}
-  else if(id==='pay-11'){html=PAY11();crumb='정기 청구 <span>›</span> <b>월 마감</b>';}
+  else if(id==='pay-12'){html=PAY12();crumb='정기 청구 <span>›</span> <b>월 마감</b>';}
   else if(id==='pay-1'){html=PAY1();crumb='정기 청구 <span>›</span> <b>청구서 발행</b>';}
   else if(id==='pay-6'){html=PAY6();crumb='수납 <span>›</span> <b>수납 내역</b>';}
   else if(id==='ctr-1'){html=CTR1();crumb='<b>계약 관리</b>';}

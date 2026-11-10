@@ -79,15 +79,14 @@ run('PAY-6 전체 펼침', 'g6All=true;PAY6()');
 run('PAY-13', 'PAY13()');
 run('PAY-12 7월', "f12='2026-07';PAY12()");
 run('PAY-2 펼침', "seedJuly();g2All=true;PAY2()");
-run('PAY-11 테온하우스 (7월 마감 대기)', "seedJuly();mcBld('b2');PAY11()");
+run('PAY-12 월 마감 7월 (테온하우스 마감 대기)', "seedJuly();f12='2026-07';PAY12()");
 run('보증금 상계 패널 청구 전 연체료 안내', "seedJuly();openOffset('b1별관301호');payHTML()");
-run('PAY-11', "seedJuly();PAY11()");
-for (const [b, ym] of [['b2','2026-07'],['b1','2026-08'],['b4','2026-06'],['b4','2026-08']])
-  run('PAY-11 ' + b + ' ' + ym, "seedJuly();s11={b:'" + b + "',ym:'" + ym + "'};PAY11()");
-run('PAY-11 보고서 3개월 선택', "seedJuly();['2026-05','2026-06','2026-07'].forEach(v=>sel11[v]=true);PAY11()");
-run('PAY-11 테온하우스 7월 마감 → 목록', "seedJuly();mcBld('b2');mcDo('2026-07','close');mcApply();PAY11()");
-run('PAY-11 마감 패널', "s11={b:'b2',ym:'2026-07'};mcOpen('close');mcHTML()");
-run('PAY-11 마감 취소 패널', "mcOpen('undo');mcHTML()");
+for (const ym of ['2026-06','2026-07','2026-08'])
+  run('PAY-12 월 마감 ' + ym, "seedJuly();f12='" + ym + "';PAY12()");
+run('PAY-12 보고서 건물 선택', "seedJuly();f12='2026-07';sel12={b1:true,b4:true};PAY12()");
+run('PAY-12 테온하우스 7월 마감 → 목록', "seedJuly();f12='2026-07';mc12('b2','close');mcApply();PAY12()");
+run('PAY-12 마감 패널', "s11={b:'b2',ym:'2026-07'};mcOpen('close');mcHTML()");
+run('PAY-12 마감 취소 패널', "mcOpen('undo');mcHTML()");
 run('PAY-6 8월 (발행 전)', "RC.f.ym='2026-08';PAY6()");
 run('PAY-13 7월 처리 완료', "seedJuly();PAY13()");
 run('보증금 상계 패널', "openOffset('b1별관301호');payHTML()");
@@ -482,7 +481,7 @@ run('PAY-13 감액으로 과납이 생긴 입금 · 남는 입금 미리보기',
 run('CTR-3 원장 감액 · 요약 과납', "seedJuly();tab3c='원장';g3All=true;CTR3('b1본관101호');tab3c='요약';CTR3('b1본관101호')");
 run('감액 패널', "seedJuly();fixOpen('b1별관301호','cut');cutSet('amt','10000');fixHTML();cutSet('amt','99999999');fixHTML()");
 run('PAY-1 과납', "seedJuly();g1All=true;PAY1()");
-run('PAY-11 8월 과납 확인', "seedJuly();s11={b:'b1',ym:'2026-08'};PAY11();mcOpen('close');mcHTML()");
+run('PAY-12 8월 과납 확인', "seedJuly();f12='2026-08';PAY12();mc12('b1','close');mcHTML()");
 /* 미납 이월 — 6월 마감(07.03) 때 비씨에이전시 5,054,474가 미납액으로 · 7/31 입금은 미납액에 · 7월 마감(08.05) 때 54,474 + 5,091,998 → 4.3.6 */
 { const CF = new Function(stub + bare + '; seedJuly(); return {ledgerOf,carryAmt,carryParts,ctrPay,MC,mcCarryUsed,mcOpen,mcApply,lateCalc,get mcx(){return mcx;},set s11(v){s11=v;}};')();
   const k = 'b1별관301호', L = CF.ledgerOf(k);
@@ -1311,10 +1310,12 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
     /moreOpen\(/.test(h) && bc && sc && bc.map(i => i.t).join() === '입금 확인,청구서 보기,원장 보기' && !bc[0].off && !sc[0].off && sc[2].go.includes(`go('ctr-3/b1본관101호')`)
     && p2 && p2.map(i => i.t).join() === '입금 확인' && none && filt && back]); }
 /* 메뉴 — 정기 청구(정산 → 발행 → 마감, 순서대로)와 수납(입금 매칭 · 수납 내역 · 미납 관리, 아무 때나)을 나눈다 */
-{ const MN = new Function(stub + bare + '; return {MENU};')();
+{ const MN = new Function(stub + bare + '; seedJuly(); return {MENU,PAY12,mc12,mcApply,mcPick12,MC,set f12(v){f12=v;}};')();
   const g = k => (MN.MENU.find(m => m.k === k) || {items: []}).items.map(i => i.n).join(' → ');
-  r6.push(['메뉴 — 정기 청구: 관리비 정산 → 청구서 발행 → 월 마감(누르면 정기 청구 현황) · 수납: 입금 매칭 · 수납 내역 · 미납 관리',
-    g('청구') === '관리비 정산 → 청구서 발행 → 월 마감' && g('수납') === '입금 매칭 → 수납 내역 → 미납 관리'
+  MN.f12 = '2026-07'; const h0 = MN.PAY12(); MN.mc12('b2', 'close'); MN.mcApply(); MN.mcPick12('b2'); const h1 = MN.PAY12();
+  r6.push(['메뉴 — 정기 청구: 관리비 정산 → 청구서 발행(누르면 월 마감 PAY-12) · 수납: 입금 매칭 · 수납 내역 · 미납 관리 · 월 마감 화면은 달을 고르고 건물마다 정산 · 청구서 · 수납 · 미납 · 마감 · 7월 테온하우스 마감 → 체크 → 보고서 1건',
+    g('청구') === '관리비 정산 → 청구서 발행' && g('수납') === '입금 매칭 → 수납 내역 → 미납 관리'
+    && /<h1>월 마감<\/h1><span class="sid">PAY-12/.test(h0) && /이 달 청구분 미납/.test(h0) && /mc12\('b2','close'\)/.test(h0) && MN.MC.b2['2026-07'] && /월 마감 보고서 발행 1건/.test(h1)
     && MN.MENU.find(m => m.k === '청구').g === '정기 청구' && MN.MENU.find(m => m.k === '청구').over === 'pay-12' && !MN.MENU.find(m => m.k === '수납').over]); }
 /* 상계 취소를 막는 셋째 경우 — 상계로 채운 청구를 감액해 생긴 과납을 이미 환불했으면 취소할 수 없다 → 확인요청 답변 질문 7 */
 { const OX = new Function(stub + bare + '; seedJuly(); return {openOffset,payConfirm,addCut,openRefund,ovConfirm,cancelWhyNot,payRec,BILLS,PAYEV,overOf};')();
