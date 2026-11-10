@@ -3209,6 +3209,8 @@ function regBills(c,to){const ym=SETTLE.ym, out=[];
     BILLS.push(b); out.push(b);});
   return out;}
 /* 해지 — 해지일이 그 회차(청구년월) 안이면 고정액을 1일 ~ 해지일로 일할한다. 부가세 포함 금액 × 일수 ÷ 그 달 일수(원 미만 절사) → 4.2.3 */
+/* 해지 처리에서 담당자가 줄인 연체료 — 계산한 연체료보다 많을 수 없다. 차이는 감면이고 정리일은 해지일이다 → 확인요청 답변 「해지 처리의 원칙」 */
+const termFeeAmt=(k,tOut,calc)=>{const t=tOut?(TERMS[k]||{}).fee:null; return t!=null?Math.min(t,calc):calc;};
 const termIn=(k,ym)=>{const o=(TERMS[k]||{}).out||'';return o&&o.slice(0,7)===ym?o:'';};
 const mDays=ym=>new Date(Date.UTC(+ym.slice(0,4),+ym.slice(5,7),0)).getUTCDate();
 function proOf(amt,tax,out){const d=+out.slice(8,10), n=mDays(out.slice(0,7)); if(d>=n) return null;
@@ -3323,10 +3325,10 @@ function ISSUE(){
     /* 연체료 — 이번 회차 청구서에 기본으로 넣는다(발행일 전날까지 쌓인 금액). 발행한 청구서는 발행 때 금액을 보인다.
        지난 회차는 발행할 때 넣은 연체료 청구를 보인다(6월분은 없음 · 7월분 7/18까지) → 18-2 */
     const z=ISS[k], pf=PAST_CTX?BILLS.find(i=>i.k===k&&i.ym===PAST_CTX&&i.reg):null;
-    const fee=PAST_CTX?(pf?pf.amt:0):z?z.feeAll||0:feeUntil(k,tOut||dayBefore(TODAY_S));
+    const fee=PAST_CTX?(pf?pf.amt:0):z?z.feeAll||0:termFeeAmt(k,tOut,feeUntil(k,tOut||dayBefore(TODAY_S)));
     /* 연체료는 대가가 아니라 늦게 낸 데 대한 연체이자라 부가세 대상이 아니다(부가가치세법 29조 5항 5호) → 4.4.3 */
     if(fee){
-      lines.push({n:'연체료',bill:'일반내역서',src:`${(pf?pf.feeTo:tOut||dayBefore(z?z.at:TODAY_S)).slice(5).replace('-','.')}까지 · 연 ${rateOf(k)}%`,
+      lines.push({n:'연체료',bill:'일반내역서',src:`${(pf?pf.feeTo:tOut||dayBefore(z?z.at:TODAY_S)).slice(5).replace('-','.')}까지 · 연 ${rateOf(k)}%${tOut&&(TERMS[k]||{}).fee!=null?' · 해지 처리 금액':''}`,
         supply:fee,vat:0,amt:fee,st:'연체료',stc:'wa',fee:true});}
     /* 넣을 항목 — 약정은 잠근다. 발행한 청구서는 발행 때 고른 대로 */
     const o=PAST_CTX?{}:OFF1[k]||{};
@@ -4375,11 +4377,11 @@ function payHTML(){
         ${pmClosed()?`<div class="hint" style="margin:-3px 0 9px 114px;color:var(--danger)">${+pm.date.slice(5,7)}월은 마감했습니다. 그 달 날짜의 상계는 월 마감을 취소한 뒤 기록합니다.</div>`:''}
         <div class="fr"><span class="fk">상계 금액<i class="tip" data-tip="미납 합계와 보증금 잔액 중 작은 쪽이 미리 들어갑니다. 이 계약의 미납에만 씁니다">i</i></span>
           <input type="text" inputmode="numeric" value="${pm.amt.toLocaleString('ko-KR')}" oninput="kwLive(this)" onchange="setPm('amt',this.value)" style="text-align:right"><span class="kw">${korWon(pm.amt)}</span></div>
+        <div class="fr"><span class="fk">상계 후 보증금</span><b>${over?'—':won(depBal-pm.amt)}</b></div>
+        <div class="fr"><span class="fk">상계 후 미납</span><span>${won(leftDue)}</span></div>
         <div class="fr"><span class="fk">메모</span>
           <input type="text" value="${pm.memo}" oninput="pm.memo=this.value"></div>
       </div>
-      ${pm.amt&&!over?`<div class="prev${leftDue?' warn2':''}" style="margin:-4px 0 18px"><div class="pt">${won(pm.amt)}을 상계하면</div>
-        남는 보증금 <b>${won(depBal-pm.amt)}</b>${leftDue?` · 남는 미납 <b>${won(leftDue)}</b>`:''}</div>`:''}
       <div class="fg"><div class="fl">미납 내역</div>
         <div class="tbl" style="margin:0"><div class="schr unh hd"><div>청구년월</div><div class="n">미납액</div><div class="n">연체일수</div><div class="n">연체료</div></div>
         ${ARs.map(x=>x.months.slice().reverse().map(m=>`<div class="schr unh"><div class="nm">${many?`<span class="c2" style="margin:0 6px 0 0">${x.c.no}</span>`:''}${m.ym.slice(2).replace('-','.')}월분</div>
@@ -4539,15 +4541,16 @@ function openDepRet(k){const bal=ledgerOf(k).bal.임대보증금;
 function drSet(f,v){dr[f]=f==='amt'?numOf(v):v;render(true);}
 /* 퇴거하는 계약(해지 처리 · 종료됨 · 파기됨)은 미납이 남아 있으면 반환할 수 없다. 먼저 보증금 상계로 정리한다.
    계약 중 반환(더 받은 보증금)은 막지 않는다 → 29 */
+const drClosed=()=>closedBy(bOfK(dr.k),dr.date.slice(0,7),TODAY_S);
 const drOwed=k=>isLeaving(k)?Math.max(0,ledgerOf(k).bal.매출채권):0;
 function drConfirm(){const bal=ledgerOf(dr.k).bal.임대보증금;
-  if(!(dr.amt>0)||dr.amt>bal||!dr.why.trim()||drOwed(dr.k)>0) return;
+  if(!(dr.amt>0)||dr.amt>bal||!dr.why.trim()||drOwed(dr.k)>0||drClosed()) return;
   DEP_RET.push({k:dr.k,amt:dr.amt,date:dr.date,acct:dr.acct.trim(),why:dr.why.trim(),sq:++paySeq});
   DRAWER=null;dr=null;render(true);}
 function drHTML(){
   if(DRAWER!=='depret'||!dr) return '';
   const c=CTRS.find(x=>ckey(x)===dr.k), bd=BUILDINGS.find(x=>x.id===c.b)||BUILDINGS[0], bal=ledgerOf(dr.k).bal.임대보증금;
-  const owed=drOwed(dr.k), ok=dr.amt>0&&dr.amt<=bal&&dr.why.trim()&&!owed;
+  const owed=drOwed(dr.k), ok=dr.amt>0&&dr.amt<=bal&&dr.why.trim()&&!owed&&!drClosed();
   const R=(k,b,tip)=>`<div class="fr"><span class="fk">${k}${tip?`<i class="tip" data-tip="${tip}">i</i>`:''}</span>${b}</div>`;
   return `<div class="dro"><div class="ov" onclick="closeDrawer()"></div><div class="pn">
     <div class="dh"><div><div class="t">보증금 반환</div><div class="s">${cname(bd.alias,c.no,c.ten)}</div></div>
@@ -4559,10 +4562,11 @@ function drHTML(){
           '퇴거하는 계약(해지 처리 · 종료됨 · 파기됨)은 남은 잔액 전부가 미리 들어가고, 미납이 남아 있으면 반환할 수 없습니다. 먼저 원장의 보증금 ▾ › 보증금 상계로 정리합니다. 계약 중 반환(더 받은 보증금)은 막지 않습니다')}
         ${dr.amt>bal?'<div class="c2" style="margin:-4px 0 9px 114px;color:var(--danger)">보증금 잔액보다 많이 돌려줄 수 없습니다</div>':''}
         ${owed?`<div class="c2" style="margin:-4px 0 9px 114px;color:var(--danger);white-space:normal">미납 ${won(owed)}이 남아 있어 반환할 수 없습니다. 먼저 원장의 보증금 ▾ › 보증금 상계로 정리합니다</div>`:''}
-        ${R('사유 (필수)',`<input type="text" value="${dr.why}" placeholder="예: 보증금 더 받음 · 퇴거 정산" oninput="dr.why=this.value;document.getElementById('drok').disabled=!(this.value.trim()&&dr.amt>0&&dr.amt<=${bal}&&!${owed})">`)}</div>
+        ${R('사유 (필수)',`<input type="text" value="${dr.why}" placeholder="예: 보증금 더 받음 · 퇴거 정산" oninput="dr.why=this.value;document.getElementById('drok').disabled=!(this.value.trim()&&dr.amt>0&&dr.amt<=${bal}&&!${owed}&&!${drClosed()})">`)}</div>
       <div class="fg"><div class="fl">보낸 기록</div>
         ${R('반환계좌',`<input type="text" value="${dr.acct}" placeholder="환불계좌 (계약 상세 › 보증금 정보)" onchange="drSet('acct',this.value)">`)}
-        ${R('보낸 날',`<input type="date" value="${dr.date}" max="${TODAY_S}" onchange="drSet('date',this.value)">`)}
+        ${R('보낸 날',`<input type="date" value="${dr.date}" max="${TODAY_S}" onchange="drSet('date',this.value)">`,'실제로 돈을 보낸 날입니다. 오늘이나 지난 날짜를 넣습니다. 마감한 달의 날짜는 넣을 수 없습니다')}
+        ${drClosed()?`<div class="hint" style="margin:-3px 0 9px 114px;color:var(--danger)">${+dr.date.slice(5,7)}월은 마감했습니다. 그 달 날짜의 반환은 월 마감을 취소한 뒤 기록합니다.</div>`:''}
         <div class="c2" style="margin:2px 0 0;white-space:normal">원장에 보증금 반환이 기록되고 그만큼 보증금 잔액이 줄어듭니다.</div></div>
     </div>
     <div class="df"><button class="btn" onclick="closeDrawer()">취소</button>
@@ -5494,12 +5498,13 @@ function withTerm(k,out,fn,fix){const t=TERMS[k]; TERMS[k]={...(t||{}),out,...(f
 const lastBill=(k,out,fix)=>withTerm(k,out,()=>ISSUE().find(x=>x.k===k),fix);
 function termOpen(k){const t=TERMS[k]||{}, c=CTRS.find(x=>ckey(x)===k), ended=c&&c.st!=='진행중';
   /* 종료된 계약 — 만기 종료로, 해지일은 종료일 → 질문 3-1 */
-  tm={k,type:t.type||(ended?'만기 종료':'중도 해지(합의)'),out:t.out||(ended?ctrEnd(c):''),why:t.why||'',est:{},fix:{},off:{},feeOpen:false,ended};DRAWER='term';render(true);}
+  tm={k,type:t.type||(ended?'만기 종료':'중도 해지(합의)'),out:t.out||(ended?ctrEnd(c):''),why:t.why||'',est:{},fix:{},off:{},fee:null,feeOpen:false,ended};DRAWER='term';render(true);}
 function termSet(f,v){tm[f]=v;render(true);}
 function termSave(mail){if(!tm.out||!tm.why.trim()) return;
   const c=CTRS.find(x=>ckey(x)===tm.k), k=tm.k, out=tm.out, mode=termMode(k,out), prev=TERMS[k]||{};
   const FX=['now','reg','after'].includes(mode)&&!prev.act?Object.fromEntries(termFix(k,out,tm.fix).map(f=>[f.n,{sup:f.sup,vat:f.vat}])):prev.fix;
-  TERMS[k]={at:`${TODAY_S} ${new Date().toTimeString().slice(0,5)}`,type:tm.type,out,why:tm.why.trim(),act:prev.act||'',fix:FX};
+  TERMS[k]={at:`${TODAY_S} ${new Date().toTimeString().slice(0,5)}`,type:tm.type,out,why:tm.why.trim(),act:prev.act||'',fix:FX,
+    fee:prev.act?prev.fee:tm.fee!=null&&tm.fee!==''?numOf(tm.fee):null};
   /* 퇴거 예상분 — 보증금에서 바로 빼지 않는다. 해지 처리할 때 비정기 청구서로 발행하고 보증금 상계로 받는다.
      이미 발행한 것은 다시 발행하지 않는다(고칠 때는 청구 감액 · 청구 추가) */
   /* 금액은 청구 추가와 같다 — 세금계산서면 공급가액을 넣고 부가세 10%(원 미만 절사)가 붙는다 → 질문 13 */
@@ -5519,7 +5524,8 @@ function termSave(mail){if(!tm.out||!tm.why.trim()) return;
     else if(mode==='after'){const L=`${(+out.slice(8,10)+1+'').padStart(2,'0')}~${mDays(out.slice(0,7))}`;
       termCuts(k,out,tm.fix).forEach(x=>{if(x.ok) addCut(x.b.id,x.amt,TODAY_S,`해지 일할 (${out.slice(5,7)}.${L})`,x.sup,x.vat);});
       const F=termFee(k,out);
-      if(F.add&&!feeOff){BILLS.push({id:`fee|${k}|term`,inv,ttl:'해지 청구서',ym:adYm(),k,no:c.no,n:'연체료',amt:F.add,fee:true,feeTo:out,date:TODAY_S,sq:++paySeq,
+      const fA=termFeeAmt(k,out,F.add);
+      if(fA&&!feeOff){BILLS.push({id:`fee|${k}|term`,inv,ttl:'해지 청구서',ym:adYm(),k,no:c.no,n:'연체료',amt:fA,fee:true,feeTo:out,date:TODAY_S,sq:++paySeq,
         memo:`연체료 (${out.slice(5).replace('-','.')}까지) · 해지 처리`,cut0:FEE_CUT[k]||null});}
       if(F.less){const fb=(ISS[k].bills||[]).find(b=>b.fee); if(fb) addCut(fb.id,F.less,TODAY_S,`해지일 뒤 연체료 (${nstr(dnum(out)+1).slice(5).replace('-','.')}~${F.cut.slice(5).replace('-','.')})`,F.less,0);}
       FEE_CUT[k]=out;}
@@ -5543,7 +5549,7 @@ function termHTML(){
       +R_(f.tax?'공급가액':'금액',`<input type="text" inputmode="numeric" value="${num(f.sup)}" onchange="tm.fix['${f.n}']=this.value;render(true)" style="border:1px solid var(--line);border-radius:var(--r-sm);padding:7px 9px;font:inherit;text-align:right;max-width:140px"><span class="c2" style="margin:0">원${f.edited?` · 일할 기본값 ${won(f.def.sup)}에서 고침`:''}</span>`)
       +(x?R_('감액',`<span>${won(x.amt)}</span><span class="c2" style="margin:0">발행한 ${won(x.b.amt)}에서 · 공급가액 ${won(x.sup)} · 부가세 ${won(x.vat)}</span>`):''));}).join('');
   const feeCard=(amt,to,lbl,less)=>amt||less?card(R_(cbT('연체료')+'연체료',`<span class="fv">${md(to)}까지 · 연 ${rateOf(tm.k)}%</span><span class="lk" style="margin-left:8px" onclick="tm.feeOpen=!tm.feeOpen;render(true)">연체 내역 ${tm.feeOpen?'접기':'보기'}</span>`)
-      +(amt?R_(lbl||'금액',`<span>${won(amt)}</span>${tm.off['연체료']?'<span class="c2" style="margin:0">빼면 감면합니다</span>':''}`):'')+(less||'')+(tm.feeOpen?feeTbl(to):''),tm.off['연체료']):'';
+      +(amt?R_(lbl||'금액',(v=>`<input type="text" inputmode="numeric" value="${num(v)}" ${tm.off['연체료']?'disabled':''} onchange="tm.fee=Math.min(numOf(this.value),${amt});render(true)" style="border:1px solid var(--line);border-radius:var(--r-sm);padding:7px 9px;font:inherit;text-align:right;max-width:140px"><span class="c2" style="margin:0">원${tm.off['연체료']?' · 빼면 감면합니다':v<amt?` · 계산한 ${won(amt)}에서 ${won(amt-v)} 감면`:''}</span>`)(tm.fee!=null&&tm.fee!==''?Math.min(numOf(tm.fee),amt):amt)):'')+(less||'')+(tm.feeOpen?feeTbl(to):''),tm.off['연체료']):'';
   /* 연체 내역 — 달마다 구간(입금이 들어온 날마다 끊는다) · 밀린 금액 · 일수 · 연체료. 미납 관리의 미납 상세와 같은 표 */
   const feeTbl=to=>{const yms=[...new Set(BILLS.filter(i=>i.k===tm.k).map(i=>i.ym))].sort(), M=yms.map(ym=>({ym,...lateCalc(tm.k,ym,to)})).filter(m=>m.fee>0);
     const td='style="padding:7px 10px"';

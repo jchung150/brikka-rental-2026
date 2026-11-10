@@ -734,7 +734,20 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   r6.push(['원장 청구서 안 순서 — 해지 마지막 청구서 · 8월 정기 청구서 모두 임대료가 맨 위 · 연체료 맨 아래 · 「주차비 퇴거 예상분」 이름에 기간 없음 · 상계 100,000원이면 남는 보증금 = 잔액 − 100,000',
     g[0].item.endsWith('임대료') && g.at(-1).item.endsWith('연체료') && g.some(r => r.item.endsWith('주차비 퇴거 예상분')) && !g.some(r => /\(08\./.test(r.item))
     && g2[0].item.endsWith('임대료') && g2.every((r, i) => !i || (g2[i - 1].pr || 0) <= (r.pr || 0))
-    && h.includes(`남는 보증금 <b>${(dep - 100000).toLocaleString('ko-KR')}원</b>`)]); }
+    && h.includes(`상계 후 보증금</span><b>${(dep - 100000).toLocaleString('ko-KR')}원</b>`) && /상계 후 미납/.test(h) && !/을 상계하면/.test(h)]); }
+/* 해지 연체료는 줄일 수 있다(계산값보다 많게는 안 됨) — now: 마지막 청구서 연체료 · after: 연체료 청구 · 정리일은 해지일 · 보증금 반환은 마감한 달 날짜 막힘 */
+{ const T = () => new Function(stub + bare + '; seedJuly(); return {issue1,termOpen,termSet,termSave,termHTML,ISSUE,BILLS,FEE_CUT,feeUntil,openDepRet,drSet,drHTML,drConfirm,DEP_RET,set f1b(v){f1.b=v;},get tm(){return tm;}};')();
+  const k = 'b1별관301호';
+  const N = T(); const full = N.feeUntil(k, '2026-08-17'); N.termOpen(k); N.termSet('out', '2026-08-17'); N.termSet('why', '퇴거'); N.tm.fee = '10000'; const h = N.termHTML(); N.termSave(false);
+  const fN = N.BILLS.find(i => i.k === k && i.ym === '2026-08' && i.fee);
+  const B = T(); B.termOpen(k); B.termSet('out', '2026-08-17'); B.termSet('why', '퇴거'); B.tm.fee = String(full + 50000); B.termSave(false);
+  const fB = B.BILLS.find(i => i.k === k && i.ym === '2026-08' && i.fee);
+  const A = T(); A.f1b = 'b1'; A.issue1([k]); A.termOpen(k); A.termSet('out', '2026-08-25'); A.termSet('why', '퇴거'); A.tm.fee = '5000'; A.termSave(false);
+  const fA = A.BILLS.find(i => i.id === `fee|${k}|term`);
+  const D = T(); D.openDepRet(k); D.drSet('amt', '1000'); D.drSet('date', '2026-07-31'); const dh = D.drHTML(); D.drConfirm();
+  r6.push(['해지 연체료 줄이기 — 8/17 계산값 대신 10,000원(「감면」 표시) · 정리일 08.17 · 계산값보다 많이 넣으면 계산값 · 발행 뒤 8/25 연체료 청구 5,000원 · 보증금 반환 「보낸 날」 7/31(마감한 달)은 막힘',
+    full > 10000 && /에서 [0-9,]+원 감면/.test(h) && fN && fN.amt === 10000 && N.FEE_CUT[k] === '2026-08-17' && fB && fB.amt === full
+    && fA && fA.amt === 5000 && /7월은 마감했습니다/.test(dh) && !D.DEP_RET.length]); }
 /* 연체료 일부 감면 — 청구서에 들어간 연체료 줄을 청구 감액으로 줄인다(일반내역서 · 부가세 없음) → 18-2 */
 { const CF = new Function(stub + bare + '; seedJuly(); return {fixOpen,fxSet,fxConfirm,fixHTML,ledgerOf,cutBills};')();
   const k = 'b1별관301호', can = CF.cutBills(k).some(i => i.reg && i.amt === 29911);
