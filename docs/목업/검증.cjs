@@ -787,6 +787,13 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   r6.push(['수납 현황 PAY-14 — 카리나빌딩 미납 = 미납 관리 합계(5,176,383 · 2개 계약) · 연체료 · 최근 30일 수납액 > 0 · 미납 칸 → 미납 관리(그 건물) · 확인 필요 입금 칸 → 입금 매칭(그 건물)',
     /<h1>수납 현황<\/h1><span class="sid">PAY-14/.test(h) && b1.due === A.reduce((a, x) => a + x.due, 0) && b1.due === 5176383 && b1.dueN === 2 && b1.fee === A.reduce((a, x) => a + x.fee, 0)
     && b1.paid > 0 && /최근 30일 수납액/.test(h) && toB2 && toB1]); }
+/* 메뉴 그룹 이름 — 하위 화면에 있다가 누르면 그 그룹의 첫 화면(월 마감 · 수납 현황)으로 간다 · 첫 화면에서 누르면 접고 펼친다 */
+{ const NV = new Function(stub + bare + '; return {toggleG,OPEN,loc:location};')();
+  NV.loc.hash = '#/pay-1'; NV.toggleG('청구'); const a = NV.loc.hash;
+  NV.loc.hash = '#/pay-13'; NV.toggleG('수납'); const b = NV.loc.hash;
+  NV.loc.hash = '#/pay-12'; NV.OPEN['청구'] = true; NV.toggleG('청구'); const c = NV.loc.hash, folded = !NV.OPEN['청구'];
+  r6.push(['메뉴 그룹 이름 — 청구서 발행에서 「청구 관리」 → 월 마감 · 입금 매칭에서 「수납 관리」 → 수납 현황 · 월 마감에서 「청구 관리」 → 그대로 두고 접힘',
+    a === '#/pay-12' && b === '#/pay-14' && c === '#/pay-12' && folded]); }
 /* 연체료 일부 감면 — 청구서에 들어간 연체료 줄을 청구 감액으로 줄인다(일반내역서 · 부가세 없음) → 18-2 */
 { const CF = new Function(stub + bare + '; seedJuly(); return {fixOpen,fxSet,fxConfirm,fixHTML,ledgerOf,cutBills};')();
   const k = 'b1별관301호', can = CF.cutBills(k).some(i => i.reg && i.amt === 29911);

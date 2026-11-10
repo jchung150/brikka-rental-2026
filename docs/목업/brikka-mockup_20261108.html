@@ -1421,13 +1421,15 @@ function paintNav(cur){
   }).join('');
   document.querySelectorAll('.nav a').forEach(a=>a.classList.toggle('on',a.dataset.id===active));
 }
-/* 그룹 이름 클릭 — 이미 그 그룹 안에 있으면 접고 펼친다. 아니면 그 그룹으로 이동하며 펼친다 */
+/* 그룹 이름 클릭 — 그 그룹의 첫 화면에 있으면 접고 펼친다. 하위 화면이나 다른 그룹에 있으면 첫 화면으로 이동하며 펼친다 */
 function toggleG(k){
   const g=MENU.find(x=>x.k===k);
   const active=(location.hash||'#/pro-1').replace(/^#\//,'').split('/')[0];
   const inside=g.items.some(i=>i.id===active)||g.over===active;
   if(FOLD){FOLD=false;LS.set('brikka.fold',false);paintFold();OPEN[k]=true;LS.set('brikka.open',OPEN);
     if(!inside) go(g.over||g.items[0].id); else paintNav(active); return;}
+  /* 하위 화면에 있다가 그룹 이름을 누르면 그 그룹의 첫 화면(over)으로 간다. 첫 화면에서 다시 누르면 접고 펼친다. 접기만은 오른쪽 화살표 */
+  if(inside&&g.over&&active!==g.over){OPEN[k]=true;LS.set('brikka.open',OPEN);go(g.over);return;}
   if(inside){OPEN[k]=!OPEN[k];LS.set('brikka.open',OPEN);paintNav(active);return;}
   OPEN[k]=true;LS.set('brikka.open',OPEN);
   go(g.over||g.items[0].id);}
