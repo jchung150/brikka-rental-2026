@@ -679,6 +679,14 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   const it = EN.MORE.flat().find(i => i.t === '해지'); EN.termOpen(k); const h = EN.termHTML();
   r6.push(['해지 처리 없이 끝난 계약(리틀브릿지) — 해지 메뉴 열림 · 만기 종료 · 해지일 = 종료일 2025.01.31(잠김) · 「해지일이 마감한 달」 · 버튼 하나',
     c.st === '종료됨' && it && !it.off && EN.tm.type === '만기 종료' && EN.tm.out === '2025-01-31' && /disabled>/.test(h) && /해지일이 마감한 달/.test(h) && !/메일 보내고 해지 처리/.test(h)]); }
+/* 해지 달 임대료 · 고정관리비는 일할 기본값을 담당자가 고칠 수 있다 · 연체료 옆 「연체 내역 보기」 → 4.2.3 · 질문 1 */
+{ const PE = new Function(stub + bare + '; seedJuly(); return {termOpen,termSet,termSave,termHTML,BILLS,feeUntil,get tm(){return tm;}};')();
+  const k = 'b1별관301호'; PE.termOpen(k); PE.termSet('out', '2026-08-17'); PE.termSet('why', '퇴거');
+  const h0 = PE.termHTML(); PE.tm.feeOpen = true; const h1 = PE.termHTML(); PE.tm.fix['임대료'] = '1,700,000'; const h2 = PE.termHTML(); PE.termSave(false);
+  const r = PE.BILLS.find(i => i.id === '2026-08|별관301호|임대료');
+  r6.push(['해지 달 금액 고치기 — 임대료(공급가액) 칸에 일할 기본값 1,727,419 · 1,700,000으로 고치면 「일할 기본값에서 고침」 · 마지막 청구서 임대료 1,870,000(부가세 170,000) · 연체 내역 보기를 누르면 달마다 구간 표 · 원상복구비 등 부가세 합계 문구 없음',
+    /value="1,727,419"/.test(h0) && /연체 내역 보기/.test(h0) && /청구년월 · 기간/.test(h1) && /26\.06월분 · /.test(h1) && /일할 기본값 1,727,419원에서 고침/.test(h2)
+    && r && r.sup === 1700000 && r.vat === 170000 && r.amt === 1870000 && !/\+ 부가세/.test(h0)]); }
 /* 퇴거 ③ 8월 청구서를 이미 발행한 뒤 해지 — 청구서는 그대로, 임대료 · 고정관리비 일할 차이를 청구 감액 + 정리일 다음날 ~ 해지일 연체료 청구 한 건 → 확인요청 답변 질문 1 */
 { const PA = new Function(stub + bare + '; seedJuly(); return {issue1,termOpen,termSet,termSave,termHTML,BILLS,CUTS,FEE_CUT,feeUntil,ledgerOf,set f1b(v){f1.b=v;}};')();
   const k = 'b1별관301호'; PA.f1b = 'b1'; PA.issue1([k]);
@@ -845,7 +853,7 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   TM.tm.why = '이전'; TM.tm.est.elec = '180000'; const h = TM.termHTML(); TM.termSave();
   const row = TM.BILLS.find(r => r.k === 'b1본관501호' && r.adhoc);
   r6.push(['퇴거 ② 해지일 8/20(청구일 뒤) — 8/19 정기 청구서가 20/31일 일할 · 청구 전 기간: 전기요금 08.10~08.20 11일 · 수도요금 08.08~08.20 · 사유 없으면 안 됨 · 예상 공급가액 180,000원은 「전기요금 퇴거 예상분 (08.10~08.20)」 비정기 청구서 198,000(세금계산서 · 부가세 18,000)',
-    noWhy && e && e.from === '2026-08-10' && e.days === 11 && w && w.from === '2026-08-08' && /청구 전 기간/.test(h) && /정기 청구서에 임대료 · 고정관리비가 <b>20\/31일 일할/.test(h)
+    noWhy && e && e.from === '2026-08-10' && e.days === 11 && w && w.from === '2026-08-08' && /청구 전 기간/.test(h) && /정기 청구서에 아래 금액이 들어가고/.test(h) && /원 · 20\/31일 일할/.test(h) && !/\+ 부가세/.test(h)
     && row && row.n === '전기요금 퇴거 예상분 (08.10~08.20)' && row.amt === 198000 && row.sup === 180000 && row.vat === 18000 && /예상 공급가액/.test(h) && TM.TERMS['b1본관501호'].out === '2026-08-20']);
   /* 위약금 · 원상복구비 — 보증금에서 바로 빼지 않고 비정기 청구서로. 다시 저장해도 한 번만 */
   TM.termOpen('b1본관501호'); TM.tm.pen = '5000000'; TM.tm.rest = '3300000'; TM.termSave();
