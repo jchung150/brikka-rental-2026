@@ -4409,13 +4409,15 @@ let fz=null;
 /* 감액할 수 있는 청구 — 이 계약의 발행한 청구 중 남은 금액이 있는 것(정기 · 비정기). 청구서에 들어간 연체료도 줄인다(일부 감면) → 18-2 */
 const cutBills=k=>BILLS.filter(i=>i.k===k&&(!i.fee||i.reg)&&i.amt-cutOf(i.id)>0).sort((a,b)=>a.ym<b.ym?1:a.ym>b.ym?-1:(b.date||'')<(a.date||'')?-1:1);
 const itemOfBill=i=>i.adhoc?i.n:i.n.split(' ')[0];
-const cutItems=k=>[...new Set(cutBills(k).map(itemOfBill))];
+/* 감액 항목 — 청구 추가처럼 「항목을 고르세요」로 시작하고, 이 건물에서 감액을 많이 한 항목 순(같으면 배분 우선순위 순) */
+const cutItems=k=>{const b=bOfK(k), n=x=>CUTS.filter(c=>bOfK(c.k)===b&&itemOfBill(BILLS.find(i=>i.id===c.id)||{n:c.n,adhoc:false})===x).length;
+  return [...new Set(cutBills(k).map(itemOfBill))].map((x,i)=>({x,i,c:n(x),p:prioOf(x)})).sort((a,b)=>b.c-a.c||a.p-b.p||a.i-b.i).map(o=>o.x);};
 const billsOfItem=(k,n)=>cutBills(k).filter(i=>itemOfBill(i)===n);
 const billLabel=i=>`${i.ym.slice(2).replace('-','.')}월분 ${i.n}`;
 function fixOpen(k,mode){
-  const m=mode||'add', it=m==='cut'?cutItems(k)[0]:'';
-  if(m==='cut'&&!it) return;
-  fz={k,mode:m,item:it,id:m==='cut'?billsOfItem(k,it)[0].id:'',name:'',pick:'',doc:'세금계산서',amt:0,why:''};DRAWER='fix';render(true);
+  const m=mode||'add';
+  if(m==='cut'&&!cutItems(k).length) return;
+  fz={k,mode:m,item:'',id:'',name:'',pick:'',doc:'세금계산서',amt:0,why:''};DRAWER='fix';render(true);
 }
 /* 비정기 청구 항목명 — 자주 쓰는 이름을 고르거나 직접 넣는다. 이 건물에서 많이 쓴 순서로 보인다(같으면 아래 순서).
    발행 문서는 이름에 따라 바꾸지 않는다. 담당자가 고른다 */
@@ -4457,9 +4459,9 @@ function fixHTML(){
       <button class="x" onclick="closeDrawer()">✕</button></div>
     <div class="db">
       <div class="fg"><div class="fl">청구</div>
-        ${cut?R('청구항목',`<select onchange="fxSet('item',this.value)">${cutItems(fz.k).map(n=>`<option ${fz.item===n?'selected':''}>${n}</option>`).join('')}</select>`,'남은 금액이 있는 청구의 항목만 보입니다')
-          +R('청구',list.length>1?`<select onchange="fxSet('id',this.value)">${list.map(i=>`<option value="${i.id}" ${i.id===fz.id?'selected':''}>${i.ym.slice(2).replace('-','.')}월분 · ${i.adhoc?'비정기':'정기'} · ${won(i.amt-cutOf(i.id))}</option>`).join('')}</select>`
-            :`<span class="fv">${I?`${I.ym.slice(2).replace('-','.')}월분 · ${I.adhoc?'비정기':'정기'}`:''}</span>`)
+        ${cut?R('청구항목',`<select onchange="fxSet('item',this.value)"><option value="" ${fz.item?'':'selected'}>항목을 고르세요</option>${cutItems(fz.k).map(n=>`<option ${fz.item===n?'selected':''}>${n}</option>`).join('')}</select>`,'남은 금액이 있는 청구의 항목만 보입니다. 마감한 달의 청구도 줄일 수 있고, 감액은 오늘 날짜로 기록됩니다')
+          +(!fz.item?'':R('청구',list.length>1?`<select onchange="fxSet('id',this.value)">${list.map(i=>`<option value="${i.id}" ${i.id===fz.id?'selected':''}>${i.ym.slice(2).replace('-','.')}월분 · ${i.adhoc?'비정기':'정기'} · ${won(i.amt-cutOf(i.id))}</option>`).join('')}</select>`
+            :`<span class="fv">${I?`${I.ym.slice(2).replace('-','.')}월분 · ${I.adhoc?'비정기':'정기'}`:''}</span>`))
           +(I?R('청구액',won(I.amt)+(cutOf(I.id)?` <span class="c2">감액 ${won(cutOf(I.id))}</span>`:''))+R('낸 금액',won(paid))+R('발행 문서',`<span class="fv">${fxDoc()}</span>`):'')
           :R('항목명',`<select onchange="fxSet('pick',this.value)"><option value="" ${fz.pick?'':'selected'}>항목을 고르세요</option>${onceNames(fz.k).map(x=>`<option ${fz.pick===x?'selected':''}>${x}</option>`).join('')}<option ${fz.pick==='직접 입력'?'selected':''}>직접 입력</option></select>`)
             +(fz.pick==='직접 입력'?R('',`<input type="text" value="${fz.name}" placeholder="예: 7월 전기요금 정정" onchange="fxSet('name',this.value)">`):'')

@@ -433,7 +433,7 @@ r6.push(['임대정보 · 임대료 인상 예약(요약 탭) — 분기 · 기�
   r6.push(['공용분 빼기 = 배율 0 — 2층 공용분 0 · 개별분은 청구 · 비율 합 1 · 1층 몫 증가 · 합계 = 고지서',
     r2.common === 0 && r2.amt > 0 && Math.abs(ratioSum - 1) < 1e-9 && after > before && R.diff === 0]); }
 /* 감액 · 과납 — 8/7 본관101호 7월 수도요금 18,000 감액. 7월분은 07.31에 완납이라 과납 18,000이 된다 → CTR-3 · 4.3.4 */
-{ const OV = new Function(stub + bare + '; const pre=ctrPay("b1본관101호","2026-07"); seedJuly(); addCut("2026-07|본관101호|수도요금",18000,"2026-08-07","7월 수도 검침값 입력 오류"); return {pre,ctrPay,overOf,ledgerOf,CTRS,PAY1,CTR3,ISSUE,mcChecks,openRefund,ovSet,ovConfirm,fixOpen,fxSet,fxConfirm,fixHTML,MORE,set tab3c(v){tab3c=v;}};')();
+{ const OV = new Function(stub + bare + '; const pre=ctrPay("b1본관101호","2026-07"); seedJuly(); addCut("2026-07|본관101호|수도요금",18000,"2026-08-07","7월 수도 검침값 입력 오류"); return {pre,ctrPay,overOf,ledgerOf,CTRS,PAY1,CTR3,ISSUE,mcChecks,openRefund,ovSet,ovConfirm,cutItems,fixOpen,fxSet,fxConfirm,fixHTML,MORE,set tab3c(v){tab3c=v;}};')();
   const k = 'b1본관101호', L = OV.ledgerOf(k), cut = L.rows.find(r => r.type === '감액');
   const post = OV.ctrPay(k, '2026-07'), item = post.it.find(i => i.n === '수도요금');
   const mv = L.rows.filter(r => r.g === cut.g);
@@ -454,9 +454,10 @@ r6.push(['임대정보 · 임대료 인상 예약(요약 탭) — 분기 · 기�
     btnOn && over1 && part && rfs.length === 2 && rfs.reduce((a, r) => a + r.inc, 0) === 18000 && L2.bal.매출채권 === 0
     && rfOff()]);
   /* 청구 감액 패널 — 사유가 없으면 막는다. 미납보다 많으면 과납이 된다고 미리 알린다 */
-  OV.fixOpen(k, 'cut'); OV.fxSet('amt', '5000'); OV.fxConfirm(); const noWhy = OV.ledgerOf(k).rows.filter(r => r.type === '감액').length === 1;
+  OV.fixOpen(k, 'cut'); const hEmpty = OV.fixHTML(); OV.fxSet('item', OV.cutItems(k)[0]); OV.fxSet('amt', '5000'); OV.fxConfirm(); const noWhy = OV.ledgerOf(k).rows.filter(r => r.type === '감액').length === 1;
   const warn = /과납/.test(OV.fixHTML());
-  r6.push(['청구 감액 패널 — 사유 없으면 막힘 · 미납보다 많으면 「과납이 됩니다」', noWhy && warn]); }
+  r6.push(['청구 감액 패널 — 「항목을 고르세요」로 시작(청구 칸 없음) · 수도요금 감액한 적 있으니 맨 앞 · 마감한 달 청구도 줄일 수 있음 · 사유 없으면 막힘 · 미납보다 많으면 「과납이 됩니다」',
+  /<option value="" selected>항목을 고르세요/.test(hEmpty) && !/<span class="fk">청구<\/span>/.test(hEmpty) && OV.cutItems(k)[0] === '수도요금' && /마감한 달의 청구도 줄일 수 있고/.test(hEmpty) && noWhy && warn]); }
 /* 오납 — 7월 SK렌터카(주) 1,938,620 입금을 오납으로 → 7월 마감 확인에 걸림 · 입금 매칭에서 환불 기록하면 풀림. 원장에는 없다 → 4.3.5 */
 { const MS = new Function(stub + bare + '; seedJuly(); return {RC,rcUnignore,rcMis,rcOpenN,PAY13,mcChecks,openMis,ovSet,ovConfirm,ledgerOf};')();
   MS.RC.f.ym = '2026-07'; MS.rcUnignore(55); MS.rcMis(55); MS.RC.cur = 55;
