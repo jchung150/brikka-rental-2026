@@ -1191,6 +1191,12 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   r6.push(['수납 처리 없음 — 수납 내역 · 미납 관리 더보기는 「입금 확인」 · 원장 수납 ▾는 과납 환불만 · 입금 확인은 그 임차인 입금만 거른 입금 매칭(비씨에이전시 7월은 07.31 한 건) · 전체 임차인으로 되돌림',
     /moreOpen\(/.test(h) && bc && sc && bc.map(i => i.t).join() === '입금 확인,청구서 보기,원장 보기' && !bc[0].off && !sc[0].off && sc[2].go.includes(`go('ctr-3/b1본관101호')`)
     && p2 && p2.map(i => i.t).join() === '입금 확인' && none && filt && back]); }
+/* 메뉴 — 월 청구(정산 → 발행 → 마감, 순서대로)와 수납(입금 매칭 · 수납 내역 · 미납 관리, 아무 때나)을 나눈다 */
+{ const MN = new Function(stub + bare + '; return {MENU};')();
+  const g = k => (MN.MENU.find(m => m.k === k) || {items: []}).items.map(i => i.n).join(' → ');
+  r6.push(['메뉴 — 월 청구: 관리비 정산 → 청구서 발행 → 월 마감(누르면 월 청구 현황) · 수납: 입금 매칭 · 수납 내역 · 미납 관리',
+    g('청구') === '관리비 정산 → 청구서 발행 → 월 마감' && g('수납') === '입금 매칭 → 수납 내역 → 미납 관리'
+    && MN.MENU.find(m => m.k === '청구').g === '월 청구' && MN.MENU.find(m => m.k === '청구').over === 'pay-12' && !MN.MENU.find(m => m.k === '수납').over]); }
 /* 상계 취소를 막는 셋째 경우 — 상계로 채운 청구를 감액해 생긴 과납을 이미 환불했으면 취소할 수 없다 → 확인요청 답변 질문 7 */
 { const OX = new Function(stub + bare + '; seedJuly(); return {openOffset,payConfirm,addCut,openRefund,ovConfirm,cancelWhyNot,payRec,BILLS,PAYEV,overOf};')();
   const k = 'b1별관301호'; OX.openOffset(k); OX.payConfirm();

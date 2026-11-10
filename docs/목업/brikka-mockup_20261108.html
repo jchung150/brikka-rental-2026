@@ -605,13 +605,16 @@ const MENU=[
  {id:'dash-1',n:'대시보드',sid:'DASH-1',i:'dash'},
  {id:'pro-1',n:'건물 관리',sid:'PRO-1',i:'bldg'},
  {id:'ctr-1',n:'계약 관리',sid:'CTR-1',i:'file'},
- {k:'청구',g:'청구 · 수납',i:'wallet',over:'pay-12',items:[
+ /* 월 청구 — 한 달에 한 번 순서대로 하는 일(정산 → 발행 → 마감). 수납 — 아무 때나 보는 돈의 상태.
+    은행 거래내역을 자동으로 가져오므로 입금 매칭은 월 프로세스의 한 단계가 아니다 → 명세변경_261108 24 */
+ {k:'청구',g:'월 청구',i:'calc',over:'pay-12',items:[
    {id:'pay-10',n:'관리비 정산',sid:'PAY-10',i:'calc'},
    {id:'pay-1',n:'청구서 발행',sid:'PAY-1',i:'mail'},
+   {id:'pay-11',n:'월 마감',sid:'PAY-11',i:'lock'}]},
+ {k:'수납',g:'수납',i:'wallet',items:[
    {id:'pay-13',n:'입금 매칭',sid:'PAY-13',i:'card'},
    {id:'pay-6',n:'수납 내역',sid:'PAY-6',i:'list'},
-   {id:'pay-2',n:'미납 관리',sid:'PAY-2',i:'wallet'},
-   {id:'pay-11',n:'월 마감',sid:'PAY-11',i:'lock'}]},
+   {id:'pay-2',n:'미납 관리',sid:'PAY-2',i:'wallet'}]},
  {k:'보고',g:'보고서',i:'chart',items:[
    {id:'rep-1',n:'임대인 보고서',sid:'REP-1',i:'chart'}]},
  {k:'상대',g:'연락처',i:'users',items:[
@@ -631,7 +634,7 @@ const ALL=MENU.flatMap(m=>m.items||[m]);
 /* 열림 상태 · 접힘 상태 — 브라우저에 기억시킨다 */
 const LS={get(k,d){try{const v=localStorage.getItem(k);return v===null?d:JSON.parse(v)}catch(e){return d}},
           set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
-let OPEN=LS.get('brikka.open',{청구:true,상대:true,문서:true,설정:true});
+let OPEN=LS.get('brikka.open',{청구:true,수납:true,상대:true,문서:true,설정:true});
 let FOLD=LS.get('brikka.fold',false);
 
 /* ═══ 데이터 ═══ */
@@ -2872,7 +2875,7 @@ function row4(r,m,cls){
     <td class="c">${r.st==='사용중'&&!isDirect(m.code)?moreCell([{t:'일할 계산',go:`prcOpen('${m.code}','${r.no}')`}]):''}</td></tr>`;
 }
 
-/* ═══ PAY-12 청구·수납 개요 ═══ */
+/* ═══ PAY-12 월 청구 현황 — 「월 청구」 메뉴를 누르면 열린다 ═══ */
 let f12='2026-08';
 /* 카리나빌딩 7월 — 원장에서 센다. 청구 계약 수 · 청구액 · 수납액 · 완납 계약 수. 8/5 월 마감 */
 function prog7b1(){
@@ -2911,7 +2914,7 @@ function PAY12(){
     {inv:0,invN:0,amt:0,paid:0,paidN:0,done:0,closed:0});
   const rate=T.amt?Math.round(T.paid/T.amt*100):0;
   return `
-  <div class="ph"><h1>청구 · 수납 현황</h1><span class="sid">PAY-12</span></div>
+  <div class="ph"><h1>월 청구 현황</h1><span class="sid">PAY-12</span></div>
   <div class="fbar">
     <select onchange="f12=this.value;render()">${[['2026-08','2026년 8월'],['2026-07','2026년 7월']].map(([v,t])=>`<option value="${v}" ${f12===v?'selected':''}>${t}</option>`).join('')}</select>
     <span style="color:var(--muted);font-size:12px">건물 ${BUILDINGS.length}개 · 정산 확정 ${T.done} · 월 마감 ${T.closed}</span>
@@ -3098,7 +3101,7 @@ function TODO(id){
   return `<div class="ph"><h1>${m?m.n:id}</h1>${m?`<span class="sid">${m.sid}</span>`:''}</div>
   <div class="tbl"><div class="empty"><div class="t">아직 만들지 않은 화면입니다</div>
     구현된 화면 — <b>PRO-1</b> 건물 목록 · <b>PRO-3</b> 건물 상세 ·
-    <b>PAY-12</b> 청구 · 수납 현황 · <b>PAY-10</b> 관리비 정산 · <b>PAY-1</b> 청구서 발행 ·
+    <b>PAY-12</b> 월 청구 현황 · <b>PAY-10</b> 관리비 정산 · <b>PAY-1</b> 청구서 발행 ·
     <b>PAY-13</b> 입금 매칭 · <b>PAY-6</b> 수납 내역 · <b>PAY-2</b> 미납 관리 · <b>PAY-11</b> 월 마감</div></div>`;   /* PAY-8 수납 내역은 PAY-6에 합쳤다 */
 }
 
@@ -5874,19 +5877,19 @@ function render(keep){
   else if(id==='pro-2'){html=PRO2();crumb='<span class="c" onclick="go(\'pro-1\')">건물 관리</span> <span>›</span> <b>새로운 건물 등록</b>';}
   else if(id==='pro-3'){const b=BUILDINGS.find(x=>x.id===arg)||BUILDINGS[0];
     html=PRO3(arg);crumb=`<span class="c" onclick="go('pro-1')">건물 관리</span> <span>›</span> <b>${b.name}</b>`;}
-  else if(id==='pay-10'){html=PAY10();crumb='청구 · 수납 <span>›</span> <b>관리비 정산</b>';}
-  else if(id==='pay-12'){html=PAY12();crumb='<b>청구 · 수납</b>';}
-  else if(id==='pay-11'){html=PAY11();crumb='청구 · 수납 <span>›</span> <b>월 마감</b>';}
-  else if(id==='pay-1'){html=PAY1();crumb='청구 · 수납 <span>›</span> <b>청구서 발행</b>';}
-  else if(id==='pay-6'){html=PAY6();crumb='청구 · 수납 <span>›</span> <b>수납 내역</b>';}
+  else if(id==='pay-10'){html=PAY10();crumb='월 청구 <span>›</span> <b>관리비 정산</b>';}
+  else if(id==='pay-12'){html=PAY12();crumb='<b>월 청구</b>';}
+  else if(id==='pay-11'){html=PAY11();crumb='월 청구 <span>›</span> <b>월 마감</b>';}
+  else if(id==='pay-1'){html=PAY1();crumb='월 청구 <span>›</span> <b>청구서 발행</b>';}
+  else if(id==='pay-6'){html=PAY6();crumb='수납 <span>›</span> <b>수납 내역</b>';}
   else if(id==='ctr-1'){html=CTR1();crumb='<b>계약 관리</b>';}
   else if(id==='ctr-4'){const k=decodeURIComponent(arg||''), c=CTRS.find(x=>ckey(x)===k);
     html=c?CTR2(k):TODO('ctr-1');crumb=`<span class="c" onclick="go('ctr-1')">계약 관리</span> <span>›</span> <span class="c" onclick="go('ctr-3/${k}')">${c?cname(BUILDINGS[0].alias,c.no,c.ten):'—'}</span> <span>›</span> <b>재계약</b>`;}
   else if(id==='ctr-2'){html=CTR2();crumb='<span class="c" onclick="go(\'ctr-1\')">계약 관리</span> <span>›</span> <b>새로운 계약 등록</b>';}
   else if(id==='ctr-3'){html=CTR3(decodeURIComponent(arg||''));const c=CTRS.find(x=>ckey(x)===decodeURIComponent(arg||''));
     crumb=`<span class="c" onclick="go('ctr-1')">계약 관리</span> <span>›</span> <b>${c?cname(BUILDINGS[0].alias,c.no,c.ten):'—'}</b>`;}
-  else if(id==='pay-2'){html=PAY2();crumb='청구 · 수납 <span>›</span> <b>미납 관리</b>';}
-  else if(id==='pay-13'){html=PAY13();crumb='청구 · 수납 <span>›</span> <b>입금 매칭</b>';}
+  else if(id==='pay-2'){html=PAY2();crumb='수납 <span>›</span> <b>미납 관리</b>';}
+  else if(id==='pay-13'){html=PAY13();crumb='수납 <span>›</span> <b>입금 매칭</b>';}
   else{html=TODO(id);const g=MENU.find(m=>m.items&&m.items.some(i=>i.id===id));
     const m=ALL.find(i=>i.id===id);
     crumb=(g?g.g+' <span>›</span> ':'')+`<b>${m?m.n:'—'}</b>`;}
