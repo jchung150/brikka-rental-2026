@@ -1451,7 +1451,7 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   PV.pvDueOpen([k]); const hd = PV.ipvHTML(); const due = /미납 안내/.test(hd) && /2026년 7월분/.test(hd) && /연체일수/.test(hd) && /미납 안내 메일 1건/.test(hd) && [h8, h7, ha, hd].every(h => /PDF 다운로드/.test(h));
   r6.push(['청구서 모양 하나로 미리보기 — 청구서 발행(고른 것 · 없으면 전체, 여러 장이면 고름) · 청구서 보기(7월분은 발행한 날 기준 납부하실 금액 10,176,383) · 청구 추가(110,000 · 돌아가기 · 메일 보내고 발행) · 해지 처리(8/15 마지막 청구서 한 장 · 8/25 퇴거 예상분이 실린 정기 청구서, 저장 전에는 아무것도 기록 안 함) · 미납 안내',
     reg && adh && term && due]); }
-/* 해지 취소(명세변경 33) — 해지 처리가 기록한 것만 되돌린다. 청구일 전 · 바로 발행 · 발행 뒤 모두 해지 처리 전과 같아진다 · 입금이 들어갔으면 막는다 */
+/* 해지 취소(명세변경 31) — 해지 처리가 기록한 것만 되돌린다. 청구일 전 · 바로 발행 · 발행 뒤 모두 해지 처리 전과 같아진다 · 입금이 들어갔으면 막는다 */
 { const mk = () => new Function(stub + bare + '; seedJuly(); return {issue1,termOpen,termSet,termSave,tcxOpen,tcxConfirm,tcxWhyNot,tcxHTML,ISSUE,ledgerOf,feeUntil,TERMS,ISS,FEE_CUT,PAID,BILLS,CANCELS,CTRS,ckey,MORE,CTR3,get tcx(){return tcx;},get tm(){return tm;},set f1b(v){f1.b=v;},set tab3c(v){tab3c=v;}};')();
   const k = 'b1별관301호';
   const res = [['2026-08-25', 0], ['2026-08-15', 0], ['2026-08-25', 1]].map(([out, pre]) => { const G = mk(); G.f1b = 'b1'; if (pre) G.issue1([k]);
