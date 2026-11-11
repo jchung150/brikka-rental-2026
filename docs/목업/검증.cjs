@@ -1380,6 +1380,20 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
     /전체 기간/.test(h0) && /전체 납부상태/.test(h0) && /title="전체 펼치기"/.test(h0) && !/임대료/.test(h0)
     && /2026년 08월분/.test(h1) && !/2026년 07월분/.test(h1) && /2026년 06월분/.test(h2) && /2026년 07월분/.test(h2)
     && /조건에 맞는 달이 없습니다/.test(h3) && /title="전체 접기"/.test(h4) && /임대료/.test(h4)]); }
+/* 확인요청 답변 4단계 — 질문 8(기타 주차 ⓘ) · 질문 10(보증금 기록 취소는 슈퍼관리자만) · 질문 11-2(수정세금계산서 대상) · 확인 3(부가세 원 미만 절사) */
+{ const Q = new Function(stub + bare + '; seedJuly(); addCut("2026-07|본관101호|임대료",110000,"2026-08-07","7월 임대료 일부 감면"); return {CTR3,LEDG,ledMore,ledOpen,ledHTML,vehOpen,vehHTML,openDepIn,diSet,diConfirm,setDirect,directSum,BILL,set tab3c(v){tab3c=v;}};')();
+  const k = 'b1본관101호'; Q.tab3c = '원장'; Q.openDepIn(k); Q.diSet('amt', '100000'); Q.diConfirm(); const h = Q.CTR3(k);
+  const G = Object.values(Q.LEDG), cut = G.find(x => x.type === '감액'), bill = G.filter(x => x.type === '청구'), dep = G.find(x => x.type === '보증금 예치' && !x.items[0].cxd && x.g.startsWith('di'));
+  if (cut) Q.ledOpen(cut.key); const hd = Q.ledHTML();
+  const cx = m => (m.find(i => i.t === '취소') || {});
+  const q11 = cut && cut.mtax && bill.every(x => !x.mtax) && /수정세금계산서 대상/.test(h) && /홈택스에서 위 공급가액 · 부가세로 발행합니다/.test(hd);
+  const q10 = dep && cx(Q.ledMore(dep)).title === '슈퍼관리자만 취소할 수 있습니다' && cut && !cx(Q.ledMore(cut)).title;
+  Q.vehOpen('b1', 10); const v1 = Q.vehHTML(); Q.vehOpen('b1', 1); const v2 = Q.vehHTML();
+  const q8 = /기록용입니다/.test(v1) && !/기록용입니다/.test(v2);
+  Object.keys(Q.BILL.parking.direct || {}).forEach(n => Q.setDirect('parking', n, '0')); Q.setDirect('parking', '본관801호', '83335');
+  const c3 = Q.directSum('parking') === 83335 && Q.BILL.parking.vat === 8333;
+  r6.push(['확인요청 답변 — 기타 주차 요금부과 ⓘ(기록용) · 보증금 예치 취소는 「슈퍼관리자만」(감액 취소는 아님) · 세금계산서 항목 감액 줄에 「수정세금계산서 대상」(상세에 홈택스 안내 · 청구 줄은 없음) · 직접 입력 부가세 절사 83,335 → 8,333',
+    q8 && q10 && q11 && c3]); }
 const bad6 = r6.filter(x => !x[1]);
 if (bad6.length) fail = 1;
 console.log('⑥ 수납 기록 ' + (bad6.length ? '✗ ' + bad6.map(x => x[0]).join(' / ') : 'OK — ' + r6.length + '개 검산'));

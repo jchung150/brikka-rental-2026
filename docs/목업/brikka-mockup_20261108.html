@@ -1030,7 +1030,8 @@ function monthlyItems(bid){
    정기 청구서에 섞이지 않는다. 원장에는 오늘 날짜로 청구. 배분 우선순위 98. 안분하지 않는다 → CTR-3 */
 const ONCE_DOC=['세금계산서','계산서','일반내역서'];
 let adSeq=0;
-/* 청구년월 · 납부마감일 — 오늘 이후 첫 납부마감일이 있는 달(건물 설정을 따른다. 청구서마다 정하지 않는다 → 3.5) */
+/* 청구년월 · 납부마감일 — 이번 달분의 납부마감일이 오늘 이후면 이번 달분, 이미 지났으면 다음 달분(건물 설정을 따른다. 청구서마다 정하지 않는다 → 3.5 · 확인요청 답변 질문 4).
+   「오늘 이후 가장 가까운 납부마감일」이 아니다 — 납부마감일이 다음 달인 건물에서 지난달분 마감이 잡힌다 */
 const adYm=()=>{const ym=TODAY_S.slice(0,7);if(dnum(dueStr(ym))>=dnum(TODAY_S)) return ym;
   const d=new Date(ym+'-01T00:00:00Z');d.setUTCMonth(d.getUTCMonth()+1);return d.toISOString().slice(0,7);};
 /* 금액 — 세금계산서면 공급가액을 받고 부가세(10%, 원 미만 절사)를 더한다. 그 외는 받은 금액 그대로(부가세 0) */
@@ -1062,7 +1063,7 @@ function setBill(code,key,v){
   if(key==='date'||key==='from'||key==='to'){b[key]=v;render();return;}
   const n=Math.max(0,Math.round(parseFloat(String(v).replace(/[,\s]/g,''))||0));
   b[key]=n;
-  if(key==='supply'&&M(code).tax&&!b.vatManual) b.vat=Math.round(n*0.1);
+  if(key==='supply'&&M(code).tax&&!b.vatManual) b.vat=Math.floor(n*0.1);
   if(key==='vat') b.vatManual=true;
   render(true);
 }
@@ -1810,7 +1811,7 @@ function vdHTML(){
 function vehHTML(){
   if(DRAWER!=='veh'||!vh) return '';
   const b=BUILDINGS.find(x=>x.id===vh.bid), miss=vh.tried?vehMissing():[], inp='border:1px solid var(--line);border-radius:var(--r-sm);padding:7px 9px;font:inherit';
-  const R=(k,body,req)=>`<div class="fr"><span class="fk">${k}${req?' <b style="color:var(--warn)">*</b>':''}</span>${body}</div>`;
+  const R=(k,body,req,tip)=>`<div class="fr"><span class="fk">${k}${req?' <b style="color:var(--warn)">*</b>':''}${tip?`<i class="tip" data-tip="${tip}">i</i>`:''}</span>${body}</div>`;
   const T=(f,ph,w)=>`<input type="text" value="${vh[f]}" placeholder="${ph||''}" oninput="vh.${f}=this.value" style="${inp};${w?`max-width:${w}px`:'width:100%'}">`;
   const cs=CTRS.filter(c=>c.b===b.id&&c.st==='진행중');
   const fixed=vh.fixK&&ctrOfK(vh.fixK), cp=vh.k&&CPARK[vh.k];
@@ -1827,7 +1828,8 @@ function vehHTML(){
       ${R('차종',T('model','예: 그랜저 IG'))}
       ${R('주차구분',`<select onchange="vh.loc=this.value;render(true)" style="${inp}">${VEH_LOC.map(v=>`<option ${vh.loc===v?'selected':''}>${v}</option>`).join('')}</select>`)}
       ${vh.loc==='기타'?R('장소',T('place','예: 아난티 호텔',200),1):''}
-      ${R('요금부과',`<select onchange="vh.fee=this.value;render(true)" style="${inp}">${VEH_FEE.map(v=>`<option ${vh.fee===v?'selected':''}>${v}</option>`).join('')}</select>`)}
+      ${R('요금부과',`<select onchange="vh.fee=this.value;render(true)" style="${inp}">${VEH_FEE.map(v=>`<option ${vh.fee===v?'selected':''}>${v}</option>`).join('')}</select>`,0,
+        vh.loc==='기타'?'기타(건물 밖) 차량은 기록용입니다. 무료 주차 대수와 주차비 계산에 들어가지 않습니다':'')}
       <div class="c2" style="margin:0;white-space:normal">무료는 계약의 무료 주차 대수까지입니다. 넘는 차량은 월정액이며 주차비로 청구합니다. 주차구분 <b>기타</b>(건물 밖 주차)는 장소를 적고, 무료 주차 대수에 세지 않습니다.</div>
       ${miss.length?`<div class="fnd wa3" style="margin:10px 0 0"><span class="h">저장할 수 없습니다</span>빠진 항목: <b>${miss.join(' · ')}</b></div>`:''}
     </div>
@@ -2672,7 +2674,7 @@ function setDirect(code,no,v){
   const n=Math.max(0,Math.round(parseFloat(String(v).replace(/[,\s]/g,''))||0));
   if(n) b.direct[no]=n; else delete b.direct[no];
   /* 입력 금액이 공급가액이다. 과세 항목이면 부가세를 자동으로 다시 계산한다 */
-  if(M(code).tax&&!b.vatManual) b.vat=Math.round(directSum(code)*0.1);
+  if(M(code).tax&&!b.vatManual) b.vat=Math.floor(directSum(code)*0.1);   /* 원 미만 절사 → 확인요청 답변 확인 3 */
   render(true);
 }
 /* 직접 입력 항목 — 안분하지 않고 계약별 금액을 담당자가 넣는다 → 4.1.3 */
@@ -3269,7 +3271,7 @@ function ISSUE(){
         const bd=itemDoc(c,x[0]);
         /* 약정액 0원 — 청구하지 않는다(예: 301호 고정관리비) */
         if(!x[1]) return null;
-        const sup=adjSup(c,x[0],x[1],ym), v=isTax(bd)?Math.round(sup*0.1):0, fx=tOut&&((TERMS[ckey(c)]||{}).fix||{})[x[0]], pr=tOut&&proOf(sup+v,isTax(bd),tOut);
+        const sup=adjSup(c,x[0],x[1],ym), v=isTax(bd)?adjVat(c,x[0],x[1],ym):0, fx=tOut&&((TERMS[ckey(c)]||{}).fix||{})[x[0]], pr=tOut&&proOf(sup+v,isTax(bd),tOut);
         /* 해지 처리에서 담당자가 넣은 해지 달 금액 */
         if(fx) return {n:x[0],bill:bd,src:`임대차계약서 · 해지 처리 금액${pr?` (${pr.d}/${pr.n}일)`:''}`,supply:fx.sup,vat:fx.vat,amt:fx.sup+fx.vat,st:'약정',stc:'mu',pro:pr||null};
         if(pr) return {n:x[0],bill:bd,src:`임대차계약서 · 해지 일할 ${pr.d}/${pr.n}일`,supply:pr.sup,vat:pr.vat,amt:pr.amt,st:'약정',stc:'mu',pro:pr};
@@ -3663,7 +3665,8 @@ function cancelWhyNot(kind,rec){
   if(kind==='term') return '해지 처리로 발행한 청구서입니다. 고칠 때는 청구 감액 · 청구 추가로 합니다';
   /* 계약 보증금(목업 예시값)은 계약 시작 달의 기록이다 — 그 달은 이미 마감했다고 본다 */
   if(rec.seed) return '마감한 달의 기록은 취소할 수 없습니다. 이번 달의 보증금 예치 · 반환으로 바로잡습니다';
-  /* 마감한 달 — 보증금 기록은 이번 달의 보증금 예치 · 반환으로(10-1), 청구 · 수납은 청구 추가 · 청구 감액으로(14-4) 바로잡는다 */
+  /* 마감한 달 — 원장 거래일(rec.date)의 달로 본다. 비정기 청구도 청구년월이 아니다(확인요청 답변 질문 5).
+     보증금 기록은 이번 달의 보증금 예치 · 반환으로(10-1), 청구 · 수납은 청구 추가 · 청구 감액으로(14-4) 바로잡는다 */
   if(closedBy(bOfK(rec.k),rec.date.slice(0,7),TODAY_S)) return kind==='rf'?'마감한 달의 기록은 취소할 수 없습니다':kind==='di'||kind==='dr'?'마감한 달의 기록은 취소할 수 없습니다. 이번 달의 보증금 예치 · 반환으로 바로잡습니다':'마감한 달의 기록은 취소할 수 없습니다. 이번 달의 청구 추가 · 청구 감액으로 바로잡습니다';
   if(kind==='adh'&&paidNet(rec.id)>0) return '입금이 배분된 청구는 취소할 수 없습니다. 먼저 수납을 무효 처리합니다';
   if(kind==='adh'&&cutOf(rec.id)>0) return '감액한 청구는 취소할 수 없습니다. 먼저 감액을 취소합니다';
@@ -4270,7 +4273,7 @@ function moreCell(items){
 function moreOpen(id,el){
   moreClose(); const r=el.getBoundingClientRect(), m=document.createElement('div');
   m.className='mmenu'; m.id='mmenu';
-  m.innerHTML=MORE[id].map((i,n)=>i.off?`<div class="mi off" title="${i.off}">${i.t}</div>`:`<div class="mi" data-n="${n}">${i.t}</div>`).join('');
+  m.innerHTML=MORE[id].map((i,n)=>i.off?`<div class="mi off" title="${i.off}">${i.t}</div>`:`<div class="mi" data-n="${n}" ${i.title?`title="${i.title}"`:''}>${i.t}</div>`).join('');
   m.style.top=(r.bottom+4)+'px'; m.style.right=(window.innerWidth-r.right)+'px';
   m.onclick=e=>{e.stopPropagation();const n=e.target.dataset.n; if(n==null) return; moreClose(); new Function(MORE[id][n].go)();};
   document.body.appendChild(m);
@@ -5153,6 +5156,12 @@ function adjSup(c,n,sup,ym){
   const a=c.adj.filter(x=>x[f]&&x.d.slice(0,7)<=ym).sort((p,q)=>p.d<q.d?-1:1).pop();
   return a?Math.floor(a[f]*10/11):sup;
 }
+/* 고정액의 부가세 — 공급가액의 10%, 원 미만 절사(확인요청 답변 확인 3).
+   계약 · 인상 예약에 넣은 금액은 부가세 포함 합계라 합계 − 공급가액이다(넣은 합계가 그대로 청구되게) */
+function adjVat(c,n,sup0,ym){const s=adjSup(c,n,sup0,ym);
+  const f=n==='임대료'?'rent':n==='고정관리비'?'mgmt':null, a=f&&c.adj&&c.adj.filter(x=>x[f]&&x.d.slice(0,7)<=ym).sort((p,q)=>p.d<q.d?-1:1).pop();
+  if(a) return a[f]-s;
+  const t=(c.meta&&c.meta[n]||{}).tot; return t&&Math.floor(t*10/11)===s?t-s:Math.floor(s*0.1);}
 function itemMeta(c,n){return ((c.meta=c.meta||{})[n]=c.meta[n]||{});}
 function itemCalc(n){return (CITEM[n]||{calc:'고정액'}).calc;}
 function itemCycle(c,n){return ((c.meta||{})[n]||{}).cycle||(CITEM[n]||{}).cycle||'매월';}
@@ -5176,7 +5185,7 @@ function ciSave(){
     const chg=Object.values(ci.its).some(v=>numOf(v.amt)!==v.amt0&&v.amt0>0);
     if(chg&&!ci.why.trim()) return;
     Object.entries(ci.its).forEach(([n,v])=>{const mt=itemMeta(c,n); let x=c.it.find(y=>y[0]===n); if(!x){x=[n,0];c.it.push(x);}
-      const a=numOf(v.amt); if(a!==v.amt0){x[1]=Math.floor(a*10/11); if(v.amt0) mt.fixWhy=ci.why.trim();}
+      const a=numOf(v.amt); if(a!==v.amt0){x[1]=Math.floor(a*10/11); mt.tot=a; if(v.amt0) mt.fixWhy=ci.why.trim();}
       mt.cycle=v.cycle; mt.from=v.from;});
     c.rate=parseFloat(ci.rate)||8;
     if(ci.payTo) c.payTo=ci.payTo; else delete c.payTo;
@@ -5550,7 +5559,7 @@ function termFee(k,out){const cut=FEE_CUT[k];
 function termFixDef(k,out){const c=CTRS.find(x=>ckey(x)===k), ym=out.slice(0,7), z=ISS[k];
   return c.it.filter(x=>itemCalc(x[0])==='고정액'&&x[1]).map(x=>{const n=x[0], doc=itemDoc(c,n), tax=isTax(doc);
     const b=z&&!z.term?(z.bills||[]).find(i=>i.n===n&&!i.fee):null;
-    const sup=b?b.sup:adjSup(c,n,x[1],ym), vat=b?b.vat:tax?Math.round(sup*0.1):0, pr=proOf(sup+vat,tax,out);
+    const sup=b?b.sup:adjSup(c,n,x[1],ym), vat=b?b.vat:tax?adjVat(c,n,x[1],ym):0, pr=proOf(sup+vat,tax,out);
     return {n,doc,tax,orig:{sup,vat,amt:sup+vat},def:pr?{sup:pr.sup,vat:pr.vat}:{sup,vat},d:pr?pr.d:mDays(ym),dn:mDays(ym),b};});}
 function termFix(k,out,inp){return termFixDef(k,out).map(f=>{const v=inp&&inp[f.n]!=null&&inp[f.n]!==''?numOf(inp[f.n]):null;
   const sup=v==null?f.def.sup:v, vat=sup===f.def.sup?f.def.vat:f.tax?Math.floor(sup*0.1):0; return {...f,sup,vat,amt:sup+vat,edited:v!=null&&v!==f.def.sup};});}
@@ -5956,6 +5965,8 @@ function CTR3(k){
       x.dr=it.reduce((a,r)=>a+(r.dr||0),0);x.cr=it.reduce((a,r)=>a+(r.cr||0),0);
       x.sup=it.some(r=>r.sup!=null)?it.reduce((a,r)=>a+(r.sup||0),0):null;x.vat=it.reduce((a,r)=>a+(r.vat||0),0);
       x.title=it[0].ttl?it[0].ttl:x.type==='청구'?`${it[0].ym.slice(2).replace('-','.')}월분 청구서`:x.type==='수납'?(it[0].src==='이전 입금'?'이전 입금':`${it[0].src.replace(/^\d\d:\d\d:\d\d /,'')} ${it[0].hand?'수납':'입금'}`):it[0].item;   /* 입금 시각은 적지 않는다 */
+      /* 세금계산서 항목의 청구 감액 · 청구 취소 — 담당자가 홈택스에서 수정세금계산서를 낸다. 시스템은 공급가액 · 부가세만 남긴다(발행 여부는 기록하지 않는다) → 확인요청 답변 질문 11-2 */
+      x.mtax=!it[0].cxd&&(x.type==='감액'||x.type==='청구 취소')&&x.vat>0;
       x.key=x.g+'|'+x.date; LEDG[x.key]=x;});
     const pg=acc==='매출채권', N=Math.max(1,Math.ceil(G.length/HPER)), cur=pg?Math.min(hp['l'+k]||1,N):1, P=pg?G.slice((cur-1)*HPER,cur*HPER):G;
     /* 청구서·입금 묶음은 한 건이어도 펼쳐서 어디에 들어갔는지 보인다. 감액·환불·보증금은 한 줄 그대로 */
@@ -5964,7 +5975,7 @@ function CTR3(k){
       return `<div class="schr led grp" onclick="${many?`g3Tog('${x.key}')`:''}">
         <div class="nm"><span class="tg ${op?'op':''}" style="${many?'':'visibility:hidden'}">${ic('chev',16)}</span>${x.date.slice(2).replace(/-/g,'.')}</div>
         <div><span class="bd ${TP[x.type]||'mu'}">${x.type}</span></div>
-        <div>${x.title}${x.items[0].cxd?'<span class="bd mu" style="margin-left:6px">취소됨</span>':''}${many?`<span class="c2" style="margin-left:6px">${x.type==='수납'?`${x.items.length}건에 배분`:`${x.items.length}건`}</span>`:''}</div>
+        <div>${x.title}${x.items[0].cxd?'<span class="bd mu" style="margin-left:6px">취소됨</span>':''}${x.mtax?'<span class="bd mu" style="margin-left:6px">수정세금계산서 대상</span>':''}${many?`<span class="c2" style="margin-left:6px">${x.type==='수납'?`${x.items.length}건에 배분`:`${x.items.length}건`}</span>`:''}</div>
         <div class="n">${x.dr?won(x.dr):''}</div>
         <div class="n">${x.cr?won(x.cr):''}</div>
         <div class="n"><b>${balTx(x.bal)}</b></div>
@@ -6070,7 +6081,9 @@ function ledRec(x){
 }
 function ledMore(x){const R=ledRec(x), m=[{t:'상세',go:`ledOpen('${x.key}')`}];
   if(x.type==='청구'&&!x.items[0].cxd) m.push({t:'감액',go:`fixOpenRow('${x.key}')`,off:rowCutBills(x).length?'':'줄일 금액이 남은 항목이 없습니다'});
-  if(R){const no=cancelWhyNot(R.kind,R.rec); m.push({t:'취소',go:`lcxOpen('${x.key}')`,off:no});}
+  /* 보증금 기록(예치 · 상계 · 반환)의 취소는 슈퍼관리자만 — 관리자에게는 흐리게 보인다. 목업은 슈퍼관리자 화면이라 열려 있다 → 확인요청 답변 질문 10 */
+  if(R){const no=cancelWhyNot(R.kind,R.rec), dep=R.kind==='di'||R.kind==='dr'||(R.kind==='pay'&&R.dd);
+    m.push({t:'취소',go:`lcxOpen('${x.key}')`,off:no,title:dep?'슈퍼관리자만 취소할 수 있습니다':''});}
   return m;}
 function lcxOpen(key){lcx={key,why:''};DRAWER='lcx';render(true);}
 function lcxConfirm(){const x=LEDG[lcx.key], R=x&&ledRec(x); if(!R) return;
@@ -6106,6 +6119,7 @@ function ledHTML(){
         ${R('계정',x.acc)}${R('내용',x.title)}
         ${x.sup!=null&&x.vat?R('공급가액',won(x.sup))+R('부가세',won(x.vat)):''}
         ${R(x.dr?'차변':'대변',`<b>${won(amt)}</b>`)}
+        ${x.mtax?R('세금계산서','<span class="bd mu">수정세금계산서 대상</span> <span class="c2">홈택스에서 위 공급가액 · 부가세로 발행합니다</span>'):''}
         ${r0.why?R('사유',r0.why):''}${r0.acct?R('보낸 계좌',r0.acct):''}</div>
       ${x.items.length>1?`<div class="fg"><div class="fl">항목 ${x.items.length}건</div>
         ${x.items.map(r=>R(r.item,won(r.dr||r.cr))).join('')}</div>`:''}
