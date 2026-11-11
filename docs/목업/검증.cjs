@@ -803,8 +803,8 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   AU.bdOpen(); AU.bdSet('d', '2026-07-20'); AU.bdSet('t', '1000'); const tOk = AU.bdMissing().every(m => !/시각/.test(m)); AU.bdSet('name', '(주)비씨에이전시'); AU.bdSet('amt', '100000'); const closed = AU.bdMissing().some(m => /7월은 마감했습니다/.test(m));
   const bal0 = AU.ledgerOf('b1별관301호').bal.매출채권; AU.bdSet('d', '2026-08-09'); AU.bdSet('t', '25:00'); const tBad = AU.bdMissing().some(m => /14:05처럼/.test(m)); AU.bdSet('t', '10:00'); AU.bdSave();
   const nd = AU.BANKS['2026-08'].dep.find(d => d.src === '직접 입력'), x = AU.RC.dec[nd.no] || {}, h9 = AU.PAY13();
-  r6.push(['은행 자동 수집 — 7월 입금 ' + nAuto + '건 자동 확정(시스템) · 나머지 ' + nHand + '건 담당자 · 확정 패널 「자동 수집 · 자동 확정 · 시스템」 · 마지막 수집 시각 · 8월 미래상사 미매칭 1건 → 청구서 발행 안내 · 수납 현황 1건 · 직접 입력: 7월(마감) 막힘 · 8/9 비씨에이전시 100,000 → 자동 확정 · 원장 −100,000 · 「직접 입력 · 은행 확인 전」',
-    nAuto > 0 && nHand > 0 && /자동 수집 · 자동 확정 · 시스템/.test(h7) && /거래내역 <b[^>]*>08\.10 09:00<\/b>까지/.test(h7)
+  r6.push(['은행 자동 수집 — 7월 입금 ' + nAuto + '건 자동 확정(시스템) · 나머지 ' + nHand + '건 담당자 · 확정 패널은 짧게 「07.25 10:16 · 자동 확정(등록된 입금자명)」(전체는 마우스를 올리면 · 계좌 하나인 건물은 계좌 생략) · 마지막 수집 시각 · 8월 미래상사 미매칭 1건 → 청구서 발행 안내 · 수납 현황 1건 · 직접 입력: 7월(마감) 막힘 · 8/9 비씨에이전시 100,000 → 자동 확정 · 원장 −100,000 · 「직접 입력 · 은행 확인 전」',
+    nAuto > 0 && nHand > 0 && />07\.\d\d \d\d:\d\d · 자동 확정\(등록된 입금자명\)<\/span>/.test(h7) && /title="[^"]*자동 수집/.test(h7) && !/계좌이체 · 입금 계좌/.test(h7.replace(/title="[^"]*"/g, '')) && /거래내역 <b[^>]*>08\.10 09:00<\/b>까지/.test(h7)
     && /미매칭 입금 1건이 있습니다/.test(h1) && /발행은 막지 않습니다/.test(h1) && w === 1 && /미래상사/.test(h8)
     && closed && tOk && tBad && nd && nd.dt === '2026-08-09 10:00:00' && nd.by === '슈퍼관리자' && x.done && x.done.auto && AU.ledgerOf('b1별관301호').bal.매출채권 === bal0 - 100000 && /직접 입력 · 은행 확인 전/.test(h9)]); }
 /* 연체료 일부 감면 — 청구서에 들어간 연체료 줄을 청구 감액으로 줄인다(일반내역서 · 부가세 없음) → 18-2 */
@@ -864,8 +864,8 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   IA.f1b = 'b2'; IA.MORE.length = 0; const h = IA.PAY1();
   const m = IA.MORE.find(x => x[0].go === `issueAsk(['b21203호'])`);
   IA.issueAsk(['b21203호']); const ask = IA.issueHTML(); IA.issueGo(false);
-  r6.push(['청구서 발행 — 메일 체크박스·미납 조회 없음 · 더보기 「청구서 발행」 → 메일 여부 묻기 → 메일 없이 발행',
-    !h.includes('메일 보내기') && !h.includes('미납 조회') && m && !m[0].off && !!m[1].off
+  r6.push(['청구서 발행 — 메일 체크박스·미납 조회 없음 · 더보기 「청구서 발행」 · 「미리보기」 → 메일 여부 묻기 → 메일 없이 발행',
+    !h.includes('메일 보내기') && !h.includes('미납 조회') && m && !m[0].off && m[1].t === '미리보기' && !m[1].off && !!m[2].off
     && /메일을 보내시겠습니까/.test(ask) && IA.ISS['b21203호'] && IA.ISS['b21203호'].mail === false]); }
 /* 청구서 발행 전 달 — 마감한 달의 미납이 넘어간 다음 달 줄에 이월 미납액만, 마감 뒤 수납은 거기에 → 명세변경 20 */
 { const CY = new Function(stub + bare + '; seedJuly(); return {CTR3month,CTRS,ctrPay,openOffset,setPm,payConfirm};')();
@@ -1437,6 +1437,20 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
     return L.length > 0 && L[L.length - 1].bal === S[a].close && L.reduce((x, l) => x + l.dr - l.cr, 0) === (a === '매출채권' ? 1 : -1) * (S[a].close - S[a].open); });
   r6.push(['명세서 보내기 — 미리보기 버튼 → 보낼 PDF 그대로(원장 명세서 · 받을 돈 · 보증금마다 시작 잔액 · 거래 · 끝 잔액 · 청구서 한 줄) · 돌아가기 · 미리보기에서도 메일 보내기 · 줄 잔액이 끝 잔액과 맞음',
     /stSet\('pv',true\)">미리보기/.test(h0) && /원장 명세서/.test(h1) && /시작 잔액/.test(h1) && /26\.07월분 청구서/.test(h1) && /돌아가기/.test(h1) && /stSend\(\)">메일 보내기/.test(h1) && ok]); }
+/* 청구서 모양 · 미리보기 — 청구서 발행 · 청구서 보기 · 청구 추가 · 해지 처리 · 미납 안내가 같은 청구서 모양을 쓴다 */
+{ const PV = new Function(stub + bare + '; seedJuly(); return {pv1Open,billView,ipvHTML,fixOpen,fxSet,pvAdhOpen,termOpen,termSet,pvTermOpen,unbilled,termMode,CTRS,ckey,TERMS,ISS,BILLS,pvDueOpen,f1,get tm(){return tm;},get ipv(){return ipv;}};')();
+  const k = 'b1별관301호', c = PV.CTRS.find(x => PV.ckey(x) === k), pay = h => (h.match(/납부하실 금액(?: \(미납액\))?<\/span><span[^>]*>([^<]+)/) || [])[1];
+  PV.f1.b = 'b1'; PV.f1.ym = '2026-08'; PV.pv1Open(null); const n8 = PV.ipv.docs().length, h8 = PV.ipvHTML();
+  PV.billView(k, '2026-07'); const h7 = PV.ipvHTML();
+  const reg = n8 > 1 && /청구서 \d+장/.test(h8) && /이번 청구 합계/.test(h8) && /청구서 보기/.test(h7) && /이월 미납액/.test(h7) && pay(h7) === '10,176,383원' && /국민은행/.test(h7);
+  PV.fixOpen(k, 'add'); PV.fxSet('name', '엘리베이터 사용료'); PV.fxSet('amt', '100000'); PV.pvAdhOpen(); const ha = PV.ipvHTML();
+  const adh = /비정기/.test(ha) && pay(ha) === '110,000원' && /돌아가기/.test(ha) && /메일 보내고 발행/.test(ha) && PV.ipv.prev === 'fix';
+  const nb = PV.BILLS.length, modes = ['2026-08-15', '2026-08-25'].map(out => { PV.termOpen(k); PV.termSet('out', out); const U = PV.unbilled(c, out, PV.termMode(k, out)); if (U[0]) PV.tm.est[U[0].code] = '50000';
+    PV.pvTermOpen(); return PV.ipv.docs().map(d => d.label.split(' (')[0] + ':' + (d.html.match(/퇴거 예상분/g) || []).length).join(); });
+  const term = modes[0] === '8월분 마지막 청구서:2' && modes[1] === '해지 청구서:2,8월분 정기 청구서:0' && !PV.TERMS[k] && !PV.ISS[k] && PV.BILLS.length === nb;
+  PV.pvDueOpen([k]); const hd = PV.ipvHTML(); const due = /미납 안내/.test(hd) && /2026년 7월분/.test(hd) && /연체일수/.test(hd) && /미납 안내 메일 1건/.test(hd);
+  r6.push(['청구서 모양 하나로 미리보기 — 청구서 발행(고른 것 · 없으면 전체, 여러 장이면 고름) · 청구서 보기(7월분은 발행한 날 기준 납부하실 금액 10,176,383) · 청구 추가(110,000 · 돌아가기 · 메일 보내고 발행) · 해지 처리(8/15 마지막 청구서 한 장 · 8/25 해지 청구서 + 정기 청구서, 저장 전에는 아무것도 기록 안 함) · 미납 안내',
+    reg && adh && term && due]); }
 const bad6 = r6.filter(x => !x[1]);
 if (bad6.length) fail = 1;
 console.log('⑥ 수납 기록 ' + (bad6.length ? '✗ ' + bad6.map(x => x[0]).join(' / ') : 'OK — ' + r6.length + '개 검산'));

@@ -1326,6 +1326,7 @@ function drawerHTML(){
   if(DRAWER==='ldet') return ledHTML();
   if(DRAWER==='lcx') return lcxHTML();
   if(DRAWER==='stmt') return stHTML();
+  if(DRAWER==='ipv') return ipvHTML();
   if(DRAWER==='bkd') return bdHTML();
   if(DRAWER==='bank') return bkHTML();
   if(DRAWER==='pay') return payHTML();
@@ -3409,6 +3410,7 @@ function PAY1(){
       <div class="c">${c.st==='발행 완료'?`<span class="bd ok">발행 완료</span>${c.term?'<div class="c2" style="margin:2px 0 0">해지 처리로 발행</div>':''}`:'<span class="bd mu">발행 대기</span>'}</div>
       <div class="c">${moreCell([
         {t:'청구서 발행',go:`issueAsk(['${c.k}'])`,off:PAST_CTX?'지난 회차입니다':!can?'이미 발행했습니다':stop?'비운영중인 건물입니다':!ok?'정산이 확정되지 않았습니다':''},
+        {t:can?'미리보기':'청구서 보기',go:`pv1Open(['${c.k}'])`},
         {t:'청구서 취소',go:`cancelOpen('${c.k}')`,off:can?'발행 전입니다':cancelBlock(c,PAST_CTX||SETTLE.ym)}])}</div>
     </div>` + (!op?'':c.lines.map(l=>`
     <div class="schr iss sub"${l.off?' style="opacity:.5"':''}>
@@ -3427,7 +3429,7 @@ function PAY1(){
   }).join('');
   return `
   <div class="ph"><h1>청구서 발행</h1><span class="sid">PAY-1</span>
-    <div class="act"><button class="btn">미리보기</button>
+    <div class="act"><button class="btn" ${rows.length?'':'disabled'} onclick="pv1Open(${JSON.stringify((nSel?wait.filter(c=>sel1[c.k]):rows).map(c=>c.k)).replace(/"/g,"'")})">미리보기${nSel?` ${nSel}건`:''}</button>
       <button class="btn pri" ${ok&&!stop&&!PAST_CTX&&wait.length?'':'disabled'}
         onclick="issueAsk(${JSON.stringify((nSel?wait.filter(c=>sel1[c.k]):wait).map(c=>c.k)).replace(/"/g,"'")})">
         ${nSel?`선택 ${nSel}건 발행`:`전체 ${wait.length}건 발행`}</button></div>
@@ -3827,7 +3829,7 @@ function offSplit(k,P,rate){
 /* 그 달 정기 청구의 d일 기준 남은 금액 — 미납액으로 넘어가서 받은 돈도 그 달 몫이다 */
 function ymLeftAt(k,ym,d){
   const it=BILLS.filter(i=>i.k===k&&i.ym===ym&&!i.fee&&!i.adhoc);
-  const ev=[...it.flatMap(i=>PAYEV[i.id]||[]),...(carryEv(k)[ym]||[])];
+  const ev=[...it.flatMap(i=>PAYEV[i.id]||[]),...(carryEv(k)[ym]||[]),...CUTS.filter(c=>it.some(i=>i.id===c.id)).map(c=>({date:c.date,amt:c.amt}))];
   return it.reduce((a,i)=>a+i.amt,0)-ev.filter(e=>dnum(e.date)<=dnum(d)).reduce((a,e)=>a+e.amt,0);
 }
 function lateCalc(k,ym,until){
@@ -4041,6 +4043,12 @@ const bkAccts=b=>b.acct===b.feeAcct?[{t:'임대료 · 관리비',a:b.acct,n:b.ac
 const BKUP=[];   /* 목업에서 올린 파일은 없다 — 모두 자동 수집 */
 const bkUps=()=>BKUP.filter(x=>x.b===RC.f.b&&x.ym===RC.f.ym);
 /* 입금 줄의 계좌 — 목업 거래내역은 건물·월마다 파일 하나라 그 파일의 계좌다 */
+/* 입금 한 줄 요약 — 날짜 · 시각(초 빼고), 계좌는 건물 계좌가 둘일 때만(은행 · 끝 4자리), 출처는 자동 수집이 아닐 때만. 전체는 마우스를 올리면 */
+const acctShort=a=>{const d=(a||'').replace(/\D/g,'');return `${(a||'').split(' ')[0].replace('은행','')} …${d.slice(-4)}`;};
+function depMeta(d,tail){const b=BUILDINGS.find(x=>x.id===RC.f.b)||BUILDINGS[0], two=bkAccts(b).length>1, a=d.acct||rcAcct(), src=d.src||'자동 수집';
+  const full=`${d.dt} · ${d.kind||'계좌이체'} · 입금 계좌 ${a} · ${src}${src==='직접 입력'?` (${d.by} · ${d.bank?'은행 확인됨':'은행 확인 전'}${d.memo?' · '+d.memo:''})`:''}`;
+  const short=[d.dt.slice(5,16).replace('-','.'),two?acctShort(a):'',src==='직접 입력'?`직접 입력 · ${d.bank?'은행 확인됨':'은행 확인 전'}`:src==='자동 수집'?'':src,tail||''].filter(Boolean).join(' · ');
+  return `<span title="${full.replace(/"/g,'&quot;')}">${short}</span>`;}
 const rcAcct=()=>(bkUps()[0]||{}).a||(bkAccts(BUILDINGS.find(x=>x.id===RC.f.b)||BUILDINGS[0])[0]||{}).a||'';
 let bk=null;
 function bkOpen(){const b=BUILDINGS.find(x=>x.id===RC.f.b), A=bkAccts(b);bk={b:b.id,ym:RC.f.ym,a:A.length===1?A[0].a:'',file:'',tried:false};DRAWER='bank';render(true);}
@@ -4168,7 +4176,7 @@ function PAY13(){
       .map(o=>({...o,no:ctOf(o.k).no,ten:ctOf(o.k).ten}));
     panel=`<div class="card"><div class="cc" style="padding:18px 20px">
       <div style="display:flex;align-items:center;gap:8px"><span class="bd ok">확정</span>
-        <span class="c2" style="margin:0">${d.dt} · 계좌이체 · 입금 계좌 ${d.acct||rcAcct()} · ${d.src||'자동 수집'}${d.src==='직접 입력'?` (${d.by} · ${d.bank?'은행 확인됨':'은행 확인 전'})`:''} · ${r.auto?'자동 확정 · 시스템':`은행거래내역매칭 · ${r.by||'슈퍼관리자'}`} · 매칭 근거 <b>${r.basis}</b></span>
+        <span class="c2" style="margin:0">${depMeta(d,`${r.auto?'자동 확정':`${r.by||'슈퍼관리자'} 확정`}(${r.basis})`)}</span>
         <button class="btn sm" style="margin-left:auto" onclick="say('PAY-9 수납 내역 수정 및 취소 — 배분 재조정 또는 무효 처리. 입금액은 수정할 수 없다')">수정·취소</button></div>
       <div style="display:flex;align-items:baseline;gap:14px;margin-top:8px">
         <span style="font-size:17px;font-weight:700">${d.name}</span><span class="big">${won(d.amt)}</span>
@@ -4194,13 +4202,13 @@ function PAY13(){
   }else if(x.mis){
     const rf=x.mis.refund;
     panel=`<div class="card"><div class="cc" style="padding:18px 20px">
-      <div class="c2" style="margin:0">오납 — 잘못 들어온 돈입니다. 돌려줍니다 · ${d.dt} · 입금 계좌 ${d.acct||rcAcct()} · ${d.src||'자동 수집'}</div>
+      <div class="c2" style="margin:0">오납 — 잘못 들어온 돈입니다. 돌려줍니다 · ${depMeta(d)}</div>
       <div style="font-size:15px;font-weight:700;margin:6px 0">${d.name}</div><div class="big">${won(d.amt)}</div>
       <div style="margin-top:14px;display:flex;gap:8px;align-items:center">${rf?`<span class="bd ok">환불함 · ${rf.date.slice(5).replace('-','.')}${rf.acct?' · '+rf.acct:''}</span>`
         :`<button class="btn sm pri" onclick="openMis(${d.no})">환불 기록</button><button class="btn sm" onclick="rcUnignore(${d.no})">되돌리기</button>`}</div></div></div>`;
   }else if(x.ex){
     panel=`<div class="card"><div class="cc" style="padding:18px 20px">
-      <div class="c2" style="margin:0">무시함 — 수납으로 기록하지 않습니다 · ${d.dt} · 입금 계좌 ${d.acct||rcAcct()} · ${d.src||'자동 수집'}</div>
+      <div class="c2" style="margin:0">무시함 — 수납으로 기록하지 않습니다 · ${depMeta(d)}</div>
       <div style="font-size:15px;font-weight:700;margin:6px 0">${d.name}</div><div class="big">${won(d.amt)}</div>
       <div style="margin-top:14px"><button class="btn sm" onclick="rcUnignore(${d.no})">되돌리기</button></div></div></div>`;
   }else{
@@ -4230,7 +4238,7 @@ function PAY13(){
     <div class="card"><div class="cc" style="padding:18px 20px">
       <div style="display:flex;align-items:center;gap:8px">
         <span class="bd ${BADGE6[g.st]}">${LABEL6[g.st]}</span>
-        <span class="c2" style="margin:0">${d.dt} · ${d.kind} · 입금 계좌 ${d.acct||rcAcct()} · ${d.src||'자동 수집'}${d.src==='직접 입력'?` (${d.by} · 은행 확인 전${d.memo?' · '+d.memo:''})`:''} · 비교용 이름 <b>${g.nm}</b></span></div>
+        <span class="c2" style="margin:0">${depMeta(d,`비교용 이름 <b>${g.nm}</b>`)}</span></div>
       <div style="display:flex;align-items:baseline;gap:14px;margin-top:8px">
         <span style="font-size:17px;font-weight:700">${d.name}</span><span class="big">${won(d.amt)}</span></div>
     </div></div>
@@ -4328,8 +4336,8 @@ const g6Open=k=>(k in g6)?g6[k]:g6All;
 const g6Tog=k=>{g6[k]=!g6Open(k);render(true);};
 const g6Set=v=>{g6All=v;g6={};render(true);};
 /* 청구서 보기 — 그 달 발행해 보낸 청구서 PDF 그대로 */
-function billView(k,ym){const c=CTRS.find(x=>ckey(x)===k);
-  say(`청구서 PDF — ${c.ten} · ${c.no} · ${ym.replace('-','년 ')}월분\n발행해 보낸 청구서를 그대로 엽니다.`);}
+function billView(k,ym){
+  ipvOpen({title:'청구서 보기',sub:`${ym.replace('-','년 ').replace(/년 0/,'년 ')}월분 · 발행해 보낸 청구서 그대로입니다`,docs:()=>invRegDocs(ym,bOfK(k),[k])});}
 function PAY6(){
   const bn=BUILDINGS.find(x=>x.id===RC.f.b)||BUILDINGS[0];
   const has=RC.f.b===RC.b&&['2026-06','2026-07'].includes(RC.f.ym);
@@ -4584,7 +4592,8 @@ function fixHTML(){
     </div>
     <div class="df"><button class="btn" onclick="closeDrawer()">닫기</button>
       ${cut?`<button class="btn pri" ${fxOK()?'':'disabled'} onclick="fxConfirm()">감액 확정</button>`
-        :`<button class="btn" ${fxOK()?'':'disabled'} onclick="fxConfirm(false)">메일 없이 발행</button>
+        :`<button class="btn" ${fz.amt>0&&fxName()?'':'disabled'} onclick="pvAdhOpen()">미리보기</button>
+      <button class="btn" ${fxOK()?'':'disabled'} onclick="fxConfirm(false)">메일 없이 발행</button>
       <button class="btn pri" ${fxOK()&&billTo(c).length?'':'disabled'} ${billTo(c).length?'':'title="청구서 메일 받는 담당자가 없습니다(요약 › 담당자)"'} onclick="fxConfirm(true)">메일 보내고 발행</button>`}</div>
   </div></div>`;
 }
@@ -4821,6 +4830,7 @@ function PAY2(){
   return `
   <div class="ph"><h1>미납 관리</h1><span class="sid">PAY-2</span>
     <div class="act">
+      <button class="btn" ${nSel?'':'disabled'} onclick="pvDueOpen(${JSON.stringify(rows.filter(a=>sel2[a.k]&&(a.due>0||a.fee>0)).map(a=>a.k)).replace(/"/g,"'")})">미리보기</button>
       <button class="btn pri" ${nSel?'':'disabled'} onclick="say('미납 안내 메일 — 월별 미납액·연체일수·연체료 내역을 담아 임차인 담당자에게 보낸다')">미납 안내 메일${nSel?` ${nSel}건`:''}</button></div>
   </div>
   <div class="fbar">
@@ -5631,6 +5641,23 @@ function termOpen(k){const t=TERMS[k]||{}, c=CTRS.find(x=>ckey(x)===k), ended=c&
   /* 종료된 계약 — 만기 종료로, 해지일은 종료일 → 질문 3-1 */
   tm={k,type:t.type||(ended?'만기 종료':'중도 해지(합의)'),out:t.out||(ended?ctrEnd(c):''),why:t.why||'',est:{},fix:{},off:{},fee:null,feeOpen:false,ended};DRAWER='term';render(true);}
 function termSet(f,v){tm[f]=v;render(true);}
+function termEst(c,out,mode){return unbilled(c,out,mode).filter(u=>numOf(tm.est[u.code])&&!tm.off[u.code]).map(u=>{const V=vatSplit(numOf(tm.est[u.code]),u.doc);
+  return {n:`${u.n} 퇴거 예상분`,doc:u.doc,from:u.from,to:u.to,sup:V.sup,vat:V.vat};});}
+/* 해지 처리 미리보기 — 저장하면 나가는 청구서. now: 마지막 청구서 한 장(퇴거 예상분 포함) · reg: 해지 청구서(퇴거 예상분) + 청구일의 정기 청구서 · after: 해지 청구서(퇴거 예상분 · 연체료) */
+function pvTermOpen(){const k=tm.k, out=tm.out, c=CTRS.find(x=>ckey(x)===k), mode=termMode(k,out), ym=out.slice(0,7), yL=`${+ym.slice(5,7)}월분`;
+  const FX=Object.fromEntries(termFix(k,out,tm.fix).map(f=>[f.n,{sup:f.sup,vat:f.vat}])), E=termEst(c,out,mode), ad=adYm();
+  const est=E.map(e=>({n:e.n,note:e.from?`${d8(e.from).slice(5)} ~ ${d8(e.to).slice(5)} · 퇴거 예상분`:'퇴거 예상분',doc:e.doc,sup:e.sup,vat:e.vat,amt:e.sup+e.vat}));
+  const reg=()=>{const R=withTerm(k,out,()=>{const t=TERMS[k]; t.est=mode==='now'?E:[]; if(tm.fee!=null&&tm.fee!=='') t.fee=numOf(tm.fee); if(tm.off['연체료']) (OFF1[k]=OFF1[k]||{})['연체료']=1;
+      try{return ISSUE().find(x=>x.k===k);}finally{if(tm.off['연체료']&&OFF1[k]) delete OFF1[k]['연체료'];}},FX);
+    return invDoc({k,title:mode==='now'?'청구서 (마지막)':'청구서',sub:yL,bill:mode==='now'?TODAY_S:billOn(ym),due:dueStr(ym),
+      lines:R.inc.map(l=>({n:l.n,note:l.est||l.fee?l.src:'',doc:l.bill,sup:l.supply,vat:l.vat,amt:l.amt})),carry:R.due?R.due.amt:0,over:R.over||0});};
+  const fA=mode==='after'&&!tm.off['연체료']?termFeeAmt(k,out,termFee(k,out).add):0;
+  const termDoc=()=>invDoc({k,title:'해지 청구서',sub:`${ad.replace('-','년 ').replace(/년 0/,'년 ')}월분 · 해지 처리`,bill:TODAY_S,due:dueStr(ad),
+    lines:[...est,...(fA?[{n:'연체료',note:`${d8(out).slice(5)}까지 · 연 ${rateOf(k)}%`,doc:'일반내역서',sup:fA,vat:0,amt:fA}]:[])]});
+  const D=mode==='now'?[{label:`${yL} 마지막 청구서 (저장할 때 발행)`,html:reg()}]
+    :mode==='reg'?[...(est.length?[{label:'해지 청구서 (저장할 때 발행)',html:termDoc()}]:[]),{label:`${yL} 정기 청구서 (${d8(billOn(ym)).slice(5)} 청구일에 발행)`,html:reg()}]
+    :mode==='after'&&(est.length||fA)?[{label:'해지 청구서 (저장할 때 발행)',html:termDoc()}]:[];
+  ipvOpen({title:'해지 처리 미리보기',sub:'저장하면 이 청구서가 나갑니다',pick:'청구서',docs:()=>D});}
 function termSave(mail){if(!tm.out||!tm.why.trim()) return;
   const c=CTRS.find(x=>ckey(x)===tm.k), k=tm.k, out=tm.out, mode=termMode(k,out), prev=TERMS[k]||{};
   const FX=['now','reg','after'].includes(mode)&&!prev.act?Object.fromEntries(termFix(k,out,tm.fix).map(f=>[f.n,{sup:f.sup,vat:f.vat}])):prev.fix;
@@ -5639,8 +5666,7 @@ function termSave(mail){if(!tm.out||!tm.why.trim()) return;
   /* 퇴거 예상분 — 보증금에서 바로 빼지 않는다. 해지 처리할 때 비정기 청구서로 발행하고 보증금 상계로 받는다.
      이미 발행한 것은 다시 발행하지 않는다(고칠 때는 청구 감액 · 청구 추가) */
   /* 금액은 청구 추가와 같다 — 세금계산서면 공급가액을 넣고 부가세 10%(원 미만 절사)가 붙는다 → 질문 13 */
-  const EST=prev.act?[]:unbilled(c,out,mode).filter(u=>numOf(tm.est[u.code])&&!tm.off[u.code]).map(u=>{const V=vatSplit(numOf(tm.est[u.code]),u.doc);
-    return {n:`${u.n} 퇴거 예상분`,doc:u.doc,from:u.from,to:u.to,sup:V.sup,vat:V.vat};});
+  const EST=prev.act?[]:termEst(c,out,mode);
   if(!prev.act) TERMS[k].est=EST;
   /* 해지 청구서 — 해지 때 따로 발행하는 것(퇴거 예상분 · 해지 연체료 청구)은 비정기 청구서 한 장으로 묶는다. 바로 발행(now)이면 마지막 청구서에 싣는다 → 28 */
   const inv=`term|${k}`, tb=b=>({...b,inv,ttl:'해지 청구서'});
@@ -5726,6 +5752,7 @@ function termHTML(){
         :['now','reg','after'].includes(mode)&&!done?'<div class="c2" style="margin:12px 0 0">정산 항목은 해지일까지 정기 청구서에 모두 실었습니다</div>':''}</div>
     </div>
     <div class="df"><button class="btn" onclick="closeDrawer()">닫기</button>
+      ${!done&&['now','reg','after'].includes(mode)?`<button class="btn" onclick="pvTermOpen()" ${mode==='after'&&!termEst(c,tm.out,mode).length&&!(termFee(tm.k,tm.out).add&&!tm.off['연체료'])?'disabled title="이번 해지 처리로 새로 나가는 청구서가 없습니다"':''}>미리보기</button>`:''}
       ${mode==='now'&&!done?`<button class="btn tmok" ${tm.out&&tm.why.trim()?'':'disabled'} onclick="termSave(false)">메일 없이 해지 처리</button>
       <button class="btn pri tmok" ${tm.out&&tm.why.trim()?'':'disabled'} onclick="termSave(true)">메일 보내고 해지 처리</button>`
       :`<button class="btn pri tmok" ${tm.out&&tm.why.trim()?'':'disabled'} onclick="termSave(false)">해지 처리</button>`}</div>
@@ -6081,6 +6108,98 @@ function CTR3(k){
     잔액을 바꾸지 않는 안쪽 옮김(미납 이월 · 전월 과납액 배분 · 감액으로 넘친 수납)은 적지 않습니다. 잔액이 0보다 작으면 <b>과납</b>이며, 돌려줄 때는 위의 <b>수납 › 과납 환불</b>을 씁니다.<br>
     받을 돈을 바꾸는 일(청구 추가 · 청구 감액)은 <b>청구</b>, 돌려준 과납은 <b>수납</b> 메뉴에서 기록합니다. 받은 돈은 입금 매칭에서만 기록합니다.</div>`;
 }
+
+/* ═══ 청구서 — 임차인에게 보내는 청구서 PDF 한 장의 모양. 청구서 발행 · 청구서 보기 · 청구 추가 · 해지 처리의 미리보기가 모두 이것을 쓴다 ═══
+   이번 청구 항목(공급가액 · 부가세 · 금액)과 합계 → 별도 안내(이월 미납액 · 과납, 합계와 세금계산서에는 넣지 않는다 → PAY-1)
+   → 납부하실 금액 → 납부 계좌(두 계좌면 계좌별 금액: 임대료 계좌는 임대료, 관리비 계좌는 그 밖의 모든 금액 → 명세변경_261025 9) */
+const d8=d=>(d||'').replace(/-/g,'.');
+function invDoc(d){
+  const c=CTRS.find(x=>ckey(x)===d.k), b=BUILDINGS.find(x=>x.id===c.b)||BUILDINGS[0], tx=BTAX[b.id]||{};
+  const L=d.lines.filter(l=>l.amt!=null), sum=L.reduce((a,l)=>a+l.amt,0), sup=L.reduce((a,l)=>a+(l.sup||0),0), vat=L.reduce((a,l)=>a+(l.vat||0),0);
+  const carry=d.carry||0, over=Math.min(d.over||0,sum+carry), pay=sum+carry-over;
+  const rent=Math.min(pay,L.filter(l=>l.n==='임대료').reduce((a,l)=>a+l.amt,0)), two=b.feeAcct&&b.feeAcct!==b.acct;
+  const th='padding:7px 8px;border-bottom:1px solid var(--ink);font-size:11.5px;font-weight:600;text-align:left', td='padding:7px 8px;border-bottom:1px solid var(--line);font-size:12.5px', r='text-align:right';
+  const kv=(k,v)=>`<div style="display:flex;gap:10px;padding:2px 0"><span style="width:76px;flex:none;color:var(--muted);font-size:12px">${k}</span><span style="font-size:12.5px">${v}</span></div>`;
+  return `<div style="border:1px solid var(--line);border-radius:var(--r-sm);padding:22px 24px;background:var(--bg)">
+    <div style="display:flex;align-items:baseline;gap:10px;border-bottom:2px solid var(--ink);padding-bottom:10px">
+      <div style="font-size:20px;font-weight:700;letter-spacing:.04em">${d.title||'청구서'}</div><span style="color:var(--muted)">${d.sub||''}</span></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 20px;margin:12px 0 14px">
+      <div>${kv('받는 분',`<b>${c.ten}</b> 귀하`)}${kv('유닛',`${b.name} ${c.no}`)}</div>
+      <div>${kv('보내는 분',tx.n||b.owner)}${kv('청구일',d8(d.bill))}${kv('납부마감일',`<b>${d8(d.due)}</b>`)}</div></div>
+    <table style="width:100%;border-collapse:collapse"><thead><tr><th style="${th}">항목</th><th style="${th}">발행 문서</th><th style="${th};${r}">공급가액</th><th style="${th};${r}">부가세</th><th style="${th};${r}">금액</th></tr></thead><tbody>
+      ${L.map(l=>`<tr><td style="${td}">${l.n}${l.note?`<div style="color:var(--muted);font-size:11px">${l.note}</div>`:''}</td><td style="${td};color:var(--muted)">${l.doc||''}</td>
+        <td style="${td};${r}">${won(l.sup!=null?l.sup:l.amt)}</td><td style="${td};${r}">${l.vat?won(l.vat):'—'}</td><td style="${td};${r}">${won(l.amt)}</td></tr>`).join('')}
+      <tr><td style="${td};font-weight:700" colspan="2">이번 청구 합계</td><td style="${td};${r}">${won(sup)}</td><td style="${td};${r}">${won(vat)}</td><td style="${td};${r};font-weight:700">${won(sum)}</td></tr></tbody></table>
+    ${carry||over?`<div style="margin:12px 0 0;padding:10px 12px;background:var(--side-hov);border-radius:var(--r-sm)">
+      <div style="font-size:11.5px;color:var(--muted);margin-bottom:4px">별도 안내 — 이번 청구 합계와 세금계산서에는 들어가지 않습니다</div>
+      ${carry?`<div style="display:flex;font-size:12.5px;padding:2px 0"><span>이월 미납액 (지난달까지 남은 미납)</span><span style="margin-left:auto">+ ${won(carry)}</span></div>`:''}
+      ${over?`<div style="display:flex;font-size:12.5px;padding:2px 0"><span>과납 (먼저 냈던 돈 · 이 청구에서 뺍니다)</span><span style="margin-left:auto">− ${won(over)}</span></div>`:''}</div>`:''}
+    <div style="display:flex;align-items:baseline;margin:14px 0 4px;padding:10px 0;border-top:2px solid var(--ink)">
+      <span style="font-weight:700">납부하실 금액</span><span style="margin-left:auto;font-size:19px;font-weight:700">${won(pay)}</span></div>
+    <div style="font-size:12px;color:var(--muted);margin:6px 0 4px">납부 계좌 — ${d8(d.due)}까지 입금해 주십시오</div>
+    ${two?`${kv('임대료 계좌',`${b.acct} · ${b.acctName} <b style="margin-left:6px">${won(rent)}</b>`)}${kv('관리비 계좌',`${b.feeAcct} · ${b.feeAcctName} <b style="margin-left:6px">${won(pay-rent)}</b>`)}`
+      :kv('계좌',`${b.acct} · ${b.acctName} <b style="margin-left:6px">${won(pay)}</b>`)}
+    <div style="color:var(--muted);font-size:11px;margin-top:12px;white-space:normal">입금자명은 상호로 해 주십시오. 납부마감일이 지나면 계약서에 정한 연체이자(연 ${rateOf(d.k)}%)가 붙습니다. 문의: ${b.name} 관리사무소</div>
+  </div>`;}
+/* 정기 청구서 한 장 — 청구서 발행 화면과 같은 계산(ISSUE)을 그 달 · 그 건물로 돌린다. 지난 달은 그 달의 입력값으로 */
+/* 발행한 청구서는 발행한 날의 이월 미납액(그 전날까지 들어온 돈 기준)을 싣는다 — 그 뒤 입금으로 바뀌지 않는다 */
+const carryOnBill=(k,ym,bill)=>[...new Set(BILLS.filter(i=>i.k===k&&i.ym<ym&&!i.fee&&!i.adhoc).map(i=>i.ym))].reduce((a,m)=>a+Math.max(0,ymLeftAt(k,m,dayBefore(bill))),0);
+function invRegDocs(ym,bid,keys){return withMonth(ym,()=>{const kb=f1.b; f1.b=bid; try{
+  return ISSUE().filter(c=>!keys||keys.includes(c.k)).map(c=>({label:cname((BUILDINGS.find(x=>x.id===bid)||{}).alias,c.no,c.ten),
+    html:invDoc({k:c.k,title:c.term?'청구서 (마지막)':'청구서',sub:`${ym.replace('-','년 ').replace(/년 0/,'년 ')}월분`,bill:(ISS[c.k]||{}).at||billOn(ym),due:dueStr(ym),
+      lines:c.inc.map(l=>({n:l.n+(l.via?` (${l.via.split('|')[0]} 대납)`:''),note:l.est||l.fee?l.src:'',doc:l.bill,sup:l.supply,vat:l.vat,amt:l.amt})),
+      carry:c.st==='발행 완료'&&c.k.startsWith('b1')?carryOnBill(c.k,ym,(ISS[c.k]||{}).at||billOn(ym)):c.due?c.due.amt:0,over:c.over||0})}));
+  }finally{f1.b=kb;}});}
+/* 청구서 발행 화면의 미리보기 — 고른 계약(없으면 목록 전체)의 청구서. 발행 전이면 지금 체크한 항목대로 */
+function pv1Open(keys){const ym=f1.ym||'2026-08', bid=f1.b;
+  ipvOpen({title:'청구서 미리보기',sub:`${ym.replace('-','년 ').replace(/년 0/,'년 ')}월분 · 발행하면 이대로 나갑니다`,docs:()=>invRegDocs(ym,bid,keys)});}
+/* 청구 추가의 미리보기 — 비정기 청구서 한 장(항목 하나). 청구일은 오늘, 청구년월 · 납부마감일은 건물 설정대로 */
+function pvAdhOpen(){const c=CTRS.find(x=>ckey(x)===fz.k), ym=adYm(), V=fxV();
+  ipvOpen({title:'청구서 미리보기',sub:'비정기 청구서 · 발행하면 이대로 나갑니다',
+    docs:()=>[{label:fxName(),html:invDoc({k:fz.k,sub:`${ym.replace('-','년 ').replace(/년 0/,'년 ')}월분 · 비정기`,bill:TODAY_S,due:dueStr(ym),
+      lines:[{n:fxName(),note:fz.why.trim(),doc:fz.doc,sup:V.sup,vat:V.vat,amt:V.amt}]})}],
+    act:{t:'메일 보내고 발행',go:'fxConfirm(true)',dis:!(fxOK()&&billTo(c).length)}});}
+/* 미납 안내 — 미납 관리에서 골라 보내는 메일의 PDF. 청구서와 같은 머리 · 납부 계좌, 본문은 달마다 미납액 · 연체일수 · 연체료 → PAY-2 */
+function dueDoc(k){const c=CTRS.find(x=>ckey(x)===k), b=BUILDINGS.find(x=>x.id===c.b)||BUILDINGS[0], tx=BTAX[b.id]||{}, a=arrears(c), two=b.feeAcct&&b.feeAcct!==b.acct;
+  const th='padding:7px 8px;border-bottom:1px solid var(--ink);font-size:11.5px;font-weight:600;text-align:left', td='padding:7px 8px;border-bottom:1px solid var(--line);font-size:12.5px', r='text-align:right';
+  const kv=(x,v)=>`<div style="display:flex;gap:10px;padding:2px 0"><span style="width:76px;flex:none;color:var(--muted);font-size:12px">${x}</span><span style="font-size:12.5px">${v}</span></div>`;
+  return `<div style="border:1px solid var(--line);border-radius:var(--r-sm);padding:22px 24px;background:var(--bg)">
+    <div style="display:flex;align-items:baseline;gap:10px;border-bottom:2px solid var(--ink);padding-bottom:10px">
+      <div style="font-size:20px;font-weight:700;letter-spacing:.04em">미납 안내</div><span style="color:var(--muted)">${d8(TODAY_S)} 기준</span></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 20px;margin:12px 0 14px">
+      <div>${kv('받는 분',`<b>${c.ten}</b> 귀하`)}${kv('유닛',`${b.name} ${c.no}`)}</div>
+      <div>${kv('보내는 분',tx.n||b.owner)}${kv('연체이자율',`연 ${a.rate}%`)}</div></div>
+    <div style="font-size:12.5px;margin:0 0 10px;white-space:normal">아래 청구 금액이 납부마감일까지 들어오지 않았습니다. 확인하시고 납부해 주십시오.</div>
+    <table style="width:100%;border-collapse:collapse"><thead><tr><th style="${th}">청구년월</th><th style="${th}">납부마감일</th><th style="${th};${r}">미납액</th><th style="${th};${r}">연체일수</th><th style="${th};${r}">연체료</th></tr></thead><tbody>
+      ${a.months.slice().reverse().map(m=>`<tr><td style="${td}">${m.ym.replace('-','년 ').replace(/년 0/,'년 ')}월분</td><td style="${td}">${d8(dueStr(m.ym))}</td>
+        <td style="${td};${r}">${m.due?won(m.due):'—'}</td><td style="${td};${r}">${m.days||m.lateDone?`${m.days||m.lateDone}일`:'—'}</td><td style="${td};${r}">${m.fee?won(m.fee):'—'}</td></tr>`).join('')}
+      <tr><td style="${td};font-weight:700" colspan="2">합계</td><td style="${td};${r};font-weight:700">${won(a.due)}</td><td style="${td}"></td><td style="${td};${r}">${won(a.fee)}</td></tr></tbody></table>
+    <div style="display:flex;align-items:baseline;margin:14px 0 4px;padding:10px 0;border-top:2px solid var(--ink)">
+      <span style="font-weight:700">납부하실 금액 (미납액)</span><span style="margin-left:auto;font-size:19px;font-weight:700">${won(a.due)}</span></div>
+    <div style="font-size:12px;color:var(--muted);margin:0 0 6px;white-space:normal">연체료 ${won(a.fee)}은 오늘까지 쌓인 금액입니다. 다 내실 때까지 매일 늘고, 다음 청구서에 함께 청구됩니다.</div>
+    ${two?kv('임대료 계좌',`${b.acct} · ${b.acctName}`)+kv('관리비 계좌',`${b.feeAcct} · ${b.feeAcctName}`)+'<div style="color:var(--muted);font-size:11px">임대료는 임대료 계좌로, 그 밖의 금액은 관리비 계좌로 넣어 주십시오</div>'
+      :kv('계좌',`${b.acct} · ${b.acctName}`)}
+    <div style="color:var(--muted);font-size:11px;margin-top:12px;white-space:normal">이미 납부하셨으면 이 안내는 넘기셔도 됩니다. 문의: ${b.name} 관리사무소</div>
+  </div>`;}
+function pvDueOpen(keys){ipvOpen({title:'미납 안내 미리보기',sub:'메일에 붙는 PDF 그대로입니다',pick:'미납 안내',
+  docs:()=>keys.map(k=>{const c=CTRS.find(x=>ckey(x)===k); return {label:cname((BUILDINGS.find(x=>x.id===c.b)||{}).alias,c.no,c.ten),html:dueDoc(k)};}),
+  act:{t:`미납 안내 메일 ${keys.length}건`,go:"closeDrawer();say('미납 안내 메일 — 월별 미납액·연체일수·연체료 내역을 담아 임차인 담당자에게 보낸다')"}});}
+/* 미리보기 패널 — 문서 여러 장이면 위에서 고른다. 다른 패널에서 열었으면 「돌아가기」로 그 패널로 */
+let ipv=null;
+function ipvOpen(o){ipv={idx:0,prev:DRAWER,...o}; if(!ipv.docs().length) return; DRAWER='ipv'; render(true);}
+function ipvBack(){const p=ipv&&ipv.prev; ipv=null; DRAWER=p||null; render(true);}
+function ipvHTML(){
+  if(DRAWER!=='ipv'||!ipv) return '';
+  const D=ipv.docs(), i=Math.min(ipv.idx,D.length-1);
+  return `<div class="dro"><div class="ov" onclick="closeDrawer()"></div><div class="pn" style="width:760px">
+    <div class="dh"><div><div class="t">${ipv.title||'미리보기'}</div><div class="s">${ipv.sub||'보낼 PDF 그대로입니다'}</div></div>
+      <button class="x" onclick="closeDrawer()">✕</button></div>
+    <div class="db">
+      ${D.length>1?`<div class="fr"><span class="fk">${ipv.pick||'청구서'} ${D.length}장</span><select onchange="ipv.idx=+this.value;render(true)">${D.map((d,n)=>`<option value="${n}" ${n===i?'selected':''}>${d.label}</option>`).join('')}</select></div>`:''}
+      ${D[i].html}</div>
+    <div class="df"><button class="btn" onclick="${ipv.prev?'ipvBack()':'closeDrawer()'}">${ipv.prev?'← 돌아가기':'닫기'}</button>
+      ${ipv.act?`<button class="btn pri" ${ipv.act.dis?'disabled':''} onclick="${ipv.act.go}">${ipv.act.t}</button>`:''}</div>
+  </div></div>`;}
 
 /* ═══ 원장 명세서 보내기 — 기간을 정해 그 기간의 원장(받을 돈 · 보증금)을 PDF로 붙여 임차인 청구서 메일 담당자에게 보낸다.
    퇴거 정산 때 「이렇게 상계하고 이만큼 돌려드립니다」를 알리는 데 쓴다. 보낸 일은 이력에 남는다 → 명세변경_261108 30 ═══ */
