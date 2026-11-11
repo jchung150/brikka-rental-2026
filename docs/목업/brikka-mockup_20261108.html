@@ -6199,6 +6199,7 @@ function ipvHTML(){
       ${D.length>1?`<div class="fr"><span class="fk">${ipv.pick||'청구서'} ${D.length}장</span><select onchange="ipv.idx=+this.value;render(true)">${D.map((d,n)=>`<option value="${n}" ${n===i?'selected':''}>${d.label}</option>`).join('')}</select></div>`:''}
       ${D[i].html}</div>
     <div class="df"><button class="btn" onclick="${ipv.prev?'ipvBack()':'closeDrawer()'}">${ipv.prev?'← 돌아가기':'닫기'}</button>
+      <button class="btn" onclick="say('PDF 다운로드 — 위에 보이는 문서를 PDF 파일로 내려받는다(목업은 버튼만)')">PDF 다운로드</button>
       ${ipv.act?`<button class="btn pri" ${ipv.act.dis?'disabled':''} onclick="${ipv.act.go}">${ipv.act.t}</button>`:''}</div>
   </div></div>`;}
 
@@ -6247,6 +6248,7 @@ function stHTML(){
       <button class="x" onclick="closeDrawer()">✕</button></div>
     <div class="db">${stPreview(c,bd,S)}</div>
     <div class="df"><button class="btn" onclick="stSet('pv',false)">← 돌아가기</button>
+      <button class="btn" onclick="say('PDF 다운로드 — 위에 보이는 명세서를 PDF 파일로 내려받는다(목업은 버튼만)')">PDF 다운로드</button>
       <button class="btn pri" ${to.length?'':'disabled'} onclick="stSend()">메일 보내기</button></div>
   </div></div>`;}
   const c=CTRS.find(x=>ckey(x)===st.k), bd=BUILDINGS.find(x=>x.id===c.b)||BUILDINGS[0], to=billTo(c), bad=dnum(st.from)>dnum(st.to), S=bad?null:stSum(st.k,st.from,st.to);

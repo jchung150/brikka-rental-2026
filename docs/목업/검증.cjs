@@ -1436,7 +1436,7 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   const S = SP.stSum(k, SP.st.from, SP.st.to), ok = ['매출채권', '임대보증금'].every(a => { const L = SP.stLines(k, SP.st.from, SP.st.to, a);
     return L.length > 0 && L[L.length - 1].bal === S[a].close && L.reduce((x, l) => x + l.dr - l.cr, 0) === (a === '매출채권' ? 1 : -1) * (S[a].close - S[a].open); });
   r6.push(['명세서 보내기 — 미리보기 버튼 → 보낼 PDF 그대로(원장 명세서 · 받을 돈 · 보증금마다 시작 잔액 · 거래 · 끝 잔액 · 청구서 한 줄) · 돌아가기 · 미리보기에서도 메일 보내기 · 줄 잔액이 끝 잔액과 맞음',
-    /stSet\('pv',true\)">미리보기/.test(h0) && /원장 명세서/.test(h1) && /시작 잔액/.test(h1) && /26\.07월분 청구서/.test(h1) && /돌아가기/.test(h1) && /stSend\(\)">메일 보내기/.test(h1) && ok]); }
+    /stSet\('pv',true\)">미리보기/.test(h0) && /원장 명세서/.test(h1) && /시작 잔액/.test(h1) && /26\.07월분 청구서/.test(h1) && /돌아가기/.test(h1) && /PDF 다운로드/.test(h1) && /stSend\(\)">메일 보내기/.test(h1) && ok]); }
 /* 청구서 모양 · 미리보기 — 청구서 발행 · 청구서 보기 · 청구 추가 · 해지 처리 · 미납 안내가 같은 청구서 모양을 쓴다 */
 { const PV = new Function(stub + bare + '; seedJuly(); return {pv1Open,billView,ipvHTML,fixOpen,fxSet,pvAdhOpen,termOpen,termSet,pvTermOpen,unbilled,termMode,CTRS,ckey,TERMS,ISS,BILLS,pvDueOpen,f1,get tm(){return tm;},get ipv(){return ipv;}};')();
   const k = 'b1별관301호', c = PV.CTRS.find(x => PV.ckey(x) === k), pay = h => (h.match(/납부하실 금액(?: \(미납액\))?<\/span><span[^>]*>([^<]+)/) || [])[1];
@@ -1448,7 +1448,7 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   const nb = PV.BILLS.length, modes = ['2026-08-15', '2026-08-25'].map(out => { PV.termOpen(k); PV.termSet('out', out); const U = PV.unbilled(c, out, PV.termMode(k, out)); if (U[0]) PV.tm.est[U[0].code] = '50000';
     PV.pvTermOpen(); return PV.ipv.docs().map(d => d.label.split(' (')[0] + ':' + (d.html.match(/퇴거 예상분/g) || []).length).join(); });
   const term = modes[0] === '8월분 마지막 청구서:2' && modes[1] === '8월분 정기 청구서:2' && !PV.TERMS[k] && !PV.ISS[k] && PV.BILLS.length === nb;
-  PV.pvDueOpen([k]); const hd = PV.ipvHTML(); const due = /미납 안내/.test(hd) && /2026년 7월분/.test(hd) && /연체일수/.test(hd) && /미납 안내 메일 1건/.test(hd);
+  PV.pvDueOpen([k]); const hd = PV.ipvHTML(); const due = /미납 안내/.test(hd) && /2026년 7월분/.test(hd) && /연체일수/.test(hd) && /미납 안내 메일 1건/.test(hd) && [h8, h7, ha, hd].every(h => /PDF 다운로드/.test(h));
   r6.push(['청구서 모양 하나로 미리보기 — 청구서 발행(고른 것 · 없으면 전체, 여러 장이면 고름) · 청구서 보기(7월분은 발행한 날 기준 납부하실 금액 10,176,383) · 청구 추가(110,000 · 돌아가기 · 메일 보내고 발행) · 해지 처리(8/15 마지막 청구서 한 장 · 8/25 퇴거 예상분이 실린 정기 청구서, 저장 전에는 아무것도 기록 안 함) · 미납 안내',
     reg && adh && term && due]); }
 const bad6 = r6.filter(x => !x[1]);
