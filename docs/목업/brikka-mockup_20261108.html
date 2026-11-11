@@ -3712,6 +3712,7 @@ function cancelWhyNot(kind,rec){
   /* 함께 받은 연체료 뒤로 연체료를 다시 청구했으면(청구서 발행 · 다음 수납) 정리일을 되돌릴 수 없다 */
   if(kind==='pay'&&(rec.fee||[]).some(b=>FEE_CUT[b.k]!==b.feeTo)) return '이 상계 뒤에 연체료를 다시 청구했습니다. 그 청구서나 다음 상계를 먼저 취소합니다';
   /* 상계로 채운 청구를 나중에 감액하면 넘친 돈이 과납이 된다. 그 과납을 이미 환불했거나 다음 청구에 썼으면 취소할 수 없다 → 확인요청 답변 질문 7 */
+  /* 마감한 달은 이월 미납액으로 채워져 감액 과납이 MOVES에 안 잡힌다 — 그래서 상계 뒤의 환불이 있으면 막는다(그 상계와 무관한 과납 환불도 막는 쪽으로 넓다) */
   if(kind==='pay'&&((mv=>mv>0&&overOf(rec.k)<mv)(MOVES.filter(m=>m.dep===rec.dep).reduce((a,m)=>a+m.amt,0))
     ||REFUNDS.some(r=>r.k===rec.k&&r.sq>Math.max(...rec.ev.map(e=>e.sq))))) return '이 상계로 생긴 과납을 이미 환불했거나 다음 청구에 썼습니다. 그 환불 · 청구서를 먼저 취소합니다';
   /* 보증금 잔액은 0 아래로 내려가지 않는다 — 이미 상계 · 반환에 쓴 보증금이면 그 기록을 먼저 취소한다 */
@@ -3834,7 +3835,8 @@ function lateCalc(k,ym,until){
   const cutD=FEE_CUT[k], fe=FEE_END[k]||ce, end0=until||TODAY_S, end=fe&&dnum(fe)<dnum(end0)?fe:end0;
   const it=BILLS.filter(i=>i.k===k&&i.ym===ym&&!i.fee&&!i.adhoc), due=dueStr(ym), rate=rateOf(k);   /* 연체료는 정기 청구에만 — 연체료 · 비정기 청구(엘리베이터 사용료 · 수리비 · 위약금 · 퇴거 예상분 등)에는 붙이지 않는다 */
   const bill=it.reduce((a,i)=>a+i.amt,0);
-  const ev=[...it.flatMap(i=>PAYEV[i.id]||[]),...(carryEv(k)[ym]||[])];   /* 미납액으로 넘어가서 받은 돈도 그 달 몫이다 */
+  /* 청구 감액도 그 달 미납 합계를 줄인다 — 감액한 날부터 줄어든 금액으로 센다 → 27-3 */
+  const ev=[...it.flatMap(i=>PAYEV[i.id]||[]),...(carryEv(k)[ym]||[]),...CUTS.filter(c=>it.some(i=>i.id===c.id)).map(c=>({date:c.date,amt:c.amt}))];   /* 미납액으로 넘어가서 받은 돈도 그 달 몫이다 */
   let bal=bill-ev.filter(e=>dnum(e.date)<=dnum(due)).reduce((a,e)=>a+e.amt,0);
   const later=ev.filter(e=>dnum(e.date)>dnum(due)&&dnum(e.date)<=dnum(end)).sort((a,b)=>dnum(a.date)-dnum(b.date));
   const periods=[]; let from=due;
@@ -4495,8 +4497,9 @@ function payHTML(){
      남은 금액이 있는 청구만 오른다
    실수는 지우지 않고 반대 방향으로 바로잡는다 — 잘못 낸 청구는 청구 감액, 잘못 한 감액은 청구 추가 */
 let fz=null;
-/* 감액할 수 있는 청구 — 이 계약의 발행한 청구 중 남은 금액이 있는 것(정기 · 비정기). 청구서에 들어간 연체료도 줄인다(일부 감면) → 18-2 */
-const cutBills=k=>BILLS.filter(i=>i.k===k&&(!i.fee||i.reg)&&i.amt-cutOf(i.id)>0).sort((a,b)=>a.ym<b.ym?1:a.ym>b.ym?-1:(b.date||'')<(a.date||'')?-1:1);
+/* 감액할 수 있는 청구 — 이 계약의 발행한 청구 중 남은 금액이 있는 것(정기 · 비정기). 연체료도 줄인다 — 청구서에 들어간 연체료(일부 감면 · 18-2),
+   해지 처리 · 보증금 상계에서 올린 연체료 청구(18-5 · 회수 포기 13-7)도 같다 → 14-3 */
+const cutBills=k=>BILLS.filter(i=>i.k===k&&i.amt-cutOf(i.id)>0).sort((a,b)=>a.ym<b.ym?1:a.ym>b.ym?-1:(b.date||'')<(a.date||'')?-1:1);
 const itemOfBill=i=>i.adhoc?i.n:i.n.split(' ')[0];
 /* 감액 항목 — 청구 추가처럼 「항목을 고르세요」로 시작하고, 이 건물에서 감액을 많이 한 항목 순(같으면 배분 우선순위 순) */
 const cutItems=k=>{const b=bOfK(k), n=x=>CUTS.filter(c=>bOfK(c.k)===b&&itemOfBill(BILLS.find(i=>i.id===c.id)||{n:c.n,adhoc:false})===x).length;
@@ -4538,7 +4541,7 @@ const fxLeft=()=>{const i=fxBill();return i?i.amt-cutOf(i.id):0;};
 const billSV=i=>{const tax=i.adhoc?i.doc==='세금계산서':!i.fee&&isTaxItem(i.n), sup=i.sup!=null?i.sup:tax?Math.floor(i.amt*10/11):i.amt;return {sup,vat:i.vat!=null?i.vat:i.amt-sup};};
 const leftSV=i=>{const s=billSV(i), cs=CUTS.filter(x=>x.id===i.id), cp=cs.reduce((a,x)=>a+(x.sup!=null?x.sup:x.amt),0), ct=cs.reduce((a,x)=>a+x.amt,0);
   return {sup:s.sup-cp,vat:(i.amt-ct)-(s.sup-cp),amt:i.amt-ct};};
-/* 남은 금액 전부 감액 — 원래 청구의 공급가액 · 부가세를 그대로 뺀다. 공급가액에 10%를 다시 붙이면 절사 때문에 1원이 남을 수 있다 → 26 */
+/* 남은 금액 전부 감액 — 원래 청구의 공급가액 · 부가세를 그대로 뺀다. 공급가액에 10%를 다시 붙이면 절사 때문에 1원이 남을 수 있다 → 확인요청 답변 질문 6 */
 const fxV=()=>fz.mode==='cut'&&fz.all&&fxBill()?leftSV(fxBill()):vatSplit(fz.amt,fxDoc());
 function fxOK(){const V=fxV();
   return (fz.all&&fz.mode==='cut'||fz.amt>0)&&!!fz.why.trim()&&!!fxName()&&(fz.mode==='add'||!!fxBill()&&V.amt<=fxLeft());}
@@ -4627,6 +4630,7 @@ function diHTML(){
         ${R('예치할 금액',`<input type="text" inputmode="numeric" value="${di.amt?num(di.amt):''}" oninput="kwLive(this)" onchange="diSet('amt',this.value)" style="text-align:right"><span class="kw">${korWon(di.amt)}</span>`,
           '약정액에서 아직 받지 않은 금액이 미리 들어갑니다')}
         ${bal+di.amt>agr?`<div class="c2" style="margin:-4px 0 9px 114px;color:var(--warn)">약정액보다 ${won(bal+di.amt-agr)} 많습니다. 더 받은 돈은 보증금 반환으로 돌려줍니다</div>`:''}
+        ${c.st==='준비중'&&agr>0&&bal<agr&&bal+di.amt>=agr?`<div class="prev" style="margin:0 0 10px"><div class="pt">보증금을 모두 받습니다</div>예치하면 보증금 잔액이 약정액에 이릅니다. 입주 준비가 끝났으면 계약상태를 <b>진행중</b>으로 바꿉니다(요약 › 계약정보 › 수정). 자동으로 바뀌지 않습니다.</div>`:''}
         ${R('받은 날',`<input type="date" value="${di.date}" max="${TODAY_S}" onchange="diSet('date',this.value)">`)}
         ${R('메모',`<input type="text" value="${di.memo}" placeholder="예: 보증금 잔금" onchange="diSet('memo',this.value)">`)}
         <div class="c2" style="margin:2px 0 0;white-space:normal">원장에 보증금 예치가 기록되고 그만큼 보증금 잔액이 늘어납니다.</div></div>
@@ -4645,7 +4649,8 @@ function drSet(f,v){dr[f]=f==='amt'?numOf(v):v;render(true);}
 /* 퇴거하는 계약(해지 처리 · 종료됨 · 파기됨)은 미납이 남아 있으면 반환할 수 없다. 먼저 보증금 상계로 정리한다.
    계약 중 반환(더 받은 보증금)은 막지 않는다 → 29 */
 const drClosed=()=>closedBy(bOfK(dr.k),dr.date.slice(0,7),TODAY_S);
-const drOwed=k=>isLeaving(k)?Math.max(0,ledgerOf(k).bal.매출채권):0;
+/* 퇴거하는 계약은 미납(청구서에 들어간 연체료 포함)과 청구 전 연체료가 남아 있으면 반환을 막는다 → 확인요청 답변 질문 15 */
+const drOwed=k=>isLeaving(k)?Math.max(0,ledgerOf(k).bal.매출채권)+feeUntil(k,TODAY_S):0;
 function drConfirm(){const bal=ledgerOf(dr.k).bal.임대보증금;
   if(!(dr.amt>0)||dr.amt>bal||!dr.why.trim()||drOwed(dr.k)>0||drClosed()) return;
   DEP_RET.push({k:dr.k,amt:dr.amt,date:dr.date,acct:dr.acct.trim(),why:dr.why.trim(),sq:++paySeq});
@@ -4664,7 +4669,7 @@ function drHTML(){
         ${R('반환할 금액',`<input type="text" inputmode="numeric" value="${dr.amt?num(dr.amt):''}" oninput="kwLive(this)" onchange="drSet('amt',this.value)" style="text-align:right"><span class="kw">${korWon(dr.amt)}</span>`,
           '퇴거하는 계약(해지 처리 · 종료됨 · 파기됨)은 남은 잔액 전부가 미리 들어가고, 미납이 남아 있으면 반환할 수 없습니다. 먼저 원장의 보증금 ▾ › 보증금 상계로 정리합니다. 계약 중 반환(더 받은 보증금)은 막지 않습니다')}
         ${dr.amt>bal?'<div class="c2" style="margin:-4px 0 9px 114px;color:var(--danger)">보증금 잔액보다 많이 돌려줄 수 없습니다</div>':''}
-        ${owed?`<div class="c2" style="margin:-4px 0 9px 114px;color:var(--danger);white-space:normal">미납 ${won(owed)}이 남아 있어 반환할 수 없습니다. 먼저 원장의 보증금 ▾ › 보증금 상계로 정리합니다</div>`:''}
+        ${owed?`<div class="c2" style="margin:-4px 0 9px 114px;color:var(--danger);white-space:normal">미납(청구 전 연체료 포함) ${won(owed)}이 남아 있어 반환할 수 없습니다. 먼저 원장의 보증금 ▾ › 보증금 상계로 정리합니다</div>`:''}
         ${R('사유 (필수)',`<input type="text" value="${dr.why}" placeholder="예: 보증금 더 받음 · 퇴거 정산" oninput="dr.why=this.value;document.getElementById('drok').disabled=!(this.value.trim()&&dr.amt>0&&dr.amt<=${bal}&&!${owed}&&!${drClosed()})">`)}</div>
       <div class="fg"><div class="fl">보낸 기록</div>
         ${R('반환계좌',`<input type="text" value="${dr.acct}" placeholder="환불계좌 (계약 상세 › 보증금 정보)" onchange="drSet('acct',this.value)">`)}

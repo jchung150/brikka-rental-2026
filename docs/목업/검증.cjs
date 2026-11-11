@@ -1412,6 +1412,23 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   const ten = /세금계산서 정보 미입력/.test(c1) && /kw\.tax@kwintl\.com · kw\.fin@kwintl\.com/.test(c2) && /종사업장 0002/.test(c2);
   r6.push(['세금계산서 발행 정보(명세변경 26) — 건물 요약에 발행 명의 카드 · 비면 기본 정보에 「세금계산서 발행 명의 미입력」 · 수정 패널(종사업장번호 4자리) · 등록 때 임대인 한 명이면 기본값(공동이면 비움 · 고치면 그대로) · 계약 등록에 받는 이메일 2칸 · 종사업장번호(기존 임차인이면 불러옴) · 계약정보에 받는 이메일 · 미입력 표시',
     sum && keep && blank && subBad && saved && d1 && d2 && d3 && ct && ten]); }
+/* 명세변경 27-3 — 청구 감액도 그 달 미납 합계를 줄인다. 감액한 날부터 줄어든 금액으로 센다 */
+{ const LC = new Function(stub + bare + '; seedJuly(); return {lateCalc,addCut,BILLS};')();
+  const k = 'b1별관301호', r = LC.BILLS.find(i => i.k === k && i.ym === '2026-07' && i.n === '임대료');
+  const a = LC.lateCalc(k, '2026-07').fee; LC.addCut(r.id, r.amt, '2026-08-05', '검증'); const P = LC.lateCalc(k, '2026-07');
+  r6.push(['연체료 — 청구 감액한 날부터 줄어든 미납 합계로 셈(비씨에이전시 7월분 임대료 8/5 전액 감액 → 16,740 → 8,370 + 2,674 = 11,044)',
+    a === 16740 && P.fee === 11044 && P.periods.length === 2 && P.periods[1].bal === 1626998]); }
+/* 명세 대조에서 고친 셋 — 연체료 청구도 감액(14-3) · 준비중 보증금을 다 받으면 진행중 안내(13-2) · 퇴거 계약 반환은 청구 전 연체료도 막음(질문 15) */
+{ const AU = new Function(stub + bare + '; seedJuly(); return {cutBills,BILLS,CTRS,ckey,ctrDeposit,openDepIn,diHTML,drOwed,feeUntil,ledgerOf,TODAY_S};')();
+  const k = 'b1별관301호', c = AU.CTRS.find(x => AU.ckey(x) === k);
+  AU.BILLS.push({id: 'fee|' + k + '|t', k, no: c.no, n: '연체료', ym: '2026-08', amt: 5000, fee: true, date: AU.TODAY_S, sq: 99999});
+  const fee = AU.cutBills(k).some(i => i.id === 'fee|' + k + '|t'); AU.BILLS.pop();
+  const k2 = 'b1본관101호', c2 = AU.CTRS.find(x => AU.ckey(x) === k2), st0 = c2.st, d0 = c2.dep;
+  c2.st = '준비중'; c2.dep = AU.ctrDeposit(c2) + 1000000; AU.openDepIn(k2); const ready = /보증금을 모두 받습니다/.test(AU.diHTML()); c2.st = '진행중'; const notReady = !/보증금을 모두 받습니다/.test(AU.diHTML()); c2.st = st0; c2.dep = d0;
+  const s0 = c.st; c.st = '종료됨'; const f = AU.feeUntil(k, AU.TODAY_S), ow = AU.drOwed(k); c.st = s0;
+  const ret = f > 0 && ow === Math.max(0, AU.ledgerOf(k).bal.매출채권) + f;
+  r6.push(['연체료 청구도 청구 감액 대상 · 준비중 계약 보증금 예치로 약정액에 이르면 「보증금을 모두 받습니다」(진행중 계약은 없음) · 종료된 계약의 보증금 반환은 미납 + 청구 전 연체료로 막음',
+    fee && ready && notReady && ret]); }
 const bad6 = r6.filter(x => !x[1]);
 if (bad6.length) fail = 1;
 console.log('⑥ 수납 기록 ' + (bad6.length ? '✗ ' + bad6.map(x => x[0]).join(' / ') : 'OK — ' + r6.length + '개 검산'));
