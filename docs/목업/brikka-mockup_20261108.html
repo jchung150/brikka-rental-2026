@@ -2929,9 +2929,10 @@ function PAY12(){
   const D=BUILDINGS.map(b=>{const S=mcState(b.id,f12), N=mcNum(b.id,f12), set=f12<'2026-08'?'확정':PROG[b.id].settle;
     return {b,S,N,set,due:N.due!=null?N.due:N.bill-N.paid};});
   const rows=D.map(({b,S,N,set,due})=>{
-    const act=S.k==='마감'?`<span class="more" onclick="mc12('${b.id}','undo')">마감 취소</span>`
-      :S.k==='진행 중'?`<span class="more off" title="청구서 발행 전이라 마감할 수 없습니다">마감</span>`
-      :`<span class="more" onclick="mc12('${b.id}','close')">마감</span>`;
+    /* 더보기(⋮) — 마감 · 마감 취소. 할 수 없는 쪽은 흐리게, 이유는 마우스를 올리면 */
+    const act=moreCell([
+      {t:'마감',go:`mc12('${b.id}','close')`,off:S.k==='마감'?'이미 마감한 달입니다':S.k==='진행 중'?'청구서 발행 전이라 마감할 수 없습니다':''},
+      {t:'마감 취소',go:`mc12('${b.id}','undo')`,off:S.k==='마감'?'':'마감하지 않은 달입니다',title:S.k==='마감'?'슈퍼관리자만 · 사유를 남깁니다':''}]);
     return `<tr>
       <td><div class="c1">${b.name}</div><div class="c2">${b.kind} · ${b.unitCnt}유닛</div></td>
       <td class="st c" onclick="go('pay-10')"><span class="stp"><span class="dot2" style="background:var(--${set==='확정'?'ok':set==='작성중'?'warn':'faint'})"></span>${set}</span></td>
@@ -6085,7 +6086,7 @@ function CTR3(k){
    퇴거 정산 때 「이렇게 상계하고 이만큼 돌려드립니다」를 알리는 데 쓴다. 보낸 일은 이력에 남는다 → 명세변경_261108 30 ═══ */
 let st=null;
 function stOpen(k){const [f,t]=f3Range(), c=CTRS.find(x=>ckey(x)===k);
-  st={k,from:f||c.base,to:t||TODAY_S,memo:''};DRAWER='stmt';render(true);}
+  st={k,from:f||c.base,to:t||TODAY_S,memo:'',pv:false};DRAWER='stmt';render(true);}
 function stSet(f,v){st[f]=v;render(true);}
 /* 기간의 시작 잔액 · 늘어난 돈 · 줄어든 돈 · 끝 잔액 — 계정(받을 돈 · 보증금)마다 */
 function stSum(k,from,to){const rows=ledgerOf(k).rows, o={};
@@ -6097,8 +6098,37 @@ function stSum(k,from,to){const rows=ledgerOf(k).rows, o={};
 function stSend(){if(!st) return; const c=CTRS.find(x=>ckey(x)===st.k), to=billTo(c); if(!to.length||dnum(st.from)>dnum(st.to)) return;
   clog(st.k,'청구','발송',`원장 명세서 메일 — ${st.from.replace(/-/g,'.')} ~ ${st.to.replace(/-/g,'.')} · ${to.map(x=>x.n).join(', ')}`,st.memo.trim());
   DRAWER=null;st=null;render(true);}
+/* 명세서 미리보기 — 보낼 PDF 그대로. 계정(받을 돈 · 보증금)마다 시작 잔액 → 그 기간 거래(오래된 것부터) → 끝 잔액.
+   원장처럼 청구서 한 장 · 입금 한 건을 한 줄로 묶는다. 취소된 거래는 원래 줄(취소됨)과 취소 줄을 함께 싣는다 → 30-3 */
+function stLines(k,from,to,acc){const G=[];
+  ledgerOf(k).rows.filter(r=>r.acc===acc&&dnum(r.date)>=dnum(from)&&dnum(r.date)<=dnum(to)).forEach(r=>{const l=G[G.length-1];
+    if(l&&l.g===r.g&&l.date===r.date){l.dr+=r.dr||0;l.cr+=r.cr||0;l.bal=r.bal;} else G.push({g:r.g,date:r.date,type:r.type,r,dr:r.dr||0,cr:r.cr||0,bal:r.bal});});
+  return G.map(x=>({...x,t:x.r.ttl?x.r.ttl:x.type==='청구'&&x.r.ym?`${x.r.ym.slice(2).replace('-','.')}월분 청구서`:x.type==='수납'?(x.r.src==='이전 입금'?'이전 입금':`${(x.r.src||'').replace(/^\d\d:\d\d:\d\d /,'')} ${x.r.hand?'수납':'입금'}`):x.r.item}));}
+function stPreview(c,bd,S){
+  const bt=v=>v<0?`과납 ${won(-v)}`:won(v), d8=d=>d.replace(/-/g,'.'), th='padding:6px 8px;border-bottom:1px solid var(--line);font-size:11.5px;color:var(--muted);text-align:left;font-weight:500', td='padding:6px 8px;border-bottom:1px solid var(--line2,var(--line));font-size:12px';
+  const sec=(t,acc,a)=>{const L=stLines(st.k,st.from,st.to,acc);
+    return `<div style="margin:14px 0 4px;font-weight:700;font-size:13px">${t}</div>
+    <table style="width:100%;border-collapse:collapse"><thead><tr><th style="${th}">날짜</th><th style="${th}">거래유형</th><th style="${th}">내용</th><th style="${th};text-align:right">차변</th><th style="${th};text-align:right">대변</th><th style="${th};text-align:right">잔액</th></tr></thead><tbody>
+      <tr><td style="${td}" colspan="5"><span class="c2" style="margin:0">시작 잔액 (${d8(st.from)} 전)</span></td><td style="${td};text-align:right">${bt(a.open)}</td></tr>
+      ${L.map(x=>`<tr><td style="${td};white-space:nowrap">${d8(x.date).slice(2)}</td><td style="${td};white-space:nowrap">${x.type}</td><td style="${td}">${x.t}${x.r.cxd?' <span class="bd mu">취소됨</span>':''}</td>
+        <td style="${td};text-align:right">${x.dr?won(x.dr):''}</td><td style="${td};text-align:right">${x.cr?won(x.cr):''}</td><td style="${td};text-align:right">${bt(x.bal)}</td></tr>`).join('')
+        ||`<tr><td style="${td}" colspan="6"><span class="c2" style="margin:0">이 기간에 거래가 없습니다</span></td></tr>`}
+      <tr><td style="${td}" colspan="5"><b>끝 잔액 (${d8(st.to)})</b></td><td style="${td};text-align:right"><b>${bt(a.close)}</b></td></tr></tbody></table>`;};
+  return `<div style="border:1px solid var(--line);border-radius:var(--r-sm);padding:18px 20px;background:var(--card,var(--bg))">
+    <div style="display:flex;align-items:baseline;gap:10px"><div style="font-size:17px;font-weight:700">원장 명세서</div><span class="c2" style="margin:0">${d8(st.from)} ~ ${d8(st.to)}</span></div>
+    <div class="c2" style="margin:6px 0 0;white-space:normal">${c.ten} 귀하 · ${bd.name} ${c.no} · 발행일 ${d8(TODAY_S)}</div>
+    ${sec('받을 돈',  '매출채권',S.매출채권)}${sec('보증금','임대보증금',S.임대보증금)}
+    <div class="c2" style="margin:12px 0 0;white-space:normal">잔액이 0보다 작으면 과납입니다. 문의: ${bd.name} 관리사무소</div></div>`;}
 function stHTML(){
   if(DRAWER!=='stmt'||!st) return '';
+  if(st.pv){const c=CTRS.find(x=>ckey(x)===st.k), bd=BUILDINGS.find(x=>x.id===c.b)||BUILDINGS[0], to=billTo(c), S=stSum(st.k,st.from,st.to);
+    return `<div class="dro"><div class="ov" onclick="closeDrawer()"></div><div class="pn" style="width:760px">
+    <div class="dh"><div><div class="t">명세서 미리보기</div><div class="s">${cname(bd.alias,c.no,c.ten)} · 보낼 PDF 그대로입니다</div></div>
+      <button class="x" onclick="closeDrawer()">✕</button></div>
+    <div class="db">${stPreview(c,bd,S)}</div>
+    <div class="df"><button class="btn" onclick="stSet('pv',false)">← 돌아가기</button>
+      <button class="btn pri" ${to.length?'':'disabled'} onclick="stSend()">메일 보내기</button></div>
+  </div></div>`;}
   const c=CTRS.find(x=>ckey(x)===st.k), bd=BUILDINGS.find(x=>x.id===c.b)||BUILDINGS[0], to=billTo(c), bad=dnum(st.from)>dnum(st.to), S=bad?null:stSum(st.k,st.from,st.to);
   const R=(k,b,tip)=>`<div class="fr"><span class="fk">${k}${tip?`<i class="tip" data-tip="${tip}">i</i>`:''}</span>${b}</div>`;
   const bt=v=>v<0?`과납 ${won(-v)}`:won(v);
@@ -6118,6 +6148,7 @@ function stHTML(){
         <div class="c2" style="margin:2px 0 0;white-space:normal">그 기간의 원장(받을 돈 · 보증금, 거래마다 날짜 · 내용 · 금액 · 잔액)을 PDF로 붙여 보냅니다. 원장 출력 PDF와 같은 내용입니다.</div></div>
     </div>
     <div class="df"><button class="btn" onclick="closeDrawer()">닫기</button>
+      <button class="btn" ${bad?'disabled':''} onclick="stSet('pv',true)">미리보기</button>
       <button class="btn pri" ${to.length&&!bad?'':'disabled'} onclick="stSend()">메일 보내기</button></div>
   </div></div>`;
 }

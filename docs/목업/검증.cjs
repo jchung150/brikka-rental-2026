@@ -1339,12 +1339,13 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
     /moreOpen\(/.test(h) && bc && sc && bc.map(i => i.t).join() === '입금 확인,청구서 보기,원장 보기' && !bc[0].off && !sc[0].off && sc[2].go.includes(`go('ctr-3/b1본관101호')`)
     && p2 && p2.map(i => i.t).join() === '입금 확인' && none && filt && back]); }
 /* 메뉴 — 정기 청구(정산 → 발행 → 마감, 순서대로)와 수납(입금 매칭 · 수납 내역 · 미납 관리, 아무 때나)을 나눈다 */
-{ const MN = new Function(stub + bare + '; seedJuly(); return {MENU,PAY12,mc12,mcApply,MC,set f12(v){f12=v;}};')();
+{ const MN = new Function(stub + bare + '; seedJuly(); return {MENU,PAY12,mc12,mcApply,MC,MORE,set f12(v){f12=v;}};')();
   const g = k => (MN.MENU.find(m => m.k === k) || {items: []}).items.map(i => i.n).join(' → ');
-  MN.f12 = '2026-07'; const h0 = MN.PAY12(); MN.mc12('b2', 'close'); MN.mcApply(); const h1 = MN.PAY12();
-  r6.push(['메뉴 — 청구 관리: 관리비 정산 → 청구서 발행(누르면 청구 현황 PAY-12) · 수납 관리: 입금 매칭 · 수납 내역 · 미납 관리(누르면 수납 현황 PAY-14) · 청구 현황은 달을 고르고 건물마다 정산 · 청구서 · 수납 · 미납 · 마감 · 7월 테온하우스 마감 → 마감 취소로 바뀜 · 보고서 발행 버튼 없음',
+  const mm = () => MN.MORE.map(m => m.map(i => i.t + (i.off ? '×' : '') + ':' + i.go).join()).find(x => /mc12\('b2'/.test(x)) || '';
+  MN.f12 = '2026-07'; MN.MORE.length = 0; const h0 = MN.PAY12(), m0 = mm(); MN.mc12('b2', 'close'); MN.mcApply(); MN.MORE.length = 0; const h1 = MN.PAY12(), m1 = mm();
+  r6.push(['메뉴 — 청구 관리: 관리비 정산 → 청구서 발행(누르면 청구 현황 PAY-12) · 수납 관리: 입금 매칭 · 수납 내역 · 미납 관리(누르면 수납 현황 PAY-14) · 청구 현황은 달을 고르고 건물마다 정산 · 청구서 · 수납 · 미납 · 마감 · 더보기(⋮)에 마감 · 마감 취소(못 하는 쪽은 흐림) · 7월 테온하우스 마감하면 마감이 흐려지고 마감 취소가 열림 · 보고서 발행 버튼 없음',
     g('청구') === '관리비 정산 → 청구서 발행' && g('수납') === '입금 매칭 → 수납 내역 → 미납 관리'
-    && /<h1>청구 현황<\/h1><span class="sid">PAY-12/.test(h0) && /이 달 청구분 미납/.test(h0) && /mc12\('b2','close'\)/.test(h0) && MN.MC.b2['2026-07'] && /mc12\('b2','undo'\)/.test(h1) && !/보고서 발행/.test(h0 + h1)
+    && /<h1>청구 현황<\/h1><span class="sid">PAY-12/.test(h0) && /이 달 청구분 미납/.test(h0) && /^마감:mc12\('b2','close'\),마감 취소×/.test(m0) && MN.MC.b2['2026-07'] && /^마감×:.*마감 취소:mc12\('b2','undo'\)/.test(m1) && !/<span class="more" onclick="mc12/.test(h0) && !/보고서 발행/.test(h0 + h1)
     && MN.MENU.find(m => m.k === '청구').g === '청구 관리' && MN.MENU.find(m => m.k === '수납').g === '수납 관리' && MN.MENU.find(m => m.k === '청구').over === 'pay-12' && MN.MENU.find(m => m.k === '수납').over === 'pay-14']); }
 /* 상계 취소를 막는 셋째 경우 — 상계로 채운 청구를 감액해 생긴 과납을 이미 환불했으면 취소할 수 없다 → 확인요청 답변 질문 7 */
 { const OX = new Function(stub + bare + '; seedJuly(); return {openOffset,payConfirm,addCut,openRefund,ovConfirm,cancelWhyNot,payRec,BILLS,PAYEV,overOf};')();
@@ -1429,6 +1430,13 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   const ret = f > 0 && ow === Math.max(0, AU.ledgerOf(k).bal.매출채권) + f;
   r6.push(['연체료 청구도 청구 감액 대상 · 준비중 계약 보증금 예치로 약정액에 이르면 「보증금을 모두 받습니다」(진행중 계약은 없음) · 종료된 계약의 보증금 반환은 미납 + 청구 전 연체료로 막음',
     fee && ready && notReady && ret]); }
+/* 명세서 미리보기 — 보내기 전에 PDF 그대로 본다. 계정마다 시작 잔액 → 거래 → 끝 잔액이 맞아떨어진다 */
+{ const SP = new Function(stub + bare + '; seedJuly(); return {stOpen,stSet,stHTML,stLines,stSum,get st(){return st;}};')();
+  const k = 'b1별관301호'; SP.stOpen(k); const h0 = SP.stHTML(); SP.stSet('pv', true); const h1 = SP.stHTML();
+  const S = SP.stSum(k, SP.st.from, SP.st.to), ok = ['매출채권', '임대보증금'].every(a => { const L = SP.stLines(k, SP.st.from, SP.st.to, a);
+    return L.length > 0 && L[L.length - 1].bal === S[a].close && L.reduce((x, l) => x + l.dr - l.cr, 0) === (a === '매출채권' ? 1 : -1) * (S[a].close - S[a].open); });
+  r6.push(['명세서 보내기 — 미리보기 버튼 → 보낼 PDF 그대로(원장 명세서 · 받을 돈 · 보증금마다 시작 잔액 · 거래 · 끝 잔액 · 청구서 한 줄) · 돌아가기 · 미리보기에서도 메일 보내기 · 줄 잔액이 끝 잔액과 맞음',
+    /stSet\('pv',true\)">미리보기/.test(h0) && /원장 명세서/.test(h1) && /시작 잔액/.test(h1) && /26\.07월분 청구서/.test(h1) && /돌아가기/.test(h1) && /stSend\(\)">메일 보내기/.test(h1) && ok]); }
 const bad6 = r6.filter(x => !x[1]);
 if (bad6.length) fail = 1;
 console.log('⑥ 수납 기록 ' + (bad6.length ? '✗ ' + bad6.map(x => x[0]).join(' / ') : 'OK — ' + r6.length + '개 검산'));
