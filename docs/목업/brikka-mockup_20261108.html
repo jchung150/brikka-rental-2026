@@ -1327,6 +1327,7 @@ function drawerHTML(){
   if(DRAWER==='lcx') return lcxHTML();
   if(DRAWER==='stmt') return stHTML();
   if(DRAWER==='ipv') return ipvHTML();
+  if(DRAWER==='tcx') return tcxHTML();
   if(DRAWER==='bkd') return bdHTML();
   if(DRAWER==='bank') return bkHTML();
   if(DRAWER==='pay') return payHTML();
@@ -5415,6 +5416,7 @@ function ctrMore(c,k,pre=[]){
       {t:'계약 삭제',off:'연장 계약은 재계약 취소로 지웁니다'}]
     :[{t:R,go:`rnwOpen('${k}')`,off:!on?'진행중인 계약만 재계약할 수 있습니다':c.next?'이미 재계약을 등록했습니다. 연장 계약에서 취소할 수 있습니다':''},
       {t:'해지',go:`termOpen('${k}')`,off:on||c.st==='종료됨'&&!TERMS[k]&&!c.next?'':'진행중인 계약 · 해지 처리 전에 끝난 계약만 해지할 수 있습니다'},
+      {t:'해지 취소',go:`tcxOpen('${k}')`,off:!(TERMS[k]||{}).act?'해지 처리하지 않은 계약입니다':tcxWhyNot(k)},
       {t:'웰컴 재전송',go:`clog('${k}','계약','발송','웰컴 메일 재전송');render(true)`},
       {t:'계약 삭제',off:bills?'청구서를 발행한 계약은 지울 수 없습니다':'목업에서는 지우지 않습니다'}]));
 }
@@ -5661,6 +5663,8 @@ function pvTermOpen(){const k=tm.k, out=tm.out, c=CTRS.find(x=>ckey(x)===k), mod
   ipvOpen({title:'해지 처리 미리보기',sub:'저장하면 이 청구서가 나갑니다',pick:'청구서',docs:()=>D});}
 function termSave(mail){if(!tm.out||!tm.why.trim()) return;
   const c=CTRS.find(x=>ckey(x)===tm.k), k=tm.k, out=tm.out, mode=termMode(k,out), prev=TERMS[k]||{};
+  /* 해지 취소에 쓴다 — 이 해지 처리가 새로 기록한 청구 · 감액과 그 전의 연체료 정리일 */
+  const B0=new Set(BILLS), C0=CUTS.length, cut0=FEE_CUT[k]||null, off0=!!(OFF1[k]||{})['연체료'];
   const FX=['now','reg','after'].includes(mode)&&!prev.act?Object.fromEntries(termFix(k,out,tm.fix).map(f=>[f.n,{sup:f.sup,vat:f.vat}])):prev.fix;
   TERMS[k]={at:`${TODAY_S} ${new Date().toTimeString().slice(0,5)}`,type:tm.type,out,why:tm.why.trim(),act:prev.act||'',fix:FX,
     fee:prev.act?prev.fee:tm.fee!=null&&tm.fee!==''?numOf(tm.fee):null};
@@ -5688,9 +5692,63 @@ function termSave(mail){if(!tm.out||!tm.why.trim()) return;
       if(F.less){const fb=(ISS[k].bills||[]).find(b=>b.fee); if(fb) addCut(fb.id,F.less,TODAY_S,`해지일 뒤 연체료 (${nstr(dnum(out)+1).slice(5).replace('-','.')}~${F.cut.slice(5).replace('-','.')})`,F.less,0);}
       FEE_CUT[k]=out;}
     TERMS[k].act=mode;}
+  if(!prev.act) TERMS[k].made={bills:BILLS.filter(b=>!B0.has(b)&&!((ISS[k]||{}).bills||[]).includes(b)),cuts:CUTS.slice(C0),cut0,feeOff:!off0&&!!(OFF1[k]||{})['연체료']};
+  clog(k,'계약','해지',`해지 처리 — 해지일 ${out.replace(/-/g,'.')} · ${tm.type}`,tm.why.trim());
   /* 해지일 뒤로는 연체료를 세지 않는다 → 18-5 · 질문 3-2 */
   FEE_END[k]=out;
   DRAWER=null;tm=null;render(true);}
+/* ═══ 해지 취소 — 잘못 넣은 해지 처리를 되돌린다. 계약 더보기(⋮) › 해지 취소 · 사유 필수 → 명세변경_261108 33
+   해지 처리가 기록한 것만 되돌린다. 원장은 지우지 않는다 — 청구 · 감액은 원래 줄을 「취소됨」으로 남기고 취소 줄을 더한다
+     reg   (청구일 전 · 아직 청구서 없음) 해지 정보만 지운다. 그 달 정기 청구서는 원래 금액(일할 · 퇴거 예상분 없음)으로 돌아간다
+     now   해지 처리로 바로 발행한 마지막 청구서를 청구 취소한다. 그 계약은 발행 대기로 돌아간다
+     after 해지 청구서(퇴거 예상분 · 연체료 청구)와 일할 감액 · 해지일 뒤 연체료 감액을 취소한다
+   연체료 정리일은 해지 처리 전으로 되돌린다. 해지일 뒤로 세지 않던 연체료는 다시 쌓인다 ═══ */
+let tcx=null;
+function tcxOpen(k){tcx={k,why:''};DRAWER='tcx';render(true);}
+function tcxRecs(k){const t=TERMS[k]||{}, M=t.made||{bills:[],cuts:[]};
+  return {t,inv:t.act==='now'?((ISS[k]||{}).bills||[]):[],bills:M.bills.filter(b=>BILLS.includes(b)),cuts:M.cuts.filter(x=>CUTS.includes(x))};}
+function tcxWhyNot(k){const R=tcxRecs(k), t=R.t, c=CTRS.find(x=>ckey(x)===k); if(!t.act) return '해지 처리하지 않은 계약입니다';
+  if(closedBy(c.b,t.at.slice(0,7),TODAY_S)) return '해지 처리한 달을 마감했습니다. 마감을 취소한 뒤 해지 취소합니다';
+  if(t.act==='reg'&&ISS[k]) return '해지 달 정기 청구서를 이미 발행했습니다. 청구서 발행에서 그 청구서를 먼저 취소합니다';
+  if([...R.inv,...R.bills].some(b=>(PAID[b.id]||0)>0)) return '해지 처리로 낸 청구에 입금(보증금 상계 포함)이 들어갔습니다. 그 수납을 먼저 취소합니다';
+  if(R.cuts.some(x=>x.ex&&overOf(k)<x.ex)) return '해지 일할 감액으로 생긴 과납을 이미 환불했거나 다음 청구에 썼습니다';
+  if(DEP_RET.some(r=>r.k===k&&dnum(r.date)>=dnum(t.at.slice(0,10)))) return '해지 뒤 보증금을 반환했습니다. 보증금 반환을 먼저 취소합니다';
+  return '';}
+function tcxConfirm(){if(!tcx||!tcx.why.trim()) return; const k=tcx.k, why=tcx.why.trim(); if(tcxWhyNot(k)) return;
+  const R=tcxRecs(k), t=R.t, M=t.made||{};
+  if(R.inv.length){R.inv.forEach(b=>{const ix=BILLS.indexOf(b); if(ix>=0) BILLS.splice(ix,1);});
+    CANCELS.push({kind:'reg',rec:{k,ym:SETTLE.ym,bills:R.inv},date:TODAY_S,why,sq:++paySeq}); delete ISS[k];}
+  R.bills.forEach(b=>{const ix=BILLS.indexOf(b); if(ix>=0) BILLS.splice(ix,1); CANCELS.push({kind:'adh',rec:b,date:TODAY_S,why,sq:++paySeq});});
+  R.cuts.forEach(x=>{const ix=CUTS.indexOf(x); if(ix>=0) CUTS.splice(ix,1);
+    if(x.ex){REL[x.id]-=x.ex; const m=MOVES.findIndex(y=>y.sq===x.sq); if(m>=0) MOVES.splice(m,1);}
+    CANCELS.push({kind:'cut',rec:x,date:TODAY_S,why,sq:++paySeq});});
+  if(M.cut0) FEE_CUT[k]=M.cut0; else delete FEE_CUT[k];
+  if(M.feeOff&&OFF1[k]){delete OFF1[k]['연체료']; if(!Object.keys(OFF1[k]).length) delete OFF1[k];}
+  clog(k,'계약','해지 취소',`해지 취소 — 해지일 ${t.out.replace(/-/g,'.')}`,why);
+  delete TERMS[k]; delete FEE_END[k];
+  DRAWER=null;tcx=null;render(true);}
+function tcxHTML(){
+  if(DRAWER!=='tcx'||!tcx) return '';
+  const k=tcx.k, c=CTRS.find(x=>ckey(x)===k), bd=BUILDINGS.find(x=>x.id===c.b)||BUILDINGS[0], R=tcxRecs(k), t=R.t, no=tcxWhyNot(k);
+  const F=(x,v)=>`<div class="fr"><span class="fk">${x}</span>${v}</div>`, ymL=t.out?`${+t.out.slice(5,7)}월분`:'';
+  const L=t.act==='reg'?[`해지 정보(해지일 · 해지 달 금액 · 퇴거 예상분 · 연체료)를 지웁니다. ${ymL} 정기 청구서는 원래 금액으로 돌아가 청구일에 나갑니다`]
+    :[...(R.inv.length?[`${ymL} 마지막 청구서 ${won(R.inv.reduce((a,b)=>a+b.amt,0))} → <b>청구 취소</b>. 이 계약은 발행 대기로 돌아갑니다`]:[]),
+      ...R.bills.map(b=>`${b.fee?'연체료 청구':b.n} ${won(b.amt)} → <b>청구 취소</b>`),
+      ...R.cuts.map(x=>`${x.ym.slice(2).replace('-','.')}월분 ${x.n} 감액 ${won(x.amt)} → <b>감액 취소</b>`)];
+  return `<div class="dro"><div class="ov" onclick="closeDrawer()"></div><div class="pn">
+    <div class="dh"><div><div class="t">해지 취소</div><div class="s">${cname(bd.alias,c.no,c.ten)}</div></div>
+      <button class="x" onclick="closeDrawer()">✕</button></div>
+    <div class="db">
+      <div class="fg"><div class="fl">취소할 해지</div>${F('해지일',`<span class="fv">${d8(t.out)}</span>`)}${F('해지 유형',`<span class="fv">${t.type}</span>`)}${F('해지 처리',`<span class="fv">${d8(t.at)} · ${t.why}</span>`)}</div>
+      <div class="fg"><div class="fl">되돌리는 것</div>${L.map(x=>`<div class="c2" style="margin:0 0 6px;white-space:normal;color:var(--ink)">· ${x}</div>`).join('')}
+        <div class="c2" style="margin:4px 0 0;white-space:normal">원장의 원래 줄은 「취소됨」으로 남고 취소 줄이 오늘 날짜로 더해집니다. 연체료 정리일도 해지 처리 전으로 돌아가, 해지일 뒤로 세지 않던 연체료가 다시 쌓입니다. 해지일만 잘못 넣었으면 취소한 뒤 다시 해지 처리합니다.</div></div>
+      ${no?`<div class="fnd wa3" style="margin:0 0 12px"><span class="h">취소할 수 없습니다</span>${no}</div>`:''}
+      <div class="fg"><div class="fl">취소 사유 (필수)</div>
+        <input type="text" value="${tcx.why}" placeholder="예: 해지일 잘못 넣음" oninput="tcx.why=this.value;document.getElementById('tcxok').disabled=!this.value.trim()||${!!no}" style="width:100%;border:1px solid var(--line);border-radius:var(--r-sm);padding:7px 9px;font:inherit"></div>
+    </div>
+    <div class="df"><button class="btn" onclick="closeDrawer()">닫기</button>
+      <button class="btn pri" id="tcxok" ${tcx.why.trim()&&!no?'':'disabled'} onclick="tcxConfirm()">해지 취소</button></div>
+  </div></div>`;}
 function termHTML(){
   if(DRAWER!=='term'||!tm) return '';
   const c=CTRS.find(x=>ckey(x)===tm.k), bd=BUILDINGS.find(x=>x.id===c.b)||BUILDINGS[0], mode=termMode(tm.k,tm.out), done=!!(TERMS[tm.k]||{}).act, U=unbilled(c,tm.out,mode);
@@ -5716,7 +5774,7 @@ function termHTML(){
       <tbody>${M.map(m=>m.periods.map(q=>`<tr style="cursor:default"><td ${td}>${m.ym.slice(2).replace('-','.')}월분 · ${md(q.from)} ~ ${md(q.to)}</td><td class="n" ${td}>${q.days}일</td><td class="n" ${td}>${won(q.bal)}</td><td class="n" ${td}>${won(q.fee)}</td></tr>`).join('')).join('')}
         <tr style="cursor:default"><td colspan="3" style="padding:8px 10px;border-top:1px solid var(--line);color:var(--muted)">합계 · 연 ${rateOf(tm.k)}%</td><td class="n" style="padding:8px 10px;border-top:1px solid var(--line)"><b>${won(M.reduce((a,m)=>a+m.fee,0))}</b></td></tr></tbody></table></div>`;};
   const last=(()=>{if(!tm.out) return '';
-    if(done) return `<div class="c2" style="margin:0;white-space:normal">마지막 청구는 이미 처리했습니다(${{now:'마지막 청구서 발행',reg:'정기 청구서 일할',after:'청구 감액 · 연체료 청구'}[TERMS[tm.k].act]||'처리'}). 고칠 때는 원장의 청구 감액 · 청구 추가로 합니다.</div>`;
+    if(done) return `<div class="c2" style="margin:0;white-space:normal">마지막 청구는 이미 처리했습니다(${{now:'마지막 청구서 발행',reg:'정기 청구서 일할',after:'청구 감액 · 연체료 청구'}[TERMS[tm.k].act]||'처리'}). 고칠 때는 원장의 청구 감액 · 청구 추가로 합니다. 해지 자체가 잘못이면 계약 더보기(⋮)의 <b>해지 취소</b>로 되돌립니다.</div>`;
     const bo=md(billOn(tm.out.slice(0,7)));
     if(mode==='now'){const R=lastBill(tm.k,tm.out,Object.fromEntries(termFix(tm.k,tm.out,tm.fix).map(f=>[f.n,{sup:f.sup,vat:f.vat}])));
       return `<div class="c2" style="margin:0 0 8px;white-space:normal">해지일이 청구일(${bo}) 앞이라, 저장하면 <b>${ymL} 마지막 청구서</b>를 바로 발행합니다. 아래 정산 항목(퇴거 예상분)도 이 청구서에 함께 실립니다.</div>`
