@@ -1463,10 +1463,28 @@ function nbInit(){
       gross:'',area:'',dong:[{n:'',up:'',down:''}],pkUp:'',pkDown:'',pkMech:'',hvac:[],
       owners:[{biz:'',found:null,n:'',kind:'개인',email:'',tel:'',share:'100'}],
       rb:'',ra:'',rn:'',same:true,fb:'',fa:'',fn:'',
-      bb:'',bt:'',bmax:'',bnow:'',mg:false,ms:'',me:'',fk:'요율',fv:'',tried:false};
+      bb:'',bt:'',bmax:'',bnow:'',mg:false,ms:'',me:'',fk:'요율',fv:'',tx:{},txT:false,tried:false};
   delete BPHOTO.new;
 }
+/* ═══ 세금계산서 발행 명의(공급자) — 건물마다 하나. 임대인(소유자 · 지분)과 따로 둔다 → 명세변경 26-2
+   1차는 발행하지 않는다. 담당자가 홈택스에서 손으로 발행할 때 보고 옮긴다. 모두 선택 입력 · 계산 · 청구 · 수납에는 쓰지 않는다 ═══ */
+const TXF=[['biz','사업자등록번호','000-00-00000',150],['sub','종사업장번호','4자리 · 없으면 비움',150],['n','상호'],['ceo','대표자명','',150],['addr','사업장 주소'],
+  ['up','업태','예: 부동산업',160],['jong','종목','예: 비주거용 건물 임대업'],['mail','담당 이메일','세금계산서 담당자']];
+const BTAX={
+  /* 공동소유 — 소유자 각자가 아니라 공동사업자 번호 하나로 발행한다 */
+  b1:{biz:'105-86-73318',sub:'',n:'카리나빌딩 공동사업자(카리나 외 1)',ceo:'카리나',addr:'서울특별시 마포구 양화로 156',up:'부동산업',jong:'비주거용 건물 임대업',mail:'tax@karina.co.kr'},
+  /* b2 뉴진스하우스 — 비어 있다(공동소유라 기본값도 없다) → 「세금계산서 발행 명의 미입력」 */
+  b4:{biz:'113-86-20447',sub:'',n:'카즈하',ceo:'카즈하',addr:'서울특별시 마포구 월드컵로 12',up:'부동산업',jong:'비주거용 건물 임대업',mail:''}};
+const txAny=t=>!!t&&Object.values(t).some(v=>String(v||'').trim());
+const txSubBad=v=>!!String(v||'').trim()&&!/^\d{4}$/.test(String(v).trim());
+/* 기본값 — 임대인이 한 명이면 그 임대인의 사업자등록번호 · 상호(개인이면 대표자명도)와 건물주소. 공동소유면 비워 둔다 */
+const txDef=(owners,addr)=>{const o=owners.length===1?owners[0]:null;
+  return {biz:o?o.biz.trim():'',sub:'',n:o?o.n.trim():'',ceo:o&&o.kind==='개인'?o.n.trim():'',addr:o?(addr||'').trim():'',up:'',jong:'',mail:''};};
+const txTrim=t=>Object.fromEntries(TXF.map(([f])=>[f,String(t[f]||'').trim()]));
 const nbSet=(f,v)=>{nb[f]=v;render(true);};
+/* 건물 등록의 발행 명의 — 고치기 전에는 기본값(임대인 · 건물주소)을 따라 바뀐다. 한 칸이라도 고치면 그때부터 넣은 값 그대로 */
+const nbTx=f=>nb.txT?nb.tx[f]:txDef(nb.owners,nb.addr)[f];
+function nbTxSet(f,v){if(!nb.txT){nb.tx=txDef(nb.owners,nb.addr);nb.txT=true;} nb.tx[f]=v;render(true);}
 const nbRow=(l,i,f,v)=>{nb[l][i][f]=v;render(true);};
 /* 임대인 — 사업자등록번호로 이미 등록된 임대인인지 본다. 한 임대인이 여러 건물을 가질 수 있다 → USER-8 */
 function nbLookup(i){const o=nb.owners[i], biz=o.biz.trim();
@@ -1486,6 +1504,7 @@ function nbMissing(){const m=[];
   if(!nb.rb.trim()||!nb.ra.trim()||!nb.rn.trim()) m.push('임대료 납부 계좌');
   if(!nb.same&&(!nb.fb.trim()||!nb.fa.trim()||!nb.fn.trim())) m.push('관리비 납부 계좌');
   if(nb.mg&&(!nb.ms||!nb.me)) m.push('위탁운영계약 기간');
+  if(txSubBad(nbTx('sub'))) m.push('종사업장번호(숫자 4자리)');
   return m;}
 function nbSave(){
   nb.tried=true; if(nbMissing().length){render(true);return;}
@@ -1502,6 +1521,7 @@ function nbSave(){
     mgmtStart:nb.mg?nb.ms:'',mgmtEnd:nb.mg?nb.me:'',fee:nb.mg&&nb.fv?(nb.fk==='요율'?`임대료의 ${nb.fv}%`:`월 ${numOf(nb.fv).toLocaleString('ko-KR')}원`):'—',mode:'임대인 직수취',
     bondBank:[nb.bb.trim()].filter(Boolean).join(' '),bondTel:nb.bt.trim(),bondMax:numOf(nb.bmax),bondNow:numOf(nb.bnow),
     fac:[],units:[],docs:[],charge:[],billDay:nbBill(),dueDay:nbDue()});
+  const tx=txTrim(Object.fromEntries(TXF.map(([f])=>[f,nbTx(f)]))); if(txAny(tx)) BTAX[id]=tx;
   if(BPHOTO.new){BPHOTO[id]=BPHOTO.new;delete BPHOTO.new;}
   nb=null; tab3='요약'; go('pro-3/'+id);
 }
@@ -1561,6 +1581,11 @@ function PRO2(){
       +R('관리비 납부 계좌',`<label class="ck"><input type="checkbox" ${nb.same?'checked':''} onchange="nbSet('same',this.checked)">임대료 납부 계좌와 같음</label>`,1)
       +(nb.same?'':R('',`${T('fb','은행',90)}${T('fa','계좌번호')}${T('fn','예금주',90)}`)),'',
       `<button class="btn sm" onclick="nb.owners.push({biz:'',found:null,n:'',kind:'개인',email:'',tel:'',share:''});render(true)">+ 임대인 추가</button>`);
+  /* 세금계산서 발행 명의 — 임대인 정보와 따로. 모두 선택 */
+  const taxc=card('세금계산서 발행 명의',
+      `<div class="c2" style="margin:-4px 0 10px;white-space:normal">${nb.owners.length===1?'임대인이 한 명이면 그 임대인 정보와 건물주소로 채워 둡니다. 고칠 수 있습니다':'공동소유면 비워 둡니다. 공동사업자 번호로 발행하면 그 정보를 넣습니다'}</div>`
+      +TXF.map(([f,l,ph,w])=>R(l,`<input type="text" value="${nbTx(f)||''}" placeholder="${ph||''}" onchange="nbTxSet('${f}',this.value)"${w?` style="max-width:${w}px"`:''}>`)).join(''),
+      '모두 선택 · 비워 두고 건물 상세에서 채울 수 있습니다');
   const bond=card('채권 정보',
       '<div class="c2" style="margin:-4px 0 10px">등기부등본 기준. 없으면 비워 둡니다</div>'
       +R('은행 · 지점',T('bb','예: 국민은행 서교동지점'))+R('연락처',T('bt'))
@@ -1585,7 +1610,7 @@ function PRO2(){
   return `<div class="nbw">
   <div class="ph"><h1>새로운 건물 등록</h1><span class="sid">PRO-2</span></div>
   ${basic}
-  ${spec}${owner}${bond}${rules}${mgrc}${mgmt}
+  ${spec}${owner}${taxc}${bond}${rules}${mgrc}${mgmt}
   ${miss.length?`<div class="fnd wa3" style="margin-bottom:12px"><span class="h">저장할 수 없습니다</span>빠진 항목: <b>${miss.join(' · ')}</b></div>`:''}
   <div style="display:flex;gap:8px;justify-content:flex-end;align-items:center;padding:14px 0;border-top:1px solid var(--line)">
     <span class="c2" style="margin-right:auto"><b style="color:var(--warn)">*</b> 필수 · 나머지는 비워 두고 건물 상세에서 채울 수 있습니다 · 저장하면 건물 상세로 이동합니다</span>
@@ -1937,6 +1962,7 @@ function beOpen(id,card){const b=BUILDINGS.find(x=>x.id===id);
         up:String(b.pk.up),down:String(b.pk.down),mech:String(b.pk.mech),hvac:b.hvac.map(v=>BHVAC.includes(v)?v:'기타').filter((v,i,a)=>a.indexOf(v)===i)}
     :card==='owner'?{owners:b.owners.map(o=>({...o,share:String(o.share)})),acct:b.acct,an:b.acctName,same:b.feeAcct===b.acct&&b.feeAcctName===b.acctName,fa:b.feeAcct,fn:b.feeAcctName}
     :card==='bond'?{bb:b.bondBank||'',bt:b.bondTel||'',max:String(b.bondMax||''),now:String(b.bondNow||'')}
+    :card==='tax'?(txAny(BTAX[b.id])?{...BTAX[b.id]}:{...txDef(b.owners.map(o=>({...o,kind:''})),b.addr),dflt:b.owners.length===1})
     :card==='fac'?{n:''}
     :{ms:b.mgmtStart||'',me:b.mgmtEnd||'',fee:b.fee==='—'?'':b.fee||''};
   be={id,card,f,tried:false};DRAWER='bed';render(true);}
@@ -1948,6 +1974,7 @@ function beMissing(){const b=BUILDINGS.find(x=>x.id===be.id), f=be.f, m=[];
     if(!f.acct.trim()||!f.an.trim()) m.push('임대료 납부 계좌'); if(!f.same&&(!f.fa.trim()||!f.fn.trim())) m.push('관리비 납부 계좌');}
   if(be.card==='fac'&&!f.n.trim()) m.push('공용시설 이름');
   if(be.card==='mgmt'&&(!f.ms||!f.me)) m.push('기간');
+  if(be.card==='tax'&&txSubBad(f.sub)) m.push('종사업장번호(숫자 4자리)');
   return m;}
 function beSave(){be.tried=true; if(beMissing().length){render(true);return;}
   const b=BUILDINGS.find(x=>x.id===be.id), f=be.f;
@@ -1959,6 +1986,7 @@ function beSave(){be.tried=true; if(beMissing().length){render(true);return;}
   if(be.card==='owner'){b.owners=f.owners.map(o=>({n:o.n.trim(),biz:o.biz.trim(),share:parseFloat(o.share)||0}));b.owner=b.owners[0].n;b.ownerBiz=b.owners[0].biz;
     b.acct=f.acct.trim();b.acctName=f.an.trim();b.feeAcct=f.same?b.acct:f.fa.trim();b.feeAcctName=f.same?b.acctName:f.fn.trim();}
   if(be.card==='bond') Object.assign(b,{bondBank:f.bb.trim(),bondTel:f.bt.trim(),bondMax:numOf(f.max),bondNow:numOf(f.now)});
+  if(be.card==='tax'){const t=txTrim(f); if(txAny(t)) BTAX[b.id]=t; else delete BTAX[b.id]; blog(b.id,'세금계산서 발행 명의',txAny(t)?`${t.n||'—'} · ${t.biz||'—'}`:'비움');}
   if(be.card==='fac') b.fac.push(f.n.trim());
   if(be.card==='mgmt'){Object.assign(b,{mgmtStart:f.ms,mgmtEnd:f.me}); blog(b.id,'위탁운영계약',`${f.ms} ~ ${f.me}`);}
   DRAWER=null;be=null;render(true);}
@@ -1969,7 +1997,7 @@ function beHTML(){
   const R=(k,body)=>`<div class="fr"><span class="fk">${k}</span>${body}</div>`;
   const T=(k,ph,w)=>`<input type="text" value="${f[k]==null?'':f[k]}" placeholder="${ph||''}" oninput="be.f.${k}=this.value" style="${inp};${w?`max-width:${w}px`:'width:100%'}">`;
   const D=k=>`<input type="date" value="${f[k]||''}" oninput="be.f.${k}=this.value" style="${inp}">`;
-  const TITLE={basic:'기본 정보',spec:'건물 제원',owner:'임대인 정보',bond:'채권 정보',fac:'공용시설 추가',mgmt:'위탁운영계약'}[be.card];
+  const TITLE={basic:'기본 정보',spec:'건물 제원',owner:'임대인 정보',tax:'세금계산서 발행 명의',bond:'채권 정보',fac:'공용시설 추가',mgmt:'위탁운영계약'}[be.card];
   let body='';
   if(be.card==='basic') body=R('건물명',T('name'))+R('건물 별칭',T('alias','',160))+R('건물유형',`<select onchange="be.f.kind=this.value" style="${inp}">${BKIND.map(v=>`<option ${f.kind===v?'selected':''}>${v}</option>`).join('')}</select>`)
     +R('건물주소',T('addr'))+R('',T('addr2','지번 주소'))+R('건축일',D('built'))+R('사용승인일',D('approved'));
@@ -1997,6 +2025,9 @@ function beHTML(){
     +(f.same?'':R('',T('fa','은행 계좌번호'))+R('예금주',T('fn','',160)));
   if(be.card==='bond') body=R('은행 · 지점',T('bb'))+R('연락처',T('bt','',160))+R('채권최고금액',T('max','원',160))+R('실제채권금액',T('now','원',160))
     +'<div class="c2" style="margin:0">등기부등본 기준. 등기 변동 시 고칩니다</div>';
+  if(be.card==='tax') body=(f.dflt?'<div class="c2" style="margin:0 0 10px;white-space:normal">임대인이 한 명이라 그 임대인 정보와 건물주소로 채워 두었습니다. 고칠 수 있습니다</div>':'')
+    +TXF.map(([k,l,ph,w])=>R(l,T(k,ph,w))).join('')
+    +'<div class="c2" style="margin:0;white-space:normal">모두 선택 입력입니다. 이 건물의 모든 청구(임대료 · 관리비 · 비정기)를 이 명의로 발행합니다. 같은 사업자등록번호를 여러 건물에 써도 됩니다(사업자단위과세 · 같은 명의)</div>';
   if(be.card==='fac') body=R('공용시설',T('n','예: 회의실'))+`<div class="c2" style="margin:0">지우려면 공용시설 태그의 ✕를 누릅니다</div>`;
   if(be.card==='mgmt') body=R('시작일',D('ms'))+R('종료일',D('me'))
     +'<div class="c2" style="margin:0">위탁운영계약서는 자료보관 탭에 올립니다</div>';
@@ -2029,6 +2060,7 @@ function t요약(b){
       <dt>건물주소</dt><dd>${b.addr}<div class="c2">${b.addr2}</div></dd>
       <dt>건축일</dt><dd>${b.built}</dd>
       <dt>사용승인일</dt><dd>${b.approved}</dd>
+      ${txAny(BTAX[b.id])?'':`<dt>세금계산서</dt><dd><span class="bd wa">세금계산서 발행 명의 미입력</span></dd>`}
     </dl>${bphHTML(b)}</div></div>
   <div class="two">
     <div class="card"><div class="ct">건물 제원
@@ -2048,6 +2080,10 @@ function t요약(b){
     </dl></div></div>
   </div>
   <div class="two">
+    <div class="card"><div class="ct">세금계산서 발행 명의
+      <span class="ca">${moreCell([{t:'수정',go:`beOpen('${b.id}','tax')`}])}</span></div><div class="cc">
+      ${txAny(BTAX[b.id])?`<dl class="dl">${TXF.map(([f,l])=>`<dt>${l}</dt><dd>${BTAX[b.id][f]||'—'}</dd>`).join('')}</dl>`
+        :'<div style="padding:12px 0;color:var(--muted)">세금계산서 발행 명의가 없습니다. 담당자가 홈택스에서 발행할 때 이 정보를 봅니다.</div>'}</div></div>
     <div class="card"><div class="ct">채권 정보
       <span class="ca">${moreCell([{t:'수정',go:`beOpen('${b.id}','bond')`}])}</span></div><div class="cc">
       ${b.bondMax?`<dl class="dl">
@@ -2055,6 +2091,8 @@ function t요약(b){
         <dt>채권최고금액</dt><dd>${won(b.bondMax)}<span class="lock">${eok(b.bondMax)}</span></dd>
         <dt>실제채권금액</dt><dd>${won(b.bondNow)}<span class="lock">${eok(b.bondNow)}</span></dd>
       </dl>`:'<div style="padding:12px 0;color:var(--muted)">등록된 채권 정보가 없습니다.</div>'}</div></div>
+  </div>
+  <div>
     <div class="card"><div class="ct">공용시설<span class="ca">${moreCell([{t:'추가',go:`beOpen('${b.id}','fac')`}])}</span></div>
       <div class="cc" style="padding-top:12px">
       ${b.fac.map(f=>`<span class="tag">${f}<span class="x" style="cursor:pointer" onclick="facDel('${b.id}','${f}')">✕</span></span>`).join('')||'<span style="color:var(--muted)">등록된 공용시설이 없습니다.</span>'}
@@ -4905,11 +4943,20 @@ function t계약(b){
 /* 기존 사업자 — 사업자등록번호로 찾는다. 목업 예시값 → USER-6 */
 const BIZ={'211-86-40519':{kind:'법인',ten:'(주)비씨에이전시',ceo:'박서준',addr:'서울 마포구 양화로 156 별관 3층',item:'서비스 · 광고대행',alias:['비씨에이전시']},
            '105-87-22013':{kind:'법인',ten:'(주)아이씨비',ceo:'정하늘',addr:'서울 마포구 양화로 156 본관 7·8층',item:'도소매 · 화장품',alias:['ICB']}};
+/* 임차인(사업자)의 세금계산서 받는 정보 — 받는 이메일(2개까지) · 종사업장번호. 청구서 메일 담당자와 따로다(보통 회계 담당자) → 명세변경 26-3
+   임차인 정보라 계약마다가 아니다. 고치는 곳은 임차인 관리(USER-7). 1차는 모두 선택 · 계산 · 청구 · 수납에는 쓰지 않는다 */
+const TTAX={'(주)아이씨비':{mail:['tax@icb.co.kr'],sub:''},'유한회사아마데우스':{mail:['acct@amadeus.kr'],sub:''},
+  '㈜케이더블유인터내셔널':{mail:['kw.tax@kwintl.com','kw.fin@kwintl.com'],sub:'0002'},'(주)케이큐엔터테이먼트':{mail:['finance@kqent.com'],sub:''},
+  '(유)유니버셜대부':{mail:['tax@universal-loan.kr'],sub:''},'(주)좋은생각사람들':{mail:['bill@goodthink.kr'],sub:''},
+  '(주)에스씨케이컴퍼니':{mail:['tax@sckco.kr'],sub:''},'(주)비씨에이전시':{mail:['account@bcagency.kr'],sub:''}};
+/* (유)고우컴퍼니 · 주식회사루비뮤직은 비어 있다 → 「세금계산서 정보 미입력」 */
+const ttaxOf=ten=>TTAX[ten]||{mail:[],sub:''};
+const ttaxEmpty=ten=>!ttaxOf(ten).mail.some(x=>x&&x.trim());
 let nc=null;
 const ncEnd=d=>{if(!d) return '';const x=new Date(d+'T00:00:00Z');x.setUTCFullYear(x.getUTCFullYear()+2);x.setUTCDate(x.getUTCDate()-1);return x.toISOString().slice(0,10);};
 function ncInit(){
   nc={b:'b1',no:'',st:'준비중',start:'',end:'',afee:'',rate:'8',
-      kind:'법인',biz:'',found:null,ten:'',ceo:'',addr:'',item:'',alias:'',
+      kind:'법인',biz:'',found:null,ten:'',ceo:'',addr:'',item:'',alias:'',sub:'',tm1:'',tm2:'',
       pn:'',pt:'',ptel:'',pmail:'',diff:false,cn:'',cbiz:'',cceo:'',ctel:'',cmail:'',caddr:'',rbank:'',racct:'',rname:'',
       proxy:false,xn:'',xtel:'',xmail:'',xaddr:'',an:'',aceo:'',ano:'',atel:'',aaddr:'',
       dep:'',park:'0',hvs:[],rent:'',mgmt:'',rentCy:'매월',mgmtCy:'매월',late:false,lateD:'',rf:'없음',rfD:'',rfEnd:'',rfRent:true,rfMgmt:false,
@@ -4928,7 +4975,7 @@ function ncSet(f,v){
 function ncLookup(){
   const f=BIZ[nc.biz.trim()];
   nc.found=nc.biz.trim()?(f?'기존':'신규'):null;
-  if(f) Object.assign(nc,{kind:f.kind,ten:f.ten,ceo:f.ceo,addr:f.addr,item:f.item,alias:f.alias.join(', ')});
+  if(f){const t=ttaxOf(f.ten); Object.assign(nc,{kind:f.kind,ten:f.ten,ceo:f.ceo,addr:f.addr,item:f.item,alias:f.alias.join(', '),sub:t.sub||'',tm1:t.mail[0]||'',tm2:t.mail[1]||''});}
   render(true);
 }
 const ncUnits=b=>b==='b1'?UNITS_B1:[];
@@ -4947,6 +4994,7 @@ function ncMissing(){
   if(!nc.rnw){if(!nc.biz.trim()) m.push('사업자등록번호'); if(!nc.ten.trim()) m.push('상호');}
   if(nc.rnw&&!(nc.end&&dnum(nc.end)>dnum(nc.start))) m.push('계약종료일');
   if(!nc.pmail.trim()) m.push('담당자 이메일');
+  if(!nc.rnw&&txSubBad(nc.sub)) m.push('종사업장번호(숫자 4자리)');
   if(!numOf(nc.rent)) m.push('임대료'); if(String(nc.mgmt).trim()==='') m.push('고정관리비');
   if(!nc.rf) m.push('렌트프리 여부'); else if(nc.rf==='있음'&&!ncFrom()) m.push('렌트프리 끝나는 날');
   return m;
@@ -4972,6 +5020,9 @@ function ncSave(welcome){
   const k=ckey(c);
   CPARK[k]={free:parseInt(nc.park)||0};
   CPPL[k]=[{n:nc.pn,t:nc.pt,tel:nc.ptel,mail:nc.pmail}];
+  /* 세금계산서 받는 정보는 임차인 정보다 — 기존 임차인이면 그 임차인의 값을 바꾼다(사업자 정보는 계약에 공통) */
+  if(!nc.rnw){const ml=[nc.tm1,nc.tm2].map(x=>String(x||'').trim()).filter(Boolean);
+    if(ml.length||String(nc.sub||'').trim()) TTAX[c.ten]={mail:ml,sub:String(nc.sub||'').trim()};}
   if(nc.diff) CPARTY[k]={n:nc.cn,biz:nc.cbiz,ceo:nc.cceo,tel:nc.ctel,mail:nc.cmail,addr:nc.caddr};
   if(nc.racct.trim()) CREF[k]={rb:nc.rbank.trim(),ra:nc.racct.trim(),rn:nc.rname.trim()};
   if(nc.proxy) CPROXY[k]={n:nc.xn,tel:nc.xtel,mail:nc.xmail,addr:nc.xaddr};
@@ -5048,6 +5099,8 @@ function CTR2(rk){
           ${nc.found==='기존'?'이 임차인의 정보와 입금자명을 불러왔습니다. 같은 임차인을 두 번 만들지 않습니다.':'저장하면 임차인 목록에 새로 추가됩니다.'}</div>`:'')
       +R('사업자구분',RW?LS(nc.kind):S('kind',['법인','개인사업자']))+R('상호',RW?LK(nc.ten):T('ten','예: (주)한빛'),1)+R('대표자명',RW?LK(nc.ceo):T('ceo'))
       +R('사업장주소',RW?LK(nc.addr):T('addr'))+R('업태 · 종목',RW?LK(nc.item):T('item','예: 서비스 · 광고대행'))
+      +R('종사업장번호',RW?LK(nc.sub):T('sub','4자리 · 없으면 비움',150),0,'본사 번호 아래 지점 번호로 세금계산서를 받는 임차인(프랜차이즈 지점 등)만 넣습니다')
+      +R('세금계산서 받는 이메일',RW?LK(nc.tm1)+LK(nc.tm2):T('tm1','회계 담당자')+T('tm2','두 번째(선택)'),0,'전자세금계산서를 받는 주소입니다. 청구서를 받는 담당자 이메일과 따로입니다. 2개까지 · 비워 둘 수 있습니다')
       +R('입금자명',RW?LK(nc.alias):T('alias','통장에 찍히는 이름. 쉼표로 여러 개'),0,'입금자명을 등록해 두면 입금 매칭에서 자동으로 이 임차인에게 연결됩니다'))
     +card('담당자 정보',R('담당자명',T('pn'))+R('직위',T('pt'))+R('연락처',T('ptel'))+R('이메일',T('pmail','청구서를 받는 주소'),1),'청구서 수신 · 요청 응대 창구')
     +card('계약자 · 대리인 · 중개사',
@@ -5282,6 +5335,7 @@ function rnwInit(k){
   const s=rnAdd(ctrEnd(c),1), B=Object.entries(BIZ).find(([n,x])=>x.ten===c.ten), P=pplOf(c)[0]||{}, CP=CPARTY[k], PX=CPROXY[k], RF=CREF[k], A=c.ag||{};
   Object.assign(nc,{rnw:k,b:c.b,no:c.no,st:'준비중',start:s,end:ncEnd(s),rate:String(rateOf(k)),kind:ctrKind(c),
     biz:B?B[0]:'',found:null,ten:c.ten,ceo:B?B[1].ceo:'',addr:B?B[1].addr:'',item:B?B[1].item:'',alias:B?B[1].alias.join(', '):'',
+    sub:ttaxOf(c.ten).sub||'',tm1:ttaxOf(c.ten).mail[0]||'',tm2:ttaxOf(c.ten).mail[1]||'',
     pn:P.n||'',pt:P.t||'',ptel:P.tel||'',pmail:P.mail||'',
     diff:!!CP,cn:CP?CP.n:'',cbiz:CP?CP.biz:'',cceo:CP?CP.ceo:'',ctel:CP?CP.tel:'',cmail:CP?CP.mail:'',caddr:CP?CP.addr:'',
     rbank:RF?RF.rb:'',racct:RF?RF.ra:'',rname:RF?RF.rn:'',
@@ -5682,6 +5736,7 @@ function CTR3sum(c,k){
       <dt>유닛</dt><dd>${c.no}</dd>
       <dt>임차인</dt><dd>${c.ten}</dd>
       <dt>사업자구분</dt><dd>${ctrKind(c)}</dd>
+      <dt>세금계산서</dt><dd>${ttaxEmpty(c.ten)?'<span class="bd wa">세금계산서 정보 미입력</span>':ttaxOf(c.ten).mail.join(' · ')}<span class="lock">${ttaxOf(c.ten).sub?`종사업장 ${ttaxOf(c.ten).sub} · `:''}받는 이메일 · 임차인 관리에서 고칩니다</span></dd>
       <dt>계약상태</dt><dd><span class="bd ${c.st==='진행중'?'ok':'mu'}">${c.st}</span></dd>
       <dt>계약기간</dt><dd>${d8(c.base)} - ${d8(end)}</dd>
       ${(p=>p?`<dt>이전 계약</dt><dd><span class="lk" onclick="tab3c='요약';go('ctr-3/${c.prev}')">${d8(p.base)} - ${d8(ctrEnd(p))}</span><span class="lock">재계약 · 이전 계약은 이력으로 남습니다</span></dd>`:'')(c.prev&&CTRS.find(x=>ckey(x)===c.prev))}

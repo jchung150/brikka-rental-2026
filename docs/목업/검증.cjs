@@ -1394,6 +1394,24 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   const c3 = Q.directSum('parking') === 83335 && Q.BILL.parking.vat === 8333;
   r6.push(['확인요청 답변 — 기타 주차 요금부과 ⓘ(기록용) · 보증금 예치 취소는 「슈퍼관리자만」(감액 취소는 아님) · 세금계산서 항목 감액 줄에 「수정세금계산서 대상」(상세에 홈택스 안내 · 청구 줄은 없음) · 직접 입력 부가세 절사 83,335 → 8,333',
     q8 && q10 && q11 && c3]); }
+/* 명세변경 26 — 세금계산서 발행 정보: 건물의 발행 명의(임대인과 따로 · 미입력 표시 · 한 명이면 기본값) · 임차인의 받는 이메일 · 종사업장번호 */
+{ const TX = new Function(stub + bare + '; seedJuly(); return {t요약,BUILDINGS,BTAX,beOpen,beSave,nbInit,nbTx,nbTxSet,PRO2,CTR2,ncInit,ncLookup,CTR3,get be(){return be;},get nb(){return nb;},get nc(){return nc;},set tab3c(v){tab3c=v;}};')();
+  const bd = id => TX.BUILDINGS.find(b => b.id === id);
+  const h1 = TX.t요약(bd('b1')), h2 = TX.t요약(bd('b2'));
+  const sum = /105-86-73318/.test(h1) && !/세금계산서 발행 명의 미입력/.test(h1) && /세금계산서 발행 명의 미입력/.test(h2) && /세금계산서 발행 명의가 없습니다/.test(h2);
+  TX.beOpen('b4', 'tax'); const keep = TX.be.f.biz === '113-86-20447';
+  TX.beOpen('b2', 'tax'); const blank = TX.be.f.biz === '' && !TX.be.f.dflt;
+  TX.be.f.n = '뉴진스하우스 공동사업자'; TX.be.f.sub = '12'; TX.beSave(); const subBad = TX.be !== null;
+  TX.be.f.sub = '0001'; TX.beSave(); const saved = TX.be === null && TX.BTAX.b2.sub === '0001' && !/세금계산서 발행 명의 미입력/.test(TX.t요약(bd('b2')));
+  TX.nbInit(); TX.nb.owners[0].biz = '123-45-67890'; TX.nb.owners[0].n = '홍길동'; TX.nb.addr = '서울 어딘가 1';
+  const d1 = TX.nbTx('biz') === '123-45-67890' && TX.nbTx('ceo') === '홍길동' && TX.nbTx('addr') === '서울 어딘가 1' && /세금계산서 발행 명의/.test(TX.PRO2());
+  TX.nb.owners.push({biz: '999-99-99999', n: '둘째', kind: '개인', share: '50'}); const d2 = TX.nbTx('biz') === '';
+  TX.nbTxSet('jong', '비주거용 건물 임대업'); TX.nb.owners.pop(); const d3 = TX.nbTx('biz') === '' && TX.nbTx('jong') === '비주거용 건물 임대업';
+  TX.ncInit(); TX.nc.biz = '211-86-40519'; TX.ncLookup(); const ct = TX.nc.tm1 === 'account@bcagency.kr' && /세금계산서 받는 이메일/.test(TX.CTR2()) && /종사업장번호/.test(TX.CTR2());
+  TX.tab3c = '요약'; const c1 = TX.CTR3('b1본관301호'), c2 = TX.CTR3('b1본관501호');
+  const ten = /세금계산서 정보 미입력/.test(c1) && /kw\.tax@kwintl\.com · kw\.fin@kwintl\.com/.test(c2) && /종사업장 0002/.test(c2);
+  r6.push(['세금계산서 발행 정보(명세변경 26) — 건물 요약에 발행 명의 카드 · 비면 기본 정보에 「세금계산서 발행 명의 미입력」 · 수정 패널(종사업장번호 4자리) · 등록 때 임대인 한 명이면 기본값(공동이면 비움 · 고치면 그대로) · 계약 등록에 받는 이메일 2칸 · 종사업장번호(기존 임차인이면 불러옴) · 계약정보에 받는 이메일 · 미입력 표시',
+    sum && keep && blank && subBad && saved && d1 && d2 && d3 && ct && ten]); }
 const bad6 = r6.filter(x => !x[1]);
 if (bad6.length) fail = 1;
 console.log('⑥ 수납 기록 ' + (bad6.length ? '✗ ' + bad6.map(x => x[0]).join(' / ') : 'OK — ' + r6.length + '개 검산'));
