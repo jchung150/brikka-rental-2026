@@ -716,7 +716,7 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
     rent.amt === 3465000 && cr && cr.amt === 670646 && cr.sup === 609679 && cr.vat === 60967 && /해지 일할 \(08\.26~31\)/.test(cr.why)
     && fb && fb.amt === fAdd && fAdd > 0 && /해지 처리/.test(fb.memo) && PA.FEE_CUT[k] === '2026-08-25' && /이미 발행/.test(th) && !/메일 보내고 해지 처리/.test(th)
     && lf && lf.amt > 0 && PB.FEE_CUT[k] === '2026-08-05']); }
-/* 해지 때 청구서는 한 장 — now: 퇴거 예상분을 마지막 청구서에 · reg · after: 퇴거 예상분(+ 해지 연체료 청구)을 해지 청구서 한 장으로 · 해지 청구서는 취소 안 됨 → 28 */
+/* 해지 때 청구서는 한 장 — now · reg: 퇴거 예상분을 그 달 정기 청구서에(now는 바로 · reg는 청구일에) · after: 퇴거 예상분 + 해지 연체료 청구를 해지 청구서 한 장으로 · 해지 청구서는 취소 안 됨 → 28 */
 { const G = (pre) => new Function(stub + bare + '; seedJuly(); return {issue1,termOpen,termSet,termSave,ISSUE,BILLS,ledgerOf,cancelWhyNot,set f1b(v){f1.b=v;},get tm(){return tm;}};')();
   const k = 'b1별관301호', grp = (X, k) => { const L = X.ledgerOf(k).rows.filter(r => r.type === '청구' && r.date === '2026-08-10'); return [...new Set(L.map(r => r.g))]; };
   const N = G(); N.termOpen(k); N.termSet('out', '2026-08-17'); N.termSet('why', '퇴거'); N.tm.est.elec = '300000'; N.tm.est.parking = '50000'; N.termSave(false);
@@ -724,10 +724,10 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   const R = G(); const k2 = 'b1본관501호'; R.termOpen(k2); R.termSet('out', '2026-08-20'); R.termSet('why', '이전'); R.tm.est.elec = '180000'; R.tm.est.water = '20000'; R.termSave(false);
   const aR = R.BILLS.filter(i => i.k === k2 && i.adhoc), gR = grp(R, k2), xR = R.ledgerOf(k2).rows.find(r => r.g === 'term|' + k2);
   const A = G(); A.f1b = 'b1'; A.issue1([k]); A.termOpen(k); A.termSet('out', '2026-08-25'); A.termSet('why', '퇴거'); A.tm.est.elec = '100000'; A.termSave(false);
-  const gA = A.BILLS.filter(i => i.k === k && i.inv === 'term|' + k);
-  r6.push(['해지 때 청구서 한 장 — 8/17(바로 발행): 전기 · 주차비 퇴거 예상분이 마지막 청구서(08월분 청구서)에 실림 · 비정기 청구서 없음 · 8/20: 전기 · 수도 퇴거 예상분이 「해지 청구서」 한 장 · 발행 뒤 8/25: 연체료 청구 + 전기 퇴거 예상분이 해지 청구서 한 장 · 해지 청구서는 취소 안 됨',
+  const gA = A.BILLS.filter(i => i.k === k && i.inv === 'term|' + k), xA = A.ledgerOf(k).rows.find(r => r.g === 'term|' + k), lR = R.ISSUE().find(c => c.k === k2).lines.filter(l => l.est);
+  r6.push(['해지 때 청구서 한 장 — 8/17(바로 발행): 전기 · 주차비 퇴거 예상분이 마지막 청구서(08월분 청구서)에 실림 · 비정기 청구서 없음 · 8/20(청구일 뒤): 전기 · 수도 퇴거 예상분이 8/19 정기 청구서에 실림 · 저장 때 나가는 청구서 없음 · 발행 뒤 8/25: 연체료 청구 + 전기 퇴거 예상분이 해지 청구서 한 장 · 해지 청구서는 취소 안 됨',
     lN.length === 2 && !N.BILLS.some(i => i.k === k && i.adhoc) && gN.length === 1 && gN[0] === 'bill2026-08'
-    && aR.length === 2 && gR.length === 1 && gR[0] === 'term|' + k2 && xR && xR.ttl === '해지 청구서' && /해지 처리로 발행한 청구서/.test(R.cancelWhyNot('term', {k: k2, date: '2026-08-10'}))
+    && aR.length === 0 && gR.length === 0 && !xR && lR.length === 2 && xA && xA.ttl === '해지 청구서' && /해지 처리로 발행한 청구서/.test(A.cancelWhyNot('term', {k, date: '2026-08-10'}))
     && gA.length === 2 && gA.some(i => i.fee) && gA.some(i => /전기요금 퇴거 예상분/.test(i.n))]); }
 /* 원장 — 청구서 안 항목은 배분 우선순위 순(임대료가 위 · 연체료가 맨 아래) · 항목명에 기간 없음 · 상계 패널은 남는 보증금을 보인다 */
 { const LO = new Function(stub + bare + '; seedJuly(); return {issue1,termOpen,termSet,termSave,ledgerOf,openOffset,setPm,payHTML,get pm(){return pm;},set f1b(v){f1.b=v;},get tm(){return tm;}};')();
@@ -957,10 +957,10 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   TM.termOpen('b1본관501호'); TM.tm.out = '2026-08-20'; TM.termSave(); const noWhy = !TM.TERMS['b1본관501호'];
   const U = TM.unbilled(c, '2026-08-20', 'reg'), e = U.find(u => u.code === 'elec'), w = U.find(u => u.code === 'water');
   TM.tm.why = '이전'; TM.tm.est.elec = '180000'; const h = TM.termHTML(); TM.termSave();
-  const row = TM.BILLS.find(r => r.k === 'b1본관501호' && r.adhoc);
-  r6.push(['퇴거 ② 해지일 8/20(청구일 뒤) — 8/19 정기 청구서가 20/31일 일할 · 청구 전 기간: 전기요금 08.10~08.20 11일 · 수도요금 08.08~08.20 · 사유 없으면 안 됨 · 예상 공급가액 180,000원은 「전기요금 퇴거 예상분 (08.10~08.20)」 비정기 청구서 198,000(세금계산서 · 부가세 18,000)',
+  const row = TM.ISSUE().find(r => r.k === 'b1본관501호').lines.find(l => l.est), noAdh = !TM.BILLS.some(r => r.k === 'b1본관501호' && r.adhoc);
+  r6.push(['퇴거 ② 해지일 8/20(청구일 뒤) — 8/19 정기 청구서가 20/31일 일할 · 청구 전 기간: 전기요금 08.10~08.20 11일 · 수도요금 08.08~08.20 · 사유 없으면 안 됨 · 예상 공급가액 180,000원은 「전기요금 퇴거 예상분 (08.10~08.20)」 198,000(세금계산서 · 부가세 18,000)으로 8/19 정기 청구서에 실림(비정기 청구서 없음)',
     noWhy && e && e.from === '2026-08-10' && e.days === 11 && w && w.from === '2026-08-08' && !/정산 항목 — /.test(h) && !/<div class="fl">청구 전 기간/.test(h) && /정기 청구서에 아래 금액이 들어가고/.test(h) && /<b>20일<\/b> \/ 31일 일할/.test(h) && !/\+ 부가세/.test(h)
-    && row && row.n === '전기요금 퇴거 예상분' && /\(08\.10~08\.20\)/.test(row.memo) && row.amt === 198000 && row.sup === 180000 && row.vat === 18000 && /예상 공급가액/.test(h) && TM.TERMS['b1본관501호'].out === '2026-08-20']);
+    && row && row.n === '전기요금 퇴거 예상분' && /\(08\.10~08\.20\)/.test(row.src) && row.amt === 198000 && row.supply === 180000 && row.vat === 18000 && noAdh && /예상 공급가액/.test(h) && TM.TERMS['b1본관501호'].out === '2026-08-20']);
   /* 위약금 · 원상복구비는 해지 패널에 없다 — 원장의 청구 추가로 */
   TM.termOpen('b1본관501호'); const th2 = TM.termHTML();
   r6.push(['해지 패널에 위약금 · 원상복구비 칸 없음(원장의 청구 추가로)', !/위약금/.test(th2) && !/원상복구비/.test(th2)]); }
@@ -1447,9 +1447,9 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   const adh = /비정기/.test(ha) && pay(ha) === '110,000원' && /돌아가기/.test(ha) && /메일 보내고 발행/.test(ha) && PV.ipv.prev === 'fix';
   const nb = PV.BILLS.length, modes = ['2026-08-15', '2026-08-25'].map(out => { PV.termOpen(k); PV.termSet('out', out); const U = PV.unbilled(c, out, PV.termMode(k, out)); if (U[0]) PV.tm.est[U[0].code] = '50000';
     PV.pvTermOpen(); return PV.ipv.docs().map(d => d.label.split(' (')[0] + ':' + (d.html.match(/퇴거 예상분/g) || []).length).join(); });
-  const term = modes[0] === '8월분 마지막 청구서:2' && modes[1] === '해지 청구서:2,8월분 정기 청구서:0' && !PV.TERMS[k] && !PV.ISS[k] && PV.BILLS.length === nb;
+  const term = modes[0] === '8월분 마지막 청구서:2' && modes[1] === '8월분 정기 청구서:2' && !PV.TERMS[k] && !PV.ISS[k] && PV.BILLS.length === nb;
   PV.pvDueOpen([k]); const hd = PV.ipvHTML(); const due = /미납 안내/.test(hd) && /2026년 7월분/.test(hd) && /연체일수/.test(hd) && /미납 안내 메일 1건/.test(hd);
-  r6.push(['청구서 모양 하나로 미리보기 — 청구서 발행(고른 것 · 없으면 전체, 여러 장이면 고름) · 청구서 보기(7월분은 발행한 날 기준 납부하실 금액 10,176,383) · 청구 추가(110,000 · 돌아가기 · 메일 보내고 발행) · 해지 처리(8/15 마지막 청구서 한 장 · 8/25 해지 청구서 + 정기 청구서, 저장 전에는 아무것도 기록 안 함) · 미납 안내',
+  r6.push(['청구서 모양 하나로 미리보기 — 청구서 발행(고른 것 · 없으면 전체, 여러 장이면 고름) · 청구서 보기(7월분은 발행한 날 기준 납부하실 금액 10,176,383) · 청구 추가(110,000 · 돌아가기 · 메일 보내고 발행) · 해지 처리(8/15 마지막 청구서 한 장 · 8/25 퇴거 예상분이 실린 정기 청구서, 저장 전에는 아무것도 기록 안 함) · 미납 안내',
     reg && adh && term && due]); }
 const bad6 = r6.filter(x => !x[1]);
 if (bad6.length) fail = 1;

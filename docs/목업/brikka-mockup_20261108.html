@@ -3347,8 +3347,9 @@ function ISSUE(){
       if(l&&l.amt!==0) lines.push({...l,via:`${d.no}|${d.ten}`});
     }));
     const k=ckey(c);
-    /* 해지일이 청구일 앞이면 퇴거 예상분도 이 마지막 청구서에 싣는다 — 해지 때 청구서는 한 장이다 → 28 */
-    if(tNow) ((TERMS[k]||{}).est||[]).forEach(e=>lines.push({n:e.n,bill:e.doc,src:`해지 처리 · 퇴거 예상분${e.from?` (${e.from.slice(5).replace('-','.')}~${e.to.slice(5).replace('-','.')})`:''}`,
+    /* 해지 달 정기 청구서(아직 발행 전)에 퇴거 예상분도 싣는다 — 해지일이 청구일 앞이면 저장할 때 바로, 뒤면 청구일에 나간다. 해지 때 청구서는 한 장이다 → 28
+       이미 발행한 뒤 해지(after)는 해지 청구서로 따로 나가므로 TERMS.est가 비어 있다 */
+    if(tOut) ((TERMS[k]||{}).est||[]).forEach(e=>lines.push({n:e.n,bill:e.doc,src:`해지 처리 · 퇴거 예상분${e.from?` (${e.from.slice(5).replace('-','.')}~${e.to.slice(5).replace('-','.')})`:''}`,
       supply:e.sup,vat:e.vat,amt:e.sup+e.vat,st:'약정',stc:'mu',est:true}));
     /* 연체료 — 이번 회차 청구서에 기본으로 넣는다(발행일 전날까지 쌓인 금액). 발행한 청구서는 발행 때 금액을 보인다.
        지난 회차는 발행할 때 넣은 연체료 청구를 보인다(6월분은 없음 · 7월분 7/18까지) → 18-2 */
@@ -5585,7 +5586,7 @@ function cx3HTML(){
      now    해지일이 청구일 앞 · 아직 발행 전      저장할 때 마지막 정기 청구서를 바로 발행(고정액 일할 + 해지일까지 연체료 · 정산 항목은 싣지 않음)
      reg    해지일이 청구일 뒤 · 아직 발행 전      청구일의 정기 청구서가 일할로 나간다(연체료는 해지일까지)
      after  그 달 정기 청구서를 이미 발행했다      저장할 때 청구 감액(일할 차이) + 연체료 청구 한 건(정리일 다음날 ~ 해지일)을 자동 기록
-   해지 때 청구서는 한 장이다. now는 퇴거 예상분을 마지막 청구서에 싣는다. reg · after는 퇴거 예상분(after는 연체료 청구도)을 해지 청구서(비정기) 한 장으로 바로 발행한다.
+   해지 때 청구서는 한 장이다. now · reg는 퇴거 예상분을 그 달 정기 청구서에 싣는다(now는 저장할 때 바로 · reg는 청구일에). after만 퇴거 예상분 · 연체료 청구를 해지 청구서(비정기) 한 장으로 바로 발행한다.
    금액은 공급가액이다(청구 추가와 같다) → 28
    위약금 · 원상복구비는 해지 패널에 두지 않는다. 다른 비정기 청구처럼 원장의 청구 › 청구 추가로 넣는다(원상복구비는 보통 명도일에 나온다)
    목업은 계약상태를 바꾸지 않는다. 청구 계산은 카리나빌딩 · 이번 회차(8월) 해지만 한다 ═══ */
@@ -5643,11 +5644,11 @@ function termOpen(k){const t=TERMS[k]||{}, c=CTRS.find(x=>ckey(x)===k), ended=c&
 function termSet(f,v){tm[f]=v;render(true);}
 function termEst(c,out,mode){return unbilled(c,out,mode).filter(u=>numOf(tm.est[u.code])&&!tm.off[u.code]).map(u=>{const V=vatSplit(numOf(tm.est[u.code]),u.doc);
   return {n:`${u.n} 퇴거 예상분`,doc:u.doc,from:u.from,to:u.to,sup:V.sup,vat:V.vat};});}
-/* 해지 처리 미리보기 — 저장하면 나가는 청구서. now: 마지막 청구서 한 장(퇴거 예상분 포함) · reg: 해지 청구서(퇴거 예상분) + 청구일의 정기 청구서 · after: 해지 청구서(퇴거 예상분 · 연체료) */
+/* 해지 처리 미리보기 — 저장하면 나가는 청구서. now: 마지막 청구서(바로 발행) · reg: 청구일의 정기 청구서 — 둘 다 퇴거 예상분 포함 · after: 해지 청구서(퇴거 예상분 · 연체료) */
 function pvTermOpen(){const k=tm.k, out=tm.out, c=CTRS.find(x=>ckey(x)===k), mode=termMode(k,out), ym=out.slice(0,7), yL=`${+ym.slice(5,7)}월분`;
   const FX=Object.fromEntries(termFix(k,out,tm.fix).map(f=>[f.n,{sup:f.sup,vat:f.vat}])), E=termEst(c,out,mode), ad=adYm();
   const est=E.map(e=>({n:e.n,note:e.from?`${d8(e.from).slice(5)} ~ ${d8(e.to).slice(5)} · 퇴거 예상분`:'퇴거 예상분',doc:e.doc,sup:e.sup,vat:e.vat,amt:e.sup+e.vat}));
-  const reg=()=>{const R=withTerm(k,out,()=>{const t=TERMS[k]; t.est=mode==='now'?E:[]; if(tm.fee!=null&&tm.fee!=='') t.fee=numOf(tm.fee); if(tm.off['연체료']) (OFF1[k]=OFF1[k]||{})['연체료']=1;
+  const reg=()=>{const R=withTerm(k,out,()=>{const t=TERMS[k]; t.est=mode==='after'?[]:E; if(tm.fee!=null&&tm.fee!=='') t.fee=numOf(tm.fee); if(tm.off['연체료']) (OFF1[k]=OFF1[k]||{})['연체료']=1;
       try{return ISSUE().find(x=>x.k===k);}finally{if(tm.off['연체료']&&OFF1[k]) delete OFF1[k]['연체료'];}},FX);
     return invDoc({k,title:mode==='now'?'청구서 (마지막)':'청구서',sub:yL,bill:mode==='now'?TODAY_S:billOn(ym),due:dueStr(ym),
       lines:R.inc.map(l=>({n:l.n,note:l.est||l.fee?l.src:'',doc:l.bill,sup:l.supply,vat:l.vat,amt:l.amt})),carry:R.due?R.due.amt:0,over:R.over||0});};
@@ -5655,7 +5656,7 @@ function pvTermOpen(){const k=tm.k, out=tm.out, c=CTRS.find(x=>ckey(x)===k), mod
   const termDoc=()=>invDoc({k,title:'해지 청구서',sub:`${ad.replace('-','년 ').replace(/년 0/,'년 ')}월분 · 해지 처리`,bill:TODAY_S,due:dueStr(ad),
     lines:[...est,...(fA?[{n:'연체료',note:`${d8(out).slice(5)}까지 · 연 ${rateOf(k)}%`,doc:'일반내역서',sup:fA,vat:0,amt:fA}]:[])]});
   const D=mode==='now'?[{label:`${yL} 마지막 청구서 (저장할 때 발행)`,html:reg()}]
-    :mode==='reg'?[...(est.length?[{label:'해지 청구서 (저장할 때 발행)',html:termDoc()}]:[]),{label:`${yL} 정기 청구서 (${d8(billOn(ym)).slice(5)} 청구일에 발행)`,html:reg()}]
+    :mode==='reg'?[{label:`${yL} 정기 청구서 (${d8(billOn(ym)).slice(5)} 청구일에 발행)`,html:reg()}]
     :mode==='after'&&(est.length||fA)?[{label:'해지 청구서 (저장할 때 발행)',html:termDoc()}]:[];
   ipvOpen({title:'해지 처리 미리보기',sub:'저장하면 이 청구서가 나갑니다',pick:'청구서',docs:()=>D});}
 function termSave(mail){if(!tm.out||!tm.why.trim()) return;
@@ -5663,14 +5664,14 @@ function termSave(mail){if(!tm.out||!tm.why.trim()) return;
   const FX=['now','reg','after'].includes(mode)&&!prev.act?Object.fromEntries(termFix(k,out,tm.fix).map(f=>[f.n,{sup:f.sup,vat:f.vat}])):prev.fix;
   TERMS[k]={at:`${TODAY_S} ${new Date().toTimeString().slice(0,5)}`,type:tm.type,out,why:tm.why.trim(),act:prev.act||'',fix:FX,
     fee:prev.act?prev.fee:tm.fee!=null&&tm.fee!==''?numOf(tm.fee):null};
-  /* 퇴거 예상분 — 보증금에서 바로 빼지 않는다. 해지 처리할 때 비정기 청구서로 발행하고 보증금 상계로 받는다.
+  /* 퇴거 예상분 — 보증금에서 바로 빼지 않는다. 그 달 정기 청구서(이미 발행했으면 해지 청구서)로 청구하고 보증금 상계로 받는다.
      이미 발행한 것은 다시 발행하지 않는다(고칠 때는 청구 감액 · 청구 추가) */
   /* 금액은 청구 추가와 같다 — 세금계산서면 공급가액을 넣고 부가세 10%(원 미만 절사)가 붙는다 → 질문 13 */
   const EST=prev.act?[]:termEst(c,out,mode);
-  if(!prev.act) TERMS[k].est=EST;
-  /* 해지 청구서 — 해지 때 따로 발행하는 것(퇴거 예상분 · 해지 연체료 청구)은 비정기 청구서 한 장으로 묶는다. 바로 발행(now)이면 마지막 청구서에 싣는다 → 28 */
+  if(!prev.act) TERMS[k].est=mode==='after'?[]:EST;   /* now · reg는 정기 청구서에 싣는다 */
+  /* 해지 청구서 — 그 달 정기 청구서를 이미 발행한 뒤(after)에만 따로 낸다. 퇴거 예상분 · 해지 연체료 청구를 비정기 청구서 한 장으로 묶는다 → 28 */
   const inv=`term|${k}`, tb=b=>({...b,inv,ttl:'해지 청구서'});
-  if(mode!=='now') EST.forEach(e=>{issueAdhoc(k,e.n,e.sup+e.vat,e.doc,`퇴거 예상분 · 해지 처리${e.from?` (${e.from.slice(5).replace('-','.')}~${e.to.slice(5).replace('-','.')})`:''}`,null,e.sup,e.vat);
+  if(mode==='after') EST.forEach(e=>{issueAdhoc(k,e.n,e.sup+e.vat,e.doc,`퇴거 예상분 · 해지 처리${e.from?` (${e.from.slice(5).replace('-','.')}~${e.to.slice(5).replace('-','.')})`:''}`,null,e.sup,e.vat);
     const b=BILLS[BILLS.length-1]; b.inv=inv; b.ttl='해지 청구서';});
   /* 연체료 체크를 풀면 감면 — 정기 청구서에서 뺀 것과 같다. 정리일은 해지일로 옮긴다 → 18-2 */
   const feeOff=!!tm.off['연체료']; if(feeOff&&['now','reg'].includes(mode)) (OFF1[k]=OFF1[k]||{})['연체료']=1;
@@ -5720,7 +5721,7 @@ function termHTML(){
     if(mode==='now'){const R=lastBill(tm.k,tm.out,Object.fromEntries(termFix(tm.k,tm.out,tm.fix).map(f=>[f.n,{sup:f.sup,vat:f.vat}])));
       return `<div class="c2" style="margin:0 0 8px;white-space:normal">해지일이 청구일(${bo}) 앞이라, 저장하면 <b>${ymL} 마지막 청구서</b>를 바로 발행합니다. 아래 정산 항목(퇴거 예상분)도 이 청구서에 함께 실립니다.</div>`
         +fixCards()+feeCard(R.fee,tm.out);}
-    if(mode==='reg') return `<div class="c2" style="margin:0 0 8px;white-space:normal">해지일이 청구일(${bo}) 뒤라, ${bo} 정기 청구서에 아래 금액이 들어가고 연체료는 해지일까지 들어갑니다. 아래 정산 항목(퇴거 예상분)은 저장할 때 해지 청구서 한 장으로 발행합니다.</div>`
+    if(mode==='reg') return `<div class="c2" style="margin:0 0 8px;white-space:normal">해지일이 청구일(${bo}) 뒤라, ${bo} 정기 청구서에 아래 금액이 들어가고 연체료는 해지일까지 들어갑니다. 아래 정산 항목(퇴거 예상분)도 이 정기 청구서에 함께 실립니다.</div>`
         +fixCards()+feeCard(feeUntil(tm.k,tm.out),tm.out);
     if(mode==='after'){const X=termCuts(tm.k,tm.out,tm.fix), F=termFee(tm.k,tm.out);
       return `<div class="c2" style="margin:0 0 8px;white-space:normal">${ymL} 청구서를 이미 발행했습니다. 청구서는 그대로 두고, 해지 달 금액과의 차이를 청구 감액으로 원장에 기록합니다. 연체료와 아래 정산 항목(퇴거 예상분)은 해지 청구서 한 장으로 발행합니다.</div>`
