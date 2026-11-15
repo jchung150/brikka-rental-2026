@@ -1,0 +1,411 @@
+<title>BRIKKA 주간 보고</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap">
+<style>
+  :root{
+    --bg:#FFFFFF;
+    --ink:#1F2226;
+    --ink-soft:#3C4043;
+    --muted:#5F6368;
+    --rule:#CFD3D7;
+    --rule-soft:#E4E7EA;
+    --head:#EEF1F3;
+    --accent:#14507C;
+    --accent-bg:#E9F0F5;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#16181B;
+      --ink:#E4E6E9;
+      --ink-soft:#C3C7CB;
+      --muted:#99A0A6;
+      --rule:#3A3F45;
+      --rule-soft:#282C31;
+      --head:#22262A;
+      --accent:#86B6DA;
+      --accent-bg:#1B252E;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#16181B;
+    --ink:#E4E6E9;
+    --ink-soft:#C3C7CB;
+    --muted:#99A0A6;
+    --rule:#3A3F45;
+    --rule-soft:#282C31;
+    --head:#22262A;
+    --accent:#86B6DA;
+    --accent-bg:#1B252E;
+  }
+
+  *{box-sizing:border-box}
+  body{
+    background:var(--bg);color:var(--ink);
+    font-family:"Noto Sans KR",system-ui,-apple-system,sans-serif;
+    font-weight:400;font-size:14.5px;line-height:1.75;
+    -webkit-font-smoothing:antialiased;
+  }
+  .doc{max-width:1020px;margin:0 auto;padding-inline:28px;padding-block:44px 80px}
+
+  .cover{border-bottom:2px solid var(--ink);padding-bottom:18px;margin-bottom:12px}
+  h1{font-size:23px;font-weight:700;line-height:1.5;margin:0 0 8px;letter-spacing:-.01em;text-wrap:balance}
+  .cover .line{font-size:14px;color:var(--ink-soft);margin:0}
+  .docinfo{
+    display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:2px 24px;
+    font-size:12.5px;color:var(--muted);margin-bottom:34px;padding-top:10px;
+  }
+  .docinfo b{font-weight:500;color:var(--ink-soft)}
+
+  h2{
+    font-size:17px;font-weight:700;line-height:1.5;
+    margin:38px 0 12px;padding-bottom:6px;border-bottom:2px solid var(--rule);text-wrap:balance;
+  }
+  h3{font-size:14.5px;font-weight:700;line-height:1.55;margin:24px 0 8px;text-wrap:balance}
+
+  p{margin:0 0 11px}
+  ul,ol{margin:0 0 13px;padding-left:20px}
+  li{margin-bottom:4px;line-height:1.7}
+  li>ul{margin-top:4px;margin-bottom:2px}
+  strong{font-weight:700}
+
+  .scroller{overflow-x:auto;margin:14px 0 6px}
+  table{border-collapse:collapse;width:100%;font-size:13px;line-height:1.6;min-width:540px}
+  caption{text-align:left;font-size:12.5px;font-weight:700;color:var(--ink-soft);padding-bottom:6px}
+  th,td{border:1px solid var(--rule);padding:7px 10px;text-align:left;vertical-align:top}
+  th{background:var(--head);font-weight:700;font-size:12.5px;line-height:1.45}
+  td.lbl{font-weight:700;white-space:nowrap;background:var(--head)}
+  td.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+  td.c{text-align:center;white-space:nowrap}
+  .dn{color:var(--accent);font-weight:700}
+
+  .fn{font-size:12px;color:var(--muted);line-height:1.65;margin:2px 0 18px}
+
+  .kbox{
+    border:1px solid var(--rule);border-left:3px solid var(--accent);
+    background:var(--accent-bg);padding:13px 18px;margin:14px 0;
+  }
+  .kbox p:last-child{margin-bottom:0}
+  .kbox .t{font-size:12.5px;font-weight:700;color:var(--accent);margin-bottom:3px}
+
+  .foot{font-size:12px;color:var(--muted);line-height:1.7;margin-top:28px;padding-top:12px;border-top:1px solid var(--rule-soft)}
+
+  @media print{
+    html{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+    @page{size:A4;margin:16mm 14mm}
+    body{font-size:10.2pt;line-height:1.62;background:#fff;color:#000}
+    .doc{max-width:none;padding:0}
+    h1{font-size:17pt} h2{font-size:12.5pt;margin:16pt 0 7pt;break-after:avoid}
+    h3{font-size:10.6pt;margin:11pt 0 5pt;break-after:avoid}
+    .docinfo{grid-template-columns:repeat(2,1fr);font-size:9pt;margin-bottom:16pt}
+    .scroller{overflow:visible;margin:7pt 0 4pt}
+    table{min-width:0;font-size:8.8pt;line-height:1.48}
+    thead{display:table-header-group} tr{break-inside:avoid}
+    th,td{padding:4.5pt 6pt} th{font-size:8.6pt}
+    caption{font-size:8.8pt;break-after:avoid}
+    .kbox{break-inside:avoid;padding:9pt 12pt;margin:9pt 0}
+    .fn{font-size:8.4pt;margin:1pt 0 10pt} .foot{font-size:8.6pt}
+    ul,ol{margin-bottom:8pt} li{margin-bottom:2.5pt}
+    p,li{orphans:3;widows:3}
+  }
+
+  @media (max-width:560px){
+    .doc{padding-block:32px 60px}
+    h1{font-size:20px}
+    h2{font-size:16px}
+  }
+
+  /* ── 주간보고 전용 ── */
+  .badge{
+    display:inline-block;font-size:11.5px;font-weight:700;line-height:1;
+    padding:4px 8px;border:1px solid var(--rule);border-radius:2px;
+    white-space:nowrap;vertical-align:2px;background:var(--head);color:var(--ink-soft);
+  }
+  .badge.done{background:var(--accent-bg);border-color:var(--accent);color:var(--accent)}
+  .badge.wip{background:transparent;border-color:var(--ink-soft);color:var(--ink-soft)}
+  .badge.ask{background:transparent;border-color:var(--accent);color:var(--accent)}
+
+  .task{margin:16px 0 4px;display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}
+  .task .nm{font-size:14.5px;font-weight:700;line-height:1.55}
+  .task + .sum{margin:0 0 4px 0;color:var(--ink-soft);font-size:13.5px}
+  .task + .sum + .sum{margin-top:-8px}
+
+  .detail{
+    border-left:2px solid var(--rule);padding:2px 0 2px 16px;margin:14px 0 22px;
+  }
+  .detail > .dt{
+    font-size:13px;font-weight:700;color:var(--muted);margin:0 0 10px;
+    letter-spacing:.01em;
+  }
+  .detail h4{
+    font-size:13.5px;font-weight:700;margin:16px 0 5px;line-height:1.55;
+  }
+  .detail h4:first-of-type{margin-top:0}
+  .detail ul{margin:0 0 8px;padding-left:17px;font-size:13.5px}
+  .detail li{margin-bottom:3px;line-height:1.65}
+  .detail ul ul{margin-top:3px;font-size:13px;color:var(--ink-soft)}
+  .eff{
+    font-size:12.5px;color:var(--ink-soft);margin:6px 0 0;padding-left:0;
+  }
+  .eff b{color:var(--accent);font-weight:700}
+  .st{color:var(--accent);font-weight:700}
+
+  .req{border:1px solid var(--rule);padding:14px 16px;margin:14px 0}
+  .req .rh{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;margin-bottom:9px}
+  .req .rh .nm{font-size:14px;font-weight:700;line-height:1.5}
+  .req dl{margin:0;font-size:13.5px;line-height:1.7}
+  .req dt{font-weight:700;color:var(--ink-soft);font-size:12.5px;margin-top:8px}
+  .req dt:first-child{margin-top:0}
+  .req dd{margin:0 0 0 0}
+
+  @media print{
+    .detail{break-inside:auto}
+    .req{break-inside:avoid;padding:9pt 12pt;margin:9pt 0}
+    .task{margin:11pt 0 3pt;break-after:avoid}
+    .detail h4{font-size:10pt;margin:9pt 0 3pt;break-after:avoid}
+    .detail ul{font-size:9pt} .detail ul ul{font-size:8.7pt}
+    .badge{font-size:8.2pt;padding:2pt 4pt}
+    .eff{font-size:8.6pt}
+  }
+</style>
+<div class="doc">
+
+<div class="cover">
+  <h1>BRIKKA 임대관리 시스템<br>상업용 전환 개발 주간보고</h1>
+  <p class="line">주간보고 · 8주차<br>작성 기간: 2026. 10. 29(목) ~ 2026. 11. 04(수)</p>
+</div>
+
+<div class="docinfo">
+  <div><b>보고일</b> 2026. 11. 06</div>
+  <div><b>단계</b> <strong>코딩 진행</strong> — 인증 영역 완료</div>
+  <div><b>기준 산출물</b> 기능정의서 v1.5 · 명세변경 10건 · 스키마 재반영 중</div>
+  <div><b>개발 범위</b> Phase 1 — 35개 화면</div>
+</div>
+
+<p>본 문서는 8주차(10.29~11.04) 진행 상황을 정리한 주간보고입니다.
+<strong>이번 보고의 핵심은 Stage 1 일정 조정입니다.</strong> Stage 1 납품과 검수를 한 달 뒤로 조정합니다.
+<strong>Phase 1 최종 납품일(2027. 02. 12)과 계약 기간은 변동이 없습니다.</strong>
+사유와 조정 후 일정을 아래에 정리했습니다. 인증·로그인 영역은 이번 주에 개발을 마쳤습니다.</p>
+
+<h2>Stage 1 일정 조정</h2>
+
+<div class="scroller">
+<table>
+  <caption>표 1. 조정 내용</caption>
+  <thead><tr><th style="width:26%">마일스톤</th><th style="width:25%">기존 (Change Order 1호)</th><th>조정</th></tr></thead>
+  <tbody>
+    <tr><td class="lbl">Stage 1 납품</td><td>2026. 11. 13(금)</td><td><strong>2026. 12. 14(월)</strong></td></tr>
+    <tr><td class="lbl">Stage 1 검수</td><td>2026. 11. 16 ~ 11. 27</td><td><strong>2026. 12. 15 ~ 12. 28</strong></td></tr>
+    <tr><td class="lbl">Phase 1 최종 납품</td><td>2027. 02. 12(금)</td><td>변동 없음</td></tr>
+    <tr><td class="lbl">Phase 1 최종 검수</td><td>2027. 02. 15 ~ 02. 26</td><td>변동 없음</td></tr>
+    <tr><td class="lbl">계약 기간</td><td>~ 2027. 02. 28</td><td>변동 없음</td></tr>
+    <tr><td class="lbl">대금</td><td>CAD $42,000</td><td>변동 없음</td></tr>
+  </tbody>
+</table>
+</div>
+<p class="fn">* 조정 대상은 Stage 1 납품·검수 두 줄입니다. 잔금 지급 기일(최종 검수 수락 후 10일 내)도 변동이 없습니다.</p>
+<p class="fn">* Stage 1 검수 기간에 성탄·연말 휴일이 포함됩니다 → 리스크 표 참조.</p>
+
+<div class="scroller">
+<table>
+  <caption>표 2. 조정 사유</caption>
+  <thead><tr><th class="c" style="width:5%">#</th><th style="width:24%">사유</th><th>내용</th></tr></thead>
+  <tbody>
+    <tr><td class="c">1</td><td class="lbl">명세 확정 범위 확대</td>
+        <td>v1.5 전달 이후 확정된 명세 변경이 <strong>10건</strong>으로 늘었습니다. 그중 <strong>보증금 처리와 연체료</strong>가
+        데이터베이스 구조를 다시 건드립니다. 보증금은 거래 유형 3종 · 권한 구분 · 관련 화면까지 함께 걸리는 변경입니다.
+        구조를 확정한 뒤 설계서를 내는 순서로 조정합니다</td></tr>
+    <tr><td class="c">2</td><td class="lbl">시스템 구조 재정비</td>
+        <td>금액 계산 로직을 <strong>데이터베이스 함수에서 애플리케이션 계층으로 옮깁니다.</strong>
+        계산 규칙 검산 테스트를 코드로 관리할 수 있고, 운영 환경을 옮길 때 데이터베이스에 묶이지 않습니다.
+        임대관리 시스템의 가치가 금액 계산의 정확성에 있으므로 착수 초기에 바로잡는 쪽을 택했습니다</td></tr>
+  </tbody>
+</table>
+</div>
+<p class="fn">* 두 사유 모두 Phase 1의 개발 범위(35개 화면)를 늘리지 않습니다. 총액과 납품물 목록은 Change Order 1호 그대로입니다.</p>
+
+<p class="eff"><b>검토 의견:</b> 조정의 대상은 <strong>설계서 확정 시점</strong>입니다.
+Stage 1 납품물 4건 중 데이터베이스 설계서가 위 두 사유에 직접 걸리며,
+구조가 바뀌기 전에 낸 설계서는 검수 직후 다시 고쳐야 합니다</p>
+
+<h2>진행사항</h2>
+
+<div class="task">
+  <span class="badge done">완료</span>
+  <span class="nm">앱 기본 구조 · 인증 개발 완료</span>
+</div>
+<p class="sum">로그인, 2단계 인증, 세션 제한, 로그인 실패 잠금, 운영사 전환까지 동작 — 세부내용 하단 참조</p>
+
+<div class="task">
+  <span class="badge done">완료</span>
+  <span class="nm">명세 변경 10번 전달 — 보증금 처리</span>
+</div>
+<p class="sum">예치 · 상계 · 반환 전 과정과 권한 구분. 7주차 보고에서 작성 중으로 올린 건</p>
+
+<div class="task">
+  <span class="badge done">완료</span>
+  <span class="nm">미결 질문 3건 회신 완료</span>
+</div>
+<p class="sum">보증금 입금 무효 처리 · 전월 미납액 배분 · 월 마감 후 거래내역 업로드.
+<strong>현재 개발 측 미결 질문은 0건</strong></p>
+
+<div class="task">
+  <span class="badge wip">진행</span>
+  <span class="nm">금액 계산기</span>
+</div>
+<p class="sum">부가세 · 일할 · 정산 안분 · 배분 · 연체료 · 거래내역 해석. 구조 재정비 결정을 반영해 작성 중</p>
+
+<div class="task">
+  <span class="badge wip">진행</span>
+  <span class="nm">스키마 재반영 — 보증금 · 연체료</span>
+</div>
+<p class="sum">명세 변경 10번과 연체료 변경을 데이터베이스 구조와 작업 항목에 반영</p>
+
+<div class="task">
+  <span class="badge wip">진행</span>
+  <span class="nm">시스템 구조 재정비</span>
+</div>
+<p class="sum">계산 로직의 위치 변경에 따른 구성 재정리. 운영사 · 사용자 영역은 이 결정 확정 후 재개</p>
+
+<hr style="border:0;border-top:1px solid var(--rule-soft);margin:24px 0">
+
+<div class="detail">
+<p class="dt">‣ 완료 — 앱 기본 구조 · 인증</p>
+
+<div class="scroller">
+<table>
+  <caption>표 3. 동작 확인된 기능</caption>
+  <thead><tr><th style="width:26%">구분</th><th>내용</th></tr></thead>
+  <tbody>
+    <tr><td class="lbl">로그인</td><td>이메일 · 비밀번호 로그인, 초대 링크로 비밀번호 설정, 구글 로그인</td></tr>
+    <tr><td class="lbl">2단계 인증</td><td>인증 앱(TOTP)과 이메일 인증</td></tr>
+    <tr><td class="lbl">계정 보호</td><td>로그인 <strong>5회 실패 시 잠금</strong>, 동시 접속 세션 제한, 자동 가입 차단</td></tr>
+    <tr><td class="lbl">감사 기록</td><td>로그인 · 로그아웃 · 권한 변경 이력 기록</td></tr>
+    <tr><td class="lbl">운영사 전환</td><td>여러 운영사를 다루는 계정의 운영사 전환</td></tr>
+    <tr><td class="lbl">공통 화면 틀</td><td>메뉴 구조, 화면 전환, 오류 메시지 규칙</td></tr>
+  </tbody>
+</table>
+</div>
+<p class="fn">* 인증 영역은 구조 재정비의 영향을 받지 않습니다. 이번 조정으로 다시 작성하는 부분이 없습니다.</p>
+
+<p class="eff"><b>검토 의견:</b> 개인정보를 다루는 시스템의 출입구에 해당하는 영역.
+<strong>잠금 · 2단계 인증 · 감사 기록이 모두 들어간 상태로 완료</strong></p>
+</div>
+
+<div class="detail">
+<p class="dt">‣ 조정 후 일정</p>
+
+<div class="scroller">
+<table>
+  <caption>표 4. 단계별 일정</caption>
+  <thead><tr><th class="c" style="width:6%">#</th><th style="width:24%">단계</th><th>내용</th><th style="width:19%">일정</th></tr></thead>
+  <tbody>
+    <tr><td class="c">1</td><td class="lbl">구조 확정</td><td>계산 로직 위치 확정, 보증금 · 연체료 반영한 데이터베이스 구조 확정</td><td><strong>11월 중</strong></td></tr>
+    <tr><td class="c">2</td><td class="lbl">화면 개발</td><td>건물 · 유닛, 계약 · 임차인, 관리비 정산, 운영사 · 사용자</td><td>11월 ~ 2027. 01</td></tr>
+    <tr><td class="c">3</td><td class="lbl">Stage 1 납품</td><td>기능정의서 · <strong>DB 설계서</strong> · 메뉴구조 · 차수 구분표</td><td><strong>2026. 12. 14</strong></td></tr>
+    <tr><td class="c">4</td><td class="lbl">Stage 1 검수</td><td></td><td>12. 15 ~ 12. 28</td></tr>
+    <tr><td class="c">5</td><td class="lbl">화면별 공수 재산정</td><td>설계서 수락 후 화면별 공수 견적 제출 (Change Order 1호 §4.3)</td><td>2027. 01. 11 전후</td></tr>
+    <tr><td class="c">6</td><td class="lbl">최종 납품 · 검수</td><td>배포, 운영 매뉴얼, 인수 시험</td><td><strong>2027. 02. 12</strong> / 02. 15 ~ 02. 26</td></tr>
+  </tbody>
+</table>
+</div>
+<p class="fn">* 5번은 Change Order 1호 §4.3에 이미 정해진 절차입니다. 이 시점에 남은 일정의 근거를 화면 단위로 제출합니다.</p>
+</div>
+
+<div class="kbox">
+  <p class="t">핵심 판단</p>
+  <p><strong>설계서를 예정일에 내는 것보다, 구조가 확정된 설계서를 내는 쪽이 전체 일정에 유리합니다.</strong>
+  데이터베이스 설계서는 검수 후 화면 개발 전체의 기준이 되는 문서입니다. 구조가 바뀌기 전에 낸 설계서는
+  검수 직후 다시 고쳐야 하고, 그 사이에 쌓인 화면 코드까지 함께 수정 대상이 됩니다.
+  Stage 1 한 달의 조정으로 그 재작업을 없애는 선택입니다.
+  <strong>Phase 1 최종 납품일 · 계약 기간 · 개발 범위 · 총액은 모두 변동이 없습니다.</strong></p>
+</div>
+
+<h2>차주 예정사항</h2>
+
+<div class="task">
+  <span class="badge wip">예정</span>
+  <span class="nm">시스템 구조 확정 — 11월 11일 협의</span>
+</div>
+<p class="sum">계산 로직의 위치를 확정하고, 그 결과를 데이터베이스 설계서 양식에 반영</p>
+
+<div class="task">
+  <span class="badge wip">예정</span>
+  <span class="nm">화면 개발 재개</span>
+</div>
+<p class="sum">건물 · 유닛, 계약 · 임차인, 관리비 정산 영역 착수. 운영사 · 사용자 영역 재개</p>
+
+<h2>예측 및 발견된 리스크</h2>
+
+<div class="scroller">
+<table>
+  <caption>표 5. 리스크 · 영향 · 대응</caption>
+  <thead><tr><th style="width:21%">리스크</th><th style="width:30%">영향</th><th>대응</th></tr></thead>
+  <tbody>
+    <tr>
+      <td class="lbl">연말 검수 기간<br><span style="font-weight:400;color:var(--muted)">Stage 1 검수 12.15~12.28</span></td>
+      <td>성탄 · 연말 휴일이 포함되어 실제 검토 가능일이 줄어듦. 검수 의견 회신이 늦어지면 화면별 공수 재산정도 함께 밀림</td>
+      <td>납품물 <strong>4건을 12.14에 전량 제출</strong>하고, 검수 의견은 <strong>1월 8일까지</strong> 받는 것으로 운영.
+          회신이 늦어도 화면 개발은 멈추지 않도록 설계서 기준으로 선행</td>
+    </tr>
+    <tr>
+      <td class="lbl">구조 재정비의 범위<br><span style="font-weight:400;color:var(--muted)">계산 로직 위치 변경</span></td>
+      <td>이미 작성한 코드 일부를 다시 작성. 범위가 예상보다 넓으면 11월 중 구조 확정이 밀림</td>
+      <td>인증 영역은 영향 없음(완료). <strong>금액 계산기는 검산 테스트를 먼저 만들어</strong> 다시 작성해도 계산 결과를 같은 기준으로 검증.
+          11월 11일 협의에서 범위를 확정</td>
+    </tr>
+    <tr>
+      <td class="lbl">데이터베이스 구조의 반복 수정<br><span style="font-weight:400;color:var(--muted)">보증금 · 연체료 반영이 3번째 수정</span></td>
+      <td>수정이 반복되면 설계서 확정이 다시 밀리고, 그 뒤 화면 코드까지 수정 대상이 됨</td>
+      <td><strong>12월 14일 설계서 확정 이후에는 구조 변경을 받지 않음.</strong> 그 뒤의 명세 변경은
+          화면 동작 범위로 한정하거나 2차로 이관. <strong>Phase 1 최종 납품일을 지키는 전제</strong></td>
+    </tr>
+    <tr>
+      <td class="lbl">운영사 격리<br><span style="font-weight:400;color:var(--muted)">한 시스템에서 여러 운영사의 데이터를 다룸</span></td>
+      <td>격리가 한 곳이라도 빠지면 다른 운영사의 임차인 · 금액이 노출. 사고 범위가 전체로 확대</td>
+      <td>데이터베이스 수준 격리를 계약 기술 기준에 명시. <strong>격리 자동 테스트를 산출물에 포함</strong>해 화면이 늘어도 매번 반복 확인</td>
+    </tr>
+    <tr>
+      <td class="lbl">마스킹 규칙의 일관 적용<br><span style="font-weight:400;color:var(--muted)">계약 종료 5년 경과 후 마스킹</span></td>
+      <td>테이블 한 곳이 아니라 조회 · 검색 · 출력 · 내보내기 전 구간에 걸림. 한 곳이라도 빠지면 개인정보가 그대로 보임</td>
+      <td>적용 지점을 설계 단계에서 모두 정하고 자동 검증에 포함. <strong>12.14 설계서에 적용 지점을 명시</strong></td>
+    </tr>
+    <tr>
+      <td class="lbl">소수 인력 의존</td>
+      <td>인력 교체 시 작업 맥락이 함께 사라짐</td>
+      <td>계정은 전부 발주 측 소유, 산출물은 저장소에 상시 반영, 주간 보고 의무,
+          <strong>인계 문서를 납품 산출물에 포함</strong></td>
+    </tr>
+  </tbody>
+</table>
+</div>
+<p class="fn">* 리스크는 발견 시점에 모두 기재합니다. 해소된 항목은 다음 보고에서 제외합니다.</p>
+
+<h2>협조 요청</h2>
+
+<div class="scroller">
+<table>
+  <caption>표 6. 확인 요청</caption>
+  <thead><tr><th style="width:24%">항목</th><th>요청 내용</th><th style="width:16%">요청일</th></tr></thead>
+  <tbody>
+    <tr>
+      <td class="lbl">Stage 1 일정 조정<br>확인</td>
+      <td>표 1의 Stage 1 납품 <strong>12. 14</strong> · 검수 <strong>12. 15~12. 28</strong>에 대한 확인 회신.
+          <strong>Phase 1 최종 납품일 · 계약 기간 · 범위(35개 화면) · 총액(CAD $42,000)은 변동이 없습니다.</strong>
+          조정 대상이 Stage 1 두 줄뿐이므로 별도 합의서는 작성하지 않으며, 본 보고서와 확인 회신을 기록으로 보관합니다</td>
+      <td>2026. 11. 06</td>
+    </tr>
+    <tr>
+      <td class="lbl">Stage 1 검수 의견<br>회신 기한</td>
+      <td>검수 기간에 연말 휴일이 포함되므로, 검수 의견 회신 기한을 <strong>2027년 1월 8일</strong>로 두는 데 동의 여부</td>
+      <td>2026. 11. 06</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+<p class="fn">* 회신 전에도 표 4의 일정으로 개발을 진행합니다. 이견이 있으면 알려 주시기 바랍니다.</p>
+
+<p class="foot">
+BRIKKA 임대관리 시스템 상업용 전환 · 주간보고 8주차<br>
+기능정의서 원문: docs/기능정의서/ (v1.5) · 명세변경: docs/명세변경/ · 화면 목업: docs/목업/
+</p>
+
+</div>
