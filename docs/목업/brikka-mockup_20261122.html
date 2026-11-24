@@ -709,12 +709,14 @@ BUILDINGS.forEach(b=>{b.park=b.pk.up+b.pk.down+b.pk.mech;});
 /* 카리나빌딩 — 본관 11 · 별관 3 유닛. 임차인명은 실제 입주사다.
    임대면적은 실측값이 아니다. */
 const UNITS_B1=[
+ /* 옥상 통신 중계기 — 2026-08-01 계약 시작. 전기 계량기는 8월 검침부터. 수도 등 면적 기준 항목은 배율 0 → 명세변경_261122 */
+ {no:'본관옥상',   st:'사용중', ten:'㈜한빛텔레콤',            ar:10.0, net:10.0, use:'기타', memo:'통신 중계기. 전기는 별도 계량기. 수도 사용 없음'},
  {no:'본관801호',  st:'사용중', ten:'(주)아이씨비',          ar:330.0},
  {no:'본관701호',  st:'사용중', ten:'(주)아이씨비',          ar:330.0},
  {no:'본관601호',  st:'사용중', ten:'유한회사아마데우스',     ar:330.0},
  {no:'본관501호',  st:'사용중', ten:'㈜케이더블유인터내셔널',   ar:330.0},
  {no:'본관401호',  st:'사용중', ten:'(주)케이큐엔터테이먼트',  ar:330.0},
- {no:'본관301호',st:'사용중', ten:'(유)고우컴퍼니',         ar:165.0},
+ {no:'본관301호',st:'사용중', ten:'(유)고우컴퍼니',         ar:165.0, memo:'302호와 한 공간. 전기 계량기는 302호에 하나뿐이라 301호 전기는 302호 검침값에 들어 있다'},
  {no:'본관302호',st:'사용중', ten:'(유)유니버셜대부',        ar:165.0},
  {no:'본관201호',  st:'사용중', ten:'(주)좋은생각사람들',      ar:330.0},
  {no:'본관101호',  st:'사용중', ten:'(주)에스씨케이컴퍼니',    ar:280.0},
@@ -724,12 +726,17 @@ const UNITS_B1=[
  {no:'별관301호',  st:'사용중', ten:'(주)비씨에이전시',        ar:95.0},
  {no:'별관201호',  st:'사용중', ten:'㈜케이더블유인터내셔널',   ar:95.0},
 ];
+/* 층 — 지상은 양수, 지하는 음수, 옥상은 ROOF. 옥상은 숫자를 받지 않는다 → 명세변경_261122 32 */
+const ROOF=999;
+const flName=fl=>fl===ROOF?'옥상':fl>0?fl+'층':'지하 '+Math.abs(fl)+'층';
+const flKind=fl=>fl===ROOF?'옥상':fl<0?'지하':'지상';
+const flOf=(fk,fl)=>fk==='옥상'?ROOF:(fk==='지하'?-1:1)*parseInt(fl);
 /* 건물 상세 유닛 탭 — 층은 유닛 번호에서, 용도는 예시값. 전용면적은 임대면적의 62%(예시) */
 BUILDINGS[0].units=UNITS_B1.map(u=>{
   const b=u.no.match(/B(\d)\d\d호$/), m=u.no.match(/(\d+)(층|호)$/);
-  const fl=b?-(+b[1]):m?(m[2]==='호'?Math.floor(+m[1]/100):+m[1]):0;
-  return {no:u.no,st:u.st,ten:u.ten,fl,area:u.ar,net:Math.round(u.ar*0.62*10)/10,
-    use:u.st==='비운영중'?'기타':u.no==='본관101호'?'근린생활':'사무실'};
+  const fl=/옥상$/.test(u.no)?ROOF:b?-(+b[1]):m?(m[2]==='호'?Math.floor(+m[1]/100):+m[1]):0;
+  return {no:u.no,st:u.st,ten:u.ten,fl,area:u.ar,net:u.net!=null?u.net:Math.round(u.ar*0.62*10)/10,
+    use:u.use||(u.st==='비운영중'?'기타':u.no==='본관101호'?'근린생활':'사무실'),...(u.memo?{memo:u.memo}:{})};
 });
 /* 청구항목 — 기준표 3.3. fixed는 고정액(계약 약정액), 나머지는 정산 항목이다.
    pr은 기본 배분 우선순위다. 건물 관리 › 관리비 탭(PRO-3)에서 건물별로 덮어쓴다 → prioOf */
@@ -801,6 +808,11 @@ function billBefore(nx,ym,day){
 const BILL_M={'2026-08':BILL};
 BILL_M['2026-07']=billBefore(BILL,'2026-07','09');
 BILL_M['2026-06']=billBefore(BILL_M['2026-07'],'2026-06','09');
+/* 옥상 중계기 — 전기는 8월부터 계량기로 잰다(6·7월은 공용분에 섞여 있었다). 전기 · 수도 모두 공용분을 나눠 받지 않는다(배율 0).
+   배율은 직전 회차 값을 이어받으므로 한 번 넣은 0이 매달 그대로다 → 명세변경_261122 34 */
+BILL.elec.read['본관옥상']=[48210,49775];
+['2026-06','2026-07','2026-08'].forEach(ym=>['elec','water'].forEach(c=>{
+  BILL_M[ym][c].adj['본관옥상']={mul:0,why:'통신 중계기 — 공용부를 쓰지 않음',by:'슈퍼관리자',at:'2026-07-28 10:00'};}));
 /* 그 달의 입력값으로 잠깐 바꿔 계산한다 — 지난 회차 화면·청구서가 모두 이것을 쓴다 */
 let PAST_CTX=null;
 function withMonth(ym,fn){
@@ -817,7 +829,7 @@ function saveItem(code){SAVED[code]='08-10 11:30';render(true);}
 let f10ym='2026-08';
 /* 건물별 월 업무 진행 — PAY-12 */
 const PROG={
- b1:{settle:'작성중',inv:0,invN:13,amt:0,paid:0,paidN:0,closed:false,closedAt:null,due:'08-31'},
+ b1:{settle:'작성중',inv:0,invN:14,amt:0,paid:0,paidN:0,closed:false,closedAt:null,due:'08-31'},
  b2:{settle:'확정', inv:0,invN:22,amt:0,paid:0,paidN:0,closed:false,closedAt:null,due:'09-10'},
  b4:{settle:'미착수',inv:0,invN:14,amt:0,paid:0,paidN:0,closed:false,closedAt:null,due:'08-31'},
 };
@@ -849,11 +861,6 @@ const ALL_U=UNITS_B1.map(u=>u.no);
    본관101호 에스씨케이컴퍼니는 1/30 계량기라 지침에 30을 곱해야 실사용량이 된다.
    계량기의 고정 속성이므로 회차마다 입력하지 않는다 → PRO-3 계량기 설정 */
 const CTMUL={elec:{'본관101호':30}};
-/* 계량기 공유 — 두 유닛이 한 공간을 쓰며 계량기가 하나뿐인 경우.
-   본관301호는 본관302호 계량기를 통해 전기를 쓴다. 301호 사용분은 302호 지침에 이미 포함된다.
-   따라서 301호는 「계량기 없음」이 아니라 「공유」이며, 사용량 기준에서 배분 몫 0이 정상이다. */
-const SHARE={ elec:{'본관301호':'본관302호'} };
-const shareOf=(code,no)=>(SHARE[code]||{})[no]||null;
 const ctOf=(code,no)=>((CTMUL[code]||{})[no])||1;
 function setCT(code,no,v){
   SAVED[code]=null;
@@ -863,7 +870,7 @@ function setCT(code,no,v){
   render(true);
 }
 const METER={
- /* 본관301호 고우컴퍼니는 전월·당월 지침이 모두 없다 — 계량기 미보유로 본다 */
+ /* 본관301호 고우컴퍼니는 전기 계량기가 없다. 302호와 한 공간을 써서 301호 전기는 302호 지침에 들어 있다(유닛 메모) */
  elec: ALL_U.filter(n=>n!=='본관301호'),
  water:['본관101호'],
  gas:  ['본관101호','본관B201호','별관201호'],
@@ -1208,14 +1215,12 @@ function csHTML(){
   else if(needM&&nM===0&&!cs.ref) warn='이 배분 기준은 계량기가 필요합니다. 보유 유닛을 선택하거나 참조 항목을 지정하세요.';
   /* 사용량 기준인데 일부 유닛만 계량기를 보유하면, 계량기 없는 유닛의 배분 몫이 0이 되어
      공용분을 한 푼도 부담하지 않는다. 그 몫을 계량기 보유 유닛이 대신 낸다 → 4.1.3-1
-     단, 계량기를 공유하는 유닛은 배분 몫 0이 정상이므로 경고 대상이 아니다 */
-  else if(cs.basis==='사용량'&&nM>0&&(()=>{
-    const sh=SHARE[cs.item]||{};
-    return U.filter(u=>!cs.meters.includes(u.no)&&!sh[u.no]).length>0;
-  })())
+     다른 유닛 계량기를 같이 쓰는 유닛도 같은 경고가 뜬다. 따로 지정하는 칸은 두지 않고 안내 문구로 알린다 */
+  else if(cs.basis==='사용량'&&nM>0&&U.some(u=>!cs.meters.includes(u.no)))
     warn=`계량기를 보유한 유닛이 ${nM} / ${nAll}개입니다. 사용량 기준에서는 계량기 없는 `
       +`유닛의 배분 몫이 0이 되어 공용분을 부담하지 않고, 그 몫을 계량기 보유 유닛이 `
-      +`대신 냅니다. <b>사용량+임대면적</b>을 쓰세요.`;
+      +`대신 냅니다. <b>사용량+임대면적</b>을 쓰세요.<br>`
+      +`다른 유닛 계량기를 같이 쓰는 유닛(사용분이 그 유닛 검침값에 들어 있음)뿐이면 그대로 두어도 됩니다.`;
   const prev = warn ? `<div class="prev warn2"><div class="pt">설정을 확인하세요</div>${warn}</div>` : '';
   return `<div class="dro"><div class="ov" onclick="closeDrawer()"></div><div class="pn">
     <div class="dh"><div><div class="t">청구항목 설정</div>
@@ -2165,12 +2170,12 @@ function unOpen(bid){const b=BUILDINGS.find(x=>x.id===bid);
 function unSet(f,v){un[f]=v;render(true);}
 function unMissing(){const b=BUILDINGS.find(x=>x.id===un.bid), m=[];
   if(!un.no.trim()) m.push('유닛고유번호'); else if(b.units.some(u=>u.no===un.no.trim())) m.push('유닛고유번호(이 건물에 이미 있음)');
-  if(!un.fl) m.push('층'); if(!un.use) m.push('유닛용도'); if(!(parseFloat(un.area)>0)) m.push('임대면적');
+  if(un.fk!=='옥상'&&!un.fl) m.push('층'); if(!un.use) m.push('유닛용도'); if(!(parseFloat(un.area)>0)) m.push('임대면적');
   if(parseFloat(un.net)>parseFloat(un.area)) m.push('전용면적(임대면적보다 클 수 없음)');
   return m;}
 function unSave(){un.tried=true; if(unMissing().length){render(true);return;}
   const b=BUILDINGS.find(x=>x.id===un.bid), area=parseFloat(un.area), net=parseFloat(un.net)||0;
-  b.units.push({no:un.no.trim(),st:un.st,ten:'',fl:(un.fk==='지하'?-1:1)*parseInt(un.fl),area,net:net||Math.round(area*0.62*10)/10,use:un.use,dong:un.dong,memo:un.memo.trim()});
+  b.units.push({no:un.no.trim(),st:un.st,ten:'',fl:flOf(un.fk,un.fl),area,net:net||Math.round(area*0.62*10)/10,use:un.use,dong:un.dong,memo:un.memo.trim()});
   setMeters(un.no.trim(),Object.fromEntries(meterItems(b).map(c=>[c,!!un.mt[c]])));
   b.unitCnt=b.units.length; b.vacCnt=b.units.filter(u=>u.st==='공실').length;
   DRAWER=null;un=null;render(true);}
@@ -2188,7 +2193,7 @@ function unHTML(){
     <div class="db">
       <div class="fg"><div class="fl">위치</div>
         ${b.dong?R('동',S('dong',b.dong.map(g=>g.n)),1):''}
-        ${R('층',S('fk',['지상','지하'])+`<input type="text" inputmode="numeric" value="${un.fl}" onchange="unSet('fl',this.value)" style="${inp};max-width:60px"><span class="c2" style="margin:0">층</span>`,1)}
+        ${R('층',S('fk',['지상','지하','옥상'])+(un.fk==='옥상'?'':`<input type="text" inputmode="numeric" value="${un.fl}" onchange="unSet('fl',this.value)" style="${inp};max-width:60px"><span class="c2" style="margin:0">층</span>`),1)}
         ${R('유닛고유번호',T('no',b.dong?`예: ${un.dong||'본관'}501호`:'예: 501호'),1)}
         <div class="c2" style="margin:-4px 0 0;white-space:normal">계약 목록에 <b style="color:var(--ink)">${b.alias}|${un.no.trim()||'유닛고유번호'}|임차인</b>으로 표시됩니다. 이 건물 안에서 겹칠 수 없습니다</div></div>
       <div class="fg"><div class="fl">유닛 정보</div>
@@ -2218,16 +2223,16 @@ const unitCtrs=(bid,no)=>CTRS.filter(c=>c.b===bid&&c.no===no).sort((a,b)=>dnum(b
 function udOpen(bid,no){ud={bid,no,edit:false,del:false,why:''};DRAWER='udet';render(true);}
 function udEdit(){const u=BUILDINGS.find(x=>x.id===ud.bid).units.find(x=>x.no===ud.no);
   const b0=BUILDINGS.find(x=>x.id===ud.bid);
-  Object.assign(ud,{edit:true,del:false,mt:Object.fromEntries(meterItems(b0).map(c=>[c,(METER[c]||[]).includes(u.no)])),f:{no:u.no,dong:u.dong||'',fk:u.fl<0?'지하':'지상',fl:String(Math.abs(u.fl)),use:u.use,area:String(u.area),net:String(u.net),st:u.st,memo:u.memo||''}});render(true);}
+  Object.assign(ud,{edit:true,del:false,mt:Object.fromEntries(meterItems(b0).map(c=>[c,(METER[c]||[]).includes(u.no)])),f:{no:u.no,dong:u.dong||'',fk:flKind(u.fl),fl:u.fl===ROOF?'':String(Math.abs(u.fl)),use:u.use,area:String(u.area),net:String(u.net),st:u.st,memo:u.memo||''}});render(true);}
 function udMissing(){const b=BUILDINGS.find(x=>x.id===ud.bid), f=ud.f, m=[];
   if(!f.no.trim()) m.push('유닛고유번호'); else if(f.no.trim()!==ud.no&&b.units.some(u=>u.no===f.no.trim())) m.push('유닛고유번호(이 건물에 이미 있음)');
-  if(!f.fl) m.push('층'); if(!(parseFloat(f.area)>0)) m.push('임대면적');
+  if(f.fk!=='옥상'&&!f.fl) m.push('층'); if(!(parseFloat(f.area)>0)) m.push('임대면적');
   if(parseFloat(f.net)>parseFloat(f.area)) m.push('전용면적(임대면적보다 클 수 없음)');
   return m;}
 function udSave(){if(udMissing().length){ud.tried=true;render(true);return;}
   const b=BUILDINGS.find(x=>x.id===ud.bid), u=b.units.find(x=>x.no===ud.no), f=ud.f;
   /* 사용중은 계약에서 정해진다 — 공실·비운영중만 바꾼다 */
-  Object.assign(u,{no:f.no.trim(),dong:f.dong,fl:(f.fk==='지하'?-1:1)*parseInt(f.fl),use:f.use,area:parseFloat(f.area),net:parseFloat(f.net)||0,memo:f.memo.trim(),
+  Object.assign(u,{no:f.no.trim(),dong:f.dong,fl:flOf(f.fk,f.fl),use:f.use,area:parseFloat(f.area),net:parseFloat(f.net)||0,memo:f.memo.trim(),
     st:u.st==='사용중'?u.st:f.st});
   if(u.no!==ud.no) Object.keys(METER).forEach(c=>{const i=METER[c].indexOf(ud.no); if(i>=0) METER[c][i]=u.no;});
   setMeters(u.no,ud.mt);
@@ -2238,7 +2243,7 @@ function udDel(){const b=BUILDINGS.find(x=>x.id===ud.bid);
 function udHTML(){
   if(DRAWER!=='udet'||!ud) return '';
   const b=BUILDINGS.find(x=>x.id===ud.bid), u=b.units.find(x=>x.no===ud.no); if(!u) return '';
-  const cs=unitCtrs(b.id,u.no), had=cs.length>0, flL=fl=>fl>0?fl+'층':'지하 '+Math.abs(fl)+'층';
+  const cs=unitCtrs(b.id,u.no), had=cs.length>0, flL=flName;
   const inp='border:1px solid var(--line);border-radius:var(--r-sm);padding:7px 9px;font:inherit';
   const R=(k,body)=>`<div class="fr"><span class="fk">${k}</span>${body}</div>`, V=(k,v)=>R(k,`<span class="fv">${v}</span>`);
   const meters=meterItems(b).map(c=>[M(c).name,(METER[c]||[]).includes(u.no)?'있음':'없음']);
@@ -2248,7 +2253,7 @@ function udHTML(){
     const S=(k,opts,dis)=>`<select ${dis?'disabled':''} onchange="ud.f.${k}=this.value;render(true)" style="${inp}">${opts.map(o=>`<option ${f[k]===o?'selected':''}>${o}</option>`).join('')}</select>`;
     body=`<div class="fg"><div class="fl">유닛 정보</div>
       ${b.dong?R('동',S('dong',b.dong.map(g=>g.n))):''}
-      ${R('층',S('fk',['지상','지하'])+`<input type="text" inputmode="numeric" value="${f.fl}" oninput="ud.f.fl=this.value" style="${inp};max-width:60px"><span class="c2" style="margin:0">층</span>`)}
+      ${R('층',S('fk',['지상','지하','옥상'])+(f.fk==='옥상'?'':`<input type="text" inputmode="numeric" value="${f.fl}" oninput="ud.f.fl=this.value" style="${inp};max-width:60px"><span class="c2" style="margin:0">층</span>`))}
       ${R('유닛고유번호',had?`<span class="fv">${u.no} <span class="lock">계약이 있었던 유닛은 바꿀 수 없음</span></span>`:T('no',160))}
       ${R('유닛용도',S('use',UNIT_USE))}
       ${R('임대면적',T('area',110)+'<span class="c2" style="margin:0">㎡</span>')}
@@ -2294,7 +2299,7 @@ function t유닛(b){
     ${b.units.map(u=>{
       return `<div class="unit" onclick="udOpen('${b.id}','${u.no}')">
       <div class="uh"><span class="un">${u.no}</span>${stb(u.st)}</div>
-      <div class="r"><span>${u.use}</span><b>${u.fl>0?u.fl+'층':'지하 '+Math.abs(u.fl)+'층'}</b></div>
+      <div class="r"><span>${u.use}</span><b>${flName(u.fl)}</b></div>
       <div class="r"><span>임대면적</span><b>${m2(u.area)}</b></div>
       <div class="r"><span>전용면적</span><b>${m2(u.net)} · ${(u.net/u.area*100).toFixed(0)}%</b></div>
       <div class="r" style="margin-top:6px;padding-top:7px;border-top:1px solid var(--line-2)">
@@ -2689,7 +2694,7 @@ function stRead(m,R){
         <td>${cnameST(r,m)}</td>
         <td>${dash}</td><td class="n">${dash}</td>
         <td class="n"><input class="inp" type="text" value=""
-            placeholder="${shareOf(m.code,r.no)?shareOf(m.code,r.no)+' 공유':'계량기 없음'}" disabled></td>
+            placeholder="계량기 없음" disabled></td>
         <td class="n">${dash}</td><td class="c">${dash}</td><td class="n">${dash}</td></tr>`).join('')}
         <tr class="sumr"><td colspan="4">개별 사용량 합계</td>
           <td class="n">${fx(mtr.reduce((a,r)=>a+r.use,0),2)} ${U}</td><td></td>
@@ -3156,6 +3161,11 @@ const CITEM={
 /* 계약 식별 — 기존 계약은 건물+유닛. 같은 유닛에 다음 계약을 미리 등록하면 시작일을 붙여 구분한다 */
 const ckey=c=>c.key||c.b+c.no;
 const CTRS=[
+ /* 옥상 통신 중계기 — 2년치 임대료를 한 번에 미리 받는다. 임대료는 전기료를 뺀 공간 임대료다.
+    전기는 계량한 만큼 매달 청구하고, 미리 받은 돈(과납)이 매달 청구서를 채운다. 연체료 부과는 끈다 → 명세변경_261122 33-3 */
+ {b:'b1',no:'본관옥상',ten:'㈜한빛텔레콤',st:'진행중',base:'2026-08-01',dep:0,
+  memo:'2년치(2026.08~2028.07) 임대료 일시불 선납 계약. 전기료 포함 조건 — 계량 전기료도 선납금에서 차감. 만기 잔액은 그대로 둔다',
+  it:[['임대료',500000],['고정관리비',0]]},
  {b:'b1',no:'본관801호',ten:'(주)아이씨비',st:'진행중',base:'2024-03-01',
   ag:{n:'마포센트럴공인중개사사무소',ceo:'한지민',no:'11440-2019-00123',tel:'02-334-5521',addr:'서울특별시 마포구 양화로 45',fee:'0.9'},
   memo:'본관701호와 계약서 한 장(층별 해지 가능하게 계약 2건으로 관리). 청구서는 합쳐 보낸다',
@@ -3805,7 +3815,7 @@ const FEE_CUT={};
 /* 해지 처리한 계약의 해지일 — 마지막 청구서에 해지일까지 넣었다. 그 뒤로 늦어진 날은 받지 않는다(감면) → 18-5 */
 const FEE_END={};
 /* 연체료 중지 — 계약마다 중지 구간 [{from,to}](to가 없으면 중지 중) → 19 */
-const CSET={};
+const CSET={'b1본관옥상':{off:[{from:'2026-08-01'}]}};   /* 선납 계약 — 계약 시작부터 연체료 부과 끔 */
 const csetOf=k=>(CSET[k]=CSET[k]||{off:[]});
 const feeStop=k=>{const o=(CSET[k]||{}).off||[], x=o[o.length-1];return x&&!x.to?x.from:null;};
 const nstr=n=>new Date(n*864e5).toISOString().slice(0,10);
@@ -3998,6 +4008,9 @@ function seedMonth(ym,pk,ign){
 /* 6월도 자동 수집이다. 첫 달이라 등록된 입금자명이 없어 자동 확정된 것은 없다 */
 seedMonth('2026-06',{101:'루비뮤직',102:'케이큐엔터테이먼트',103:'케이더블유인터내셔널',104:'케이더블유인터내셔널',105:'아이씨비',
   106:'에스씨케이컴퍼니',107:'아마데우스',108:'고우컴퍼니',109:'유니버셜대부',112:'좋은생각사람들'},[114]);
+/* 8월 입금 — 옥상 중계기 2년치 선납(8/3). 청구서가 아직 없어 전액 과납으로 남고, 8월분부터 매달 청구서를 채운다 → 명세변경_261122 33-3 */
+BANKS['2026-08'].dep.unshift({no:201,dt:'2026-08-03 10:12:40',kind:'인터넷',name:'㈜한빛텔레콤',amt:21600000,out:0,src:'자동 수집'});
+seedMonth('2026-08',{201:'한빛텔레콤'},[]);
 /* 전월 과납액 — 청구서를 발행할 때 남은 과납을 새 청구에 자동으로 먼저 배분한다 → 4.3.4
    수납 배분만 옮기고 원장에는 적지 않는다. 잔액은 그대로 → 2.7 */
 const CREDITS=[];
@@ -5895,7 +5908,7 @@ function ledgerOf(k){
   const rent=((c.it||[]).find(x=>x[0]==='임대료')||[])[1]||0;
   /* 보증금 — 목업 예시값(월 임대료 × 10) */
   /* 새로 등록한 계약은 보증금을 아직 받지 않았다 — 받으면 보증금 예치로 기록한다 */
-  if(!c.fresh) rows.push({date:c.base,type:'보증금 예치',acc:'임대보증금',memo:'계약 보증금 (예시값)',item:'계약 보증금 (예시값)',g:'dep',k,inc:rent*10,sup:null,vat:null,ord:0});
+  if(!c.fresh&&c.dep!==0) rows.push({date:c.base,type:'보증금 예치',acc:'임대보증금',memo:'계약 보증금 (예시값)',item:'계약 보증금 (예시값)',g:'dep',k,inc:rent*10,sup:null,vat:null,ord:0});
   BILLS.filter(i=>i.k===k).forEach(i=>{
     const tax=i.adhoc?i.doc==='세금계산서':isTaxItem(i.n), sup=i.sup!=null?i.sup:tax?Math.floor(i.amt*10/11):i.amt;
     const ymL=i.ym.slice(2).replace('-','.')+'월분';

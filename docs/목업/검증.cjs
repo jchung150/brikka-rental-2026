@@ -63,7 +63,7 @@ for (const t of ['요약', '유닛', '자료보관', '관리비'])
 run('PRO-3 유닛 · 다음 계약', "CTRS.push({b:'b1',no:'본관302호',key:'b1본관302호@2026-11-01',ten:'(주)새임차',st:'준비중',base:'2026-11-01',it:[['임대료',3000000]]});tab3='유닛';PRO3('b1')");
 { const U = new Function(stub + bare + '; return BUILDINGS[0].units;')();
   const fl = n => (U.find(u => u.no === n) || {}).fl;
-  if (!(U.length === 14 && fl('본관B101호') === -1 && fl('본관B201호') === -2 && fl('본관301호') === 3 && fl('별관401호') === 4)) { console.log('② 유닛 층 계산 ✗'); fail = 1; } }
+  if (!(U.length === 15 && fl('본관옥상') === new Function(stub + bare + '; return ROOF;')() && fl('본관B101호') === -1 && fl('본관B201호') === -2 && fl('본관301호') === 3 && fl('별관401호') === 4)) { console.log('② 유닛 층 계산 ✗'); fail = 1; } }
 for (const b of ['b2', 'b4']) run('PRO-3 ' + b, "tab3='요약';PRO3('" + b + "')");
 run('PRO-3 관리비 설정 패널 — 임대료 · 전기요금 같은 구성', "loadCS('rent');DRAWER='chargeset';const a=csHTML();loadCS('elec');const b=csHTML();if(!/근거 문서/.test(a)||!/배분 방식/.test(a)||!/disabled/.test(a))throw new Error('구성 다름')");
 run('PRO-3 카즈하타워 관리비', "tab3='관리비';PRO3('b4')");
@@ -146,12 +146,13 @@ for (const it of X.selItems()) {
 const Y = new Function(stub + bare + '; return {calc,ratios,BILL,M,isDirect,METER};')();
 /* 검침 역전 유닛은 미입력으로 돌려 깨끗한 상태에서 본다 */
 for (const [no, v] of Object.entries(Y.BILL.elec.read || {})) if (v[1] != null && v[1] < v[0]) v[1] = null;
-const tgt = (Y.METER.elec || [])[0];
+const tgt = (Y.METER.elec || []).find(no => !Y.BILL.elec.adj[no]);   /* 배율을 지정하지 않은(1.0) 유닛 */
 if (tgt) {
-  const before = Y.calc(Y.M('elec')).rows.find(r => r.no === tgt);
+  /* 기준은 「전 유닛 배율 1.0일 때의 몫(기준 공용)」이다. 옥상 중계기처럼 배율 0인 유닛이 있으면 지금 몫은 기준 공용보다 크다 */
+  const before = Y.calc(Y.M('elec'), true).rows.find(r => r.no === tgt);
   Y.BILL.elec.adj[tgt] = { mul: 2 };
   const after = Y.calc(Y.M('elec')).rows.find(r => r.no === tgt);
-  /* 배율 N이면 그 유닛의 공용 사용량이 정확히 N배여야 한다 — 4.1.2 */
+  /* 배율 N이면 그 유닛의 공용 사용량이 기준 공용의 정확히 N배여야 한다 — 4.1.2 */
   const exact = Math.abs(after.common - before.common * 2) < 0.05;
   const totalOK = Math.abs(Y.calc(Y.M('elec')).common -
     Y.calc(Y.M('elec'), true).common) < 0.01;
