@@ -66,16 +66,19 @@ run('PRO-3 유닛 · 다음 계약', "CTRS.push({b:'b1',no:'본관302호',key:'b
   if (!(U.length === 14 && fl('본관B101호') === -1 && fl('본관B201호') === -2 && fl('본관301호') === 3 && fl('별관401호') === 4)) { console.log('② 유닛 층 계산 ✗'); fail = 1; } }
 for (const b of ['b2', 'b4']) run('PRO-3 ' + b, "tab3='요약';PRO3('" + b + "')");
 /* 뉴진스하우스 원장 — 중계기 3곳 선납 과납이 매달 청구를 채움 · 하니커피 6월분 2일 늦음 → 7월분 연체료 · 세움파트너스 6월분 890,000 부족 → 7월 입금이 이월 미납액부터 채워 7월분 부분납 · 나머지 완납 */
-{ const NL = new Function(stub + bare + '; seedJuly(); return {ledgerOf,ctrPay,dueOf,BILLS,CREDITS,f2,PAY2};')();
+{ const NL = new Function(stub + bare + '; seedJuly(); return {ledgerOf,ctrPay,dueOf,BILLS,CREDITS,f2,PAY2,rcOpenB,RC,PAY13,BANKS_BY};')();
   const st = (no, ym) => NL.ctrPay('b2' + no, ym).st, bal = no => NL.ledgerOf('b2' + no).bal.매출채권;
   const rp = ['본관801호', '본관802호', '본관803호'];
   const pre = rp.every(no => bal(no) < 0 && st(no, '2026-07') === '완납') && NL.CREDITS.filter(x => x.k.startsWith('b2')).length === 6;
   const fee = NL.BILLS.some(i => i.k === 'b2본관101호' && i.ym === '2026-07' && i.fee && i.amt > 0);
   const seum = st('본관501호', '2026-06') === '미납' && st('본관501호', '2026-07') === '부분납' && bal('본관501호') === 890000;
-  const rest = ['본관B101호', '본관101호', '본관201호', '본관301호', '본관401호', '본관601호', '본관701호'].every(no => bal(no) === 0 && st(no, '2026-07') === '완납');
+  const rest = ['본관B101호', '본관101호', '본관201호', '본관301호', '본관401호', '본관601호'].every(no => bal(no) === 0 && st(no, '2026-07') === '완납')
+    && st('본관701호', '2026-07') === '납부전' && NL.rcOpenB('b2') === 2;
   NL.f2.b = 'b2'; const p2 = /세움파트너스/.test(NL.PAY2());
-  const ok = pre && fee && seum && rest && p2; if (!ok) fail = 1;
-  console.log('② 뉴진스하우스 원장 — 중계기 선납 · 하니커피 연체료 · 세움파트너스 부족분 · 나머지 완납  ' + (ok ? 'OK' : '✗')); }
+  NL.RC.f.b = 'b2'; NL.RC.f.ym = '2026-08'; const p13 = NL.PAY13(), q13 = /김하늘/.test(p13) && !/미래상사/.test(p13);
+  NL.RC.f.ym = '2026-06'; const j13 = /케이티/.test(NL.PAY13()) && NL.BANKS_BY.b2['2026-06'].dep.length === 3;
+  const ok = pre && fee && seum && rest && p2 && q13 && j13; if (!ok) { fail = 1; console.log({pre, fee, seum, rest, p2, q13, j13}); }
+  console.log('② 뉴진스하우스 원장 — 중계기 선납 · 하니커피 연체료 · 세움파트너스 부족분 · 쿠키랩 개인 이름 입금 2건 대기 · 입금 매칭 건물 전환 · 나머지 완납  ' + (ok ? 'OK' : '✗')); }
 /* 관리비 정산 건물 전환 — 뉴진스하우스는 자기 유닛 · 검침 · 배율로 계산한다. 옥상 중계기 3대(801~803호)는 전기 · 수도 모두 배율 기본값 1.0으로 다른 유닛과 똑같이 나눠 받는다 */
 { const NJ = new Function(stub + bare + '; return {calc,M,withB,PAY10,ISSUE,f1,BUILDINGS,ROOF,set f10b(v){f10b=v;}};')();
   NJ.f10b = 'b2'; const h2 = NJ.PAY10(); NJ.f10b = 'b1'; const h1 = NJ.PAY10(); NJ.f10b = 'b4'; const h4 = NJ.PAY10();
