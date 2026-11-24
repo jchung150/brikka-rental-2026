@@ -396,19 +396,18 @@ G.ciOpen('b1별관201호', 'rent'); Object.assign(G.ci.its.고정관리비, {cyc
 const q9 = !ln('별관201호', '고정관리비');
 /* 정산 항목은 건물 관리비 설정을 그대로 받는다 */
 const noElec = G.ISSUE().filter(c => c.b === 'b1' && !c.lines.some(l => /전기요금/.test(l.n))).map(c => c.no).join();
-const elecAll = noElec === '본관301호' && G.ISSUE().find(c => c.no === '본관302호').lines.filter(l => /수도요금/.test(l.n)).length === 2; /* 301호 전기는 302호 계량기로, 수도는 302호가 대납 */
+const elecAll = noElec === '본관301호' && G.ISSUE().find(c => c.no === '본관302호').lines.filter(l => /수도요금/.test(l.n)).length === 1 && G.ISSUE().find(c => c.no === '본관301호').lines.some(l => l.n === '수도요금'); /* 301호 전기는 302호 계량기에 들어 있어 0원. 수도는 301호 청구서에 직접(대납 없음) */
 /* 301호 고정관리비 0원 = 청구 안 함 · 수정에서 금액을 넣으면 청구 */
 const t301 = G.CTR3sum(G.CTRS.find(c => c.no === '본관301호'), 'b1본관301호');
-const zero301 = !ln('본관301호', '고정관리비') && /고정관리비/.test(t301) && /청구 안 함/.test(t301) && !/전기요금/.test(t301) && (t301.match(/class="tgl/g) || []).length === 1 && /aria-label="연체료 부과"/.test(t301) && /<dt>정산액 대납<\/dt><dd>본관302호/.test(t301);
+const zero301 = !ln('본관301호', '고정관리비') && /고정관리비/.test(t301) && /청구 안 함/.test(t301) && !/전기요금/.test(t301) && (t301.match(/class="tgl/g) || []).length === 1 && /aria-label="연체료 부과"/.test(t301) && !/정산액 대납/.test(t301);
 G.ciOpen('b1본관301호', 'rent'); G.ci.its.고정관리비.amt = '110000'; G.ciSave(); const m301 = ln('본관301호', '고정관리비');
 const act301 = zero301 && m301 && m301.amt === 110000;
 G.ciOpen('b1별관301호', 'adj'); G.ciSet('d', '2026-08-01'); G.ciSet('rent', '3630000'); G.ciSave();
 const rent = ln('별관301호', '임대료'), closed = G.ci === null && /3,630,000/.test(G.CTR3sum(G.CTRS.find(c => c.no === '별관301호'), 'b1별관301호'));
-G.ciOpen('b1본관B201호', 'rent'); G.ci.payTo = '본관201호'; G.ciSave(); const payTo = G.CTRS.find(c => c.no === '본관B201호').payTo === '본관201호';
 G.ciOpen('b1별관301호', 'rent'); G.ci.its.고정관리비.amt = '1400000'; G.ciSave(); const noWhy = G.ci !== null;
 G.ciSet('why', '재협의'); G.ciSave(); const fixed2 = G.ci === null && ln('별관301호', '고정관리비') && ln('별관301호', '고정관리비').amt === 1400000;
-r6.push(['임대정보 · 임대료 인상 예약(요약 탭) — 분기 · 기산일 8월 청구 · 9월 기산은 8월 제외 · 정산 항목은 건물 설정 그대로 · 301호 고정관리비 0원은 청구 안 함, 금액을 넣으면 청구 · 8/1 인상 예약 → 3,630,000 · 금액을 바꾸면 사유 필수 → 1,400,000 반영 · 정산액 대납',
-  q8 && q9 && elecAll && act301 && rent && rent.amt === 3630000 && closed && noWhy && fixed2 && payTo]);
+r6.push(['임대정보 · 임대료 인상 예약(요약 탭) — 분기 · 기산일 8월 청구 · 9월 기산은 8월 제외 · 정산 항목은 건물 설정 그대로 · 301호 고정관리비 0원은 청구 안 함, 금액을 넣으면 청구 · 8/1 인상 예약 → 3,630,000 · 금액을 바꾸면 사유 필수 → 1,400,000 반영 · 정산액 대납 칸 없음',
+  q8 && q9 && elecAll && act301 && rent && rent.amt === 3630000 && closed && noWhy && fixed2 && zero301]);
 /* 매월 항목 자동 · 계약에는 고정액 2개만 → PAY-10 · CTR-2 */
 { const A = new Function(stub + bare + '; return {monthlyItems,BILL,MASTER,CTR2,ncSet,ncLookup,ncSave,CTRS,ISSUE,get nc(){return nc;}};')();
   const on = A.MASTER.filter(m => !m.fixed && A.BILL[m.code].on).map(m => m.code).sort().join();
@@ -422,7 +421,7 @@ r6.push(['임대정보 · 임대료 인상 예약(요약 탭) — 분기 · 기�
   const nw2 = A.CTRS[A.CTRS.length - 1], noMgmt = blank && nw2.ten === '(주)작은회사' && nw2.it.find(x => x[0] === '고정관리비')[1] === 0;
   const names = nw1.it.map(x => x[0]).join();
   r6.push(['8월 항목 = 건물의 매월 항목 · 새 계약에는 임대료·고정관리비만 · 고정관리비 반복주기 분기로 등록 · 고정관리비 빈칸은 막힘 · 0으로 등록 가능(청구 안 함)',
-    on === A.monthlyItems('b1').sort().join() && nw1.ten === '(주)새임차' && names === '임대료,고정관리비' && !nw1.payTo && nw1.meta['고정관리비'].cycle === '분기' && !(nw1.meta['임대료'] || {}).cycle && noMgmt]); }
+    on === A.monthlyItems('b1').sort().join() && nw1.ten === '(주)새임차' && names === '임대료,고정관리비' && nw1.meta['고정관리비'].cycle === '분기' && !(nw1.meta['임대료'] || {}).cycle && noMgmt]); }
 /* 공용분에서 한 유닛 빼기 = 배율 0 — 공용분만 0, 개별 사용량은 그대로 청구. 나머지가 나눠 내고 합계는 고지서와 같다 → 4.1.2 · 4.1.7 */
 { const X = new Function(stub + bare + '; return {calc,M,BILL};')();
   const before = X.calc(X.M('elec')).rows.find(r => r.no === '본관101호').amt;
@@ -1274,7 +1273,7 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   const btab = /id="cq"/.test(hb) && n(hb) === n(L('아이씨비')); CQ.f1c.q = '';
   r6.push(['계약 목록 검색 — 필터 줄 맨 앞 · 「아이씨비」는 그 임차인 계약 · 「본관 801」 · 「카리나|본관801」은 1건 · 건물 이름으로도 · 없으면 「조건에 맞는 계약이 없습니다」 · 계약상태 필터와 함께 · 건물 상세 계약 탭도 같은 검색 칸',
     all > 0 && box && icb && unit && bld && none && wide && btab]); }
-/* 계약 상세 탭 4개 · 임대정보 수정 패널(두 항목 · 연체이자율 · 대납) · 담당자 · 계약자 · 대리인 */
+/* 계약 상세 탭 4개 · 임대정보 수정 패널(두 항목 · 연체이자율) · 담당자 · 계약자 · 대리인 */
 { const RT = new Function(stub + bare + '; seedJuly(); return {CTR3,ciOpen,ciSave,ciHTML,cx3Open,cx3Save,ISSUE,CTRS,CPPL,CPARTY,get ci(){return ci;},get cx3(){return cx3;},set tab3c(v){tab3c=v;}};')();
   RT.tab3c = '요약'; const h = RT.CTR3('b1본관801호'), hb = RT.CTR3('b1본관301호');
   const tabs = /tab3c='자료보관'/.test(h) && !/tab3c='임차인'/.test(h) && !/tab3c='임대료·관리비'/.test(h) && /<div class="ct">임대료 인상 예약/.test(h)
