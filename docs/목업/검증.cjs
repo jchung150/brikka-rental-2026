@@ -50,7 +50,7 @@ run('PAY-1 6월 마감 취소 후 · 다른 건물', "delete MC.b1['2026-06'];f1
 run('PAY-13 7월 잠금', "seedJuly();RC.f.ym='2026-07';PAY13()");
 run('CTR-2 자료', "nc=null;CTR2();upOpen('b1',true);Object.assign(up.files[0],{t:'임대차계약서.pdf',sz:'1 MB',ttl:'임대차계약서',c:'계약서'});upHTML();upSave();CTR2()");
 run('CTR-3 청구 추가 · 청구 감액 패널', "seedJuly();fixOpen('b1본관101호','add');drawerHTML();fixOpen('b1본관101호','cut');drawerHTML();fxSet('item','수도요금');fxSet('amt','10000');drawerHTML()");
-run('PAY-1 발행 · 취소 패널 · 메일', "f1.b='b2';PAY1();issue1(['b21203호']);PAY1();cancelOpen('b21203호');cancelHTML();cx1.why='약정 오기';cancelOK();mail1=false;PAY1()");
+run('PAY-1 발행 · 취소 패널 · 메일', "f1.b='b2';PAY1();issue1(['b2501호']);PAY1();cancelOpen('b2501호');cancelHTML();cx1.why='약정 오기';cancelOK();mail1=false;PAY1()");
 run('CTR-2 변경 일정', "nc=null;CTR2();nc.adj.push({d:'2028-11-01',rent:'3465000',mgmt:''});CTR2()");
 run('PRO-1', 'PRO1()');
 run('CTR-2 빈 화면', "nc=null;CTR2()");
@@ -63,8 +63,21 @@ for (const t of ['요약', '유닛', '자료보관', '관리비'])
 run('PRO-3 유닛 · 다음 계약', "CTRS.push({b:'b1',no:'본관302호',key:'b1본관302호@2026-11-01',ten:'(주)새임차',st:'준비중',base:'2026-11-01',it:[['임대료',3000000]]});tab3='유닛';PRO3('b1')");
 { const U = new Function(stub + bare + '; return BUILDINGS[0].units;')();
   const fl = n => (U.find(u => u.no === n) || {}).fl;
-  if (!(U.length === 15 && fl('본관옥상') === new Function(stub + bare + '; return ROOF;')() && fl('본관B101호') === -1 && fl('본관B201호') === -2 && fl('본관301호') === 3 && fl('별관401호') === 4)) { console.log('② 유닛 층 계산 ✗'); fail = 1; } }
+  if (!(U.length === 14 && fl('본관B101호') === -1 && fl('본관B201호') === -2 && fl('본관301호') === 3 && fl('별관401호') === 4)) { console.log('② 유닛 층 계산 ✗'); fail = 1; } }
 for (const b of ['b2', 'b4']) run('PRO-3 ' + b, "tab3='요약';PRO3('" + b + "')");
+/* 관리비 정산 건물 전환 — 뉴진스하우스는 자기 유닛 · 검침 · 배율로 계산한다. 옥상 중계기 3대(901~903호)는 공용분도 배율 1.0으로 나눠 받고 수도만 배율 0 */
+{ const NJ = new Function(stub + bare + '; return {calc,M,withB,PAY10,ISSUE,f1,BUILDINGS,ROOF,set f10b(v){f10b=v;}};')();
+  NJ.f10b = 'b2'; const h2 = NJ.PAY10(); NJ.f10b = 'b1'; const h1 = NJ.PAY10(); NJ.f10b = 'b4'; const h4 = NJ.PAY10();
+  const E = NJ.withB('b2', () => NJ.calc(NJ.M('elec'))), Wt = NJ.withB('b2', () => NJ.calc(NJ.M('water')));
+  const rp = ['901호', '902호', '903호'], ru = no => E.rows.find(r => r.no === no);
+  const roof = NJ.BUILDINGS.find(b => b.id === 'b2').units.filter(u => u.fl === NJ.ROOF).map(u => u.no).join();
+  NJ.f1.b = 'b2'; const kt = NJ.ISSUE().find(c => c.no === '901호');
+  const ok = /901호/.test(h2) && !/본관/.test(h2.replace(/<select[\s\S]*?<\/select>/g, '')) && /본관801호/.test(h1) && !/901호/.test(h1) && /자료가 없습니다/.test(h4)
+    && rp.every(n => ru(n).mul === 1 && ru(n).use > 0 && ru(n).common > 0) && E.diff === 0
+    && rp.every(n => Wt.rows.find(r => r.no === n).amt === 0) && Wt.diff === 0 && roof === '901호,902호,903호'
+    && kt && kt.lines.some(l => l.n === '전기요금' && l.amt > 0) && !kt.lines.some(l => l.n === '수도요금');
+  if (!ok) fail = 1;
+  console.log('② 관리비 정산 건물 전환 · 뉴진스하우스 옥상 중계기 3대(공용분 배율 1.0 · 수도 배율 0)  ' + (ok ? 'OK' : '✗')); }
 run('PRO-3 관리비 설정 패널 — 임대료 · 전기요금 같은 구성', "loadCS('rent');DRAWER='chargeset';const a=csHTML();loadCS('elec');const b=csHTML();if(!/근거 문서/.test(a)||!/배분 방식/.test(a)||!/disabled/.test(a))throw new Error('구성 다름')");
 run('PRO-3 카즈하타워 관리비', "tab3='관리비';PRO3('b4')");
 run('PAY-12', 'PAY12()');
@@ -97,7 +110,7 @@ run('PAY-2', 'PAY2()');
 run('CTR-1', 'CTR1()');
 for (const f of ["f1c.st=''", "f1c.b='b2'", "f1c.dd='90'", "f1c.dd='0'"]) run('CTR-1 필터 ' + f, "f1c={b:'',st:'진행중',dd:''};" + f + ';CTR1()');
 run('CTR-3 요약', "tab3c='요약';CTR3('b1별관301호')");
-run('CTR-3 청구·수납', "seedJuly();tab3c='청구·수납';g7={'2026-07':true,'2026-06':true};CTR3('b1별관301호')+CTR3('b1본관101호')+CTR3('b1본관B201호')+CTR3('b21203호')");
+run('CTR-3 청구·수납', "seedJuly();tab3c='청구·수납';g7={'2026-07':true,'2026-06':true};CTR3('b1별관301호')+CTR3('b1본관101호')+CTR3('b1본관B201호')+CTR3('b2501호')");
 run('CTR-3 빈 탭', "tab3c='자료보관';CTR3('b1별관301호')");
 run('CTR-3 요약 임대정보 · 인상 예약', "tab3c='요약';CTR3('b1별관301호')+CTR3('b1본관301호')");
 run('CTR-3 계약 전환 메뉴', "CSW=true;tab3c='원장';CTR3('b1별관301호')");
@@ -164,8 +177,8 @@ if (tgt) {
   delete Y.BILL.elec.adj[tgt];
 }
 /* ⑤ 검침값·계량기·계기배율의 유닛 번호가 실제 유닛과 맞는가 */
-const Z = new Function(stub + bare + '; return {BILL,METER,CTMUL,UNITS_B1,MASTER};')();
-const names = new Set(Z.UNITS_B1.map(u => u.no));
+const Z = new Function(stub + bare + '; return {BILL,METER,CTMUL,UNITS,MASTER};')();
+const names = new Set(Z.UNITS.map(u => u.no));
 let orphan = [];
 for (const m of Z.MASTER) {
   const b = Z.BILL[m.code] || {};
@@ -259,7 +272,7 @@ r6.push(['보증금 상계 — 진행중 계약에서도 열림 · 경고 없음
 W.setPm('amt', 1000000); W.payConfirm();
 /* 미정산 — 끝난 계약인데 원장 잔액이 남음. 종료된 리틀브릿지(보증금 남음)에 붙고, 필터로 모인다 */
 { const LT = new Function(stub + bare + '; seedJuly(); return {leftOf,leftTag,ctrRowsOf,CTRS};')();
-  const ended = LT.CTRS.find(c => c.b === 'b2' && c.no === '1501호'), on = LT.CTRS.find(c => c.st === '진행중');
+  const ended = LT.CTRS.find(c => c.b === 'b2' && c.no === '602호'), on = LT.CTRS.find(c => c.st === '진행중');
   const rows = LT.ctrRowsOf({st: '미정산', dd: ''}, '');
   r6.push(['미정산 — 종료된 계약에 보증금이 남으면 표시 · 진행중 계약엔 없음 · 필터 「종료 · 미정산」은 끝난 계약만',
     !!LT.leftOf(ended) && /미정산/.test(LT.leftTag(ended)) && /보증금/.test(LT.leftTag(ended)) && !LT.leftOf(on)
@@ -508,11 +521,11 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
     && g.length === 0 && L.bal.매출채권 === 0 && CR.overOf(k) === 0 && jun]); }
 /* 청구서 취소 — 발행한 뒤 입금이 없고 마감 전이면 취소하고 다시 발행 · 사유가 없으면 막힘 · 마감한 달·입금 있는 청구는 막힘 → PAY-1 */
 { const IS = new Function(stub + bare + '; seedJuly(); return {issue1,cancelOpen,cancelOK,cancelBlock,ISS,ISS_LOG,ISSUE,CTRS,set f1b(v){f1.b=v;},get cx1(){return cx1;}};')();
-  IS.f1b = 'b2'; IS.issue1(['b21203호']);
-  const issued = IS.ISSUE().find(c => c.no === '1203호').st === '발행 완료';
-  IS.cancelOpen('b21203호'); IS.cancelOK(); const noWhy = !!IS.ISS['b21203호'];
+  IS.f1b = 'b2'; IS.issue1(['b2501호']);
+  const issued = IS.ISSUE().find(c => c.no === '501호').st === '발행 완료';
+  IS.cancelOpen('b2501호'); IS.cancelOK(); const noWhy = !!IS.ISS['b2501호'];
   IS.cx1.why = '약정 오기'; IS.cancelOK();
-  const back = IS.ISSUE().find(c => c.no === '1203호').st === '발행 대기' && IS.ISS_LOG.length === 1;
+  const back = IS.ISSUE().find(c => c.no === '501호').st === '발행 대기' && IS.ISS_LOG.length === 1;
   const c1 = IS.CTRS.find(c => c.no === '본관101호'), c3 = IS.CTRS.find(c => c.no === '별관301호');
   r6.push(['청구서 취소 — 발행 → 사유 없으면 막힘 → 취소하면 발행 대기 · 7월(마감)·입금 있는 청구는 취소 불가',
     issued && noWhy && back && /마감/.test(IS.cancelBlock(c3, '2026-07')) && !!IS.cancelBlock(c1, '2026-07')]); }
@@ -679,7 +692,7 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
     && due0 === 5176383 + 1900161 + 735935 + f17 && amt === due0 && PF.ledgerOf(k).bal.매출채권 === 0]); }
 /* 해지 처리 없이 끝난 계약 — 해지 메뉴가 열리고 만기 종료 · 해지일 = 종료일(잠김) · 마감한 달이라 청구는 그대로 · 연체료는 종료일 뒤로 안 셈 → 확인요청 답변 질문 3 */
 { const EN = new Function(stub + bare + '; seedJuly(); return {ctrMore,termOpen,termHTML,lateCalc,CTRS,ckey,MORE,get tm(){return tm;}};')();
-  const c = EN.CTRS.find(x => x.b === 'b2' && x.no === '1501호'), k = EN.ckey(c); EN.MORE.length = 0; EN.ctrMore(c, k);
+  const c = EN.CTRS.find(x => x.b === 'b2' && x.no === '602호'), k = EN.ckey(c); EN.MORE.length = 0; EN.ctrMore(c, k);
   const it = EN.MORE.flat().find(i => i.t === '해지'); EN.termOpen(k); const h = EN.termHTML();
   r6.push(['해지 처리 없이 끝난 계약(리틀브릿지) — 해지 메뉴 열림 · 만기 종료 · 해지일 = 종료일 2025.01.31(잠김) · 「해지일이 마감한 달」 · 버튼 하나',
     c.st === '종료됨' && it && !it.off && EN.tm.type === '만기 종료' && EN.tm.out === '2025-01-31' && /disabled>/.test(h) && /해지일이 마감한 달/.test(h) && !/메일 보내고 해지 처리/.test(h)]); }
@@ -862,11 +875,11 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
 /* 청구서 발행 — 메일 체크박스·미납 조회 없음 · 발행을 누르면 메일 여부를 묻는다 · 더보기로 한 계약만 발행 */
 { const IA = new Function(stub + bare + '; seedJuly(); return {PAY1,issueAsk,issueGo,issueHTML,ISS,MORE,set f1b(v){f1.b=v;}};')();
   IA.f1b = 'b2'; IA.MORE.length = 0; const h = IA.PAY1();
-  const m = IA.MORE.find(x => x[0].go === `issueAsk(['b21203호'])`);
-  IA.issueAsk(['b21203호']); const ask = IA.issueHTML(); IA.issueGo(false);
+  const m = IA.MORE.find(x => x[0].go === `issueAsk(['b2501호'])`);
+  IA.issueAsk(['b2501호']); const ask = IA.issueHTML(); IA.issueGo(false);
   r6.push(['청구서 발행 — 메일 체크박스·미납 조회 없음 · 더보기 「청구서 발행」 · 「미리보기」 → 메일 여부 묻기 → 메일 없이 발행',
     !h.includes('메일 보내기') && !h.includes('미납 조회') && m && !m[0].off && m[1].t === '미리보기' && !m[1].off && !!m[2].off
-    && /메일을 보내시겠습니까/.test(ask) && IA.ISS['b21203호'] && IA.ISS['b21203호'].mail === false]); }
+    && /메일을 보내시겠습니까/.test(ask) && IA.ISS['b2501호'] && IA.ISS['b2501호'].mail === false]); }
 /* 청구서 발행 전 달 — 마감한 달의 미납이 넘어간 다음 달 줄에 이월 미납액만, 마감 뒤 수납은 거기에 → 명세변경 20 */
 { const CY = new Function(stub + bare + '; seedJuly(); return {CTR3month,CTRS,ctrPay,openOffset,setPm,payConfirm};')();
   const k = 'b1별관301호', c = CY.CTRS.find(x => x.b === 'b1' && x.no === '별관301호');

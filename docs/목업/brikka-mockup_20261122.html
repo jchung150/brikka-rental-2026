@@ -654,7 +654,7 @@ const BUILDINGS=[
   mgmtStart:'2025-03-01',mgmtEnd:'2027-02-28',fee:'임대료의 5%',mode:'임대인 직수취',
   bondBank:'국민은행 서교동지점',bondTel:'02-334-8820',bondMax:1800000000,bondNow:1240000000,
   fac:['회의실','옥상정원','샤워실','무인택배함'],
-  units:[],   /* 카리나빌딩 유닛은 정산 자료(UNITS_B1)에서 만든다 — 계약·검침과 같은 번호 */
+  units:[],   /* 카리나빌딩 유닛은 정산 자료(UNITS)에서 만든다 — 계약·검침과 같은 번호 */
   docs:[
    /* 계약서 3건은 관련 계약을 골라 올린 예시(목업 설명용 가짜 문서) — 계약 상세의 자료보관에도 같은 문서가 보인다 */
    {t:'임대차계약서_본관801호_아이씨비.pdf',ttl:'임대차계약서 본관801호 (주)아이씨비',sz:'2.4 MB',c:'계약서',k:'b1본관801호',m:'2024.03 원본 스캔. 본관701호와 한 장으로 체결',by:'김관리',at:'2024-02-26 15:30'},
@@ -679,11 +679,23 @@ const BUILDINGS=[
 
  {id:'b2',name:'뉴진스하우스',alias:'뉴진스',kind:'오피스빌딩',addr:'서울특별시 용산구 이촌로 248',addr2:'서울 용산구 이촌동 301-8',
   owner:'뉴진스',ownerBiz:'220-13-88402',owners:[{n:'뉴진스',biz:'220-13-88402',share:60},{n:'민지',biz:'110-24-55031',share:40}],built:'2015-02-03',approved:'2016-06-28',mgrs:['이담당'],
-  area:7240.0,gross:9820.4,up:12,down:3,park:48,pk:{up:6,down:38,mech:4},hvac:['중앙공조','EHP(시스템에어컨)'],unitCnt:22,vacCnt:1,opCnt:0,vac:4.5,
+  area:2085.0,gross:2840.6,up:7,down:1,park:14,pk:{up:4,down:10,mech:0},hvac:['EHP(시스템에어컨)'],unitCnt:13,vacCnt:1,opCnt:0,vac:7.7,
   acct:'신한은행 140-012-772301',acctName:'뉴진스',feeAcct:'신한은행 140-012-772415',feeAcctName:'뉴진스 관리비',
   mgmtStart:'2024-09-18',mgmtEnd:'2026-09-17',fee:'월 2,400,000원',mode:'임대인 직수취',
   bondBank:'신한은행 이촌동지점',bondTel:'02-797-1120',bondMax:4200000000,bondNow:3100000000,
-  fac:['회의실','카페테리아','피트니스'],units:[],docs:[],charge:[],billDay:'당월 25일',dueDay:'익월 10일'},
+  fac:['회의실','옥상 통신 중계기'],units:[],docs:[],
+  charge:[
+   {it:'임대료',use:1,bill:'세금계산서',cycle:'매월',meter:'',mtr:'',basis:'',doc:'임대차계약서',fixed:true},
+   {it:'고정관리비',use:1,bill:'세금계산서',cycle:'매월',meter:'',mtr:'',basis:'',doc:'임대차계약서',fixed:true},
+   {it:'전기요금',use:1,cycle:'매월',bill:'세금계산서',meter:'13개 유닛',mtr:'청구함',rest:'전체 유닛',basis:'사용량',doc:'한국전력 고지서'},
+   {it:'수도요금',use:1,cycle:'매월',bill:'계산서',meter:'101호',mtr:'청구함',rest:'전체 유닛',basis:'사용량+임대면적',doc:'상수도사업본부 고지서'},
+   {it:'전력기금',use:1,cycle:'매월',bill:'일반내역서',meter:'없음',mtr:'—',rest:'전체 유닛',basis:'사용량',ref:'전기요금',doc:'한국전력 고지서'},
+   {it:'TV수신료',use:1,cycle:'매월',bill:'일반내역서',meter:'없음',mtr:'—',rest:'전체 유닛',basis:'사용량',ref:'전기요금',doc:'한국전력 고지서'},
+   {it:'가스요금',use:0,bill:'',meter:'',mtr:'',rest:'',basis:''},
+   {it:'주차비',use:0,bill:'',meter:'',mtr:'',rest:'',basis:''},
+   {it:'교통유발부담금',use:0,bill:'',meter:'',mtr:'',rest:'',basis:''},
+   {it:'정화조청소비',use:0,bill:'',meter:'',mtr:'',rest:'',basis:''}],
+  billDay:'당월 25일',dueDay:'익월 10일'},
 
  {id:'b4',name:'카즈하타워',alias:'카즈하',kind:'복합상가',addr:'서울특별시 마포구 월드컵로 12',addr2:'서울 마포구 합정동 381-4',
   owner:'카즈하',ownerBiz:'113-86-20447',owners:[{n:'카즈하',biz:'113-86-20447',share:100}],built:'2012-08-01',approved:'2013-03-15',mgrs:['최현우'],
@@ -708,9 +720,7 @@ BUILDINGS.forEach(b=>{b.park=b.pk.up+b.pk.down+b.pk.mech;});
 /* ═══ PAY-10 정산 데이터 ═══ */
 /* 카리나빌딩 — 본관 11 · 별관 3 유닛. 임차인명은 실제 입주사다.
    임대면적은 실측값이 아니다. */
-const UNITS_B1=[
- /* 옥상 통신 중계기 — 2026-08-01 계약 시작. 전기 계량기는 8월 검침부터. 수도 등 면적 기준 항목은 배율 0 → 명세변경_261122 */
- {no:'본관옥상',   st:'사용중', ten:'㈜한빛텔레콤',            ar:10.0, net:10.0, use:'기타', memo:'통신 중계기. 전기는 별도 계량기. 수도 사용 없음'},
+let UNITS=[
  {no:'본관801호',  st:'사용중', ten:'(주)아이씨비',          ar:330.0},
  {no:'본관701호',  st:'사용중', ten:'(주)아이씨비',          ar:330.0},
  {no:'본관601호',  st:'사용중', ten:'유한회사아마데우스',     ar:330.0},
@@ -732,7 +742,7 @@ const flName=fl=>fl===ROOF?'옥상':fl>0?fl+'층':'지하 '+Math.abs(fl)+'층';
 const flKind=fl=>fl===ROOF?'옥상':fl<0?'지하':'지상';
 const flOf=(fk,fl)=>fk==='옥상'?ROOF:(fk==='지하'?-1:1)*parseInt(fl);
 /* 건물 상세 유닛 탭 — 층은 유닛 번호에서, 용도는 예시값. 전용면적은 임대면적의 62%(예시) */
-BUILDINGS[0].units=UNITS_B1.map(u=>{
+BUILDINGS[0].units=UNITS.map(u=>{
   const b=u.no.match(/B(\d)\d\d호$/), m=u.no.match(/(\d+)(층|호)$/);
   const fl=/옥상$/.test(u.no)?ROOF:b?-(+b[1]):m?(m[2]==='호'?Math.floor(+m[1]/100):+m[1]):0;
   return {no:u.no,st:u.st,ten:u.ten,fl,area:u.ar,net:u.net!=null?u.net:Math.round(u.ar*0.62*10)/10,
@@ -791,28 +801,26 @@ function billBefore(nx,ym,day){
   let su=0,sn=0;
   Object.keys(nx.elec.read).forEach((no,i)=>{const [p,c]=nx.elec.read[no];
     /* 계량기 지침은 정수다. 본관101호만 소수 둘째 자리까지 나온다 */
-    const u=Number.isInteger(p)&&Number.isInteger(c)?Math.round((c-p)*v[i]):r2((c-p)*v[i]);
+    const vi=v[i%v.length], u=Number.isInteger(p)&&Number.isInteger(c)?Math.round((c-p)*vi):r2((c-p)*vi);
     su+=c-p; sn+=u; o.elec.read[no]=[r2(p-u),p];});
   const k=sn/su;
   o.elec.use=Math.round(nx.elec.use*k); o.elec.supply=Math.round(nx.elec.supply*k); o.elec.vat=Math.round(o.elec.supply*0.1);
   o.elec.date=d(day); o.elec.readDate=d(day);
-  const [wp,wc]=nx.water.read['본관101호'], wu=Math.round((wc-wp)*v[7]);
-  o.water.read['본관101호']=[wp-wu,wp]; o.water.use=Math.round(nx.water.use*wu/(wc-wp));
-  o.water.supply=Math.round(nx.water.supply*wu/(wc-wp)); o.water.date=d('07'); o.water.readDate=d('07');
+  /* 수도 — 계량기 유닛(건물마다 하나)의 사용량 비율로 */
+  const wk=Object.keys(nx.water.read||{})[0];
+  if(wk){const [wp,wc]=nx.water.read[wk], wu=Math.round((wc-wp)*v[7]);
+    o.water.read[wk]=[wp-wu,wp]; o.water.use=Math.round(nx.water.use*wu/(wc-wp));
+    o.water.supply=Math.round(nx.water.supply*wu/(wc-wp));}
+  o.water.date=d('07'); o.water.readDate=d('07');
   o.fund.supply=Math.round(o.elec.supply*nx.fund.supply/nx.elec.supply); o.fund.date=d(day);
   o.tv.date=d(day); o.parking.date=d('10');
-  if(ym==='2026-06') o.parking.direct={'본관801호':71000,'본관401호':100000};
+  if(ym==='2026-06'&&o.parking.direct&&'본관801호' in o.parking.direct) o.parking.direct={'본관801호':71000,'본관401호':100000};
   Object.values(o).forEach(b=>{if(b&&b.adj) b.adj={};});
   return o;
 }
-const BILL_M={'2026-08':BILL};
+let BILL_M={'2026-08':BILL};
 BILL_M['2026-07']=billBefore(BILL,'2026-07','09');
 BILL_M['2026-06']=billBefore(BILL_M['2026-07'],'2026-06','09');
-/* 옥상 중계기 — 전기는 8월부터 계량기로 잰다(6·7월은 공용분에 섞여 있었다). 전기 · 수도 모두 공용분을 나눠 받지 않는다(배율 0).
-   배율은 직전 회차 값을 이어받으므로 한 번 넣은 0이 매달 그대로다 → 명세변경_261122 34 */
-BILL.elec.read['본관옥상']=[48210,49775];
-['2026-06','2026-07','2026-08'].forEach(ym=>['elec','water'].forEach(c=>{
-  BILL_M[ym][c].adj['본관옥상']={mul:0,why:'통신 중계기 — 공용부를 쓰지 않음',by:'슈퍼관리자',at:'2026-07-28 10:00'};}));
 /* 그 달의 입력값으로 잠깐 바꿔 계산한다 — 지난 회차 화면·청구서가 모두 이것을 쓴다 */
 let PAST_CTX=null;
 function withMonth(ym,fn){
@@ -822,20 +830,20 @@ function withMonth(ym,fn){
 }
 const SETTLE={ym:'2026-08',status:'작성중'};
 /* 항목별 저장 — 저장해야 탭에 ✓가 붙는다. 저장 후 고치면 다시 저장 전이 된다. 주차비는 아직 저장하지 않았다 → PAY-10 */
-const SAVED={elec:'08-09 17:40',water:'08-07 15:10',fund:'08-09 17:41',tv:'08-09 17:41',parking:null};
+let SAVED={elec:'08-09 17:40',water:'08-07 15:10',fund:'08-09 17:41',tv:'08-09 17:41',parking:null};
 /* 조사 — 받침이 있으면 「을」, 없으면 「를」 */
 const josaEul=w=>{const c=w.charCodeAt(w.length-1)-0xAC00;return c>=0&&c%28?'을':'를';};
 function saveItem(code){SAVED[code]='08-10 11:30';render(true);}
-let f10ym='2026-08';
+let f10ym='2026-08', f10b='b1';
 /* 건물별 월 업무 진행 — PAY-12 */
 const PROG={
- b1:{settle:'작성중',inv:0,invN:14,amt:0,paid:0,paidN:0,closed:false,closedAt:null,due:'08-31'},
- b2:{settle:'확정', inv:0,invN:22,amt:0,paid:0,paidN:0,closed:false,closedAt:null,due:'09-10'},
+ b1:{settle:'작성중',inv:0,invN:13,amt:0,paid:0,paidN:0,closed:false,closedAt:null,due:'08-31'},
+ b2:{settle:'확정', inv:0,invN:12,amt:0,paid:0,paidN:0,closed:false,closedAt:null,due:'09-10'},
  b4:{settle:'미착수',inv:0,invN:14,amt:0,paid:0,paidN:0,closed:false,closedAt:null,due:'08-31'},
 };
 /* 지난 회차(7월) — 모두 발행·마감했다. 카리나빌딩은 원장에서 계산한다 → PAY12 */
 const PROG7={
- b2:{settle:'확정',inv:22,invN:22,amt:186420000,paid:171300000,paidN:20,closed:false,closedAt:null,due:'08-10'},
+ b2:{settle:'확정',inv:12,invN:12,amt:47160000,paid:44310000,paidN:11,closed:false,closedAt:null,due:'08-10'},
  b4:{settle:'확정',inv:12,invN:12,amt:61200000,paid:61200000,paidN:12,closed:true,closedAt:'08-06',due:'07-31'},
 };
 const selItems=()=>MASTER.filter(m=>!m.fixed&&BILL[m.code].on);
@@ -856,11 +864,11 @@ function curItem(step){
   return list.find(m=>m.code===pCode) || list[0] || null;
 }
 /* 계량기 보유 유닛 (유닛 × 청구항목) — PRO-3 관리비 탭 / PRO-4 검침 설정 */
-const ALL_U=UNITS_B1.map(u=>u.no);
+const ALL_U=UNITS.map(u=>u.no);
 /* 계기배율 — 계량기가 실사용량을 그대로 재지 않는 경우의 환산 계수.
    본관101호 에스씨케이컴퍼니는 1/30 계량기라 지침에 30을 곱해야 실사용량이 된다.
    계량기의 고정 속성이므로 회차마다 입력하지 않는다 → PRO-3 계량기 설정 */
-const CTMUL={elec:{'본관101호':30}};
+let CTMUL={elec:{'본관101호':30}};
 const ctOf=(code,no)=>((CTMUL[code]||{})[no])||1;
 function setCT(code,no,v){
   SAVED[code]=null;
@@ -869,7 +877,7 @@ function setCT(code,no,v){
   if(n===1) delete CTMUL[code][no]; else CTMUL[code][no]=n;
   render(true);
 }
-const METER={
+let METER={
  /* 본관301호 고우컴퍼니는 전기 계량기가 없다. 302호와 한 공간을 써서 301호 전기는 302호 지침에 들어 있다(유닛 메모) */
  elec: ALL_U.filter(n=>n!=='본관301호'),
  water:['본관101호'],
@@ -877,7 +885,7 @@ const METER={
  fund: [], tv: [], traffic: [], septic: [], parking: [],
 };
 /* 건물별 항목 설정 — 정본은 PRO-3 관리비 탭 */
-const BSET={
+let BSET={
  elec:{basis:'사용량',ref:null},
  water:{basis:'사용량+임대면적',ref:null},
  fund:{basis:'사용량',ref:'elec'},
@@ -887,6 +895,70 @@ const BSET={
  parking:{basis:'직접 입력',ref:null},
 };
 const DEFSET={basis:'임대면적',ref:null};
+/* ═══ 건물별 정산 자료 — 관리비 정산 · 청구서 발행 · 건물 관리비 탭이 보는 건물을 바꾸면 유닛 · 검침 · 설정 · 배율이 모두 그 건물 것으로 바뀐다.
+   화면 코드는 UNITS · BILL · BILL_M · METER · BSET · CTMUL · SAVED · BLD를 그대로 쓰고, useB가 그 묶음을 갈아 끼운다 ═══ */
+let SB='b1', BLD=BUILDINGS[0];
+const SD={b1:{units:UNITS,BM:BILL_M,meter:METER,bset:BSET,ct:CTMUL,saved:SAVED,bld:BUILDINGS[0]}};
+function useB(b){
+  if(!SD[b]||b===SB) return;
+  const d=SD[b]; SB=b;
+  UNITS=d.units; BILL_M=d.BM; METER=d.meter; BSET=d.bset; CTMUL=d.ct; SAVED=d.saved; BLD=d.bld;
+  BILL=(PAST_CTX&&BILL_M[PAST_CTX])||BILL_M['2026-08'];
+}
+function withB(b,fn){const k=SB; useB(b); try{return fn();} finally{useB(k);}}
+
+/* ── 뉴진스하우스 — 지상 7층 · 지하 1층. 임차인은 목업 예시값(가짜)이다. 임대료는 카리나빌딩의 절반 수준 ──
+   옥상에 통신 중계기 3대(KT · SKT · LGU+). 유닛번호는 901 · 902 · 903호, 층은 옥상이다 → 명세변경_261122 32
+   중계기도 전기 계량기가 있고, 공용분은 다른 유닛과 똑같이 사용량 비율로 나눠 받는다(배율 1.0).
+   수도는 쓰지 않으므로 수도요금만 배율 0이다 */
+const UNITS_NJ=[
+ {no:'B101호',st:'사용중',ten:'버니즈물류(주)',     ar:160.0, use:'창고'},
+ {no:'101호', st:'사용중',ten:'(주)하니커피',       ar:140.0, use:'근린생활'},
+ {no:'102호', st:'사용중',ten:'다니엘약국',         ar:90.0,  use:'근린생활'},
+ {no:'201호', st:'사용중',ten:'(주)민지디자인',     ar:240.0},
+ {no:'301호', st:'사용중',ten:'해린스튜디오',       ar:240.0},
+ {no:'401호', st:'사용중',ten:'(주)혜인테크',       ar:240.0},
+ {no:'501호', st:'사용중',ten:'(주)세움파트너스',   ar:240.0},
+ {no:'601호', st:'사용중',ten:'(주)토끼어패럴',     ar:120.0},
+ {no:'602호', st:'공실',  ten:'',                   ar:120.0},
+ {no:'701호', st:'사용중',ten:'(주)쿠키랩',         ar:240.0},
+ {no:'901호', st:'사용중',ten:'(주)케이티',         ar:5.0, net:5.0, use:'기타', fl:ROOF, memo:'KT 통신 중계기. 전기 계량기 따로 있음. 수도 사용 없음'},
+ {no:'902호', st:'사용중',ten:'에스케이텔레콤(주)', ar:5.0, net:5.0, use:'기타', fl:ROOF, memo:'SKT 통신 중계기. 전기 계량기 따로 있음. 수도 사용 없음'},
+ {no:'903호', st:'사용중',ten:'(주)엘지유플러스',   ar:5.0, net:5.0, use:'기타', fl:ROOF, memo:'LGU+ 통신 중계기. 전기 계량기 따로 있음. 수도 사용 없음'},
+];
+const BILL_NJ={
+ elec:{on:true,date:'2026-08-14',from:'2026-07-15',to:'2026-08-14',use:28770,supply:5897850,vat:589785,
+   read:{'B101호':[21540,21960],'101호':[88210,90810],'102호':[30410,31310],'201호':[102330,105430],'301호':[95120,97920],
+         '401호':[110470,113770],'501호':[98040,100940],'601호':[47220,48620],'602호':[22310,22370],'701호':[101560,104560],
+         '901호':[51200,52680],'902호':[56900,58520],'903호':[48330,49720]},
+   readDate:'2026-08-14',adj:{}},
+ water:{on:true,date:'2026-08-12',from:'2026-06-13',to:'2026-08-12',use:820,supply:2833100,vat:0,
+   read:{'101호':[3120,3380]},readDate:'2026-08-12',adj:{}},   /* 101호 카페만 계량기 */
+ fund:{on:true,date:'2026-08-14',use:null,supply:159242,vat:0,read:null,adj:{}},
+ tv:{on:true,date:'2026-08-14',use:null,supply:2500,vat:0,read:null,adj:{}},
+ gas:{on:false,date:'',use:null,supply:0,vat:0,read:null,adj:{}},
+ rent:{on:false,fixed:true}, mgmt:{on:false,fixed:true},
+ traffic:{on:false,date:'',use:null,supply:0,vat:0,read:null,adj:{}},
+ septic:{on:false,date:'',use:null,supply:0,vat:0,read:null,adj:{}},
+ parking:{on:false,date:'',use:null,supply:0,vat:0,read:null,adj:{},direct:{}},
+};
+const BM_NJ={'2026-08':BILL_NJ};
+BM_NJ['2026-07']=billBefore(BILL_NJ,'2026-07','14');
+BM_NJ['2026-06']=billBefore(BM_NJ['2026-07'],'2026-06','14');
+/* 중계기 수도 배율 0 — 직전 회차 값을 이어받으므로 매달 같다 → 명세변경_261122 34 */
+['2026-06','2026-07','2026-08'].forEach(ym=>['901호','902호','903호'].forEach(no=>{
+  BM_NJ[ym].water.adj[no]={mul:0,why:'통신 중계기 — 수도를 쓰지 않음',by:'이담당',at:'2025-03-20 10:00'};}));
+SD.b2={units:UNITS_NJ,BM:BM_NJ,
+  meter:{elec:UNITS_NJ.map(u=>u.no),water:['101호'],gas:[],fund:[],tv:[],traffic:[],septic:[],parking:[]},
+  bset:{elec:{basis:'사용량',ref:null},water:{basis:'사용량+임대면적',ref:null},fund:{basis:'사용량',ref:'elec'},tv:{basis:'사용량',ref:'elec'},
+        gas:null,traffic:null,septic:null,parking:null},
+  ct:{},saved:{elec:'08-14 16:20',water:'08-12 11:05',fund:'08-14 16:21',tv:'08-14 16:21'},
+  bld:BUILDINGS.find(b=>b.id==='b2')};
+SD.b2.bld.units=UNITS_NJ.map(u=>{
+  const b=u.no.match(/^B(\d)\d\d호$/), m=u.no.match(/^(\d+)호$/);
+  const fl=u.fl!=null?u.fl:b?-(+b[1]):m?Math.floor(+m[1]/100):0;
+  return {no:u.no,st:u.st,ten:u.ten,fl,area:u.ar,net:u.net!=null?u.net:Math.round(u.ar*0.62*10)/10,use:u.use||'사무실',...(u.memo?{memo:u.memo}:{})};
+});
 /* 자동 규칙 해석 — 4.1.3 */
 function resolve(code){
   const st=BSET[code]||DEFSET;
@@ -905,7 +977,7 @@ const isTax=b=>b==='세금계산서';
 const CYCLES=['이번만','매월','격월','분기','반기','연1회'];
 function loadCS(code){
   const m=M(code), b=BSET[code]||{};
-  const row=BUILDINGS[0].charge.find(c=>c.it===m.name);
+  const row=BLD.charge.find(c=>c.it===m.name);
   const mt=[...(METER[code]||[])];
   cs={neu:false, item:code, name:m.name, bill:m.bill, cycle:m.cycle,
       useMeter:mt.length>0, meters:mt,
@@ -917,10 +989,10 @@ function loadCS(code){
 }
 function openCS(code){
   /* 건물당 청구항목은 최대 97개 — 우선순위 1~97과 짝(98 비정기 청구 · 99 연체료) */
-  if(!code&&BUILDINGS[0].charge.length>=PR_MAX) return;   /* 「+ 항목 추가」 버튼이 잠긴다 */
+  if(!code&&BLD.charge.length>=PR_MAX) return;   /* 「+ 항목 추가」 버튼이 잠긴다 */
   if(code) loadCS(code);
   else{
-    const m=MASTER.find(x=>!BUILDINGS[0].charge.some(c=>c.it===x.name));
+    const m=MASTER.find(x=>!BLD.charge.some(c=>c.it===x.name));
     m? loadCS(m.code) : csNew();
   }
   DRAWER='chargeset'; render();
@@ -953,14 +1025,14 @@ const needMeter=b=>!!(BASIS.find(o=>o.k===b)||{}).m;
 function csBasis(v){
   cs.basis=v;
   if(v!=='사용량') cs.ref=null;
-  if(needMeter(v)){ cs.useMeter=true; if(!cs.meters.length) cs.meters=UNITS_B1.map(u=>u.no); }
+  if(needMeter(v)){ cs.useMeter=true; if(!cs.meters.length) cs.meters=UNITS.map(u=>u.no); }
   else { cs.useMeter=false; cs.meters=[]; }
   render();
 }
 function csUseMeter(v){
   cs.useMeter=(v==='사용');
   if(!cs.useMeter) cs.meters=[];
-  else if(!cs.meters.length) cs.meters=UNITS_B1.map(u=>u.no);
+  else if(!cs.meters.length) cs.meters=UNITS.map(u=>u.no);
   render();
 }
 function csSet(k,v){
@@ -980,9 +1052,9 @@ function csUnit(no){
   cs.meters.includes(no)?cs.meters=cs.meters.filter(x=>x!==no):cs.meters.push(no);
   render();
 }
-function csAll(v){cs.meters=v?UNITS_B1.map(u=>u.no):[];render();}
+function csAll(v){cs.meters=v?UNITS.map(u=>u.no):[];render();}
 /* 우선순위 중복 — 같은 건물의 다른 항목이 이미 쓰는 번호 */
-const prDup=()=>{const d=BUILDINGS[0].charge.filter(c=>c.it!==cs.name&&prioOf(c.it)===cs.pr).map(c=>c.it);return d.join('·');};
+const prDup=()=>{const d=BLD.charge.filter(c=>c.it!==cs.name&&prioOf(c.it)===cs.pr).map(c=>c.it);return d.join('·');};
 function csApply(){
   let code=cs.item;
   /* 막는 이유는 패널 안 그 칸 아래에 빨간 글씨로 보인다(우선순위 중복 · 항목명) */
@@ -1000,7 +1072,7 @@ function csApply(){
     const m=M(code); m.bill=cs.bill; m.cycle=cs.cycle; m.tax=isTax(cs.bill);
   }
   if(cs.fixed){   /* 고정액 — 배분 설정이 없다. 발행 문서·주기만(우선순위는 1 · 2 고정 · 늘 사용) */
-    const row=BUILDINGS[0].charge.find(c=>c.it===cs.name);
+    const row=BLD.charge.find(c=>c.it===cs.name);
     if(row) Object.assign(row,{bill:cs.bill,cycle:cs.cycle});
     DRAWER=null; cs=null; render(); return;
   }
@@ -1010,9 +1082,9 @@ function csApply(){
   if(METER[code].length) BILL[code].read=BILL[code].read||{};
   BSET[code]={basis:cs.basis,doc:cs.doc,by:cs.by,pr:cs.pr,
     ref:cs.ref};
-  const m=M(code), bc=BUILDINGS[0].charge, row=bc.find(c=>c.it===m.name);
+  const m=M(code), bc=BLD.charge, row=bc.find(c=>c.it===m.name);
   const mm=METER[code];
-  const mt=mm.length===0?'없음':mm.length===UNITS_B1.length?`전체 ${mm.length}개`
+  const mt=mm.length===0?'없음':mm.length===UNITS.length?`전체 ${mm.length}개`
     :mm.length<=2?mm.join(', '):`${mm.length}개 유닛`;
   /* 미사용 — 다음 회차부터 이 건물에서 청구하지 않는다. 작성 중인 정산에서도 뺀다. 지난 정산 · 원장은 그대로 */
   if(!cs.use&&BILL[code]) BILL[code].on=false;
@@ -1116,14 +1188,14 @@ function ratios(m,raw){
   /* 직접 입력 — 안분하지 않는다. 계약별로 담당자가 넣은 금액이 그대로 청구된다 */
   if(st.basis==='직접 입력'){
     const dir=b.direct||{}, tot=directSum(m.code);
-    const rows=UNITS_B1.map(u=>{
+    const rows=UNITS.map(u=>{
       const d=+dir[u.no]||0;
       return {...u,hasM:false,typed:false,use:0,aUse:0,mul:1,
               direct:d,w:0,common:0,tot:0,ratio:tot?d/tot:0};
     });
     return {rows,sumUse:0,common:0,wSum:0,totUse:0,charge:false,byUse:false,direct:true};
   }
-  const rows=UNITS_B1.map(u=>{
+  const rows=UNITS.map(u=>{
     const hasM=hasMeter(m.code,u.no);
     const r=reading(m.code,u.no);
     /* 당월 검침값이 없으면 사용량은 0이다. null − 전월값이 음수가 되는 것을 막는다 */
@@ -1206,10 +1278,10 @@ function csHTML(){
   if(DRAWER!=='chargeset'||!cs) return '';
   /* 칸 설명은 칸 이름 옆 ⓘ에 — 마우스를 올리면 보인다. 저장을 막는 오류(우선순위 중복)만 칸 아래에 그대로 */
   const TIP=t=>t?`<i class="tip" data-tip="${t}">i</i>`:'';
-  const U=UNITS_B1, A=csAuto();
+  const U=UNITS, A=csAuto();
   const nM=cs.useMeter?cs.meters.length:0, nAll=U.length, nNo=nAll-nM;
   const byUse=cs.basis==='사용량', needM=needMeter(cs.basis);
-  const used=BUILDINGS[0].charge.filter(c=>c.use).map(c=>c.it);
+  const used=BLD.charge.filter(c=>c.use).map(c=>c.it);
   let warn='';
   if(cs.neu&&!(cs.name||'').trim()) warn='항목명을 입력하세요.';
   else if(needM&&nM===0&&!cs.ref) warn='이 배분 기준은 계량기가 필요합니다. 보유 유닛을 선택하거나 참조 항목을 지정하세요.';
@@ -1224,7 +1296,7 @@ function csHTML(){
   const prev = warn ? `<div class="prev warn2"><div class="pt">설정을 확인하세요</div>${warn}</div>` : '';
   return `<div class="dro"><div class="ov" onclick="closeDrawer()"></div><div class="pn">
     <div class="dh"><div><div class="t">청구항목 설정</div>
-      <div class="s">카리나빌딩${cs.editing?' · 수정':''}</div></div>
+      <div class="s">${BLD.name}${cs.editing?' · 수정':''}</div></div>
       <button class="x" onclick="closeDrawer()">✕</button></div>
     <div class="db">
       ${cs.fixed?'<div class="prev" style="margin:0 0 14px"><div class="pt">계약서 약정 항목</div>임대료·고정관리비는 금액·반복주기·근거 문서·배분 방식이 계약서로 정해집니다. 이 건물에서는 <b>발행 문서</b>만 바꿉니다. 배분 우선순위는 임대료 1 · 고정관리비 2로 고정입니다. 금액은 계약 상세 › 임대료·관리비에서 바꿉니다.</div>':''}
@@ -1339,7 +1411,7 @@ function drawerHTML(){
   if(DRAWER==='mclose') return mcHTML();
   if(DRAWER==='citem') return ciHTML();
   if(DRAWER!=='additem') return '';
-  const used=BUILDINGS[0].charge.filter(c=>c.use).map(c=>c.it);
+  const used=BLD.charge.filter(c=>c.use).map(c=>c.it);
   const rest=MASTER.filter(m=>!m.fixed&&!BILL[m.code].on&&used.includes(m.name));
   const card=m=>{
     const on=dPick.includes(m.code);
@@ -1348,7 +1420,7 @@ function drawerHTML(){
   };
   return `<div class="dro"><div class="ov" onclick="closeDrawer()"></div><div class="pn">
     <div class="dh"><div><div class="t">청구항목 추가</div>
-      <div class="s">2026년 8월 · 카리나빌딩</div></div>
+      <div class="s">2026년 8월 · ${BLD.name}</div></div>
       <button class="x" onclick="closeDrawer()">✕</button></div>
     <div class="db">
       <div class="c2" style="margin:-4px 0 12px;white-space:normal">반복주기가 <b>매월</b>인 항목은 새 회차를 열면 이미 올라와 있습니다.
@@ -1388,7 +1460,7 @@ const cnameHTML=(alias,no,ten)=>
 /* 유닛상태 표기 규칙
    목록·관리 화면(정렬·필터 대상)은 칼럼, 계산·작업 화면은 계약고유이름 뒤 칩.
    기본값 「사용중」은 표시하지 않는다. 칩이 없으면 사용중, 있으면 예외다. */
-const cnameST=(r,m)=>cnameHTML(BUILDINGS[0].alias,r.no,r.ten)
+const cnameST=(r,m)=>cnameHTML(BLD.alias,r.no,r.ten)
   + (r.st!=='사용중'?' '+stb(r.st):'');
 const go=h=>location.hash='#/'+h;
 function cycleOp(){opIdx=(opIdx+1)%OPS.length;paintOp();render();}
@@ -2156,10 +2228,10 @@ function t주차(b,fixK){
 
 /* 유닛 탭 — 카드 한 장이 유닛 하나. 누르면 오른쪽에 유닛 상세 패널(PRO-4) */
 /* ═══ 유닛 등록 — 건물 상세 유닛 탭의 오른쪽 패널. 주차면 추가와 같은 방식 → PRO-3
-   계량기는 여기서 정하고 나중에 유닛 상세(PRO-4)에서 달고 뗀다. 목업은 정산 자료(UNITS_B1)에 넣지 않는다 ═══ */
+   계량기는 여기서 정하고 나중에 유닛 상세(PRO-4)에서 달고 뗀다. 목업은 정산 자료(UNITS)에 넣지 않는다 ═══ */
 const UNIT_USE=['사무실','근린생활','창고','기타'];
 /* 계량기 종류 — 사용량 단위가 있는 항목(전기 · 수도 · 가스). 이 건물이 지금 청구하지 않는 항목도 보여 준다. 계량기는 물건이라 청구와 상관없이 달려 있을 수 있다 */
-const meterItems=b=>b.id!=='b1'?[]:MASTER.filter(m=>m.unit&&!m.fixed).map(m=>m.code);
+const meterItems=b=>!SD[b.id]?[]:MASTER.filter(m=>m.unit&&!m.fixed).map(m=>m.code);
 const meterUsed=(b,code)=>b.charge.some(c=>c.use&&codeOf(c.it)===code);
 function setMeters(no,on){Object.keys(on).forEach(code=>{const L=METER[code]||(METER[code]=[]), i=L.indexOf(no);
   if(on[code]&&i<0) L.push(no); if(!on[code]&&i>=0) L.splice(i,1); SAVED[code]=null;});}
@@ -2434,7 +2506,7 @@ function t자료(b,ck){
 /* ═══ 청구항목 상세 — 관리비 탭의 더보기 「상세」. 설정을 한눈에 보고, 최근 3개월 고지서 금액을 본다. 고치려면 「수정」 → PRO-3 ═══ */
 let cd=null;
 /* 청구항목 삭제 — 이 건물 목록에서 빼고, 확정 전 정산에서도 뺀다. 이미 발행한 청구·원장은 항목 이름으로 남는다. 임대료·고정관리비는 빼지 않는다 */
-function ciDel(code){const b=BUILDINGS[0], c=b.charge.find(x=>codeOf(x.it)===code); if(!c||c.fixed) return;
+function ciDel(code){const b=BLD, c=b.charge.find(x=>codeOf(x.it)===code); if(!c||c.fixed) return;
   b.charge=b.charge.filter(x=>x!==c); if(BILL[code]) BILL[code].on=false; DRAWER=null; cd=null; render(true);}
 const PSEUDO={
   adhoc:{t:'비정기 청구',n:98,bill:'등록할 때 고름(세금계산서 · 계산서 · 일반내역서)',cy:'청구할 때마다',bs:'안분하지 않음 · 그 계약에만',doc:'건마다 다름',
@@ -2448,7 +2520,7 @@ function cdHTML(){
   const px=PSEUDO[cd.code];
   if(px){const R=(k,v)=>`<div class="fr"><span class="fk">${k}</span><span class="fv">${v}</span></div>`;
     return `<div class="dro"><div class="ov" onclick="closeDrawer()"></div><div class="pn">
-    <div class="dh"><div><div class="t">${px.t}</div><div class="s">${BUILDINGS[0].name} · 청구항목 상세</div></div>
+    <div class="dh"><div><div class="t">${px.t}</div><div class="s">${BLD.name} · 청구항목 상세</div></div>
       <button class="x" onclick="closeDrawer()">✕</button></div>
     <div class="db">
       <div class="fg"><div class="fl">설정 · 모든 건물 같음</div>
@@ -2459,7 +2531,7 @@ function cdHTML(){
     <div class="df"><button class="btn pri" disabled title="모든 건물에서 같아 바꿀 수 없습니다">수정</button>
       <button class="btn" disabled title="모든 건물에서 같아 뺄 수 없습니다">삭제</button></div>
   </div></div>`;}
-  const b=BUILDINGS[0], m=M(cd.code), c=b.charge.find(x=>codeOf(x.it)===cd.code)||{}, st=resolve(cd.code), bill=c.bill||m.bill;
+  const b=BLD, m=M(cd.code), c=b.charge.find(x=>codeOf(x.it)===cd.code)||{}, st=resolve(cd.code), bill=c.bill||m.bill;
   const R=(k,v)=>`<div class="fr"><span class="fk">${k}</span><span class="fv">${v}</span></div>`;
   const mt=METER[cd.code]||[];
   const months=['2026-06','2026-07','2026-08'].map(ym=>{const B=(BILL_M[ym]||{})[cd.code]; return [ym,B&&B.on?(B.supply||0)+(B.vat||0):null];});
@@ -2568,7 +2640,11 @@ function itemFlag(m){
   }
   return {t:'완료',c:'ok'};
 }
+/* 관리비 정산 — 고른 건물의 정산 자료로 그린다. 목업 정산 자료는 카리나빌딩 · 뉴진스하우스뿐이다 */
 function PAY10(){
+  if(!SD[f10b]) return pay10Head(null)+`<div class="empty" style="padding:40px 0;text-align:center;color:var(--faint)">목업에는 이 건물의 관리비 정산 자료가 없습니다. 카리나빌딩 · 뉴진스하우스를 고르세요.</div>`;
+  return withB(f10b,PAY10_0);}
+function PAY10_0(){
   /* 지난 회차(6·7월)도 같은 항목 페이지로 본다. 그 달의 입력값으로 계산하고 입력 칸은 잠근다 */
   if(!PAST_CTX&&f10ym!=='2026-08') return withMonth(f10ym,PAY10);
   const sel=selItems();
@@ -2602,7 +2678,7 @@ function pay10Head(sel){
       return `<button class="btn pri" ${un.length?'disabled':''} onclick="say('정산 확정 → 산출 결과를 고정합니다. 청구 건은 청구서 발행 때 만들어집니다')">정산 확정</button>`;})()}</div>
   </div>
   <div class="fbar">
-    <select><option>카리나빌딩</option><option>카즈하타워</option><option>뉴진스하우스</option></select>
+    <select onchange="f10b=this.value;render()">${BUILDINGS.filter(b=>b.id!=='b3').map(b=>`<option value="${b.id}" ${f10b===b.id?'selected':''}>${b.name}</option>`).join('')}</select>
     <select onchange="f10ym=this.value;render()">${[['2026-08','2026년 8월'],['2026-07','2026년 7월'],['2026-06','2026년 6월']]
       .map(([v,t])=>`<option value="${v}" ${f10ym===v?'selected':''}>${t}</option>`).join('')}</select>
   </div>
@@ -2816,7 +2892,7 @@ function stAdj(m,R){
 let prc=null;
 function prcOpen(code,no){
   const m=M(code), b=BILL[code], R=calc(m), r=R.rows.find(x=>x.no===no), ov=(b.pr||{})[no];
-  const c=CTRS.find(x=>x.b==='b1'&&x.no===no&&x.st==='진행중');
+  const c=CTRS.find(x=>x.b===SB&&x.no===no&&x.st==='진행중');
   const from=itemFrom(c,m.name), end=ctrEnd(c);
   const af=ov?ov.af:(b.from&&dnum(from)>dnum(b.from)?from:b.from||''), at=ov?ov.at:(b.to&&end&&dnum(end)<dnum(b.to)?end:b.to||'');
   prc={code,no,ten:r.ten,from:b.from||'',to:b.to||'',af,at,base:r.orig!=null?r.orig:r.amt,amt:ov&&ov.amt!=null?String(ov.amt):'',why:ov?ov.why:'',had:!!ov};
@@ -2841,7 +2917,7 @@ function prcHTML(){
   const D=(f,lab)=>`<div class="fr"><span class="fk">${lab}</span><input type="date" value="${prc[f]}" onchange="prcSet('${f}',this.value)"></div>`;
   const V=(lab,val)=>`<div class="fr"><span class="fk">${lab}</span><span class="fv">${val}</span></div>`;
   return `<div class="dro"><div class="ov" onclick="closeDrawer()"></div><div class="pn">
-    <div class="dh"><div><div class="t">${m.name} 일할 계산</div><div class="s">${cname(BUILDINGS[0].alias,prc.no,prc.ten)}</div></div>
+    <div class="dh"><div><div class="t">${m.name} 일할 계산</div><div class="s">${cname(BLD.alias,prc.no,prc.ten)}</div></div>
       <button class="x" onclick="closeDrawer()">✕</button></div>
     <div class="db">
       <div class="fg"><div class="fl">고지서 부과 기간</div>${D('from','부과 시작일')}${D('to','부과 종료일')}${V('부과 일수',`<b>${pd}일</b>`)}</div>
@@ -3161,11 +3237,6 @@ const CITEM={
 /* 계약 식별 — 기존 계약은 건물+유닛. 같은 유닛에 다음 계약을 미리 등록하면 시작일을 붙여 구분한다 */
 const ckey=c=>c.key||c.b+c.no;
 const CTRS=[
- /* 옥상 통신 중계기 — 2년치 임대료를 한 번에 미리 받는다. 임대료는 전기료를 뺀 공간 임대료다.
-    전기는 계량한 만큼 매달 청구하고, 미리 받은 돈(과납)이 매달 청구서를 채운다. 연체료 부과는 끈다 → 명세변경_261122 33-3 */
- {b:'b1',no:'본관옥상',ten:'㈜한빛텔레콤',st:'진행중',base:'2026-08-01',dep:0,
-  memo:'2년치(2026.08~2028.07) 임대료 일시불 선납 계약. 전기료 포함 조건 — 계량 전기료도 선납금에서 차감. 만기 잔액은 그대로 둔다',
-  it:[['임대료',500000],['고정관리비',0]]},
  {b:'b1',no:'본관801호',ten:'(주)아이씨비',st:'진행중',base:'2024-03-01',
   ag:{n:'마포센트럴공인중개사사무소',ceo:'한지민',no:'11440-2019-00123',tel:'02-334-5521',addr:'서울특별시 마포구 양화로 45',fee:'0.9'},
   memo:'본관701호와 계약서 한 장(층별 해지 가능하게 계약 2건으로 관리). 청구서는 합쳐 보낸다',
@@ -3195,10 +3266,25 @@ const CTRS=[
   it:[['임대료',3150000],['고정관리비',1220000],['전기요금'],['전력기금'],['TV수신료'],['수도요금'],['정화조청소비'],['교통유발부담금']]},
  {b:'b1',no:'별관201호',ten:'㈜케이더블유인터내셔널',st:'진행중',base:'2025-04-01',
   it:[['임대료',3700000],['고정관리비',500000],['전기요금'],['전력기금'],['TV수신료'],['수도요금'],['정화조청소비'],['교통유발부담금']]},
- {b:'b2',no:'1203호',ten:'(주)세움파트너스',st:'진행중',base:'2025-02-01',
-  it:[['임대료',7800000],['고정관리비',1450000],['전기요금'],['수도요금']]},
- {b:'b2',no:'1501호',ten:'리틀브릿지',st:'종료됨',base:'2023-02-01',
-  it:[['임대료',6200000],['고정관리비',1180000],['전기요금'],['수도요금']]},
+ /* 뉴진스하우스 — 목업 예시값(가짜). 임대료는 카리나빌딩의 절반 수준 */
+ {b:'b2',no:'B101호',ten:'버니즈물류(주)',st:'진행중',base:'2024-05-01',it:[['임대료',1200000],['고정관리비',400000]]},
+ {b:'b2',no:'101호',ten:'(주)하니커피',st:'진행중',base:'2025-10-01',it:[['임대료',4000000],['고정관리비',700000]]},
+ {b:'b2',no:'102호',ten:'다니엘약국',st:'진행중',base:'2026-02-01',it:[['임대료',2500000],['고정관리비',450000]]},
+ {b:'b2',no:'201호',ten:'(주)민지디자인',st:'진행중',base:'2025-03-01',it:[['임대료',4500000],['고정관리비',1350000]]},
+ {b:'b2',no:'301호',ten:'해린스튜디오',st:'진행중',base:'2024-08-01',it:[['임대료',4400000],['고정관리비',1350000]]},
+ {b:'b2',no:'401호',ten:'(주)혜인테크',st:'진행중',base:'2025-06-01',it:[['임대료',4600000],['고정관리비',1350000]]},
+ {b:'b2',no:'501호',ten:'(주)세움파트너스',st:'진행중',base:'2025-02-01',it:[['임대료',3900000],['고정관리비',1200000]]},
+ {b:'b2',no:'601호',ten:'(주)토끼어패럴',st:'진행중',base:'2025-11-01',it:[['임대료',2200000],['고정관리비',650000]]},
+ {b:'b2',no:'602호',ten:'리틀브릿지',st:'종료됨',base:'2023-02-01',it:[['임대료',2100000],['고정관리비',650000]]},
+ {b:'b2',no:'701호',ten:'(주)쿠키랩',st:'진행중',base:'2024-09-01',it:[['임대료',4500000],['고정관리비',1350000]]},
+ /* 옥상 통신 중계기 — 1년치 또는 2년치를 한 번에 미리 받는다. 보증금 없음. 임대료는 전기료를 뺀 공간 임대료.
+    전기는 계량한 만큼 매달 청구하고 미리 받은 돈(과납)이 채운다. 연체료 부과는 끈다 → 명세변경_261122 33-3 */
+ {b:'b2',no:'901호',ten:'(주)케이티',st:'진행중',base:'2025-03-01',dep:0,it:[['임대료',450000],['고정관리비',0]],
+  memo:'2년치(2025.03~2027.02) 일시불 선납. 전기료 포함 조건 — 계량 전기료도 선납금에서 차감. 만기 잔액은 그대로 둔다'},
+ {b:'b2',no:'902호',ten:'에스케이텔레콤(주)',st:'진행중',base:'2026-01-01',end:'2026-12-31',dep:0,it:[['임대료',480000],['고정관리비',0]],
+  memo:'1년치(2026.01~2026.12) 일시불 선납. 전기료 포함 조건'},
+ {b:'b2',no:'903호',ten:'(주)엘지유플러스',st:'진행중',base:'2025-09-01',dep:0,it:[['임대료',420000],['고정관리비',0]],
+  memo:'2년치(2025.09~2027.08) 일시불 선납. 전기료 포함 조건'},
 ];
 /* 중개사 — 목업 예시값(가짜). 상가 임대차는 대부분 중개사를 거친다. 수수료율(%)은 계약이 끝나고 한참 뒤에 알게 되는 일이 많아 비어 있을 수 있다 */
 const AG_POOL=[
@@ -3212,7 +3298,7 @@ CTRS.forEach((c,i)=>{if(!c.ag) c.ag={...AG_POOL[i%AG_POOL.length]};});
 /* 계약별 미납 잔액 — 원장에서 계산되는 값이다. 청구 합계에 포함하지 않는다 → PAY-2
    카리나빌딩은 수납 기록(PAY-6)의 결과에서 계산한다 → dueOf. 나머지 건물은 예시값이다 */
 const UNPAID={
- 'b21203호':{n:1,amt:890_000,from:'2026-07'},
+ 'b2501호':{n:1,amt:890_000,from:'2026-07'},
 };
 /* 청구서 합쳐 보내기 — 임차인(사업자) 설정. 같은 건물의 계약들을 PDF 한 장으로 발송한다.
    청구·원장은 계약별 그대로다 → PAY-1 · USER-7 */
@@ -3304,7 +3390,9 @@ const OFF1={};
 const lid=l=>l.n;
 function lineTog(k,id,e){if(e) e.stopPropagation(); const o=OFF1[k]||(OFF1[k]={});
   if(o[id]) delete o[id]; else o[id]=1; if(!Object.keys(o).length) delete OFF1[k]; render(true);}
-function ISSUE(){
+/* 정산 항목은 그 건물의 정산 자료로 계산한다 */
+function ISSUE(){return withB(SD[f1.b]?f1.b:SB,ISSUE0);}
+function ISSUE0(){
   /* 지난 회차는 정산 확정 · 발행 완료다. 이번 회차는 계약마다 발행했는지 본다 */
   const P=PAST_CTX?{inv:1,settle:'확정'}:PROG[f1.b]||{}, fixed=P.settle==='확정';
   const all=CTRS.filter(c=>c.b===f1.b&&c.st==='진행중');
@@ -3330,7 +3418,7 @@ function ISSUE(){
       if(tNow) return null;
       /* 정산 — 1단계에서 선택되지 않았으면 이번 회차 대상이 아니다 */
       const code=codeOf(x[0]), m=M(code), b=BILL[code];
-      if(!(f1.b==='b1'&&b&&b.on)) return null;
+      if(!(SD[f1.b]&&b&&b.on)) return null;
       const st=resolve(code), ev=`${st.by||m.src||''} ${st.doc||m.doc||''}`.trim();
       const S={n:x[0],bill:m.bill,src:ev,
                st:fixed?'정산 확정':'정산 미확정', stc:fixed?'ok':'wa'};
@@ -3815,7 +3903,8 @@ const FEE_CUT={};
 /* 해지 처리한 계약의 해지일 — 마지막 청구서에 해지일까지 넣었다. 그 뒤로 늦어진 날은 받지 않는다(감면) → 18-5 */
 const FEE_END={};
 /* 연체료 중지 — 계약마다 중지 구간 [{from,to}](to가 없으면 중지 중) → 19 */
-const CSET={'b1본관옥상':{off:[{from:'2026-08-01'}]}};   /* 선납 계약 — 계약 시작부터 연체료 부과 끔 */
+/* 선납 계약(옥상 중계기)은 계약 시작부터 연체료 부과를 끈다 */
+const CSET={'b2901호':{off:[{from:'2025-03-01'}]},'b2902호':{off:[{from:'2026-01-01'}]},'b2903호':{off:[{from:'2025-09-01'}]}};
 const csetOf=k=>(CSET[k]=CSET[k]||{off:[]});
 const feeStop=k=>{const o=(CSET[k]||{}).off||[], x=o[o.length-1];return x&&!x.to?x.from:null;};
 const nstr=n=>new Date(n*864e5).toISOString().slice(0,10);
@@ -4008,9 +4097,6 @@ function seedMonth(ym,pk,ign){
 /* 6월도 자동 수집이다. 첫 달이라 등록된 입금자명이 없어 자동 확정된 것은 없다 */
 seedMonth('2026-06',{101:'루비뮤직',102:'케이큐엔터테이먼트',103:'케이더블유인터내셔널',104:'케이더블유인터내셔널',105:'아이씨비',
   106:'에스씨케이컴퍼니',107:'아마데우스',108:'고우컴퍼니',109:'유니버셜대부',112:'좋은생각사람들'},[114]);
-/* 8월 입금 — 옥상 중계기 2년치 선납(8/3). 청구서가 아직 없어 전액 과납으로 남고, 8월분부터 매달 청구서를 채운다 → 명세변경_261122 33-3 */
-BANKS['2026-08'].dep.unshift({no:201,dt:'2026-08-03 10:12:40',kind:'인터넷',name:'㈜한빛텔레콤',amt:21600000,out:0,src:'자동 수집'});
-seedMonth('2026-08',{201:'한빛텔레콤'},[]);
 /* 전월 과납액 — 청구서를 발행할 때 남은 과납을 새 청구에 자동으로 먼저 배분한다 → 4.3.4
    수납 배분만 옮기고 원장에는 적지 않는다. 잔액은 그대로 → 2.7 */
 const CREDITS=[];
@@ -4999,7 +5085,7 @@ function ncLookup(){
   if(f){const t=ttaxOf(f.ten); Object.assign(nc,{kind:f.kind,ten:f.ten,ceo:f.ceo,addr:f.addr,item:f.item,alias:f.alias.join(', '),sub:t.sub||'',tm1:t.mail[0]||'',tm2:t.mail[1]||''});}
   render(true);
 }
-const ncUnits=b=>b==='b1'?UNITS_B1:[];
+const ncUnits=b=>SD[b]?SD[b].units:[];
 /* 같은 유닛의 진행중 계약과 기간이 겹치면 막는다. 준비중 계약과 겹치면 알리기만 한다 */
 function ncClash(){
   if(!nc.no) return null;
@@ -6405,6 +6491,8 @@ function render(keep){
   if(id!==render.last){const g=MENU.find(m=>m.items&&(m.items.some(i=>i.id===id)||m.over===id));
     if(g&&!OPEN[g.k]){OPEN[g.k]=true;LS.set('brikka.open',OPEN);} render.last=id;}
   paintNav(h);
+  /* 정산 자료를 보는 건물 — 관리비 정산은 고른 건물, 청구서 발행은 그 회차 건물, 건물 상세는 그 건물 */
+  useB(id==='pay-10'?f10b:id==='pay-1'?f1.b:id==='pro-3'&&SD[arg]?arg:'b1');
   let html,crumb;
   if(id==='pro-1'){html=PRO1();crumb='<b>건물 관리</b>';}
   else if(id==='pro-2'){html=PRO2();crumb='<span class="c" onclick="go(\'pro-1\')">건물 관리</span> <span>›</span> <b>새로운 건물 등록</b>';}
