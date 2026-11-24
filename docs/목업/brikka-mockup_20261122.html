@@ -910,7 +910,7 @@ function withB(b,fn){const k=SB; useB(b); try{return fn();} finally{useB(k);}}
 /* ── 뉴진스하우스 — 지상 7층 · 지하 1층. 임차인은 목업 예시값(가짜)이다. 임대료는 카리나빌딩의 절반 수준 ──
    층마다 임차인 하나. 옥상에 통신 중계기 3대(KT · SKT · LGU+). 7층 건물이라 유닛번호는 801 · 802 · 803호, 층은 옥상이다 → 명세변경_261122 32
    중계기도 전기 계량기가 있고, 공용분은 다른 유닛과 똑같이 사용량 비율로 나눠 받는다(배율 1.0).
-   수도요금도 안분에는 들어가되 물을 쓰지 않으므로 배율 0 — 그 몫은 나머지 임차인에게 원래 비율대로 간다 */
+   수도요금도 다른 유닛과 똑같이 안분한다. 배율은 모두 기본값 1.0이다. 0은 담당자가 특별한 경우에 직접 바꾼다 */
 const UNITS_NJ=[
  {no:'B101호',st:'사용중',ten:'버니즈물류(주)',     ar:160.0, use:'창고'},
  {no:'101호', st:'사용중',ten:'(주)하니커피',       ar:140.0, use:'근린생활'},
@@ -943,9 +943,6 @@ const BILL_NJ={
 const BM_NJ={'2026-08':BILL_NJ};
 BM_NJ['2026-07']=billBefore(BILL_NJ,'2026-07','14');
 BM_NJ['2026-06']=billBefore(BM_NJ['2026-07'],'2026-06','14');
-/* 중계기 수도 배율 0 — 직전 회차 값을 이어받으므로 매달 같다 → 명세변경_261122 34 */
-['2026-06','2026-07','2026-08'].forEach(ym=>['801호','802호','803호'].forEach(no=>{
-  BM_NJ[ym].water.adj[no]={mul:0,why:'통신 중계기 — 수도를 쓰지 않음',by:'이담당',at:'2025-03-20 10:00'};}));
 SD.b2={units:UNITS_NJ,BM:BM_NJ,
   meter:{elec:UNITS_NJ.map(u=>u.no),water:['101호'],gas:[],fund:[],tv:[],traffic:[],septic:[],parking:[]},
   bset:{elec:{basis:'사용량',ref:null},water:{basis:'사용량+임대면적',ref:null},fund:{basis:'사용량',ref:'elec'},tv:{basis:'사용량',ref:'elec'},

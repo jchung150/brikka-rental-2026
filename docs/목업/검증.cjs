@@ -65,7 +65,7 @@ run('PRO-3 유닛 · 다음 계약', "CTRS.push({b:'b1',no:'본관302호',key:'b
   const fl = n => (U.find(u => u.no === n) || {}).fl;
   if (!(U.length === 14 && fl('본관B101호') === -1 && fl('본관B201호') === -2 && fl('본관301호') === 3 && fl('별관401호') === 4)) { console.log('② 유닛 층 계산 ✗'); fail = 1; } }
 for (const b of ['b2', 'b4']) run('PRO-3 ' + b, "tab3='요약';PRO3('" + b + "')");
-/* 관리비 정산 건물 전환 — 뉴진스하우스는 자기 유닛 · 검침 · 배율로 계산한다. 옥상 중계기 3대(801~803호)는 공용분도 배율 1.0으로 나눠 받고 수도만 배율 0 */
+/* 관리비 정산 건물 전환 — 뉴진스하우스는 자기 유닛 · 검침 · 배율로 계산한다. 옥상 중계기 3대(801~803호)는 전기 · 수도 모두 배율 기본값 1.0으로 다른 유닛과 똑같이 나눠 받는다 */
 { const NJ = new Function(stub + bare + '; return {calc,M,withB,PAY10,ISSUE,f1,BUILDINGS,ROOF,set f10b(v){f10b=v;}};')();
   NJ.f10b = 'b2'; const h2 = NJ.PAY10(); NJ.f10b = 'b1'; const h1 = NJ.PAY10(); NJ.f10b = 'b4'; const h4 = NJ.PAY10();
   const E = NJ.withB('b2', () => NJ.calc(NJ.M('elec'))), Wt = NJ.withB('b2', () => NJ.calc(NJ.M('water')));
@@ -74,10 +74,10 @@ for (const b of ['b2', 'b4']) run('PRO-3 ' + b, "tab3='요약';PRO3('" + b + "')
   NJ.f1.b = 'b2'; const kt = NJ.ISSUE().find(c => c.no === '801호');
   const ok = /803호/.test(h2) && !/본관/.test(h2.replace(/<select[\s\S]*?<\/select>/g, '')) && /본관801호/.test(h1) && !/803호/.test(h1) && /자료가 없습니다/.test(h4)
     && rp.every(n => ru(n).mul === 1 && ru(n).use > 0 && ru(n).common > 0) && E.diff === 0
-    && rp.every(n => Wt.rows.find(r => r.no === n).amt === 0) && Wt.diff === 0 && roof === '801호,802호,803호'
-    && kt && kt.lines.some(l => l.n === '전기요금' && l.amt > 0) && !kt.lines.some(l => l.n === '수도요금');
+    && rp.every(n => { const w = Wt.rows.find(r => r.no === n); return w.mul === 1 && w.amt > 0; }) && Wt.diff === 0 && roof === '801호,802호,803호'
+    && kt && kt.lines.some(l => l.n === '전기요금' && l.amt > 0) && kt.lines.some(l => l.n === '수도요금' && l.amt > 0);
   if (!ok) fail = 1;
-  console.log('② 관리비 정산 건물 전환 · 뉴진스하우스 옥상 중계기 3대(공용분 배율 1.0 · 수도 배율 0)  ' + (ok ? 'OK' : '✗')); }
+  console.log('② 관리비 정산 건물 전환 · 뉴진스하우스 옥상 중계기 3대(전기 · 수도 배율 1.0)  ' + (ok ? 'OK' : '✗')); }
 run('PRO-3 관리비 설정 패널 — 임대료 · 전기요금 같은 구성', "loadCS('rent');DRAWER='chargeset';const a=csHTML();loadCS('elec');const b=csHTML();if(!/근거 문서/.test(a)||!/배분 방식/.test(a)||!/disabled/.test(a))throw new Error('구성 다름')");
 run('PRO-3 카즈하타워 관리비', "tab3='관리비';PRO3('b4')");
 run('PAY-12', 'PAY12()');
