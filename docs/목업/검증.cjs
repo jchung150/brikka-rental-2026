@@ -65,16 +65,16 @@ run('PRO-3 유닛 · 다음 계약', "CTRS.push({b:'b1',no:'본관302호',key:'b
   const fl = n => (U.find(u => u.no === n) || {}).fl;
   if (!(U.length === 14 && fl('본관B101호') === -1 && fl('본관B201호') === -2 && fl('본관301호') === 3 && fl('별관401호') === 4)) { console.log('② 유닛 층 계산 ✗'); fail = 1; } }
 for (const b of ['b2', 'b4']) run('PRO-3 ' + b, "tab3='요약';PRO3('" + b + "')");
-/* 관리비 정산 건물 전환 — 뉴진스하우스는 자기 유닛 · 검침 · 배율로 계산한다. 옥상 중계기 3대(901~903호)는 공용분도 배율 1.0으로 나눠 받고 수도만 배율 0 */
+/* 관리비 정산 건물 전환 — 뉴진스하우스는 자기 유닛 · 검침 · 배율로 계산한다. 옥상 중계기 3대(801~803호)는 공용분도 배율 1.0으로 나눠 받고 수도만 배율 0 */
 { const NJ = new Function(stub + bare + '; return {calc,M,withB,PAY10,ISSUE,f1,BUILDINGS,ROOF,set f10b(v){f10b=v;}};')();
   NJ.f10b = 'b2'; const h2 = NJ.PAY10(); NJ.f10b = 'b1'; const h1 = NJ.PAY10(); NJ.f10b = 'b4'; const h4 = NJ.PAY10();
   const E = NJ.withB('b2', () => NJ.calc(NJ.M('elec'))), Wt = NJ.withB('b2', () => NJ.calc(NJ.M('water')));
-  const rp = ['901호', '902호', '903호'], ru = no => E.rows.find(r => r.no === no);
+  const rp = ['801호', '802호', '803호'], ru = no => E.rows.find(r => r.no === no);
   const roof = NJ.BUILDINGS.find(b => b.id === 'b2').units.filter(u => u.fl === NJ.ROOF).map(u => u.no).join();
-  NJ.f1.b = 'b2'; const kt = NJ.ISSUE().find(c => c.no === '901호');
-  const ok = /901호/.test(h2) && !/본관/.test(h2.replace(/<select[\s\S]*?<\/select>/g, '')) && /본관801호/.test(h1) && !/901호/.test(h1) && /자료가 없습니다/.test(h4)
+  NJ.f1.b = 'b2'; const kt = NJ.ISSUE().find(c => c.no === '801호');
+  const ok = /803호/.test(h2) && !/본관/.test(h2.replace(/<select[\s\S]*?<\/select>/g, '')) && /본관801호/.test(h1) && !/803호/.test(h1) && /자료가 없습니다/.test(h4)
     && rp.every(n => ru(n).mul === 1 && ru(n).use > 0 && ru(n).common > 0) && E.diff === 0
-    && rp.every(n => Wt.rows.find(r => r.no === n).amt === 0) && Wt.diff === 0 && roof === '901호,902호,903호'
+    && rp.every(n => Wt.rows.find(r => r.no === n).amt === 0) && Wt.diff === 0 && roof === '801호,802호,803호'
     && kt && kt.lines.some(l => l.n === '전기요금' && l.amt > 0) && !kt.lines.some(l => l.n === '수도요금');
   if (!ok) fail = 1;
   console.log('② 관리비 정산 건물 전환 · 뉴진스하우스 옥상 중계기 3대(공용분 배율 1.0 · 수도 배율 0)  ' + (ok ? 'OK' : '✗')); }
@@ -272,7 +272,7 @@ r6.push(['보증금 상계 — 진행중 계약에서도 열림 · 경고 없음
 W.setPm('amt', 1000000); W.payConfirm();
 /* 미정산 — 끝난 계약인데 원장 잔액이 남음. 종료된 리틀브릿지(보증금 남음)에 붙고, 필터로 모인다 */
 { const LT = new Function(stub + bare + '; seedJuly(); return {leftOf,leftTag,ctrRowsOf,CTRS};')();
-  const ended = LT.CTRS.find(c => c.b === 'b2' && c.no === '602호'), on = LT.CTRS.find(c => c.st === '진행중');
+  const ended = LT.CTRS.find(c => c.b === 'b2' && c.ten === '리틀브릿지'), on = LT.CTRS.find(c => c.st === '진행중');
   const rows = LT.ctrRowsOf({st: '미정산', dd: ''}, '');
   r6.push(['미정산 — 종료된 계약에 보증금이 남으면 표시 · 진행중 계약엔 없음 · 필터 「종료 · 미정산」은 끝난 계약만',
     !!LT.leftOf(ended) && /미정산/.test(LT.leftTag(ended)) && /보증금/.test(LT.leftTag(ended)) && !LT.leftOf(on)
@@ -692,7 +692,7 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
     && due0 === 5176383 + 1900161 + 735935 + f17 && amt === due0 && PF.ledgerOf(k).bal.매출채권 === 0]); }
 /* 해지 처리 없이 끝난 계약 — 해지 메뉴가 열리고 만기 종료 · 해지일 = 종료일(잠김) · 마감한 달이라 청구는 그대로 · 연체료는 종료일 뒤로 안 셈 → 확인요청 답변 질문 3 */
 { const EN = new Function(stub + bare + '; seedJuly(); return {ctrMore,termOpen,termHTML,lateCalc,CTRS,ckey,MORE,get tm(){return tm;}};')();
-  const c = EN.CTRS.find(x => x.b === 'b2' && x.no === '602호'), k = EN.ckey(c); EN.MORE.length = 0; EN.ctrMore(c, k);
+  const c = EN.CTRS.find(x => x.b === 'b2' && x.ten === '리틀브릿지'), k = EN.ckey(c); EN.MORE.length = 0; EN.ctrMore(c, k);
   const it = EN.MORE.flat().find(i => i.t === '해지'); EN.termOpen(k); const h = EN.termHTML();
   r6.push(['해지 처리 없이 끝난 계약(리틀브릿지) — 해지 메뉴 열림 · 만기 종료 · 해지일 = 종료일 2025.01.31(잠김) · 「해지일이 마감한 달」 · 버튼 하나',
     c.st === '종료됨' && it && !it.off && EN.tm.type === '만기 종료' && EN.tm.out === '2025-01-31' && /disabled>/.test(h) && /해지일이 마감한 달/.test(h) && !/메일 보내고 해지 처리/.test(h)]); }
