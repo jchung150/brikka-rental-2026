@@ -3076,7 +3076,10 @@ function suOf(b){
   const paid=Object.entries(PAYEV).reduce((a,[id,L])=>{const bb=BILLS.find(i=>i.id===id), k=bb?bb.k:id.split('|')[1];
     return ks.has(k)?a+L.filter(e=>!e.dep.startsWith('cr')&&dnum(e.date)>from).reduce((x,e)=>x+e.amt,0):a;},0);
   return {wait:rcOpenB(b),due:A.reduce((a,x)=>a+x.due,0),dueN:A.length,fee:A.reduce((a,x)=>a+x.fee,0),over:O.reduce((a,v)=>a+v,0),overN:O.length,paid};}
-const suGo=(b,to)=>{if(to==='pay-2') f2.b=b; else RC.f.b=b; go(to);};
+const suGo=(b,to)=>{if(to==='pay-2') f2.b=b; else RC.f.b=b;
+  /* 입금 매칭은 처리할 입금이 남은 가장 최근 달로 연다 */
+  if(to==='pay-13'&&BANKS_BY[b]){const ym=Object.keys(BANKS_BY[b]).sort().reverse().find(m=>rcOpenYm(m,b)); if(ym) RC.f.ym=ym;}
+  go(to);};
 function PAY14(){
   const dash='<span style="color:var(--faint)">—</span>';
   const D=BUILDINGS.map(b=>({b,...suOf(b.id)}));
