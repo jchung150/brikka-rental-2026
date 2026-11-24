@@ -3332,7 +3332,9 @@ const ISS={}, ISS_LOG=[];
 let mail1=true, cx1=null, ia1=null;
 function issue1(keys){if(f1.b==='b1') snapDates(SETTLE.ym); const R=ISSUE(); keys.forEach(k=>{const c=R.find(x=>x.k===k), fee=c?c.fee:0, to=feeTo1(k);
     /* 넣었든 뺐든(감면) 발행일 전날(해지하는 계약은 해지일)까지의 연체료는 정리됐다. 취소하면 되돌린다 */
-    ISS[k]={at:TODAY_S,mail:mail1&&billTo(CTRS.find(x=>ckey(x)===k)).length>0,fee:c&&c.feeIn?fee:0,feeAll:fee,cut:FEE_CUT[k],bills:c&&f1.b==='b1'?regBills(c,to):[]}; if(fee) FEE_CUT[k]=to;});sel1={};render(true);}
+    ISS[k]={at:TODAY_S,mail:mail1&&billTo(CTRS.find(x=>ckey(x)===k)).length>0,fee:c&&c.feeIn?fee:0,feeAll:fee,cut:FEE_CUT[k],bills:c&&LEDB.includes(f1.b)?regBills(c,to):[]}; if(fee) FEE_CUT[k]=to;
+    /* 남은 과납(선납 포함)이 있으면 발행하면서 새 청구에 먼저 배분한다 → 4.3.4 */
+    if(c&&LEDB.includes(f1.b)) creditK(k,SETTLE.ym,TODAY_S);});sel1={};render(true);}
 /* 이번 회차 청구서의 연체료가 끝나는 날 — 발행일 전날. 해지일이 이번 회차면 해지일까지 넣는다 → 18-5 */
 const feeTo1=k=>termIn(k,SETTLE.ym)||dayBefore(TODAY_S);
 /* 발행한 정기 청구서를 원장의 청구 건으로 남긴다(카리나빌딩) — 넣은 항목만. 청구 감액 · 보증금 상계가 이 청구 건을 쓴다 */
@@ -3367,14 +3369,17 @@ function cancelOpen(k){cx1={k,why:''};DRAWER='cancel';render(true);}
 function cancelOK(){if(!cx1||!cx1.why.trim()) return; ISS_LOG.push({k:cx1.k,ym:SETTLE.ym,why:cx1.why.trim(),at:TODAY_S});
   const z=ISS[cx1.k]; if(z&&z.feeAll&&FEE_CUT[cx1.k]===(termIn(cx1.k,SETTLE.ym)||dayBefore(z.at))){if(z.cut) FEE_CUT[cx1.k]=z.cut; else delete FEE_CUT[cx1.k];}
   /* 원장은 지우지 않는다 — 청구 건을 빼고 「청구 취소」 줄을 더한다 */
-  if(z&&(z.bills||[]).length){z.bills.forEach(b=>{const ix=BILLS.indexOf(b); if(ix>=0) BILLS.splice(ix,1);});
+  if(z&&(z.bills||[]).length){z.bills.forEach(b=>{const ix=BILLS.indexOf(b); if(ix>=0) BILLS.splice(ix,1);
+      (PAYEV[b.id]||[]).filter(e=>e.dep.startsWith('cr')).forEach(e=>{PAID[b.id]-=e.amt;}); delete PAYEV[b.id];});
+    for(let i=CREDITS.length-1;i>=0;i--) if(CREDITS[i].k===cx1.k&&CREDITS[i].ym===SETTLE.ym) CREDITS.splice(i,1);
     CANCELS.push({kind:'reg',rec:{k:cx1.k,ym:SETTLE.ym,bills:z.bills},date:TODAY_S,why:cx1.why.trim(),sq:++paySeq});}
   delete ISS[cx1.k];DRAWER=null;cx1=null;render(true);}
 /* 취소할 수 없는 이유 — 입금이 있거나 그 달을 마감했다 */
 function cancelBlock(c,ym){
   if(closedBy(c.b,ym,TODAY_S)) return '마감한 달의 청구서입니다';
   if((ISS[ckey(c)]||{}).term) return '해지 처리로 발행한 마지막 청구서입니다. 고칠 때는 청구 감액 · 청구 추가로 합니다';
-  if(BILLS.some(i=>i.k===ckey(c)&&i.ym===ym&&(PAID[i.id]||0)>0)) return '입금이 있는 청구서입니다. 수납부터 취소하세요';
+  /* 전월 과납액 배분은 입금이 아니다 — 취소하면 과납으로 되돌린다 */
+  if(BILLS.some(i=>i.k===ckey(c)&&i.ym===ym&&(PAYEV[i.id]||[]).some(e=>!e.dep.startsWith('cr')))) return '입금이 있는 청구서입니다. 수납부터 취소하세요';
   return '';
 }
 function cancelHTML(){
@@ -4114,12 +4119,17 @@ const CREDITS=[];
 function applyCredits(ym,date,b='b1'){
   /* 발행일 전날까지의 원장 잔액이 0보다 작으면 그만큼이 과납이다 */
   const before=k=>ledgerOf(k).rows.filter(r=>r.acc==='매출채권'&&dnum(r.date)<dnum(date)).reduce((a,r)=>a+(r.inc||0)-(r.dec||0),0);
-  CTRS.filter(c=>c.b===b&&c.st==='진행중').forEach(c=>{const k=ckey(c), amt=Math.max(0,-before(k)); if(!amt) return;
-    /* 우선순위가 낮은 항목부터 채운다 — 임차인이 낸 돈이 임대료처럼 큰 항목에 그대로 맞도록 → 4.3.4 */
-    const its=BILLS.filter(i=>i.k===k&&i.ym===ym).map(i=>({i,pr:prioOf(i.n.split(' ')[0]),due:i.amt-cutOf(i.id)-paidNet(i.id)})).filter(x=>x.due>0).sort((a,b)=>b.pr-a.pr);
-    const dep='cr'+ym, sq=++paySeq; let r=amt, used=0;
-    its.forEach(x=>{if(r<=0) return; const p=Math.min(r,x.due); addPay(x.i.id,p,date,'전월 과납액',dep); r-=p; used+=p;});
-    if(used) CREDITS.push({k,ym,amt:used,date,dep,sq});});
+  CTRS.filter(c=>c.b===b&&c.st==='진행중').forEach(c=>creditK(ckey(c),ym,date,before));
+}
+/* 한 계약 — 발행일 전날까지의 과납을 그 달 새 청구에 먼저 배분한다. 청구서를 발행할 때도 이것을 쓴다 */
+function creditK(k,ym,date,before){
+  before=before||(k=>ledgerOf(k).rows.filter(r=>r.acc==='매출채권'&&dnum(r.date)<dnum(date)).reduce((a,r)=>a+(r.inc||0)-(r.dec||0),0));
+  const amt=Math.max(0,-before(k)); if(!amt) return;
+  /* 우선순위가 낮은 항목부터 채운다 — 임차인이 낸 돈이 임대료처럼 큰 항목에 그대로 맞도록 → 4.3.4 */
+  const its=BILLS.filter(i=>i.k===k&&i.ym===ym).map(i=>({i,pr:prioOf(i.n.split(' ')[0]),due:i.amt-cutOf(i.id)-paidNet(i.id)})).filter(x=>x.due>0).sort((a,b)=>b.pr-a.pr);
+  const dep='cr'+ym, sq=++paySeq; let r=amt, used=0;
+  its.forEach(x=>{if(r<=0) return; const p=Math.min(r,x.due); addPay(x.i.id,p,date,'전월 과납액',dep); r-=p; used+=p;});
+  if(used) CREDITS.push({k,ym,amt:used,date,dep,sq});
 }
 /* 정기 청구서의 연체료 — 발행일 전날까지 쌓인 연체료를 그 달 청구서에 한 줄로 넣는다. 발행일 전날이 연체료 정리일이다 → 18-2
    6월분은 첫 달이라 연체료가 없다. 7월분(7/19 발행 · 7/18까지)에는 6월분을 늦게 낸 계약에 들어간다 */
