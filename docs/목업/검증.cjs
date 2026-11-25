@@ -842,7 +842,7 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   const pre = L.rows.filter(r => r.acc === '매출채권' && r.date < '2026-07-01').at(-1), last = L.rows.filter(r => r.acc === '매출채권' && r.date <= '2026-07-31').at(-1);
   SM.stSend(); const lg = (SM.CLOG[k] || [])[0];
   r6.push(['명세서 보내기 — 원장 탭 달력에서 고른 기간 그대로(07.11 ~ 오늘 · 7/1 ~ 7/31 · 비우면 「전체 기간」) · 패널에는 기간 칸 없음 · 시작 잔액 = 6월 끝 잔액 · 끝 잔액 = 7/31 잔액 · 전체 기간 끝 잔액 = 지금 잔액(받을 돈 · 보증금) · 보내면 이력 「원장 명세서 메일」',
-    /2026\.07\.11 ~ 2026\.08\.10<span class="rcv">/.test(h) && /전체 기간<span class="rcv">/.test(he) && /<b>2026\.07\.11 ~ 2026\.08\.10<\/b>/.test(h0) && /<b>2026\.07\.01 ~ 2026\.07\.31<\/b>/.test(h1) && !/type="date"/.test(h1)
+    /2026\.07\.11 ~ 2026\.08\.10<span class="rcv">/.test(h) && /전체 기간<span class="rcv">/.test(he) && /2026\.07\.11 ~ 2026\.08\.10 <span/.test(h0) && /2026\.07\.01 ~ 2026\.07\.31 <span/.test(h1) && !/type="date"/.test(h1)
     && S.매출채권.open === pre.bal && S.매출채권.close === last.bal && A.매출채권.close === L.bal.매출채권 && A.임대보증금.close === L.bal.임대보증금
     && SM.billTo(SM.CTRS.find(c => c.no === '별관301호' && c.b === 'b1')).length > 0 && lg && /원장 명세서 메일 — 2026\.07\.01 ~ 2026\.07\.31/.test(lg.sum)]); }
 /* 수납 현황 — 오늘 기준 건물마다 확인 필요 입금 · 미납(계약 수) · 연체료 · 과납 · 최근 30일 수납액 · 칸을 누르면 그 건물을 고른 채로 이동 */
@@ -1498,11 +1498,11 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
     fee && ready && notReady && ret]); }
 /* 명세서 미리보기 — 보내기 전에 PDF 그대로 본다. 계정마다 시작 잔액 → 거래 → 끝 잔액이 맞아떨어진다 */
 { const SP = new Function(stub + bare + '; seedJuly(); return {stOpen,stSet,stHTML,stLines,stSum,get st(){return st;}};')();
-  const k = 'b1별관301호'; SP.stOpen(k); const h0 = SP.stHTML(); SP.stSet('pv', true); const h1 = SP.stHTML();
+  const k = 'b1별관301호'; SP.stOpen(k); const h0 = SP.stHTML(), h1 = h0;
   const S = SP.stSum(k, SP.st.from, SP.st.to), ok = ['매출채권', '임대보증금'].every(a => { const L = SP.stLines(k, SP.st.from, SP.st.to, a);
     return L.length > 0 && L[L.length - 1].bal === S[a].close && L.reduce((x, l) => x + l.dr - l.cr, 0) === (a === '매출채권' ? 1 : -1) * (S[a].close - S[a].open); });
-  r6.push(['명세서 보내기 — 미리보기 버튼 → 보낼 PDF 그대로(원장 명세서 · 받을 돈 · 보증금마다 시작 잔액 · 거래 · 끝 잔액 · 청구서 한 줄) · 돌아가기 · 내려받기(PDF · 엑셀) · 미리보기에서도 메일 보내기 · 줄 잔액이 끝 잔액과 맞음',
-    /stSet\('pv',true\)">미리보기/.test(h0) && /원장 명세서/.test(h1) && /시작 잔액/.test(h1) && /26\.07월분 청구서/.test(h1) && /돌아가기/.test(h1) && /내려받기 ▾/.test(h1) && /내려받기 ▾/.test(h0) && /stSend\(\)">메일 보내기/.test(h1) && ok]); }
+  r6.push(['명세서 보내기 — 누르면 바로 보낼 PDF 그대로(원장 명세서 · 받을 돈 · 보증금마다 시작 잔액 · 거래 · 끝 잔액 · 청구서 한 줄) · 받는 사람 · 메모 · 아래는 내려받기(PDF · 엑셀) · 메일 보내기뿐(미리보기 · 닫기 버튼 없음) · 줄 잔액이 끝 잔액과 맞음',
+    !/미리보기<\/button>|돌아가기|>닫기</.test(h0) && /원장 명세서/.test(h1) && /시작 잔액/.test(h1) && /26\.07월분 청구서/.test(h1) && /내려받기 ▾/.test(h1) && /메일 본문에 붙일 말/.test(h1) && /stSend\(\)">메일 보내기/.test(h1) && ok]); }
 /* 청구서 모양 · 미리보기 — 청구서 발행 · 청구서 보기 · 청구 추가 · 해지 처리 · 미납 안내가 같은 청구서 모양을 쓴다 */
 { const PV = new Function(stub + bare + '; seedJuly(); return {pv1Open,billView,ipvHTML,fixOpen,fxSet,pvAdhOpen,termOpen,termSet,pvTermOpen,unbilled,termMode,CTRS,ckey,TERMS,ISS,BILLS,pvDueOpen,f1,get tm(){return tm;},get ipv(){return ipv;}};')();
   const k = 'b1별관301호', c = PV.CTRS.find(x => PV.ckey(x) === k), pay = h => (h.match(/납부하실 금액(?: \(미납액\))?<\/span><span[^>]*>([^<]+)/) || [])[1];
