@@ -3479,7 +3479,7 @@ function REC1(){
   const uniq=f=>[...new Set(all.map(f))].filter(Boolean).sort();
   return `
   <div class="ph"><h1>변경 이력</h1><span class="sid">REC-1</span></div>
-  <div class="fbar">${S('b',BUILDINGS.map(b=>[b.id,b.name]),'전체 건물')}${S('kind',uniq(r=>r.kind),'전체 대상 종류')}${S('type',uniq(r=>r.type),'전체 변경 유형')}${S('by',uniq(r=>r.by),'전체 처리자')}${perBtn('frc',frc)}</div>
+  <div class="fbar">${perBtn('frc',frc)}${S('b',BUILDINGS.map(b=>[b.id,b.name]),'전체 건물')}${S('kind',uniq(r=>r.kind),'전체 대상 종류')}${S('type',uniq(r=>r.type),'전체 변경 유형')}${S('by',uniq(r=>r.by),'전체 처리자')}</div>
   <div class="tbl"><div class="tw"><table>
     <thead><tr><th>일시</th><th>대상 종류</th><th>계약고유이름</th><th>변경 유형</th><th>변경 요약</th><th>처리자</th><th class="c">더보기</th></tr></thead>
     <tbody>${R.length?P.map((r,i)=>`<tr style="cursor:pointer" onclick="hdOpen('rec',${(cur-1)*HPER+i})">
