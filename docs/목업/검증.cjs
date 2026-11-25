@@ -141,6 +141,19 @@ for (const b of ['b2']) run('PRO-3 ' + b, "tab3='요약';PRO3('" + b + "')");
   TN.cv.f.name = '(주)비씨에이전시코리아'; TN.cnSave(); const rn = dupBlk && TN.CTRS.some(c => c.ten === '(주)비씨에이전시코리아') && !TN.CTRS.some(c => c.ten === '(주)비씨에이전시') && TN.tenAliases('(주)비씨에이전시코리아').includes('(주)비씨에이전시') && TN.ttaxOf('(주)비씨에이전시코리아').mail[0] === 'account@bcagency.kr' && /상호 변경/.test(((TN.CLOG['b1별관301호'] || [])[0] || {}).sum || '');
   const ok = list && byAlias && byB && ten && ted && own && oed && ag && rn; if (!ok) fail = 1;
   console.log('② 연락처 — 한 목록(임차인 22 · 임대인 4 · 중개사) · 구분 · 건물 필터 · 별칭 검색 · 줄을 누르면 오른쪽 패널(같은 틀) · 임차인(담당자 · 돈 · 별칭 · 세금계산서 · 계약) · 임대인(이메일 = 보고서 받는 곳 · 보유 건물) 패널에서 수정 · 상호 바꾸기(같은 상호 막힘 · 계약 모두 · 옛 상호는 별칭 · 이력) · 중개사는 수정 없음  ' + (ok ? 'OK' : '✗ ' + JSON.stringify({list, byAlias, byB, ten, ted, own, oed, ag, rn}))); }
+/* 변경 이력(REC-1) — 모든 건물 · 연락처 수정(대상 종류 임차인 · 임대인)도 남음 · 필터(건물 · 대상 종류 · 변경 유형 · 처리자 · 기간 달력) · 검색 · 줄을 누르면 상세 패널 */
+{ const RC1 = new Function(stub + bare + '; seedJuly(); return {REC1,HROWS,frc,cnOpen,cnEdit,cnSave,hdOpen,hdHTML,p3Open,p3Set,histAll,get cv(){return cv;}};')();
+  const h0 = RC1.REC1(), n0 = RC1.HROWS.rec.length;
+  const base = /변경 이력/.test(h0) && n0 > 50 && /전체 처리자/.test(h0) && /전체 대상 종류/.test(h0) && /전체 기간/.test(h0) && RC1.HROWS.rec.some(r => r.kind === '월 마감');
+  RC1.cnOpen('임차인', encodeURIComponent('(주)아이씨비')); RC1.cnEdit(); RC1.cv.f.ceo = '정하늘2'; RC1.cnSave();
+  RC1.cnOpen('임대인', '105-81-42117'); RC1.cnEdit(); RC1.cv.f.tel = '010-1111-2222'; RC1.cnSave();
+  RC1.frc.kind = '임차인'; RC1.REC1(); const t = RC1.HROWS.rec[0]; RC1.frc.kind = '임대인'; RC1.REC1(); const o = RC1.HROWS.rec[0]; RC1.frc.kind = '';
+  const log = t && t.name === '(주)아이씨비' && t.chg[0][0] === '대표자명' && t.chg[0][2] === '정하늘2' && o && o.name === '카리나' && o.chg[0][0] === '연락처';
+  RC1.frc.b = 'b2'; RC1.REC1(); const onlyB2 = RC1.HROWS.rec.length > 0 && RC1.HROWS.rec.every(r => !/카리나빌딩/.test(r.name) && r.name !== '(주)아이씨비'); RC1.frc.b = '';
+  RC1.p3Open('frc'); RC1.p3Set('2026-08-01', '2026-08-10'); RC1.REC1(); const per = RC1.HROWS.rec.length > 0 && RC1.HROWS.rec.every(r => r.at >= '2026-08-01') && /2026\.08\.01 ~ 2026\.08\.10/.test(RC1.REC1());
+  RC1.hdOpen('rec', 0); const pnl = /이력 상세/.test(RC1.hdHTML());
+  const ok = base && log && onlyB2 && per && pnl; if (!ok) fail = 1;
+  console.log('② 변경 이력 — 모든 건물 이력 · 연락처 수정이 임차인 · 임대인 이력으로(바뀐 칸 전 · 후) · 건물 필터 · 기간 달력(원장과 같은 것) · 줄을 누르면 상세  ' + (ok ? 'OK' : '✗ ' + JSON.stringify({base, log, onlyB2, per, pnl}))); }
 /* 발송 내역(NTF-6) — 보낸 그대로 남김 · 실패는 자동으로 다시 보내지 않음 · 다시 보내면 새 줄(원래 줄 그대로) · 보내는 화면(청구서 발행 · 미납 안내 · 명세서 · 웰컴)이 남김 → 명세변경_261122 38 */
 { const M = new Function(stub + bare + '; seedJuly(); return {mailRows,NTF6,mvOpen,mvHTML,mailResend,dashItems,issueAsk,issueGo,dueMail,stOpen,stSend,CTRS,ckey,setFm,set f1b(v){f1.b=v;}};')();
   const R0 = M.mailRows(), n0 = R0.length, fl = R0.filter(m => m.st === '실패'), f = fl[0];

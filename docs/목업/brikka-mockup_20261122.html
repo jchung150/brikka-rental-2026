@@ -3394,7 +3394,19 @@ function tenRename(old,nw){
   Object.values(BIZ).forEach(v=>{if(v.ten===old) v.ten=nw;});
   Object.keys(RC.alias).forEach(nm=>{if(RC.alias[nm]===ok) RC.alias[nm]=nk;}); RC.alias[old]=nk;
   if(cv&&cv.id===old) cv.id=nw;}
+/* 연락처 수정 기록 — 대상 종류 임차인 · 임대인(명세변경_261122 43). 바뀐 칸만 전 · 후로 남긴다 */
+const CON_LOG=[];
+const nowAt=()=>`${TODAY_S} ${new Date().toTimeString().slice(0,5)}`;
+function cnLog(kind,name,bs,chg){if(!chg.length) return; CON_LOG.unshift({at:nowAt(),by:'슈퍼관리자',kind,name,type:'수정',sum:`${chg.map(x=>x[0]).join(' · ')} 수정`,why:'',chg,bs});}
 function cnSave(){if(cnBad()) return; const {k,id,f}=cv;
+  /* 바뀐 칸 — 저장 전 값과 비교 */
+  if(k==='임차인'){const I=tenInfo(id), tx=ttaxOf(id), al=tenAliases(id), D=[], ch=(n,a,b)=>{if(String(a||'')!==String(b||'')) D.push([n,a||'—',b||'—']);};
+    ch('상호',id,f.name.trim()); ch('사업자구분',I.kind,f.kind); ch('대표자명',I.ceo,f.ceo.trim()); ch('사업장 주소',I.addr,f.addr.trim()); ch('업태 · 종목',I.item,f.item.trim());
+    ch('입금자명 별칭',al.join(', '),[...f.al,...(f.name.trim()!==id&&!f.al.includes(id)?[id]:[])].sort().join(', ')); ch('청구서 한 장으로 받기',MERGE_PDF[id]?'예':'아니오',f.merge?'예':'아니오');
+    ch('세금계산서 이메일',tx.mail.join(', '),[f.m1.trim(),f.m2.trim()].filter(Boolean).join(', ')); ch('종사업장번호',tx.sub,f.sub);
+    cnLog('임차인',f.name.trim(),[...new Set(tenCtrs(id).map(c=>c.b))],D);}
+  if(k==='임대인'){const o=ownList().find(x=>x.biz===id), D=[], ch=(n,a,b)=>{if(String(a||'')!==String(b||'')) D.push([n,a||'—',b||'—']);};
+    ch('주소',o.addr,f.addr.trim()); ch('연락처',o.tel,f.tel.trim()); ch('이메일',o.mail,f.mail.trim()); cnLog('임대인',o.n,o.bs.map(x=>x.b.id),D);}
   if(k==='임차인'&&f.name.trim()!==id){tenRename(id,f.name.trim()); if(!f.al.includes(id)) f.al.push(id);}
   if(k==='임차인'){const id2=cv.id; Object.assign(tenInfo(id2),{kind:f.kind,ceo:f.ceo.trim(),addr:f.addr.trim(),item:f.item.trim()}); const nk=normName(id2); const id=id2;
     Object.keys(RC.alias).filter(nm=>RC.alias[nm]===nk&&!f.al.includes(nm)).forEach(nm=>delete RC.alias[nm]); f.al.forEach(nm=>{RC.alias[nm]=nk;});
@@ -3446,6 +3458,40 @@ function cnHTML(){
     <div class="db">${body}${bad?`<div class="c2" style="color:var(--danger)">${bad}</div>`:''}</div>
     <div class="df">${edit?`<button class="btn" onclick="cv.edit=false;render(true)">취소</button><button class="btn pri" ${bad?'disabled':''} onclick="cnSave()">저장</button>`
       :`<button class="btn" onclick="closeDrawer()">닫기</button>${k!=='중개사'?'<button class="btn pri" onclick="cnEdit()">수정</button>':''}`}</div></div></div>`;
+}
+
+/* ═══ REC-1 변경 이력 — 모든 건물의 이력을 한 표에. 건물 상세 · 계약 상세의 이력 탭과 같은 칸 · 같은 순서 · 같은 상세 패널(REC-2).
+   이력은 「누가 · 언제 · 무엇을 · 왜」. 돈의 흐름은 계약 원장에서 본다 → 09 REC-1 · 2 ═══ */
+let frc={b:'',kind:'',type:'',by:'',from:'',to:'',q:''};
+const setFrc=(k,v)=>{frc[k]=v;delete hp.rec;render(true);};
+const hBld=r=>r.bs?r.bs:[r.b||(r.k||'').slice(0,2)].filter(Boolean);
+const histAll=()=>BUILDINGS.flatMap(histB).concat(CON_LOG);
+/* 건물이 여럿이라 계약 이력은 계약고유이름으로 보인다(본관601호가 두 건물에 있다) */
+const recName=r=>{const c=r.k&&CTRS.find(x=>ckey(x)===r.k); return c?cname((BUILDINGS.find(b=>b.id===c.b)||{}).alias,c.no,c.ten):r.name;};
+function REC1(){
+  const all=histAll().filter(r=>!HDEL.has(hKey(r)));
+  const R=all.filter(r=>(!frc.b||hBld(r).includes(frc.b))&&(!frc.kind||r.kind===frc.kind)&&(!frc.type||r.type===frc.type)&&(!frc.by||r.by===frc.by)
+      &&(!frc.from||r.at.slice(0,10)>=frc.from)&&(!frc.to||r.at.slice(0,10)<=frc.to)&&qHit(frc.q,[r.name,r.sum,r.why,r.by]))
+    .sort((p,q)=>p.at<q.at?1:p.at>q.at?-1:0);
+  const N=Math.max(1,Math.ceil(R.length/HPER)), cur=Math.min(hp.rec||1,N), P=R.slice((cur-1)*HPER,cur*HPER);
+  HROWS.rec=R;
+  const S=(k,opts,lab)=>`<select onchange="setFrc('${k}',this.value)"><option value="">${lab}</option>${opts.map(v=>Array.isArray(v)?v:[v,v]).map(([v,t])=>`<option value="${v}" ${frc[k]===v?'selected':''}>${t}</option>`).join('')}</select>`;
+  const uniq=f=>[...new Set(all.map(f))].filter(Boolean).sort();
+  return `
+  <div class="ph"><h1>변경 이력</h1><span class="sid">REC-1</span></div>
+  <div class="fbar">${qBox('rq',frc.q,'setFrc')}${S('b',BUILDINGS.map(b=>[b.id,b.name]),'전체 건물')}${S('kind',uniq(r=>r.kind),'전체 대상 종류')}${S('type',uniq(r=>r.type),'전체 변경 유형')}${S('by',uniq(r=>r.by),'전체 처리자')}${perBtn('frc',frc)}</div>
+  <div class="tbl"><div class="tw"><table>
+    <thead><tr><th>일시</th><th>대상 종류</th><th>대상 이름</th><th>변경 유형</th><th>변경 요약</th><th>처리자</th><th class="c">더보기</th></tr></thead>
+    <tbody>${R.length?P.map((r,i)=>`<tr style="cursor:pointer" onclick="hdOpen('rec',${(cur-1)*HPER+i})">
+        <td style="white-space:nowrap">${r.at.replace(/-/g,'.')}</td>
+        <td><span class="bd mu">${r.kind}</span></td><td style="white-space:nowrap">${recName(r)}</td><td>${r.type}</td>
+        <td>${r.sum}${r.why?`<div class="c2">사유: ${r.why}</div>`:''}</td><td style="white-space:nowrap">${r.by}</td>
+        <td class="c">${moreCell([{t:'상세',go:`hdOpen('rec',${(cur-1)*HPER+i})`},{t:'삭제',go:`hdOpen('rec',${(cur-1)*HPER+i},true)`,title:'슈퍼관리자만 · 사유를 남깁니다'}])}</td></tr>`).join('')
+      :`<tr><td colspan="7" style="text-align:center;padding:28px 0;color:var(--muted)">조건에 맞는 이력이 없습니다</td></tr>`}</tbody></table></div>
+    ${pagerHTML(R.length,cur,`(p=>{hp.rec=p;render(true);})`)}</div>
+  <div class="hint">모든 건물의 변경 이력입니다. 건물 상세 · 계약 상세의 이력 탭은 이 표를 그 건물 · 그 계약으로 거른 것입니다. 줄을 누르면 상세(변경 전 · 후)가 열립니다.<br>
+    이력은 고칠 수 없고, 슈퍼관리자만 사유를 적고 지웁니다(지운 기록은 따로 남고 원장 거래는 지워지지 않습니다). 금액의 흐름은 계약 원장에서 봅니다.<br>
+    대상 종류 「임차인 · 임대인」은 연락처에서 고친 기록입니다(명세변경_261122 43).</div>`;
 }
 
 /* ═══ 임시 — 메일 문구 9종(초안 · 대표 검토 중). 칸({ })은 시스템이 채운다. 검토가 끝나면 메뉴와 함께 지운다 ═══ */
@@ -3558,7 +3604,7 @@ function DASH1(){
         <span class="dgo">›</span></div>`).join('')}${Array.from({length:Math.max(0,3-show.length)},(_,i)=>`<div class="drow none">${!rows.length&&!i?'<span class="c2" style="margin:0">할 일이 없습니다</span>':''}</div>`).join('')}</div>
       ${rows.length>3?`<div class="dmore" onclick="dsTog('${ck}')">${all?'접기':`${rows.length-3}건 더 보기`}</div>`:''}</div>`;});
   /* 3단 — 최근 작업 이력 10건 */
-  const H=Bs.flatMap(histB).filter(r=>!HDEL.has(hKey(r))).sort((p,q)=>p.at<q.at?1:p.at>q.at?-1:0).slice(0,10);
+  const H=Bs.flatMap(histB).concat(CON_LOG.filter(r=>!fdb||r.bs.includes(fdb))).filter(r=>!HDEL.has(hKey(r))).sort((p,q)=>p.at<q.at?1:p.at>q.at?-1:0).slice(0,10);
   HROWS.dash=H;
   return `
   <div class="ph"><h1>대시보드</h1><span class="sid">DASH-1</span></div>
@@ -3573,7 +3619,7 @@ function DASH1(){
       <thead><tr><th>일시</th><th>대상 종류</th><th>대상 이름</th><th>변경 유형</th><th>처리자</th></tr></thead>
       <tbody>${H.length?H.map((r,i)=>`<tr style="cursor:pointer" onclick="hdOpen('dash',${i})">
         <td style="white-space:nowrap">${r.at.replace(/-/g,'.')}</td><td><span class="bd mu">${r.kind}</span></td>
-        <td><div class="c1">${r.name}</div><div class="c2">${fdb?'':`${(BUILDINGS.find(b=>b.id===(r.b||(r.k||'').slice(0,2)))||{}).name||''} · `}${r.sum}</div></td><td>${r.type}</td><td style="white-space:nowrap">${r.by}</td></tr>`).join('')
+        <td><div class="c1">${r.name}</div><div class="c2">${fdb?'':`${hBld(r).map(id=>(BUILDINGS.find(b=>b.id===id)||{}).name).join(' · ')} · `}${r.sum}</div></td><td>${r.type}</td><td style="white-space:nowrap">${r.by}</td></tr>`).join('')
         :`<tr><td colspan="5" style="text-align:center;padding:28px 0;color:var(--muted)">이력이 없습니다</td></tr>`}</tbody></table></div></div>
   <div class="hint">
     직원에게 가는 알림은 이 화면 하나입니다. 메일이나 팝업으로 따로 알리지 않습니다. 처리하면 그 줄이 사라지고, 건수가 0인 항목은 보이지 않습니다.<br>
@@ -3732,7 +3778,7 @@ function TODO(id){
   const m=ALL.find(i=>i.id===id);
   return `<div class="ph"><h1>${m?m.n:id}</h1>${m?`<span class="sid">${m.sid}</span>`:''}</div>
   <div class="tbl"><div class="empty"><div class="t">아직 만들지 않은 화면입니다</div>
-    구현된 화면 — <b>DASH-1</b> 대시보드 · <b>NTF-6</b> 발송 내역 · <b>연락처</b> 임차인 · 임대인 · 중개사 · <b>PRO-1</b> 건물 목록 · <b>PRO-3</b> 건물 상세 ·
+    구현된 화면 — <b>DASH-1</b> 대시보드 · <b>NTF-6</b> 발송 내역 · <b>연락처</b> 임차인 · 임대인 · 중개사 · <b>REC-1</b> 변경 이력 · <b>PRO-1</b> 건물 목록 · <b>PRO-3</b> 건물 상세 ·
     <b>PAY-12</b> 청구 현황 · <b>PAY-10</b> 관리비 정산 · <b>PAY-1</b> 청구서 발행 ·
     <b>PAY-13</b> 입금 매칭 · <b>PAY-6</b> 수납 내역 · <b>PAY-2</b> 미납 관리</div></div>`;   /* PAY-8 수납 내역은 PAY-6에 합쳤다 */
 }
@@ -6563,10 +6609,15 @@ let P3=null;   /* 열린 기간 달력 — {from,to,ym} */
 const isoD=(y,m,d)=>`${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
 const ymAdd=(ym,n)=>{const [y,m]=ym.split('-').map(Number), d=new Date(Date.UTC(y,m-1+n,1));return d.toISOString().slice(0,7);};
 const dAgo=n=>new Date((dnum(TODAY_S)-n)*864e5).toISOString().slice(0,10);
-function p3Open(){P3=P3?null:{from:f3.from,to:f3.to,ym:(f3.to||f3.from||TODAY_S).slice(0,7)};render(true);}
+/* 같은 달력을 원장(f3) · 변경 이력(frc)이 함께 쓴다 */
+const P3T={f3:()=>f3,frc:()=>frc};
+function p3Open(t='f3'){const o=P3T[t](); P3=P3?null:{t,from:o.from,to:o.to,ym:(o.to||o.from||TODAY_S).slice(0,7)};render(true);}
 function p3Day(d){if(!P3.from||P3.to){P3.from=d;P3.to='';} else if(d<P3.from){P3.from=d;} else P3.to=d; render(true);}
-function p3Set(from,to){f3.from=from;f3.to=to;P3=null;render(true);}
-const f3Label=()=>f3.from||f3.to?`${d8m(f3.from||'')} ~ ${d8m(f3.to||TODAY_S)}`:'전체 기간';
+function p3Set(from,to){const o=P3T[(P3&&P3.t)||'f3'](); o.from=from;o.to=to;P3=null;Object.keys(hp).forEach(k=>delete hp[k]);render(true);}
+const perLabel=o=>o.from||o.to?`${d8m(o.from||'')} ~ ${d8m(o.to||TODAY_S)}`:'전체 기간';
+const f3Label=()=>perLabel(f3);
+/* 기간 버튼 — 고르기 칸과 같은 모양. 누르면 달력 */
+const perBtn=(t,o)=>`<span class="rcal"><button class="rbtn ${o.from||o.to?'on':''}" onclick="event.stopPropagation();p3Open('${t}')">${ic('cal',14)}${perLabel(o)}<span class="rcv"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></span></button>${P3&&P3.t===t?p3HTML():''}</span>`;
 function p3HTML(){
   if(!P3) return '';
   const [y,m]=P3.ym.split('-').map(Number), dow=new Date(Date.UTC(y,m-1,1)).getUTCDay(), n=mDays(P3.ym);
@@ -6829,7 +6880,7 @@ function CTR3(k){
   })();
   return CTR3head(c,k)+`
   <div class="fbar">
-    <span class="rcal"><button class="rbtn ${f3.from||f3.to?'on':''}" onclick="event.stopPropagation();p3Open()">${ic('cal',14)}${f3Label()}<span class="rcv"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></span></button>${p3HTML()}</span>
+    ${perBtn('f3',f3)}
     <select onchange="setF3('tp',this.value)">
       ${[['','전체 거래유형'],...F3TP.map(t=>[t,t])].map(([v,t])=>`<option value="${v}" ${(f3.tp||'')===v?'selected':''}>${t}</option>`).join('')}
     </select>
@@ -7099,6 +7150,7 @@ function render(keep){
   else if(id==='pay-13'){html=PAY13();crumb='수납 관리 <span>›</span> <b>입금 매칭</b>';}
   else if(id==='ntf-6'){html=NTF6();crumb='이력 관리 <span>›</span> <b>발송 내역</b>';}
   else if(id==='contacts'){html=CONTACTS();crumb='';}
+  else if(id==='rec-1'){html=REC1();crumb='';}
   else if(id==='tmp-mail'){html=TMPMAIL();crumb='<b>메일 문구 (임시)</b>';}
   else{html=TODO(id);const g=MENU.find(m=>m.items&&m.items.some(i=>i.id===id));
     const m=ALL.find(i=>i.id===id);
