@@ -6775,7 +6775,9 @@ const HPER=10;
 const setFh=(f,v)=>{fh[f]=v;Object.keys(hp).forEach(k=>delete hp[k]);render(true);};
 /* 페이지 나누기 — 이전 · 번호 · 다음. 페이지가 하나면 보이지 않는다 */
 function pagerHTML(n,cur,go){const N=Math.ceil(n/HPER); if(N<=1) return '';
-  return `<div class="pgr"><button ${cur<=1?'disabled':''} onclick="${go}(${cur-1})">‹</button>${Array.from({length:N},(_,i)=>`<button class="${i+1===cur?'on':''}" onclick="${go}(${i+1})">${i+1}</button>`).join('')}<button ${cur>=N?'disabled':''} onclick="${go}(${cur+1})">›</button></div>`;}
+  /* 쪽 번호는 10개씩 묶어 보인다(1~10, 11~20 …). ‹ › 는 한 쪽씩 */
+  const st=Math.floor((cur-1)/10)*10+1, en=Math.min(N,st+9);
+  return `<div class="pgr"><button ${cur<=1?'disabled':''} onclick="${go}(${cur-1})">‹</button>${Array.from({length:en-st+1},(_,i)=>st+i).map(p=>`<button class="${p===cur?'on':''}" onclick="${go}(${p})">${p}</button>`).join('')}<button ${cur>=N?'disabled':''} onclick="${go}(${cur+1})">›</button></div>`;}
 /* 이력 상세 — 줄을 누르면 오른쪽 패널(REC-2와 같은 내용). 기본 정보 · 변경 항목(전/후) · 삭제(슈퍼관리자, 사유 필수) · 닫기 → 3.8 */
 function hdOpen(scope,i,del){hd=HROWS[scope][i];hdDel=del?{why:''}:null;DRAWER='hdet';render(true);}
 let hdDel=null;
