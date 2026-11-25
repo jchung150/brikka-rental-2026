@@ -6559,7 +6559,8 @@ function CTR3(k){
     <span style="margin-left:auto;display:flex;gap:6px">   <!-- 돈을 다루는 버튼은 원장 탭에만 둔다 -->
       ${ledBtns(k,L)}
       <button class="btn" onclick="stOpen('${k}')">명세서 보내기</button>
-      <button class="btn" style="padding:7px 9px;display:inline-flex;align-items:center" title="원장 출력 — 지금 보이는 기간의 원장(받을 돈 · 보증금)을 PDF로 내려받습니다" onclick="say('원장 출력 — 지금 보이는 기간의 원장(받을 돈 · 보증금)을 PDF로 내려받습니다.\n목업에서는 파일을 내려받지 않습니다.')">${ic('down',16)}</button></span>
+      <button class="btn" style="display:inline-flex;align-items:center;gap:4px" title="원장 출력 — 지금 보이는 기간의 원장(받을 돈 · 보증금)을 PDF로 내려받습니다" onclick="say('원장 출력 PDF — 지금 보이는 기간의 원장(받을 돈 · 보증금)을 PDF로 내려받습니다.\n목업에서는 파일을 내려받지 않습니다.')">${ic('down',14)}PDF</button>
+      <button class="btn" style="display:inline-flex;align-items:center;gap:4px" title="원장 출력 — 같은 기간 · 같은 칸(날짜 · 거래유형 · 내용 · 차변 · 대변 · 잔액, 시작 · 끝 잔액)을 엑셀로 내려받습니다" onclick="say('원장 출력 엑셀 — PDF와 같은 기간 · 같은 칸(날짜 · 거래유형 · 내용 · 차변 · 대변 · 잔액, 계정마다 시작 · 끝 잔액)을 엑셀(xlsx)로 내려받습니다.\n목업에서는 파일을 내려받지 않습니다.')">${ic('down',14)}엑셀</button></span>
   </div>
   ${LT.html}
   <div class="hint">
