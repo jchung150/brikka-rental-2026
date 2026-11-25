@@ -633,7 +633,7 @@ const MENU=[
    {id:'user-2',n:'사용자 관리',sid:'USER-2',i:'users'},
    {id:'sys-1',n:'운영사 관리',sid:'SYS-1',i:'cog'},
    {id:'user-1',n:'프로필',sid:'USER-1',i:'user'}]},
- /* 임시 — 메일 문구 검토용(명세변경_261122 42). 검토가 끝나면 지운다 */
+ /* 임시 — 메일 문구 검토용(초안, 대표 검토 중 · 명세변경에는 아직 없음). 검토가 끝나면 지운다 */
  {id:'tmp-mail',n:'메일 문구 (임시)',sid:'삭제 예정',i:'mail'},
 ];
 const ALL=MENU.flatMap(m=>m.items||[m]);
@@ -3059,7 +3059,7 @@ const OWN_MAIL={카리나:'karina@owner-sample.kr',윈터:'winter@owner-sample.k
 const ymKo=ym=>`${ym.slice(0,4)}년 ${+ym.slice(5)}월분`;
 /* 계약 메일 한 통 — 받는 사람은 발송 당시 주소 그대로 남긴다 */
 function mailAdd(o){const m={id:++mailSeq,ch:'이메일',st:'성공',why:'',how:'수동',by:'시스템',att:[],...o}; MAIL_LOG.push(m); return m;}
-/* 메일 문구 — 명세변경_261122 42. 문구는 고정이고 { } 칸만 시스템이 채운다. 9종 모두 같은 틀:
+/* 메일 문구 — 초안(대표 검토 중, 명세변경에는 아직 없음). 문구는 고정이고 { } 칸만 시스템이 채운다. 9종 모두 같은 틀:
    제목 [보내는 곳] 내용 · 본문 인사 → 내용 → (첨부 안내) → 서명. 건물 메일 서명은 건물 · 운영사 · 건물 관리자에서, 계정 메일은 BRIKKA · 운영사 */
 const d8m=d=>(d||'').replace(/-/g,'.');
 const ruleKo=r=>(r||'').replace('전월','전달 ').replace('당월','').replace('익월','다음 달 ').replace(/\s+/g,' ').trim();
@@ -3211,7 +3211,7 @@ function mvHTML(){
   </div></div>`;
 }
 
-/* ═══ 임시 — 메일 문구 9종(명세변경_261122 42). 칸({ })은 시스템이 채운다. 검토가 끝나면 메뉴와 함께 지운다 ═══ */
+/* ═══ 임시 — 메일 문구 9종(초안 · 대표 검토 중). 칸({ })은 시스템이 채운다. 검토가 끝나면 메뉴와 함께 지운다 ═══ */
 function TMPMAIL(){
   const bd={ph:1,name:'{건물명}',acct:'{은행 계좌번호}',acctName:'{예금주}',feeAcct:'{은행 계좌번호}',billDay:'{청구일}',dueDay:'{납부마감일 규칙}'};
   const ten='{임차인} {담당자}';
@@ -3228,7 +3228,7 @@ function TMPMAIL(){
   const hl=t=>t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/\{[^}]+\}/g,x=>`<span class="tph">${x}</span>`);
   return `
   <div class="ph"><h1>메일 문구</h1><span class="sid">임시 · 삭제 예정</span></div>
-  <div class="hint" style="margin:0 0 14px">명세변경_261122 42의 9종 문구를 검토하는 임시 화면입니다. <span class="tph">{ }</span> 칸은 시스템이 채웁니다. 문구는 코드에 고정되고, 바꾸려면 명세변경으로 요청합니다. 실제로 보낸 메일은 발송 내역에서 봅니다.</div>
+  <div class="hint" style="margin:0 0 14px">메일 9종 문구 초안을 검토하는 임시 화면입니다(아직 확정 전 · 명세변경에 없음). <span class="tph">{ }</span> 칸은 시스템이 채웁니다. 문구는 코드에 고정되고, 바꾸려면 명세변경으로 요청합니다. 실제로 보낸 메일은 발송 내역에서 봅니다.</div>
   <div class="tmg">${L.map(([k,when,to,att,v],i)=>{const t=mailText(k,v);
     return `<div class="card" style="margin:0"><div class="ct">${'①②③④⑤⑥⑦⑧⑨'[i]} ${k}</div>
       <div class="cc"><dl class="dl" style="margin-bottom:10px"><dt>언제</dt><dd>${when}</dd><dt>받는 사람</dt><dd>${to}</dd><dt>첨부</dt><dd>${att}</dd></dl>
