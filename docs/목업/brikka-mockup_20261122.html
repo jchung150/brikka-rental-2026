@@ -3039,7 +3039,7 @@ const dsGo=js=>{eval(js);};
 const dLeft=d=>{const n=dday(d);return n>0?`${n}일 남음`:n===0?'오늘':`${-n}일 지남`;};
 function dashItems(){
   const Bs=BUILDINGS.filter(b=>!fdb||b.id===fdb), inB=c=>!fdb||c.b===fdb, BN=id=>(BUILDINGS.find(x=>x.id===id)||{}), d8=d=>d.replace(/-/g,'.');
-  const ym='2026-08', ctrName=c=>cname(BN(c.b).alias,c.no,c.ten), toC=c=>`go('ctr-3/${encodeURIComponent(ckey(c))}')`;
+  const ym='2026-08', ctrName=c=>cname(BN(c.b).alias,c.no,c.ten), toC=c=>`tab3c='요약';go('ctr-3/${encodeURIComponent(ckey(c))}')`;
   const L=[];
   const add=(k,t,why,rows)=>L.push({k,t,why,rows});
   /* 정산 · 발행 — 청구일이 기준 */
@@ -3066,9 +3066,9 @@ function dashItems(){
   add('dep','보증금 미입금 상태의 준비중 계약','보증금을 다 받아야 진행중으로 바꿉니다',
     CTRS.filter(c=>inB(c)&&c.st==='준비중'&&ledgerOf(ckey(c)).bal.임대보증금<ctrDeposit(c))
       .map(c=>({n:ctrName(c),d:`보증금 ${won(ledgerOf(ckey(c)).bal.임대보증금)} / ${won(ctrDeposit(c))}`,when:`시작일 ${d8(c.base)} · ${dLeft(c.base)}`,age:-dday(c.base),go:toC(c)})));
-  add('adj','임대료 인상 예약 도래','30일 안에 새 금액으로 청구됩니다. 계약 상세의 임대료 인상 예약에서 계약서와 맞는지 보고 확인을 누르면 빠집니다',
-    CTRS.filter(c=>inB(c)&&c.st==='진행중').flatMap(c=>(c.adj||[]).filter(a=>!a.ok&&dday(a.d)>0&&dday(a.d)<=30).map(a=>({c,a})))
-      .map(({c,a})=>({n:ctrName(c),d:[a.rent?`임대료 ${won(a.rent)}`:'',a.mgmt?`고정관리비 ${won(a.mgmt)}`:''].filter(Boolean).join(' · '),when:`적용일 ${d8(a.d).slice(5)} · ${dLeft(a.d)}`,age:-dday(a.d),go:toC(c)})));
+  add('adj','임대료 인상 예약 도래','30일 안에 새 금액으로 청구됩니다. 누르면 확인 패널이 열립니다. 계약서와 맞는지 보고 확인을 누르면 빠집니다',
+    CTRS.filter(c=>inB(c)&&c.st==='진행중').flatMap(c=>(c.adj||[]).map((a,i)=>({c,a,i})).filter(({a})=>!a.ok&&dday(a.d)>0&&dday(a.d)<=30))
+      .map(({c,a,i})=>({n:ctrName(c),d:[a.rent?`임대료 ${won(a.rent)}`:'',a.mgmt?`고정관리비 ${won(a.mgmt)}`:''].filter(Boolean).join(' · '),when:`적용일 ${d8(a.d).slice(5)} · ${dLeft(a.d)}`,age:-dday(a.d),go:`${toC(c)};akOpen('${ckey(c)}',${i})`})));
   /* 마감 · 메일 */
   add('close','마감을 기다리는 달','납부마감일이 지났는데 아직 마감하지 않은 달입니다',
     Bs.flatMap(b=>MC_YMS.filter(m=>m<ym&&!(MC[b.id]||{})[m]&&dday(mcDue(b.id,m))<0).map(m=>({n:`${b.name} ${+m.slice(5)}월분`,d:'열림',when:`납부마감일 ${d8(mcDue(b.id,m)).slice(5)} · ${dLeft(mcDue(b.id,m))}`,age:-dday(mcDue(b.id,m)),go:`f12='${m}';go('pay-12')`}))));

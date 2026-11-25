@@ -110,7 +110,7 @@ for (const b of ['b2']) run('PRO-3 ' + b, "tab3='요약';PRO3('" + b + "')");
   const slots = (h.match(/class="drow none"/g) || []).length === 12 - 6 && !/위탁운영계약/.test(h);
   D.setB('b2'); const b = on(); const hb = D.DASH1(); const one = !b.settle && !b.issue && !b.adj && b.wait.length === 1 && b.term && b.mail && /할 일이 없습니다/.test(hb) && (hb.match(/class="card dcard"/g) || []).length === 4;
   D.setB(''); const k6 = 'b1본관601호'; D.tab3c = '요약'; const c3 = D.CTR3(k6); D.akOpen(k6, 0); const ph = D.akHTML(); D.akOK();
-  const conf = /akOpen\('b1본관601호',0\)/.test(c3) && /10,741,500원/.test(ph) && !on().adj && !!D.CTRS.find(c => c.no === '본관601호' && c.b === 'b1').adj[0].ok && /확인함/.test(D.CTR3(k6));
+  const conf = /akOpen\('b1본관601호',0\)/.test(h) && /akOpen\('b1본관601호',0\)/.test(c3) && /10,741,500원/.test(ph) && !on().adj && !!D.CTRS.find(c => c.no === '본관601호' && c.b === 'b1').adj[0].ok && /확인함/.test(D.CTR3(k6));
   D.setB(''); D.PROG.b1.settle = '확정'; const c = on(); const gone = !c.settle && !c.issue;
   const bell = !/toggleNoti|id="noti"/.test(html) && /location\.hash\|\|'#\/dash-1'/.test(html);
   const ok = all && view && slots && one && conf && gone && bell;
