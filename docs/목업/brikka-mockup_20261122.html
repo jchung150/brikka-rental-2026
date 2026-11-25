@@ -526,7 +526,8 @@ tr.mrow{cursor:pointer}tr.mrow td{white-space:nowrap}
 .tms{font-weight:700;margin-bottom:8px}.tmb{white-space:pre-wrap;font-size:12.5px;line-height:1.7}
 .tph{color:var(--pri);background:var(--pri-bg);border-radius:3px;padding:0 2px}
 .rcal{position:relative;display:inline-block}
-.rbtn{display:inline-flex;align-items:center;gap:6px}.rbtn.on{border-color:var(--pri);color:var(--pri)}
+.fbar .rbtn{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line);background:var(--bg);color:inherit;padding:8px 11px;border-radius:var(--r-sm);font-size:12.5px;font-weight:400;min-width:150px;line-height:normal;cursor:pointer}
+.fbar .rbtn .rcv{margin-left:auto;display:inline-flex;color:inherit}.fbar .rbtn.on{border-color:var(--pri);color:var(--pri)}
 .rpop{position:absolute;top:calc(100% + 6px);left:0;z-index:70;width:292px;background:var(--bg);border:1px solid var(--line);border-radius:var(--r);box-shadow:0 10px 30px rgba(0,0,0,.18);padding:12px}
 .rq{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
 .rqc{font-size:11.5px;padding:3px 9px;border:1px solid var(--line);border-radius:99px;cursor:pointer}.rqc:hover{border-color:var(--pri);color:var(--pri)}
@@ -6591,7 +6592,7 @@ function CTR3(k){
   })();
   return CTR3head(c,k)+`
   <div class="fbar">
-    <span class="rcal"><button class="btn rbtn ${f3.from||f3.to?'on':''}" onclick="event.stopPropagation();p3Open()">${ic('cal',14)}${f3Label()} ▾</button>${p3HTML()}</span>
+    <span class="rcal"><button class="rbtn ${f3.from||f3.to?'on':''}" onclick="event.stopPropagation();p3Open()">${ic('cal',14)}${f3Label()}<span class="rcv"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></span></button>${p3HTML()}</span>
     <select onchange="setF3('tp',this.value)">
       ${[['','전체 거래유형'],...F3TP.map(t=>[t,t])].map(([v,t])=>`<option value="${v}" ${(f3.tp||'')===v?'selected':''}>${t}</option>`).join('')}
     </select>
