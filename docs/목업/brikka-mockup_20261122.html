@@ -515,7 +515,7 @@ table.nowr th,table.nowr td{white-space:nowrap}
 .card.dk{cursor:pointer}.card.dk:hover{border-color:var(--pri)}
 .dgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-bottom:16px;align-items:start}
 @media (max-width:900px){.dgrid{grid-template-columns:1fr}}
-.dcard > .ct{border-bottom:1px solid var(--line)}
+.dcard > .ct,.sumt .card > .ct{border-bottom:1px solid var(--line)}
 .drow{display:flex;align-items:center;gap:12px;padding:10px 16px;border-bottom:1px solid var(--line-2);cursor:pointer}
 .drow:last-child{border-bottom:0}.drow:hover{background:var(--pri-bg)}
 .drow.none{cursor:default;min-height:58px;box-sizing:border-box}.drow.none:hover{background:none}
@@ -1775,6 +1775,7 @@ function PRO3(id){
   const b=BUILDINGS.find(x=>x.id===id)||BUILDINGS[0];
   const T=['요약','계약','유닛','주차','관리비','보고서','자료보관','이력'];
   const body=({'요약':t요약,'계약':t계약,'유닛':t유닛,'주차':t주차,'관리비':t청구,'보고서':t보고서,'자료보관':t자료,'이력':b=>histHTML(histB(b),'b'+b.id)}[tab3]||t요약)(b);
+  const bodyW=tab3==='요약'?`<div class="sumt">${body}</div>`:body;
   return `
   <div class="ph">
     <div class="bsw">
@@ -1797,7 +1798,7 @@ function PRO3(id){
     ${BOP[b.id].at.replace(/-/g,'.')} · ${BOP[b.id].why}. 청구서 발행 · 계약 등록 · 관리비 정산을 할 수 없습니다. 수납 · 미납 관리 · 환불 · 월 마감은 계속할 수 있습니다.</div>`:''}
   <div class="tabs">
     ${T.map(t=>`<button class="${t===tab3?'on':''}" onclick="setTab('${t}')">${t}</button>`).join('')}
-  </div>${body}`;
+  </div>${bodyW}`;
 }
 
 /* 건물 사진 — 한 장. 건물을 알아보기 위한 용도뿐이다 → PRO-3 기본 정보
