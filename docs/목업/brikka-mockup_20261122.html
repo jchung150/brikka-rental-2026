@@ -3163,7 +3163,7 @@ function NTF6(){
     ${perBtn('fm',fm)}
     ${S('kind',MAIL_KINDS,'전체 발송종류')}${S('ch',['이메일'],'전체 채널')}${S('st',['성공','실패','대기'],'전체 상태')}</div>
   <div class="tbl"><div class="tw"><table>
-    <thead><tr><th>발송일시</th><th>발송종류</th><th>채널</th><th>받는 사람</th><th>받는 주소</th><th>계약고유이름</th><th>발송방식</th><th>담당자</th><th class="c">상태</th></tr></thead>
+    <thead><tr><th>발송일시</th><th>발송종류</th><th>채널</th><th>받는 사람</th><th>받는 주소</th><th>계약고유이름</th><th>발송방식</th><th>담당자</th><th class="c">상태</th><th class="c">더보기</th></tr></thead>
     <tbody>${P.length?P.map(m=>{const one=(L,f)=>`${L[0]?L[0][f]:'—'}${L.length>1?` <span class="c2" style="display:inline;margin:0">외 ${L.length-1}</span>`:''}`;
       return `<tr class="mrow" onclick="mvOpen(${m.id})">
       <td>${d8(m.at)}</td><td>${m.kind}</td><td>${m.ch}</td>
@@ -3171,8 +3171,8 @@ function NTF6(){
       <td title="${m.to.map(x=>x.mail).join(', ')}">${one(m.to,'mail')}</td>
       <td>${mailCtr(m)}</td><td>${m.how}</td><td>${m.by}</td>
       <td class="c"><span class="bd ${MST[m.st]}" ${m.st==='실패'?`title="${m.why}"`:''}>${m.st}</span>${m.re?' <span class="c2" style="display:inline;margin:0">다시 보냄</span>':''}${m.of?' <span class="c2" style="display:inline;margin:0">다시 보낸 메일</span>':''}</td>
-</tr>`;}).join('')
-      :`<tr><td colspan="9" style="text-align:center;padding:28px 0;color:var(--muted)">조건에 맞는 발송 내역이 없습니다</td></tr>`}</tbody></table></div>
+      <td class="c">${moreCell([{t:'상세',go:`mvOpen(${m.id})`}])}</td></tr>`;}).join('')
+      :`<tr><td colspan="10" style="text-align:center;padding:28px 0;color:var(--muted)">조건에 맞는 발송 내역이 없습니다</td></tr>`}</tbody></table></div>
     ${PG.pager}</div>
   <div class="hint">
     시스템이 보낸 메일을 <b>보내던 그대로</b>(제목 · 본문 · 첨부 · 받는 주소) 남깁니다. 담당자 주소를 나중에 바꿔도 여기 주소는 그대로입니다. 지우지 않습니다.<br>
