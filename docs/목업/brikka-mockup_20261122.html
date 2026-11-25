@@ -3140,7 +3140,7 @@ function mailNowTo(m){const c=m.ks&&CTRS.find(x=>ckey(x)===m.ks[0]); if(!c) retu
 function mailResend(){const m=MAIL_LOG.find(x=>x.id===mv.id); if(!m) return; const to=mailNowTo(m); if(!to.length) return;
   const n=mailAdd({...m,id:undefined,at:`${TODAY_S} ${new Date().toTimeString().slice(0,5)}`,to,how:'수동',by:'슈퍼관리자',st:'성공',why:'',of:m.id,re:null});
   n.id=++mailSeq; m.re=n.id; mv={id:n.id,re:false}; render(true);}
-let fm={kind:'',st:'',ch:'',q:''}, mv=null, mp=1;
+let fm={kind:'',st:'',ch:'',from:'',to:'',q:''}, mv=null, mp=1;
 const setFm=(k,v)=>{fm[k]=v;mp=1;render();};
 function mvOpen(id,re){mv={id,re:!!re};DRAWER='mlv';render(true);}
 const MST={'성공':'ok','실패':'da','대기':'mu'};
@@ -3150,14 +3150,14 @@ const mailCtr=m=>{const cs=(m.ks||[]).map(k=>CTRS.find(x=>ckey(x)===k)).filter(B
 function NTF6(){
   const d8=d=>d.replace(/-/g,'.');
   const R=mailRows().filter(m=>(!fm.kind||m.kind===fm.kind)&&(!fm.st||m.st===fm.st)&&(!fm.ch||m.ch===fm.ch)
-      &&qHit(fm.q,m.to.flatMap(x=>[x.n,x.mail]).concat([m.rel])))
+      &&(!fm.from||m.at.slice(0,10)>=fm.from)&&(!fm.to||m.at.slice(0,10)<=fm.to)&&qHit(fm.q,m.to.flatMap(x=>[x.n,x.mail]).concat([m.rel])))
     .sort((p,q)=>p.at<q.at?1:p.at>q.at?-1:q.id-p.id);
   const N=Math.max(1,Math.ceil(R.length/HPER)), cur=Math.min(mp,N), P=R.slice((cur-1)*HPER,cur*HPER);
   const S=(f,opts,lab)=>`<select onchange="setFm('${f}',this.value)"><option value="">${lab}</option>${opts.map(v=>`<option ${fm[f]===v?'selected':''}>${v}</option>`).join('')}</select>`;
   return `
   <div class="ph"><h1>발송 내역</h1><span class="sid">NTF-6</span></div>
   <div class="fbar">
-    ${qBox('mq',fm.q,'setFm')}
+    ${perBtn('fm',fm)}
     ${S('kind',MAIL_KINDS,'전체 발송종류')}${S('st',['성공','실패','대기'],'전체 상태')}${S('ch',['이메일'],'전체 채널')}</div>
   <div class="tbl"><div class="tw"><table>
     <thead><tr><th>발송일시</th><th>발송종류</th><th>채널</th><th>받는 사람</th><th>받는 주소</th><th>계약고유이름</th><th>발송방식</th><th>보낸 사람</th><th class="c">상태</th></tr></thead>
@@ -6611,10 +6611,10 @@ const isoD=(y,m,d)=>`${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0
 const ymAdd=(ym,n)=>{const [y,m]=ym.split('-').map(Number), d=new Date(Date.UTC(y,m-1+n,1));return d.toISOString().slice(0,7);};
 const dAgo=n=>new Date((dnum(TODAY_S)-n)*864e5).toISOString().slice(0,10);
 /* 같은 달력을 원장(f3) · 변경 이력(frc)이 함께 쓴다 */
-const P3T={f3:()=>f3,frc:()=>frc};
+const P3T={f3:()=>f3,frc:()=>frc,fm:()=>fm};
 function p3Open(t='f3'){const o=P3T[t](); P3=P3?null:{t,from:o.from,to:o.to,ym:(o.to||o.from||TODAY_S).slice(0,7)};render(true);}
 function p3Day(d){if(!P3.from||P3.to){P3.from=d;P3.to='';} else if(d<P3.from){P3.from=d;} else P3.to=d; render(true);}
-function p3Set(from,to){const o=P3T[(P3&&P3.t)||'f3'](); o.from=from;o.to=to;P3=null;Object.keys(hp).forEach(k=>delete hp[k]);render(true);}
+function p3Set(from,to){const t=(P3&&P3.t)||'f3', o=P3T[t](); o.from=from;o.to=to;P3=null;if(t==='fm') mp=1;Object.keys(hp).forEach(k=>delete hp[k]);render(true);}
 const perLabel=o=>o.from||o.to?`${d8m(o.from||'')} ~ ${d8m(o.to||TODAY_S)}`:'전체 기간';
 const f3Label=()=>perLabel(f3);
 /* 기간 버튼 — 고르기 칸과 같은 모양. 누르면 달력 */
