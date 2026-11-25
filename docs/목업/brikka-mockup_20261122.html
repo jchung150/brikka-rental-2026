@@ -440,7 +440,7 @@ tr.off td:not(:last-child):not(:nth-last-child(2)){opacity:.5}
 .frow .ftot{margin-left:auto}
 .frow .ftot .iw{justify-content:flex-end}
 .big{font-size:17px;font-weight:600}
-.itab .add{margin-left:auto;color:var(--pri);border-style:dashed}
+.itab .add{color:var(--pri);border-style:dashed}
 .itab .okd{color:var(--ok);margin-right:5px;font-weight:700}
 .hsum{margin-left:14px;font-size:12.5px;color:var(--muted)}
 .hsum b{color:var(--ink);font-size:14px}
@@ -2482,8 +2482,7 @@ const setFdoc=(f,v)=>{fdoc[f]=v;render(true);};
 function t자료(b,ck){
   const all=docAll().filter(x=>x.b.id===b.id&&(!ck||x.d.k===ck)), L=docFilt(all,fdoc), PG=paged('doc'+b.id+(ck||''),L,HPER,JSON.stringify(fdoc));
   const S=(k,opts,lab)=>`<select onchange="setFdoc('${k}',this.value)"><option value="">${lab}</option>${opts.map(v=>`<option ${fdoc[k]===v?'selected':''}>${v}</option>`).join('')}</select>`;
-  const lock=(t,v)=>`<select disabled title="${t}"><option>${v}</option></select>`;
-  const fb=`${perBtn('fdoc',fdoc)}${S('c',ck?DOC_CAT_OF.계약:DOC_CAT,'전체 카테고리')}${ck?lock('이 탭은 이 계약의 자료만 보입니다','계약'):S('tk',['건물','계약','임차인','임대인'],'전체 귀속 대상')}${lock(`이 탭은 이 ${ck?'계약':'건물'}의 자료만 보입니다`,b.name)}${S('by',[...new Set(all.map(x=>x.d.by))].filter(Boolean).sort(),'전체 담당자')}`;
+  const fb=`${perBtn('fdoc',fdoc)}${S('c',ck?DOC_CAT_OF.계약:DOC_CAT,'전체 카테고리')}${ck?'':S('tk',['건물','계약','임차인','임대인'],'전체 귀속 대상')}${S('by',[...new Set(all.map(x=>x.d.by))].filter(Boolean).sort(),'전체 담당자')}`;
   return `${tabBar(fb,docBtns(L,`upOpen('${b.id}',false${ck?`,'${ck}'`:''})`))}<div class="tbl"><div class="tw">${docTable(L,PG.rows)}</div>${PG.pager}</div>`;
 }
 
@@ -6834,7 +6833,7 @@ function hdHTML(){
     :`<div class="df"><button class="btn" title="슈퍼관리자만" style="color:var(--danger)" onclick="hdDel={why:''};render(true)">삭제</button><button class="btn" onclick="closeDrawer()">닫기</button></div>`}
   </div></div>`;
 }
-/* 이력 탭 — 변경 이력(REC-1)과 같은 필터 줄(기간 · 건물 · 대상 종류 · 변경 유형 · 담당자) · 같은 표. 건물은 그 건물로 잠근다(이 탭은 그 건물 · 그 계약만) */
+/* 이력 탭 — 변경 이력(REC-1)과 같은 표 · 같은 필터(기간 · 대상 종류 · 변경 유형 · 담당자). 건물 필터는 없다(이 탭은 그 건물 · 그 계약만) */
 function histHTML(rows,scope,bid){
   const S=(f,opts,lab)=>`<select onchange="setFh('${f}',this.value)"><option value="">${lab}</option>${opts.map(v=>`<option ${fh[f]===v?'selected':''}>${v}</option>`).join('')}</select>`;
   const R=rows.filter(r=>!HDEL.has(hKey(r))&&(!fh.kind||r.kind===fh.kind)&&(!fh.type||r.type===fh.type)&&(!fh.by||r.by===fh.by)
@@ -6842,8 +6841,8 @@ function histHTML(rows,scope,bid){
     .sort((p,q)=>p.at<q.at?1:p.at>q.at?-1:0);
   const N=Math.max(1,Math.ceil(R.length/HPER)), cur=Math.min(hp[scope]||1,N), P=R.slice((cur-1)*HPER,cur*HPER);
   HROWS[scope]=R;
-  const uniq=f=>[...new Set(rows.map(f))].filter(Boolean).sort(), bn=(BUILDINGS.find(b=>b.id===bid)||{}).name||'';
-  const fb=`${perBtn('fh',fh)}<select disabled title="이 탭은 이 건물의 이력만 보입니다"><option>${bn}</option></select>${S('kind',uniq(r=>r.kind),'전체 대상 종류')}${S('type',uniq(r=>r.type),'전체 변경 유형')}${S('by',uniq(r=>r.by),'전체 담당자')}`;
+  const uniq=f=>[...new Set(rows.map(f))].filter(Boolean).sort();
+  const fb=`${perBtn('fh',fh)}${S('kind',uniq(r=>r.kind),'전체 대상 종류')}${S('type',uniq(r=>r.type),'전체 변경 유형')}${S('by',uniq(r=>r.by),'전체 담당자')}`;
   return `${tabBar(fb)}<div class="tbl"><div class="tw">${recTable(R.length?P:[],scope,(cur-1)*HPER,'조건에 맞는 이력이 없습니다')}</div>
       ${pagerHTML(R.length,cur,`(p=>{hp['${scope}']=p;render(true);})`)}</div>`;
 }
