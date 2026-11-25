@@ -3457,7 +3457,7 @@ function cnHTML(){
         <div class="c2" style="white-space:normal">중개사 정보와 수수료율은 계약마다 넣고 계약 상세의 중개사 카드에서 고칩니다. 수수료율은 기록만 하고 계산에 쓰지 않습니다.</div>`);}
   const bad=edit?cnBad():'';
   return `<div class="dro"><div class="ov" onclick="closeDrawer()"></div><div class="pn" style="width:520px">
-    <div class="dh"><div><div class="t">${name}</div><div class="s"><span class="bd ${KB[k]}">${k}</span>${edit?' · 고치는 중':''}</div></div><button class="x" onclick="closeDrawer()">✕</button></div>
+    <div class="dh"><div><div class="t" style="display:flex;align-items:center;gap:8px">${name}<span class="bd ${KB[k]}">${k}</span></div>${edit?'<div class="s">고치는 중</div>':''}</div><button class="x" onclick="closeDrawer()">✕</button></div>
     <div class="db">${body}${bad?`<div class="c2" style="color:var(--danger)">${bad}</div>`:''}</div>
     <div class="df">${edit?`<button class="btn" onclick="cv.edit=false;render(true)">취소</button><button class="btn pri" ${bad?'disabled':''} onclick="cnSave()">저장</button>`
       :`<button class="btn" onclick="closeDrawer()">닫기</button>${k!=='중개사'?'<button class="btn pri" onclick="cnEdit()">수정</button>':''}`}</div></div></div>`;
