@@ -3031,7 +3031,7 @@ function PAY12(){
   <div class="two" style="grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px">
     ${[['청구 금액',won(T.bill),`${T.n}건 발행`],
        ['수납 금액',won(T.paid),`수납률 ${rate}%`],
-       ['이 달 청구분 미납',won(T.due),`마감 ${T.closed} / ${BUILDINGS.length}개 건물`],
+       ['이 달 청구분 미납액',won(T.due),`마감 ${T.closed} / ${BUILDINGS.length}개 건물`],
        ['정산 미확정',`${BUILDINGS.length-T.done}개 건물`,'청구 발행 불가']]
       .map(([k,v,d],i)=>`<div class="card" style="margin:0"><div class="cc" style="padding:14px 16px">
         <div style="font-size:11.5px;color:var(--muted)">${k}</div>
@@ -3040,7 +3040,7 @@ function PAY12(){
   </div>
   <div class="tbl"><div class="tw"><table class="pgrid mcl">
     <thead><tr><th>건물</th><th class="c">정산</th><th class="n">청구서</th><th class="n">청구액</th><th class="n">수납액</th>
-      <th class="n">이 달 청구분 미납</th><th class="c">마감</th><th>마감일시 · 담당자</th><th class="c">더보기</th></tr></thead>
+      <th class="n">이 달 청구분 미납액</th><th class="c">마감</th><th>마감일시 · 담당자</th><th class="c">더보기</th></tr></thead>
     <tbody>${rows}
       <tr class="sumr"><td>합계</td><td class="c">${T.done} / ${BUILDINGS.length}</td><td class="n">${T.n} / ${T.N}건</td><td class="n">${won(T.bill)}</td>
         <td class="n">${won(T.paid)}</td><td class="n">${won(T.due)}</td><td class="c">${T.closed} / ${BUILDINGS.length}</td><td></td><td></td></tr>
@@ -3085,7 +3085,7 @@ function mailText(kind,v){
     '웰컴 메시지':()=>[`[${B&&B.name}] 입주를 환영합니다 (${v.nos})`,
       `${hi}${v.ten}의 ${B&&B.name} ${v.nos} 계약을 환영합니다.\n\n계약 기간: ${d8m(v.from)} ~ ${d8m(v.to)}\n청구서: 매달 ${B&&ruleKo(B.billDay)}에 메일로 보내드리고, 납부마감일은 ${B&&ruleKo(B.dueDay)}입니다.\n${B&&payLine(B)}\n\n궁금한 점은 아래 담당자에게 연락해 주세요.`],
     '월 마감 보고서':()=>[`[${B&&B.name}] ${Y(v.ym)} 월 마감 보고서`,
-      `${hi}${B&&B.name}의 ${Y(v.ym)} 월 마감 보고서를 보내드립니다.\n\n청구: ${W(v.bill)} · 수납: ${W(v.paid)} · 미납: ${v.unpaid!=null?W(v.unpaid):won(Math.max(0,(v.bill||0)-(v.paid||0)))}\n공실: ${v.vac||0} / ${v.unit||0}유닛\n\n자세한 내용은 첨부한 보고서를 확인해 주세요.`],
+      `${hi}${B&&B.name}의 ${Y(v.ym)} 월 마감 보고서를 보내드립니다.\n\n청구액: ${W(v.bill)} · 수납액: ${W(v.paid)} · 미납액: ${v.unpaid!=null?W(v.unpaid):won(Math.max(0,(v.bill||0)-(v.paid||0)))}\n공실: ${v.vac||0} / ${v.unit||0}유닛\n\n자세한 내용은 첨부한 보고서를 확인해 주세요.`],
     '계정 초대':()=>[`[BRIKKA] ${v.op||'(주)테온하우스'} 관리자 계정 초대`,
       `${hi}${v.op||'(주)테온하우스'}가 BRIKKA 관리자 계정을 만들었습니다.\n아래 버튼을 눌러 비밀번호를 정하면 바로 쓸 수 있습니다. 링크는 24시간 동안 한 번만 쓸 수 있습니다.\n\n[비밀번호 정하기]\n\n초대받을 일이 없다면 이 메일을 무시하세요.`],
     '비밀번호 재설정':()=>[`[BRIKKA] 비밀번호 재설정`,
@@ -3298,7 +3298,7 @@ function t보고서(bdx){
       <td style="padding-left:32px">${sent?d8m('2026-'+sent):dash}</td>
       <td class="c">${moreCell([{t:'상세',go:`rpOpen('${ym}')`},{t:'내려받기',go:`say('${ymKo(ym)} 월 마감 보고서 PDF를 내려받습니다(상세 패널을 열지 않고 바로). 메일에 붙는 PDF와 같습니다.\\n목업에서는 파일을 내려받지 않습니다.')`}])}</td></tr>`;}).join('');
   return `<div class="tbl" style="margin-top:4px"><div class="tw"><table>
-      <thead><tr><th>청구년월</th><th>마감</th><th class="n">청구액</th><th class="n">수납액</th><th class="n">미납</th><th style="padding-left:32px">발송 일자</th><th class="c">더보기</th></tr></thead>
+      <thead><tr><th>청구년월</th><th>마감</th><th class="n">청구액</th><th class="n">수납액</th><th class="n">미납액</th><th style="padding-left:32px">발송 일자</th><th class="c">더보기</th></tr></thead>
       <tbody>${rows}</tbody></table></div></div>
     <div class="hint">달을 누르면 그 달 보고서가 열립니다. 건물 하나 × 한 달이 보고서 한 장이고, 그 건물 임대인 모두에게 한 통으로 보냅니다(공동소유도 건물 전체 기준이고 지분은 나누지 않습니다).<br>
       마감한 달만 보낼 수 있습니다. 숫자는 월 마감일 기준이라 보낸 뒤에 바뀌지 않습니다. 마감 전인 달도 열어 볼 수 있습니다. 금액은 부가세 포함입니다.<br>
@@ -3622,7 +3622,7 @@ function DASH1(){
   const top=[
     card('공실률',`${unit?(vac/unit*100).toFixed(1):'0.0'}%`,`공실 ${vac} / 전체 ${unit}유닛`,`go('pro-1')`),
     card(`${+LY.slice(5)}월분 청구 · 수납`,won(paid),`청구 ${won(bill)} · 수납률 ${bill?Math.round(paid/bill*100):0}%`,`f12='${LY}';go('pay-12')`),
-    card('미납',won(due),`${dueN}개 계약 · 연체료(예상) ${won(fee)}`,`${fdb?`f2.b='${fdb}';`:''}go('pay-2')`,due>0),
+    card('미납액',won(due),`${dueN}개 계약 · 연체료(예상) ${won(fee)}`,`${fdb?`f2.b='${fdb}';`:''}go('pay-2')`,due>0),
     card('만료 임박 계약',`${exp(90)}건`,`90일 안 ${exp(90)} · 60일 안 ${exp(60)} · 30일 안 ${exp(30)}`,`f1c.dd='90';f1c.st='진행중';f1c.b='${fdb}';go('ctr-1')`)].join('');
   /* 2단 — 확인이 필요한 일. 건수가 0인 항목은 숨긴다 */
   const L=dashItems(), by=Object.fromEntries(L.map(x=>[x.k,x])), off=L.filter(x=>!x.rows.length);
@@ -3699,9 +3699,9 @@ function PAY14(){
   <div class="ph"><h1>수납 현황</h1><span class="sid">PAY-14</span></div>
   <div class="fbar"><span style="color:var(--muted);font-size:12px">${TODAY_S.replace(/-/g,'.')} 기준 · 건물 ${BUILDINGS.length}개</span></div>
   <div class="two" style="grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px">
-    ${[['미납 합계',won(T.due),`${T.dueN}개 계약 · 연체료 ${won(T.fee)}`],
+    ${[['미납액 합계',won(T.due),`${T.dueN}개 계약 · 연체료 ${won(T.fee)}`],
        ['확인이 필요한 입금',`${T.wait}건`,'입금 매칭에서 확정 전'],
-       ['과납 합계',won(T.over),`${T.overN}개 계약`],
+       ['과납액 합계',won(T.over),`${T.overN}개 계약`],
        ['최근 30일 수납액',won(T.paid),'은행 입금 · 보증금 상계']]
       .map(([k,v,d],i)=>`<div class="card" style="margin:0"><div class="cc" style="padding:14px 16px">
         <div style="font-size:11.5px;color:var(--muted)">${k}</div>
@@ -3709,7 +3709,7 @@ function PAY14(){
         <div class="c2">${d}</div></div></div>`).join('')}
   </div>
   <div class="tbl"><div class="tw"><table class="pgrid">
-    <thead><tr><th>건물</th><th class="n">확인 필요 입금</th><th class="n">미납</th><th class="n">연체료</th><th class="n">과납</th><th class="n">최근 30일 수납액</th></tr></thead>
+    <thead><tr><th>건물</th><th class="n">확인 필요 입금</th><th class="n">미납액</th><th class="n">연체료</th><th class="n">과납액</th><th class="n">최근 30일 수납액</th></tr></thead>
     <tbody>${rows}
       <tr class="sumr"><td>합계</td><td class="n">${T.wait}건</td><td class="n">${won(T.due)}</td><td class="n">${won(T.fee)}</td><td class="n">${won(T.over)}</td><td class="n">${won(T.paid)}</td></tr>
     </tbody></table></div></div>
@@ -4223,7 +4223,7 @@ function PAY1(){
 /* 2026-07 카리나빌딩 납부 계좌 거래내역 — 은행에서 내려받은 형식 그대로다. 7/20 ~ 7/31분.
    8월 실제 거래내역의 날짜를 7월로 옮기고, 임차인 입금액은 7월 청구액에 맞춰 만든 예시값이다.
    (주)비씨에이전시는 6·7월분 중 5,000,000원만 냈다 · 주식회사루비뮤직은 6월 부족분 385,000원을 얹어 냈다(7월 청구서의 연체료 1,518원 포함)
-   에스씨케이컴퍼니는 6월 과납 18,000원(전월 과납액)을 뺀 금액을 냈다
+   에스씨케이컴퍼니는 6월 과납액 18,000원(전월 과납액)을 뺀 금액을 냈다
    거래후 잔액 열은 원본 값이며 계산에 쓰지 않는다.
    앞 2행은 머리말, 출금 행과 임대 외 입금이 섞여 있다. 시스템이 걸러내야 한다 → 4.6.1 */
 const BANK_RAW=`카리나빌딩
@@ -4911,7 +4911,7 @@ function PAY13_0(){
         <span class="c2" style="margin:0">→ ${B[r.biz]?B[r.biz].n:''}</span></div></div></div>
     <div class="card"><div class="tw"><table class="nowr">
       <thead><tr><th>계약고유이름</th><th>청구항목</th><th class="c">우선순위</th>
-        <th class="n">청구액</th><th class="n">배분액</th><th class="n">배분 후 미과납</th></tr></thead>
+        <th class="n">청구액</th><th class="n">배분액</th><th class="n">배분 후 미납·과납액</th></tr></thead>
       <tbody>${(r.all||r.lines).map(l=>{const c=CTRS.find(y=>y.b===RC.b&&y.no===l.no), left=Math.max(0,l.amt-cutOf(l.id)-paidNet(l.id));return `<tr class="${l.pay?'':'dim'} ${l.carry?'ni':''}">
         <td>${cnameHTML(bn.alias,l.no,c.ten)}</td><td>${ymTag(l)}</td><td class="c">${l.carry?'—':l.pr}</td>
         <td class="n" style="color:var(--muted)">${won(l.amt)}</td><td class="n">${l.pay?`<b>${won(l.pay)}</b>`:'—'}</td>
@@ -4923,9 +4923,9 @@ function PAY13_0(){
       ${r.rest>0?'입금액이 미납보다 많아 남았습니다.':'이 입금으로 채운 청구가 나중에 감액되어 넘친 돈입니다.'} 돌려줄 돈(과납)으로 이 임차인의 계약에 기록했습니다.
       다음 달로 넘어가 다음 청구서를 발행할 때 먼저 배분되어 낼 돈이 줍니다. 돌려줄 때는 계약 상세 원장 탭의 「환불」을 씁니다.</div>`:''}
     ${(()=>{const left=B[r.biz]?B[r.biz].ctrs.reduce((a,c)=>a+Math.max(0,ledgerOf(ckey(c)).bal.매출채권),0):0;   /* 원장의 받을 돈 — 미납액 포함 */
-      return left?`<div class="fnd wa3"><span class="h">${B[r.biz].n} 남은 미납 ${won(left)}</span>
+      return left?`<div class="fnd wa3"><span class="h">${B[r.biz].n} 남은 미납액 ${won(left)}</span>
         이 입금으로 채우지 못한 청구가 있습니다. 수납 내역·미납 관리에서 확인하세요.</div>`:'';})()}
-    <div class="hint">배분 후 미과납은 지금 원장 기준입니다. 남은 돈은 −로 적습니다. 계약별 납부상태는 수납 내역에서 봅니다.
+    <div class="hint">배분 후 미납·과납액은 지금 원장 기준입니다. 남은 돈은 −로 적습니다. 계약별 납부상태는 수납 내역에서 봅니다.
       <b class="lk" onclick="go('pay-6')">수납 내역으로 이동 →</b></div>`;
   }else if(x.mis){
     const rf=x.mis.refund;
@@ -4947,7 +4947,7 @@ function PAY13_0(){
     const tbl=!pl?'':!pl.lines.length?`<div class="empty" style="padding:24px">이 임차인에게 미납 청구가 없습니다. 입금 전액이 과납(돌려줄 돈)이 됩니다.</div>`
       :`<div class="tw"><table class="nowr">
         <thead><tr><th>계약고유이름</th><th>청구항목</th><th class="c">우선순위</th>
-          <th class="n">배분 전 미납액</th><th class="n">배분액</th><th class="n">배분 후 미과납</th></tr></thead>
+          <th class="n">배분 전 미납액</th><th class="n">배분액</th><th class="n">배분 후 미납·과납액</th></tr></thead>
         <tbody>${pl.all.map(l=>{const c=CTRS.find(y=>y.b===RC.b&&y.no===l.no);return `<tr class="${l.pay?'':'dim'} ${l.carry?'ni':''}">
           <td>${cnameHTML(bn.alias,l.no,c.ten)}</td><td>${ymTag(l)}</td><td class="c">${l.carry?'—':l.pr}</td>
           <td class="n" style="color:var(--muted)">${won(l.due)}</td><td class="n">${l.pay?`<b>${won(l.pay)}</b>`:'—'}</td>
@@ -4983,7 +4983,7 @@ function PAY13_0(){
           :'<span class="c2" style="margin:0">입금자명으로 임차인을 찾지 못했습니다. 직접 고르세요.</span>'}
       </div></div></div>
     ${g.biz?`<div class="isec"><div class="ish"><span class="isn">2</span>배분 미리보기
-        <span class="c2" style="margin:0 0 0 6px;font-weight:400">${B[g.biz].n} 미납 ${won(openAll)} → ${won(openAll-(d.amt-pl.rest))}</span></div>
+        <span class="c2" style="margin:0 0 0 6px;font-weight:400">${B[g.biz].n} 미납액 ${won(openAll)} → ${won(openAll-(d.amt-pl.rest))}</span></div>
       <div class="card">${tbl}</div>
       <div class="hint">이월 미납액부터, 그다음 오래된 회차부터, 같은 회차 안에서는 우선순위 순서로 채웁니다. 확정하면 이대로 원장에 기록됩니다.</div></div>`:''}
     <div style="display:flex;gap:8px;margin-top:6px">
@@ -5321,7 +5321,7 @@ function fixHTML(){
         ${R('사유',`<input type="text" value="${fz.why}" placeholder="필수. 예: ${cut?'7월 검침값 입력 오류':'이사 · 엘리베이터 사용'}" onchange="fxSet('why',this.value)">`)}</div>
       ${cut&&I&&V.amt>left?`<div class="prev warn2"><div class="pt">청구액보다 많이 줄일 수 없습니다</div>남은 청구액 ${won(left)}까지 줄일 수 있습니다.</div>`
        :fz.amt||all?`<div class="prev"><div class="pt">${cut?'감액 확정하면':'발행하면'}</div>${cut
-          ?`오늘(${TODAY_S.slice(5).replace('-','.')}) 날짜로 원장에 <b>${I?billLabel(I):''} 감액 ${won(V.amt)}</b>이 기록됩니다.${over>0?` 이미 낸 돈이 있어 <b>과납 ${won(over)}</b>이 생기고, 다음 청구서를 발행할 때 먼저 빠집니다.`:''}`
+          ?`오늘(${TODAY_S.slice(5).replace('-','.')}) 날짜로 원장에 <b>${I?billLabel(I):''} 감액 ${won(V.amt)}</b>이 기록됩니다.${over>0?` 이미 낸 돈이 있어 <b>과납액 ${won(over)}</b>이 생기고, 다음 청구서를 발행할 때 먼저 빠집니다.`:''}`
           :`「${fz.name||'새 항목'}」 ${won(V.amt)}의 <b>비정기 청구서</b>가 바로 발행되고, 오늘(${TODAY_S.slice(5).replace('-','.')}) 날짜로 원장에 청구가 기록됩니다. 납부마감일 <b>${dueStr(adYm()).replace(/-/g,'.')}</b>.${(to=>to.length?` 메일을 보내면 ${to.map(x=>x.n).join(', ')}에게 갑니다.`:' 청구서 메일 받는 담당자가 없어 메일은 보내지 않습니다.')(billTo(c))}`}</div>`:''}
     </div>
     <div class="df"><button class="btn" onclick="closeDrawer()">닫기</button>
@@ -5634,7 +5634,7 @@ function leftOf(c){
   return dep||ar?{dep,ar}:null;
 }
 function leftTag(c){const x=leftOf(c); if(!x) return '';
-  const t=[x.dep?`보증금 ${won(x.dep)}`:'',x.ar>0?`미납 ${won(x.ar)}`:x.ar<0?`과납 ${won(-x.ar)}`:''].filter(Boolean).join(' · ');
+  const t=[x.dep?`보증금 ${won(x.dep)}`:'',x.ar>0?`미납액 ${won(x.ar)}`:x.ar<0?`과납액 ${won(-x.ar)}`:''].filter(Boolean).join(' · ');
   return `<span class="bd wa" style="margin-left:6px" title="${t}">미정산</span>`;}
 
 /* ═══ CTR-1 계약 목록 ═══ */
@@ -7070,7 +7070,7 @@ function stLines(k,from,to,acc){const G=[];
     if(l&&l.g===r.g&&l.date===r.date){l.dr+=r.dr||0;l.cr+=r.cr||0;l.bal=r.bal;} else G.push({g:r.g,date:r.date,type:r.type,r,dr:r.dr||0,cr:r.cr||0,bal:r.bal});});
   return G.map(x=>({...x,t:x.r.ttl?x.r.ttl:x.type==='청구'&&x.r.ym?`${x.r.ym.slice(2).replace('-','.')}월분 청구서`:x.type==='수납'?(x.r.src==='이전 입금'?'이전 입금':`${(x.r.src||'').replace(/^\d\d:\d\d:\d\d /,'')} ${x.r.hand?'수납':'입금'}`):x.r.item}));}
 function stPreview(c,bd,S){
-  const bt=v=>v<0?`과납 ${won(-v)}`:won(v), d8=d=>d.replace(/-/g,'.'), th='padding:6px 8px;border-bottom:1px solid var(--line);font-size:11.5px;color:var(--muted);text-align:left;font-weight:500', td='padding:6px 8px;border-bottom:1px solid var(--line2,var(--line));font-size:12px';
+  const bt=v=>v<0?`과납액 ${won(-v)}`:won(v), d8=d=>d.replace(/-/g,'.'), th='padding:6px 8px;border-bottom:1px solid var(--line);font-size:11.5px;color:var(--muted);text-align:left;font-weight:500', td='padding:6px 8px;border-bottom:1px solid var(--line2,var(--line));font-size:12px';
   const sec=(t,acc,a)=>{const L=stLines(st.k,st.from,st.to,acc);
     return `<div style="margin:14px 0 4px;font-weight:700;font-size:13px">${t}</div>
     <table style="width:100%;border-collapse:collapse"><thead><tr><th style="${th}">날짜</th><th style="${th}">거래유형</th><th style="${th}">내용</th><th style="${th};text-align:right">차변</th><th style="${th};text-align:right">대변</th><th style="${th};text-align:right">잔액</th></tr></thead><tbody>
