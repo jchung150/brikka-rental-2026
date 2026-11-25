@@ -665,7 +665,7 @@ const BUILDINGS=[
   fac:['회의실','옥상정원','샤워실','무인택배함'],
   units:[],   /* 카리나빌딩 유닛은 정산 자료(UNITS)에서 만든다 — 계약·검침과 같은 번호 */
   docs:[
-   /* 계약서 3건은 관련 계약을 골라 올린 예시(목업 설명용 가짜 문서) — 계약 상세의 자료보관에도 같은 문서가 보인다 */
+   /* 계약서 3건은 관련 계약을 골라 올린 예시(목업 설명용 가짜 문서) — 계약 상세의 자료 탭에도 같은 문서가 보인다 */
    {t:'임대차계약서_본관801호_아이씨비.pdf',ttl:'임대차계약서 본관801호 (주)아이씨비',sz:'2.4 MB',c:'계약서',k:'b1본관801호',m:'2024.03 원본 스캔. 본관701호와 한 장으로 체결',by:'김관리',at:'2024-02-26 15:30'},
    {t:'임대차계약서_본관302호_유니버셜대부.pdf',ttl:'임대차계약서 본관302호 (유)유니버셜대부',sz:'1.8 MB',c:'계약서',k:'b1본관302호',m:'본관301호 고우컴퍼니와 실질 주인 같음',by:'박현장',at:'2024-10-28 10:05'},
    {t:'임대차계약서_별관301호_비씨에이전시.pdf',ttl:'임대차계약서 별관301호 (주)비씨에이전시',sz:'1.5 MB',c:'계약서',k:'b1별관301호',m:'2024.12 체결본. 연체이자율 연 12% 특약',by:'김관리',at:'2024-11-27 17:20'},
@@ -1681,7 +1681,7 @@ function PRO2(){
       `<label class="ck"><input type="checkbox" ${nb.mg?'checked':''} onchange="nbSet('mg',this.checked)">위탁운영계약 있음</label>
        <div class="c2" style="margin:6px 0 10px">건물주가 직접 관리하는 건물은 비워 둡니다</div>`
       +(nb.mg?R('기간',D('ms')+'<span class="c2" style="margin:0">~</span>'+D('me'),1)
-        +R('위탁운영계약서','<span class="fv c2">등록 후 자료보관 탭에 올립니다</span>'):''));
+        +R('위탁운영계약서','<span class="fv c2">등록 후 자료 탭에 올립니다</span>'):''));
   return `<div class="nbw">
   <div class="ph"><h1>새로운 건물 등록</h1><span class="sid">PRO-2</span></div>
   ${basic}
@@ -1773,8 +1773,8 @@ function bopHTML(){
 }
 function PRO3(id){
   const b=BUILDINGS.find(x=>x.id===id)||BUILDINGS[0];
-  const T=['요약','계약','유닛','주차','관리비','보고서','자료보관','이력'];
-  const body=({'요약':t요약,'계약':t계약,'유닛':t유닛,'주차':t주차,'관리비':t청구,'보고서':t보고서,'자료보관':t자료,'이력':b=>histHTML(histB(b),'b'+b.id)}[tab3]||t요약)(b);
+  const T=['요약','계약','유닛','주차','관리비','보고서','자료','이력'];
+  const body=({'요약':t요약,'계약':t계약,'유닛':t유닛,'주차':t주차,'관리비':t청구,'보고서':t보고서,'자료':t자료,'이력':b=>histHTML(histB(b),'b'+b.id)}[tab3]||t요약)(b);
   return `
   <div class="ph">
     <div class="bsw">
@@ -2007,7 +2007,7 @@ function bOpsCards(b){
     :`<div class="card" style="${d<=90?'border-color:var(--warn)':''}">
     <div class="ct">위탁운영계약<span class="ca">${moreCell([{t:'수정',go:`beOpen('${b.id}','mgmt')`}])}</span></div>
     <div class="cc"><dl class="dl"><dt>기간</dt><dd>${b.mgmtStart} ~ ${b.mgmtEnd}<span class="lock">${dday(b.mgmtEnd)>=0?`${num(dday(b.mgmtEnd))}일 남음`:'만료됨'}</span></dd>
-        <dt>위탁운영계약서</dt><dd>${b.docs.some(x=>/위탁운영계약서/.test(x.t))?'<span style="color:var(--pri);cursor:pointer">위탁운영계약서_카리나빌딩_2025.pdf</span>':'<span style="color:var(--muted)">자료보관에 없음</span>'}</dd>
+        <dt>위탁운영계약서</dt><dd>${b.docs.some(x=>/위탁운영계약서/.test(x.t))?'<span style="color:var(--pri);cursor:pointer">위탁운영계약서_카리나빌딩_2025.pdf</span>':'<span style="color:var(--muted)">자료 탭에 없음</span>'}</dd>
         <dt>임대인</dt><dd>${b.owners[0].n}${b.owners.length>1?` 외 ${b.owners.length-1}`:''}</dd></dl>
       ${d<=90?`<div class="hint" style="color:var(--warn)">만료 90일 이내입니다. 갱신하지 않으면 이 건물의 관리 권한이 소멸합니다.</div>`:''}</div>
   </div>`;
@@ -2100,7 +2100,7 @@ function beHTML(){
     +'<div class="c2" style="margin:0;white-space:normal">모두 선택 입력입니다. 이 건물의 모든 청구(임대료 · 관리비 · 비정기)를 이 명의로 발행합니다. 같은 사업자등록번호를 여러 건물에 써도 됩니다(사업자단위과세 · 같은 명의)</div>';
   if(be.card==='fac') body=R('공용시설',T('n','예: 회의실'))+`<div class="c2" style="margin:0">지우려면 공용시설 태그의 ✕를 누릅니다</div>`;
   if(be.card==='mgmt') body=R('시작일',D('ms'))+R('종료일',D('me'))
-    +'<div class="c2" style="margin:0">위탁운영계약서는 자료보관 탭에 올립니다</div>';
+    +'<div class="c2" style="margin:0">위탁운영계약서는 자료 탭에 올립니다</div>';
   return `<div class="dro"><div class="ov" onclick="closeDrawer()"></div><div class="pn">
     <div class="dh"><div><div class="t">${TITLE}</div><div class="s">${b.name}</div></div>
       <button class="x" onclick="closeDrawer()">✕</button></div>
@@ -2373,13 +2373,13 @@ function t유닛(b){
     목업의 용도·전용면적은 예시값입니다.</div>`;
 }
 
-/* ═══ 자료보관 — 체크해서 여러 건을 한 번에 지우고, 줄마다 더보기(상세 · 내려받기 · 삭제) → PRO-3 · DOC-2
+/* ═══ 자료 탭 — 체크해서 여러 건을 한 번에 지우고, 줄마다 더보기(상세 · 내려받기 · 삭제) → PRO-3 · DOC-2
    상세는 DOC-2(개별 문서 조회)와 같은 내용을 오른쪽 패널로 연다. 문서 삭제는 사유가 필수다 → 3.6 ═══ */
 let selD={}, dc=null;
 const docExt=t=>(t.split('.').pop()||'').toUpperCase();
 const docTitle=t=>t.replace(/\.[^.]+$/,'').replace(/_/g,' ');
 const dTitle=d=>d.ttl||docTitle(d.t);
-/* 관련 계약 — 건물 자료보관에서 계약을 골라 올린 문서. 귀속 대상은 그 계약이고 계약 상세 자료보관에도 같은 문서가 보인다 */
+/* 관련 계약 — 건물 자료 탭에서 계약을 골라 올린 문서. 귀속 대상은 그 계약이고 계약 상세 자료 탭에도 같은 문서가 보인다 */
 /* 목록 제목 아래 옅은 줄 — 관련 계약이 있는 문서만 */
 const docCtrTx=d=>{const c=d.k&&CTRS.find(x=>ckey(x)===d.k);return c?`${c.no} ${c.ten}`:'';};
 const docCtr=(b,d)=>{const c=d.k&&CTRS.find(x=>ckey(x)===d.k);return c?cnameHTML(b.alias,c.no,c.ten):'<span style="color:var(--faint)">—</span>';};   /* 올릴 때 정한 제목. 없으면 파일 이름 */
@@ -2424,7 +2424,7 @@ function docHTML(){
       <button class="btn" onclick="docDelOpen('${b.id}',[${dc.i}])">삭제</button></div>
   </div></div>`;
 }
-/* ═══ 파일 업로드 — 자료보관 탭의 「+ 파일 업로드」. 귀속 대상은 이 건물로 정해져 있다(DOC-3의 탭 경로) → PRO-3 · DOC-3
+/* ═══ 파일 업로드 — 자료 탭의 「+ 파일 업로드」. 귀속 대상은 이 건물로 정해져 있다(DOC-3의 탭 경로) → PRO-3 · DOC-3
    한 번에 파일 하나. 제목 · 카테고리 · 메모를 정한다. 제목은 파일 이름으로 미리 채운다 ═══ */
 let up=null;
 const fileSz=n=>n>=1048576?(n/1048576).toFixed(1)+' MB':Math.max(1,Math.round(n/1024))+' KB';
@@ -2432,7 +2432,7 @@ const fileSz=n=>n>=1048576?(n/1048576).toFixed(1)+' MB':Math.max(1,Math.round(n/
 const upSlot=()=>({t:'',sz:'',ttl:'',c:'',m:'',k:''});
 /* nc — 계약 등록 화면에서 연 경우. 귀속 대상이 등록 중인 계약으로 정해져 있다 */
 function upOpen(bid,fromNc,ck){up={bid,nc:!!fromNc,ck:ck||'',files:[{...upSlot(),k:ck||''}],tried:false};DRAWER='upl';render(true);}
-/* 관련 계약 — 건물 자료보관에서 올릴 때만 고른다. 고르면 귀속 대상이 그 계약이 되고 카테고리도 계약용으로 바뀐다 */
+/* 관련 계약 — 건물 자료 탭에서 올릴 때만 고른다. 고르면 귀속 대상이 그 계약이 되고 카테고리도 계약용으로 바뀐다 */
 function upCtr(k){const f=up.files[0]; f.k=k; if(f.c&&!DOC_CAT_OF[k?'계약':'건물'].includes(f.c)) f.c=''; render(true);}
 /* 올릴 수 있는 파일 — 한 파일 20MB까지 · 문서(PDF · 한글 · 오피스)와 사진만. 압축 파일 · 실행 파일 · 동영상은 받지 않는다 → 명세변경_261122 44 */
 const UP_MAX=20*1024*1024, UP_EXT=['PDF','HWP','HWPX','DOC','DOCX','XLS','XLSX','PPT','PPTX','JPG','JPEG','PNG','HEIC'];
@@ -2473,7 +2473,7 @@ function upHTML(){
     <div class="df"><button class="btn pri" onclick="upSave()">올리기</button></div>
   </div></div>`;
 }
-/* 자료보관 목록 — 건물 상세(ck 없음)와 계약 상세(ck = 계약 키)가 같은 표 · 같은 필터 줄을 쓴다. 계약 상세는 그 계약에 귀속된 문서만 → PRO-3 · CTR-3
+/* 자료 탭 목록 — 건물 상세(ck 없음)와 계약 상세(ck = 계약 키)가 같은 표 · 같은 필터 줄을 쓴다. 계약 상세는 그 계약에 귀속된 문서만 → PRO-3 · CTR-3
    필터: 카테고리 · 업로드 일시 기간(원장 탭과 같은 기간 선택) */
 let fdoc={c:'',per:'',q:''};
 const setFdoc=(f,v)=>{fdoc[f]=v;render(true);};
@@ -3508,7 +3508,7 @@ function REC1(){
     대상 종류 「임차인 · 임대인」은 연락처에서 고친 기록입니다(명세변경_261122 43).</div>`;
 }
 
-/* ═══ DOC-1 자료 보관함 — 모든 건물 · 계약의 문서를 한 곳에서. 건물 · 계약 상세의 자료보관 탭과 같은 줄 · 같은 상세 · 같은 삭제 · 같은 업로드 패널.
+/* ═══ DOC-1 자료 보관함 — 모든 건물 · 계약의 문서를 한 곳에서. 건물 · 계약 상세의 자료 탭과 같은 줄 · 같은 상세 · 같은 삭제 · 같은 업로드 패널.
    귀속 대상(건물 · 계약 · 임차인 · 임대인)으로 찾는다 → 09 DOC-1~3 ═══ */
 let fdg={from:'',to:'',c:'',tk:'',b:'',by:'',ext:''}, selG={};
 const setFdg=(k,v)=>{fdg[k]=v;render(true);};
@@ -3537,7 +3537,7 @@ function DOC1(){
       <td>${x.d.k?`계약 · ${docCtr(x.b,x.d)}`:`건물 · ${x.b.name}`}</td><td>${x.ext}</td><td class="n">${x.d.sz}</td><td>${x.d.by}</td><td>${x.d.at.replace(/-/g,'.')}</td>
       <td class="c">${moreCell([{t:'상세',go:`docOpen('${x.b.id}',${x.i})`},{t:'내려받기',go:`docDown('${x.b.id}',${x.i})`},{t:'삭제',go:`docDelOpen('${x.b.id}',[${x.i}])`}])}</td></tr>`).join('')
       :`<tr><td colspan="9" style="text-align:center;padding:28px 0;color:var(--muted)">조건에 맞는 자료가 없습니다</td></tr>`}</tbody></table></div>${PG.pager}</div>
-  <div class="hint">모든 건물 · 계약에 올린 문서입니다. 건물 상세 · 계약 상세의 자료보관 탭은 이 목록을 그 건물 · 그 계약으로 거른 것입니다. 줄을 누르면 자료 상세가 열립니다.<br>
+  <div class="hint">모든 건물 · 계약에 올린 문서입니다. 건물 상세 · 계약 상세의 자료 탭은 이 목록을 그 건물 · 그 계약으로 거른 것입니다. 줄을 누르면 자료 상세가 열립니다.<br>
     올릴 때는 건물을 고르고, 계약 문서면 계약을 고릅니다(카테고리는 귀속 대상에 맞는 것만). 지우려면 사유가 필요하고 변경 이력에 남습니다.<br>
     여러 문서를 체크하면 ZIP 하나로 내려받거나 함께 지울 수 있습니다. 목업 문서는 카리나빌딩 예시뿐입니다.</div>`;
 }
@@ -5883,13 +5883,13 @@ function CTR2(rk){
           ${R('임대료',K('rent','바뀐 금액 (부가세 포함)'))}${R('고정관리비',K('mgmt','바뀐 금액 (부가세 포함)'))}
           <div class="c2" style="margin:-4px 0 8px 114px">비워 두면 그 항목은 그대로입니다</div></div>`;}).join('')
       +`<button class="btn sm" onclick="nc.adj.push({d:'',rent:'',mgmt:''});render(true)">+ 일정 추가</button>`)
-    +card('자료보관',
+    +card('자료',
       (nc.files.length?`<div class="tw" style="border:1px solid var(--line);border-radius:var(--r-sm);margin-bottom:10px"><table>
         <thead><tr><th>제목</th><th>카테고리</th><th class="c">더보기</th></tr></thead>
         <tbody>${nc.files.map((f,i)=>`<tr><td><div class="c1">${f.t}</div><div class="c2">${f.file}</div></td><td><span class="bd mu">${f.c}</span></td>
           <td class="c"><span class="more" onclick="nc.files.splice(${i},1);render(true)">삭제</span></td></tr>`).join('')}</tbody></table></div>`
         :RW?'<div class="c2" style="margin:-4px 0 10px">기존 계약의 파일은 기존 계약에 그대로 남습니다. 재계약 합의서를 올립니다</div>'
-        :'<div class="c2" style="margin:-4px 0 10px">계약서·사업자등록증 등을 한 번에 하나씩 올립니다. 계약 상세의 자료보관 탭과 자료 보관함에서 찾을 수 있습니다</div>')
+        :'<div class="c2" style="margin:-4px 0 10px">계약서·사업자등록증 등을 한 번에 하나씩 올립니다. 계약 상세의 자료 탭과 자료 보관함에서 찾을 수 있습니다</div>')
       +`<button class="btn sm" onclick="upOpen(nc.b,true)">+ 파일 업로드</button>`)
     +card('메모',`<textarea rows="3" placeholder="이 계약에 대해 남길 말" style="width:100%;border:1px solid var(--line);border-radius:var(--r-sm);padding:8px;font:inherit;font-size:12.5px"
         onchange="nc.memo=this.value">${nc.memo}</textarea>`);
@@ -6165,7 +6165,7 @@ function CTR3head(c,k){
     </div><span class="sid">CTR-3</span>
   </div>
   <div class="tabs">
-    ${['요약','청구·수납','원장','주차','자료보관','이력'].map(t=>`<button class="${t===tab3c?'on':''}" onclick="tab3c='${t}';render()">${t}</button>`).join('')}
+    ${['요약','청구·수납','원장','주차','자료','이력'].map(t=>`<button class="${t===tab3c?'on':''}" onclick="tab3c='${t}';render()">${t}</button>`).join('')}
   </div>`;
 }
 /* CTR-3 청구·수납 탭 — 수납 내역(PAY-6)과 같은 줄을 이 계약 하나로. 미납·연체료가 있는 달은 「상세」로 미납 상세 패널 */
@@ -6851,7 +6851,7 @@ const g3Tog=k=>{g3[k]=!g3Open(k);render(true);};
 function CTR3(k){
   const c=CTRS.find(x=>ckey(x)===k);
   if(!c) return TODO('ctr-1');
-  if(tab3c!=='원장') return CTR3head(c,k)+(tab3c==='청구·수납'?CTR3month(c,k):tab3c==='이력'?histHTML(histC(c),'c'+k):tab3c==='주차'?t주차(BUILDINGS.find(x=>x.id===c.b)||BUILDINGS[0],k):tab3c==='자료보관'?t자료(BUILDINGS.find(x=>x.id===c.b)||BUILDINGS[0],k):CTR3sum(c,k));
+  if(tab3c!=='원장') return CTR3head(c,k)+(tab3c==='청구·수납'?CTR3month(c,k):tab3c==='이력'?histHTML(histC(c),'c'+k):tab3c==='주차'?t주차(BUILDINGS.find(x=>x.id===c.b)||BUILDINGS[0],k):tab3c==='자료'?t자료(BUILDINGS.find(x=>x.id===c.b)||BUILDINGS[0],k):CTR3sum(c,k));
   const bn=BUILDINGS.find(x=>x.id===c.b)||BUILDINGS[0];
   const L=ledgerOf(k);
   const [from,to]=f3Range();
