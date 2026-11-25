@@ -3380,13 +3380,23 @@ function CONTACTS(){
 /* 상세 패널 — 셋 모두 같은 틀. 보기 ↔ 고치기(임차인 · 임대인) */
 function cnOpen(k,id){id=decodeURIComponent(id); cv={k,id,edit:false};DRAWER='cndet';render(true);}
 function cnEdit(){const {k,id}=cv;
-  if(k==='임차인'){const I=tenInfo(id), tx=ttaxOf(id); cv.f={kind:I.kind,ceo:I.ceo,addr:I.addr,item:I.item,al:tenAliases(id),na:'',merge:!!MERGE_PDF[id],m1:tx.mail[0]||'',m2:tx.mail[1]||'',sub:tx.sub||''};}
+  if(k==='임차인'){const I=tenInfo(id), tx=ttaxOf(id); cv.f={name:id,kind:I.kind,ceo:I.ceo,addr:I.addr,item:I.item,al:tenAliases(id),na:'',merge:!!MERGE_PDF[id],m1:tx.mail[0]||'',m2:tx.mail[1]||'',sub:tx.sub||''};}
   if(k==='임대인'){const o=ownList().find(x=>x.biz===id); cv.f={addr:o.addr,tel:o.tel,mail:o.mail};}
   cv.edit=true;render(true);}
-const cnBad=()=>{const f=cv.f||{}; if(cv.k==='임차인') return !f.ceo.trim()?'대표자명을 넣으세요':f.sub&&!/^\d{4}$/.test(f.sub)?'종사업장번호는 숫자 4자리입니다':'';
+const cnBad=()=>{const f=cv.f||{}; if(cv.k==='임차인') return !f.name.trim()?'상호를 넣으세요':f.name.trim()!==cv.id&&CTRS.some(c=>c.ten===f.name.trim())?'같은 상호의 임차인이 이미 있습니다':!f.ceo.trim()?'대표자명을 넣으세요':f.sub&&!/^\d{4}$/.test(f.sub)?'종사업장번호는 숫자 4자리입니다':'';
   if(cv.k==='임대인') return f.mail&&!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(f.mail)?'이메일 형식이 아닙니다':''; return '';};
+/* 상호 바꾸기 — 슈퍼관리자만(그 회사의 모든 계약고유이름이 바뀐다). 사업자등록번호 · 계약 · 원장은 그대로.
+   은행 입금자명이 옛 상호로 들어올 수 있어 옛 상호를 입금자명 별칭으로 남긴다. 계약마다 변경 이력에 남는다 */
+function tenRename(old,nw){
+  const ok=normName(old), nk=normName(nw);
+  tenCtrs(old).forEach(c=>{c.ten=nw; clog(ckey(c),'계약','수정',`임차인 상호 변경 — ${old} → ${nw}`,'',[['상호',old,nw]]);});
+  [TINFO,TTAX,MERGE_PDF].forEach(M=>{if(old in M){M[nw]=M[old];delete M[old];}});
+  Object.values(BIZ).forEach(v=>{if(v.ten===old) v.ten=nw;});
+  Object.keys(RC.alias).forEach(nm=>{if(RC.alias[nm]===ok) RC.alias[nm]=nk;}); RC.alias[old]=nk;
+  if(cv&&cv.id===old) cv.id=nw;}
 function cnSave(){if(cnBad()) return; const {k,id,f}=cv;
-  if(k==='임차인'){Object.assign(tenInfo(id),{kind:f.kind,ceo:f.ceo.trim(),addr:f.addr.trim(),item:f.item.trim()}); const nk=normName(id);
+  if(k==='임차인'&&f.name.trim()!==id){tenRename(id,f.name.trim()); if(!f.al.includes(id)) f.al.push(id);}
+  if(k==='임차인'){const id2=cv.id; Object.assign(tenInfo(id2),{kind:f.kind,ceo:f.ceo.trim(),addr:f.addr.trim(),item:f.item.trim()}); const nk=normName(id2); const id=id2;
     Object.keys(RC.alias).filter(nm=>RC.alias[nm]===nk&&!f.al.includes(nm)).forEach(nm=>delete RC.alias[nm]); f.al.forEach(nm=>{RC.alias[nm]=nk;});
     MERGE_PDF[id]=f.merge; TTAX[id]={mail:[f.m1.trim(),f.m2.trim()].filter(Boolean),sub:f.sub};}
   if(k==='임대인'){const o=ownList().find(x=>x.biz===id); Object.assign(OINFO[id],{addr:f.addr.trim(),tel:f.tel.trim()}); OWN_MAIL[o.n]=f.mail.trim();}
@@ -3398,11 +3408,12 @@ function cnHTML(){
   const inp='border:1px solid var(--line);border-radius:var(--r-sm);padding:7px 9px;font:inherit;background:var(--bg);color:inherit;width:100%;box-sizing:border-box';
   const In=(a,x,ph)=>`<div class="fr"><span class="fk">${a}</span><div style="flex:1"><input type="text" value="${(cv.f[x]||'').replace(/"/g,'&quot;')}" placeholder="${ph||''}" oninput="cv.f.${x}=this.value" style="${inp}"></div></div>`;
   const G=(t,b)=>`<div class="fg"><div class="fl">${t}</div>${b}</div>`;
+  const In0=x=>`<input type="text" value="${(cv.f[x]||'').replace(/"/g,'&quot;')}" oninput="cv.f.${x}=this.value" style="${inp}">`;
   const ctrT=cs=>`<div class="tw" style="border:1px solid var(--line);border-radius:var(--r-sm)"><table><thead><tr><th>계약고유이름</th><th>계약기간</th><th>상태</th></tr></thead>
     <tbody>${cs.map(c=>`<tr class="mrow" onclick="closeDrawer();tab3c='요약';go('ctr-3/${encodeURIComponent(ckey(c))}')"><td>${cname(BN(c.b).alias,c.no,c.ten)}</td><td>${d8m(c.base).slice(2)} ~ ${d8m(ctrEnd(c)).slice(2)}</td><td><span class="bd ${c.st==='진행중'?'ok':'mu'}">${c.st}</span></td></tr>`).join('')}</tbody></table></div>`;
   let name='', body='';
   if(k==='임차인'){const I=tenInfo(id), cs=tenCtrs(id), p=pplOf((cs.find(c=>c.st==='진행중')||cs[0]))[0], S=tenSum(id), tx=ttaxOf(id), al=tenAliases(id); name=id;
-    body=edit?G('사업자 정보',Rw('사업자등록번호',I.biz,'고칠 수 없음')
+    body=edit?G('사업자 정보',`<div class="fr"><span class="fk">상호</span><div style="flex:1">${In0('name')}<div class="c2" style="white-space:normal">슈퍼관리자만 바꿉니다. 바꾸면 이 회사의 모든 계약고유이름이 바뀌고, 옛 상호는 입금자명 별칭으로 남습니다</div></div></div>`+Rw('사업자등록번호',I.biz,'고칠 수 없음')
           +`<div class="fr"><span class="fk">사업자구분</span><div style="flex:1"><select onchange="cv.f.kind=this.value" style="${inp}">${['법인','개인'].map(v=>`<option value="${v}" ${cv.f.kind===v?'selected':''}>${v==='개인'?'개인사업자':v}</option>`).join('')}</select></div></div>`
           +In('대표자명','ceo')+In('사업장 주소','addr')+In('업태 · 종목','item'))
         +G('입금자명 별칭',`${cv.f.al.map((a,i)=>`<div class="fr"><span class="fv" style="flex:1">${a}</span><button class="btn sm" onclick="cv.f.al.splice(${i},1);render(true)">지우기</button></div>`).join('')}
