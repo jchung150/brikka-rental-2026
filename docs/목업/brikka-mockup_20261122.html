@@ -513,6 +513,7 @@ table.nowr th,table.nowr td{white-space:nowrap}
 .dcard > .ct{border-bottom:1px solid var(--line)}
 .drow{display:flex;align-items:center;gap:12px;padding:10px 16px;border-bottom:1px solid var(--line-2);cursor:pointer}
 .drow:last-child{border-bottom:0}.drow:hover{background:var(--pri-bg)}
+.drow.none{cursor:default;min-height:58px;box-sizing:border-box}.drow.none:hover{background:none}
 .drow .dm{flex:1;min-width:0}.drow .dm .c2{white-space:normal}
 .dact{font-weight:700;color:var(--pri);margin-left:2px}
 .drow .dw{text-align:right;font-size:12px;font-weight:600;white-space:nowrap;color:var(--ink-2,inherit)}
@@ -1375,6 +1376,7 @@ function drawerHTML(){
   if(DRAWER==='pay') return payHTML();
   if(DRAWER==='mclose') return mcHTML();
   if(DRAWER==='citem') return ciHTML();
+  if(DRAWER==='adjok') return akHTML();
   if(DRAWER!=='additem') return '';
   const used=BLD.charge.filter(c=>c.use).map(c=>c.it);
   const rest=MASTER.filter(m=>!m.fixed&&!BILL[m.code].on&&used.includes(m.name));
@@ -3064,12 +3066,9 @@ function dashItems(){
   add('dep','보증금 미입금 상태의 준비중 계약','보증금을 다 받아야 진행중으로 바꿉니다',
     CTRS.filter(c=>inB(c)&&c.st==='준비중'&&ledgerOf(ckey(c)).bal.임대보증금<ctrDeposit(c))
       .map(c=>({n:ctrName(c),d:`보증금 ${won(ledgerOf(ckey(c)).bal.임대보증금)} / ${won(ctrDeposit(c))}`,when:`시작일 ${d8(c.base)} · ${dLeft(c.base)}`,age:-dday(c.base),go:toC(c)})));
-  add('adj','임대료 인상 예약 도래','30일 안에 새 금액으로 청구됩니다. 계약서와 맞는지 확인합니다(놓쳐도 청구는 바르게 됩니다)',
-    CTRS.filter(c=>inB(c)&&c.st==='진행중').flatMap(c=>(c.adj||[]).filter(a=>dday(a.d)>0&&dday(a.d)<=30).map(a=>({c,a})))
+  add('adj','임대료 인상 예약 도래','30일 안에 새 금액으로 청구됩니다. 계약 상세의 임대료 인상 예약에서 계약서와 맞는지 보고 확인을 누르면 빠집니다',
+    CTRS.filter(c=>inB(c)&&c.st==='진행중').flatMap(c=>(c.adj||[]).filter(a=>!a.ok&&dday(a.d)>0&&dday(a.d)<=30).map(a=>({c,a})))
       .map(({c,a})=>({n:ctrName(c),d:[a.rent?`임대료 ${won(a.rent)}`:'',a.mgmt?`고정관리비 ${won(a.mgmt)}`:''].filter(Boolean).join(' · '),when:`적용일 ${d8(a.d).slice(5)} · ${dLeft(a.d)}`,age:-dday(a.d),go:toC(c)})));
-  /* 건물 */
-  add('mgmt','위탁운영계약 만료 임박','만료되면 그 건물의 관리 권한이 없어집니다(90일 안)',
-    Bs.filter(b=>b.mgmtEnd&&dday(b.mgmtEnd)<=90).map(b=>({n:b.name,d:`위탁운영계약 ${d8(b.mgmtStart)} ~ ${d8(b.mgmtEnd)}`,when:dLeft(b.mgmtEnd),age:-dday(b.mgmtEnd),go:`go('pro-3/${b.id}')`})));
   /* 마감 · 메일 */
   add('close','마감을 기다리는 달','납부마감일이 지났는데 아직 마감하지 않은 달입니다',
     Bs.flatMap(b=>MC_YMS.filter(m=>m<ym&&!(MC[b.id]||{})[m]&&dday(mcDue(b.id,m))<0).map(m=>({n:`${b.name} ${+m.slice(5)}월분`,d:'열림',when:`납부마감일 ${d8(mcDue(b.id,m)).slice(5)} · ${dLeft(mcDue(b.id,m))}`,age:-dday(mcDue(b.id,m)),go:`f12='${m}';go('pay-12')`}))));
@@ -3097,22 +3096,21 @@ function DASH1(){
     card('만료 임박 계약',`${exp(90)}건`,`90일 안 ${exp(90)} · 60일 안 ${exp(60)} · 30일 안 ${exp(30)}`,`f1c.dd='90';f1c.st='진행중';f1c.b='${fdb}';go('ctr-1')`)].join('');
   /* 2단 — 확인이 필요한 일. 건수가 0인 항목은 숨긴다 */
   const L=dashItems(), by=Object.fromEntries(L.map(x=>[x.k,x])), off=L.filter(x=>!x.rows.length);
-  /* 업무별 카드 — 카드 안에 할 일을 바로 보인다. 할 일이 없는 카드는 숨긴다. 급한 순으로 5줄, 더 있으면 펼친다 */
+  /* 업무별 카드 4개(청구 · 입금 · 계약 · 메일) — 늘 같은 자리 · 같은 높이. 카드 안에 할 일을 급한 순으로 3줄, 더 있으면 펼친다. 빈 줄은 비워 둔다 */
   const CARDS=[['bill','청구',['settle','issue','close']],['pay','입금',['wait','fetch','manual']],
-    ['ctr','계약',['term','dep','adj']],['etc','건물 · 메일',['mgmt','mail']]];
+    ['ctr','계약',['term','dep','adj']],['mail','메일',['mail']]];
   const ACT={settle:'정산 확정',issue:'청구서 발행',close:'월 마감',wait:'입금 확인',fetch:'은행 연결 확인',manual:'직접 입력 확인',
-    term:'해지 처리',dep:'보증금 받기',adj:'인상 금액 확인',mgmt:'위탁운영계약 갱신',mail:'메일 다시 보내기'};
+    term:'해지 처리',dep:'보증금 받기',adj:'인상 금액 확인',mail:'메일 다시 보내기'};
   const cards=CARDS.map(([ck,ct,ks])=>{
     const rows=ks.flatMap(k=>by[k].rows.map(r=>({...r,k,t:by[k].t,why:by[k].why}))).sort((p,q)=>q.age-p.age);
-    if(!rows.length) return '';
-    const all=!!dsOpen[ck], show=all?rows:rows.slice(0,5);
+    const all=!!dsOpen[ck], show=all?rows:rows.slice(0,3);
     return `<div class="card dcard" style="margin:0"><div class="ct">${ct}<span class="sub">${rows.length}건</span></div>
       <div class="dlist">${show.map(r=>`<div class="drow" onclick="${r.go}" title="${r.why}">
         <div class="dm"><div class="c1">${r.n} <span class="dact">${ACT[r.k]}</span></div>
           <div class="c2">${r.t} · ${r.d}</div></div>
         <div class="dw ${r.age>0?'late':''}">${r.when.split(' · ').pop()}<div class="c2">${r.when.includes(' · ')?r.when.split(' · ')[0]:''}</div></div>
-        <span class="dgo">›</span></div>`).join('')}</div>
-      ${rows.length>5?`<div class="dmore" onclick="dsTog('${ck}')">${all?'접기':`${rows.length-5}건 더 보기`}</div>`:''}</div>`;}).filter(Boolean);
+        <span class="dgo">›</span></div>`).join('')}${Array.from({length:Math.max(0,3-show.length)},(_,i)=>`<div class="drow none">${!rows.length&&!i?'<span class="c2" style="margin:0">할 일이 없습니다</span>':''}</div>`).join('')}</div>
+      ${rows.length>3?`<div class="dmore" onclick="dsTog('${ck}')">${all?'접기':`${rows.length-3}건 더 보기`}</div>`:''}</div>`;});
   /* 3단 — 최근 작업 이력 10건 */
   const H=Bs.flatMap(histB).filter(r=>!HDEL.has(hKey(r))).sort((p,q)=>p.at<q.at?1:p.at>q.at?-1:0).slice(0,10);
   HROWS.dash=H;
@@ -3123,7 +3121,7 @@ function DASH1(){
       ${BUILDINGS.map(b=>`<option value="${b.id}" ${fdb===b.id?'selected':''}>${b.name}</option>`).join('')}</select>
     <span style="color:var(--muted);font-size:12px">${TODAY_S.replace(/-/g,'.')} 기준</span></div>
   <div class="two" style="grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px">${top}</div>
-  ${cards.length?`<div class="dgrid">${cards.join('')}</div>`:`<div class="card"><div class="cc" style="padding:16px"><div class="c2" style="margin:0">지금 확인할 일이 없습니다.</div></div></div>`}
+  <div class="dgrid">${cards.join('')}</div>
   <div class="card"><div class="ct">최근 작업 이력<span class="sub">최근 10건</span><span class="ca"><span class="lk" style="font-weight:400;font-size:12px" onclick="go('rec-1')">전체보기 →</span></span></div>
     <div class="tw"><table>
       <thead><tr><th>일시</th><th>대상 종류</th><th>대상 이름</th><th>변경 유형</th><th>처리자</th></tr></thead>
@@ -3133,7 +3131,7 @@ function DASH1(){
         :`<tr><td colspan="5" style="text-align:center;padding:28px 0;color:var(--muted)">이력이 없습니다</td></tr>`}</tbody></table></div></div>
   <div class="hint">
     직원에게 가는 알림은 이 화면 하나입니다. 메일이나 팝업으로 따로 알리지 않습니다. 처리하면 그 줄이 사라지고, 건수가 0인 항목은 보이지 않습니다.<br>
-    줄을 누르면 처리하는 화면으로 갑니다. 카드 안은 급한 순(오래 기다린 것 · 날짜가 가까운 것)이고 5건이 넘으면 펼쳐서 봅니다. 할 일이 없는 카드는 보이지 않습니다.<br>
+    줄을 누르면 처리하는 화면으로 갑니다. 카드는 청구 · 입금 · 계약 · 메일 넷으로 늘 같은 자리에 있습니다. 카드 안은 급한 순(오래 기다린 것 · 날짜가 가까운 것)으로 3건까지 보이고, 더 있으면 펼쳐서 봅니다.<br>
     ${off.length?`지금 해당이 없어 숨긴 항목: ${off.map(x=>x.t).join(' · ')}.<br>`:''}
     목업 예시: 아마데우스 9/1 임대료 인상 예약, 토끼어패럴 7월분 청구서 메일 실패.</div>`;
 }
@@ -5456,6 +5454,28 @@ function ciSave(){
   clog(ci.k,'계약','수정',LB,ci.why||'');
   DRAWER=null;ci=null;render(true);
 }
+/* 인상 예약 확인 — 계약서와 금액 · 적용일이 맞는지 담당자가 본다. 확인하면 대시보드에서 빠지고 이력에 남는다. 고치면 다시 확인 전이 된다 → DASH-1 */
+let ak=null;
+function akOpen(k,i){ak={k,i};DRAWER='adjok';render(true);}
+function akOK(){const c=CTRS.find(x=>ckey(x)===ak.k), a=c&&c.adj[ak.i]; if(!a) return;
+  a.ok={by:'슈퍼관리자',at:`${TODAY_S} ${new Date().toTimeString().slice(0,5)}`};
+  clog(ak.k,'계약','확인',`임대료 인상 예약 확인 — 적용일 ${a.d.replace(/-/g,'.')}`);
+  ak=null;DRAWER=null;render(true);}
+function akHTML(){
+  if(DRAWER!=='adjok'||!ak) return '';
+  const c=CTRS.find(x=>ckey(x)===ak.k), a=c.adj[ak.i], bd=BUILDINGS.find(x=>x.id===c.b)||BUILDINGS[0];
+  const Rw=(k,v)=>`<div class="fr"><span class="fk">${k}</span><span class="fv">${v}</span></div>`, cur=n=>won(Math.round(ctrAmt(c,n)*1.1));
+  return `<div class="dro"><div class="ov" onclick="closeDrawer()"></div><div class="pn">
+    <div class="dh"><div><div class="t">임대료 인상 예약 확인</div><div class="s">${cname(bd.alias,c.no,c.ten)}</div></div>
+      <button class="x" onclick="closeDrawer()">✕</button></div>
+    <div class="db"><div class="fg"><div class="fl">예약 내용</div>
+      ${Rw('적용일',`<b>${a.d.replace(/-/g,'.')}</b> · ${dLeft(a.d)}`)}
+      ${Rw('임대료',a.rent?`${cur('임대료')} → <b>${won(a.rent)}</b>`:'바뀌지 않음')}
+      ${Rw('고정관리비',a.mgmt?`${cur('고정관리비')} → <b>${won(a.mgmt)}</b>`:'바뀌지 않음')}
+      ${Rw('메모',a.memo||'—')}</div>
+      <div class="c2" style="margin:0;white-space:normal">계약서와 금액 · 적용일이 맞는지 봅니다. 확인하면 대시보드에서 빠지고 이력에 남습니다. 틀렸으면 닫고 수정하세요(고치면 다시 확인 전이 됩니다).</div></div>
+    <div class="df"><button class="btn" onclick="closeDrawer()">취소</button><button class="btn pri" onclick="akOK()">확인</button></div>
+  </div></div>`;}
 function ciDelAdj(k,i){const c=CTRS.find(x=>ckey(x)===k);c.adj.splice(i,1);render(true);}
 function ciHTML(){
   if(DRAWER!=='citem'||!ci) return '';
@@ -5512,8 +5532,8 @@ function CTR3adj(c,k){
         <td class="n">${a.rent?`<span class="c2" style="margin:0">${won(cur('임대료'))} →</span> ${won(a.rent)}`:dash}</td>
         <td class="n">${a.mgmt?`<span class="c2" style="margin:0">${won(cur('고정관리비'))} →</span> ${won(a.mgmt)}`:dash}</td>
         <td class="c2">${a.memo||''}</td>
-        <td class="c"><span class="bd ${done(a)?'ok':'ac'}">${done(a)?'적용완료':'예정'}</span></td>
-        <td class="c" style="white-space:nowrap">${done(a)?'':`<button class="btn sm" onclick="ciOpen('${k}','adj',${i})">수정</button>
+        <td class="c"><span class="bd ${done(a)?'ok':a.ok?'mu':'ac'}" ${a.ok?`title="${a.ok.by} · ${a.ok.at.replace(/-/g,'.')}"`:''}>${done(a)?'적용완료':a.ok?'확인함':'예정'}</span></td>
+        <td class="c" style="white-space:nowrap">${done(a)?'':`${a.ok?'':`<button class="btn sm" onclick="akOpen('${k}',${i})">확인</button> `}<button class="btn sm" onclick="ciOpen('${k}','adj',${i})">수정</button>
           <button class="btn sm" onclick="ciDelAdj('${k}',${i})">삭제</button>`}</td></tr>`).join('')}</tbody></table></div>`
     :'<div class="cc"><div class="c2" style="margin:0">예약된 인상이 없습니다.</div></div>'}</div>`;
 }

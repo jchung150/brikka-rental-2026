@@ -100,19 +100,22 @@ for (const b of ['b2']) run('PRO-3 ' + b, "tab3='요약';PRO3('" + b + "')");
   if (!ok) fail = 1;
   console.log('② 관리비 정산 건물 전환 · 뉴진스하우스 옥상 중계기 3대(전기 · 수도 배율 1.0)  ' + (ok ? 'OK' : '✗')); }
 /* 대시보드(DASH-1) — 확인이 필요한 일: 건수가 0이면 숨김 · 건물을 고르면 그 건물만 · 처리하면 사라짐. 직원 알림은 이 화면 하나(종 모양 알림 없음) → 명세변경_261122 38 · 41 */
-{ const D = new Function(stub + bare + '; seedJuly(); return {dashItems,DASH1,PROG,HROWS,setB:v=>{fdb=v}};')();
+{ const D = new Function(stub + bare + '; seedJuly(); return {dashItems,DASH1,PROG,HROWS,akOpen,akOK,akHTML,CTRS,CTR3,setB:v=>{fdb=v},set tab3c(v){tab3c=v;}};')();
   const on = () => Object.fromEntries(D.dashItems().filter(x => x.rows.length).map(x => [x.k, x.rows]));
   const a = on(), h = D.DASH1();
-  const all = ['settle', 'wait', 'term', 'adj', 'mgmt', 'mail'].every(k => a[k]) && !a.issue && !a.fetch && !a.manual && !a.dep && !a.close
-    && a.mgmt[0].n === '뉴진스하우스' && /38일 남음/.test(a.mgmt[0].when)
+  const all = ['settle', 'wait', 'term', 'adj', 'mail'].every(k => a[k]) && !a.mgmt && !a.issue && !a.fetch && !a.manual && !a.dep && !a.close
+
     && /쿠키랩/.test(a.term[0].n) && /아마데우스/.test(a.adj[0].n) && /김하늘/.test(a.wait.map(r => r.d).join()) && a.wait[0].n === '카리나빌딩';
-  const view = !/확인이 필요한 일/.test(h) && ['청구', '입금', '계약', '건물 · 메일'].every(t => h.includes('<div class="ct">' + t + '<')) && /카리나빌딩 <span class="dact">정산 확정/.test(h) && /최근 작업 이력/.test(h) && /공실률/.test(h) && /숨긴 항목: 발행하지 않은 청구서 · 은행 거래내역 수집 중단/.test(h) && D.HROWS.dash.length === 10;
-  D.setB('b2'); const b = on(); const one = !b.settle && !b.issue && !b.adj && b.wait.length === 1 && b.term && b.mail;
+  const view = !/확인이 필요한 일/.test(h) && ['청구', '입금', '계약', '메일'].every(t => h.includes('<div class="ct">' + t + '<')) && /카리나빌딩 <span class="dact">정산 확정/.test(h) && /최근 작업 이력/.test(h) && /공실률/.test(h) && /숨긴 항목: 발행하지 않은 청구서 · 은행 거래내역 수집 중단/.test(h) && D.HROWS.dash.length === 10;
+  const slots = (h.match(/class="drow none"/g) || []).length === 12 - 6 && !/위탁운영계약/.test(h);
+  D.setB('b2'); const b = on(); const hb = D.DASH1(); const one = !b.settle && !b.issue && !b.adj && b.wait.length === 1 && b.term && b.mail && /할 일이 없습니다/.test(hb) && (hb.match(/class="card dcard"/g) || []).length === 4;
+  D.setB(''); const k6 = 'b1본관601호'; D.tab3c = '요약'; const c3 = D.CTR3(k6); D.akOpen(k6, 0); const ph = D.akHTML(); D.akOK();
+  const conf = /akOpen\('b1본관601호',0\)/.test(c3) && /10,741,500원/.test(ph) && !on().adj && !!D.CTRS.find(c => c.no === '본관601호' && c.b === 'b1').adj[0].ok && /확인함/.test(D.CTR3(k6));
   D.setB(''); D.PROG.b1.settle = '확정'; const c = on(); const gone = !c.settle && !c.issue;
   const bell = !/toggleNoti|id="noti"/.test(html) && /location\.hash\|\|'#\/dash-1'/.test(html);
-  const ok = all && view && one && gone && bell;
+  const ok = all && view && slots && one && conf && gone && bell;
   if (!ok) fail = 1;
-  console.log('② 대시보드 — 확인이 필요한 일 6개 항목(정산 미확정 · 처리하지 않은 입금 · 해지 처리 · 인상 예약 · 위탁운영계약 · 메일 실패) · 업무별 카드 4개(청구 · 입금 · 계약 · 건물 · 메일) · 0건은 숨김 · 건물 필터 · 처리하면 사라짐 · 종 모양 알림 없음  ' + (ok ? 'OK' : '✗ ' + JSON.stringify({all, view, one, gone, bell}))); }
+  console.log('② 대시보드 — 확인이 필요한 일 5개 항목(정산 미확정 · 처리하지 않은 입금 · 해지 처리 · 인상 예약 · 메일 실패) · 카드 4개(청구 · 입금 · 계약 · 메일) 늘 보임 · 카드마다 3칸 · 인상 예약은 확인하면 빠짐 · 위탁운영계약 없음 · 건물 필터 · 처리하면 사라짐 · 종 모양 알림 없음  ' + (ok ? 'OK' : '✗ ' + JSON.stringify({all, view, slots, one, conf, gone, bell}))); }
 run('PRO-3 관리비 설정 패널 — 임대료 · 전기요금 같은 구성', "loadCS('rent');DRAWER='chargeset';const a=csHTML();loadCS('elec');const b=csHTML();if(!/근거 문서/.test(a)||!/배분 방식/.test(a)||!/disabled/.test(a))throw new Error('구성 다름')");
 run('PAY-12', 'PAY12()');
 run('PAY-14 수납 현황', "seedJuly();PAY14()");
