@@ -99,6 +99,15 @@ for (const b of ['b2']) run('PRO-3 ' + b, "tab3='요약';PRO3('" + b + "')");
     && kt && kt.lines.some(l => l.n === '전기요금' && l.amt > 0) && kt.lines.some(l => l.n === '수도요금' && l.amt > 0);
   if (!ok) fail = 1;
   console.log('② 관리비 정산 건물 전환 · 뉴진스하우스 옥상 중계기 3대(전기 · 수도 배율 1.0)  ' + (ok ? 'OK' : '✗')); }
+/* 계산 오류 2건 고침 — ① 사용량이 없는 항목(정화조청소비)은 임대면적으로 나눈다(한 유닛에 몰리지 않음) ② 6월 주차비 부가세는 6월 금액의 10%(17,100), 6월 입금도 그 청구에 맞춤 */
+{ const FX = new Function(stub + bare + '; seedJuly(); return {BILL,BILL_M,calc,M,ctrPay};')();
+  FX.BILL.septic.on = true; FX.BILL.septic.supply = 550000; FX.BILL.septic.vat = 0; const R = FX.calc(FX.M('septic'));
+  const area = R.diff === 0 && R.rows.filter(r => r.amt > 0).length === 14 && Math.max(...R.rows.map(r => r.amt)) < 60000;
+  const vat = FX.BILL_M['2026-06'].parking.vat === 17100 && FX.BILL_M['2026-07'].parking.vat === 22100
+    && ['b1본관801호', 'b1본관401호', 'b1본관701호'].every(k => ['2026-06', '2026-07'].every(m => { const p = FX.ctrPay(k, m); return p.st === '완납' && p.paid === p.bill; }))
+    && FX.ctrPay('b1본관801호', '2026-06').bill === 13702266 && FX.ctrPay('b1본관401호', '2026-06').bill === 16519322;
+  const ok = area && vat; if (!ok) fail = 1;
+  console.log('② 계산 오류 고침 — 정화조청소비 550,000원을 14개 유닛에 임대면적으로(차액 0) · 6월 주차비 부가세 17,100 · 6월 아이씨비 · 케이큐 청구와 입금이 맞음(완납)  ' + (ok ? 'OK' : '✗ ' + JSON.stringify({area, vat}))); }
 /* 발송 내역(NTF-6) — 보낸 그대로 남김 · 실패는 자동으로 다시 보내지 않음 · 다시 보내면 새 줄(원래 줄 그대로) · 보내는 화면(청구서 발행 · 미납 안내 · 명세서 · 웰컴)이 남김 → 명세변경_261122 38 */
 { const M = new Function(stub + bare + '; seedJuly(); return {mailRows,NTF6,mvOpen,mvHTML,mailResend,dashItems,issueAsk,issueGo,dueMail,stOpen,stSend,CTRS,ckey,setFm,set f1b(v){f1.b=v;}};')();
   const R0 = M.mailRows(), n0 = R0.length, fl = R0.filter(m => m.st === '실패'), f = fl[0];
