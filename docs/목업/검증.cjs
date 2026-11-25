@@ -131,7 +131,7 @@ for (const b of ['b2']) run('PRO-3 ' + b, "tab3='요약';PRO3('" + b + "')");
     && TN.MENU.some(m => m.id === 'contacts') && !JSON.stringify(TN.MENU).includes('user-8') && /cnOpen\('임대인'/.test(hO) && (TN.fct.kind = '중개사', /cnOpen\('중개사'/.test(TN.CONTACTS())) && (TN.fct.kind = '', true);
   TN.fct.q = 'ICB'; const byAlias = (TN.CONTACTS().match(/class="mrow"/g) || []).length === 1; TN.fct.q = ''; TN.fct.b = 'b2'; const byB = !/카리나\|/.test(TN.CONTACTS()) && /뉴진스하우스/.test(TN.CONTACTS()); TN.fct.b = '';
   TN.cnOpen('임차인', encodeURIComponent('(주)아이씨비')); const p1 = TN.cnHTML();
-  const ten = /width:520px/.test(p1) && /대표 담당자/.test(p1) && /ICB/.test(p1) && /tax@icb\.co\.kr/.test(p1) && /178,000,000원/.test(p1) && /계약 2건/.test(p1) && />수정</.test(p1);
+  const ten = /width:520px/.test(p1) && /대표 담당자/.test(p1) && /ICB/.test(p1) && /tax@icb\.co\.kr/.test(p1) && /178,000,000원/.test(p1) && /계약 내역/.test(p1) && />수정</.test(p1);
   TN.cnEdit(); TN.cv.f.al.push('아이씨비 주식회사'); TN.cv.f.sub = '12'; const bad = /종사업장번호는 숫자 4자리/.test(TN.cnHTML()); TN.cnSave(); const blocked = TN.cv.edit;
   TN.cv.f.sub = '0001'; TN.cnSave(); const ted = bad && blocked && !TN.cv.edit && !!TN.RC.alias['아이씨비 주식회사'] && TN.ttaxOf('(주)아이씨비').sub === '0001';
   TN.cnOpen('임대인', '105-81-42117'); const p2 = TN.cnHTML(); const own = /karina@owner-sample\.kr/.test(p2) && /월 마감 보고서 받는 곳/.test(p2) && /60%/.test(p2) && /위탁운영계약/.test(p2) && !/수수료율/.test(p2);

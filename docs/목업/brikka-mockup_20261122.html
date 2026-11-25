@@ -3441,7 +3441,7 @@ function cnHTML(){
         +G('거래 요약',Rw('현재 미납액',S.due?`<span style="color:var(--warn)">${won(S.due)}</span>`:won(0))+Rw('보증금 잔액',won(S.dep))+Rw('최근 입금일',S.last?d8m(S.last):dash))
         +G('입금 · 청구',Rw('입금자명 별칭',al.length?al.map(a=>`<span class="bd mu">${a}</span>`).join(' '):dash)+Rw('청구서 한 장으로 받기',MERGE_PDF[id]?'예':'아니오')
           +Rw('세금계산서 이메일',tx.mail.filter(Boolean).join(', ')||'<span style="color:var(--warn)">미입력</span>')+(tx.sub?Rw('종사업장번호',tx.sub):''))
-        +G(`계약 ${cs.length}건`,ctrT(cs.slice().sort((a,b)=>a.base<b.base?1:-1)));}
+        +G('계약 내역',ctrT(cs.slice().sort((a,b)=>a.base<b.base?1:-1)));}
   if(k==='임대인'){const o=ownList().find(x=>x.biz===id); name=o.n;
     body=edit?G('기본 정보',Rw('사업자등록번호',o.biz,'고칠 수 없음')+In('주소','addr')+In('연락처','tel')+In('이메일','mail'))
         +'<div class="c2" style="white-space:normal">이메일은 월 마감 보고서를 받는 곳입니다. 이 임대인의 모든 건물에 반영됩니다.</div>'
