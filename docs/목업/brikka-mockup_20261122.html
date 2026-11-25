@@ -2998,7 +2998,7 @@ function row4(r,m,cls){
    진행 현황과 마감이 같은 칸(정산 · 청구서 · 청구액 · 수납 · 미납 · 마감)을 보므로 한 화면이다 ═══ */
 let f12='2026-08';
 function mc12(b,mode){s11={b,ym:f12};mcOpen(mode);}
-/* 월 마감 보고서는 이 화면에서 발행하지 않는다. 보고서 메뉴에서 한다(화면은 나중에 정한다) */
+/* 월 마감 보고서는 건물 상세 › 보고서 탭에서 본다 · 보낸다. 이 화면 ⋮ › 월 마감 보고서로 바로 간다 */
 function PAY12(){
   const dash='<span style="color:var(--faint)">—</span>';
   const D=BUILDINGS.map(b=>{const S=mcState(b.id,f12), N=mcNum(b.id,f12), set=f12<'2026-08'?'확정':PROG[b.id].settle;
@@ -3008,7 +3008,7 @@ function PAY12(){
     const act=moreCell([
       {t:'마감',go:`mc12('${b.id}','close')`,off:S.k==='마감'?'이미 마감한 달입니다':S.k==='진행 중'?'청구서 발행 전이라 마감할 수 없습니다':''},
       {t:'마감 취소',go:`mc12('${b.id}','undo')`,off:S.k==='마감'?'':'마감하지 않은 달입니다',title:S.k==='마감'?'슈퍼관리자만 · 사유를 남깁니다':''},
-      {t:'임대인 보고서',go:`tab3='보고서';go('pro-3/${b.id}');rpOpen('${f12}')`,off:S.k==='마감'?'':'마감한 달만 보냅니다'}]);
+      {t:'월 마감 보고서',go:`tab3='보고서';go('pro-3/${b.id}');rpOpen('${f12}')`,off:S.k==='마감'?'':'마감한 달만 보냅니다'}]);
     return `<tr>
       <td><div class="c1">${b.name}</div><div class="c2">${b.kind} · ${b.unitCnt}유닛</div></td>
       <td class="st c" onclick="go('pay-10')"><span class="stp"><span class="dot2" style="background:var(--${set==='확정'?'ok':set==='작성중'?'warn':'faint'})"></span>${set}</span></td>
@@ -3057,7 +3057,7 @@ function PAY12(){
 /* ═══ NTF-6 발송 내역 — 시스템이 보낸 메일을 보내던 그대로 남긴다(제목 · 본문 · 첨부 · 받는 주소). 지우지 않는다.
    실패해도 자동으로 다시 보내지 않는다. 다시 보내면 새 줄이 생기고 원래 줄은 그대로다 → 09 NTF-6 · 명세변경_261122 38 ═══
    로그인 인증 코드 · 비밀번호 찾기 메일은 여기 남기지 않는다(보안 로그) */
-const MAIL_KINDS=['청구서','청구서 재발송','미납 안내','원장 명세서','웰컴 메시지','임대인 보고서','계정 초대','비밀번호 재설정','비밀번호 변경 알림'];
+const MAIL_KINDS=['청구서','청구서 재발송','미납 안내','원장 명세서','웰컴 메시지','월 마감 보고서','계정 초대','비밀번호 재설정','비밀번호 변경 알림'];
 const MAIL_LOG=[]; let mailSeq=0, mailSeeded=false;
 const OWN_MAIL={카리나:'karina@owner-sample.kr',윈터:'winter@owner-sample.kr',뉴진스:'newjeans@owner-sample.kr',민지:'minji@owner-sample.kr'};
 const ymKo=ym=>`${ym.slice(0,4)}년 ${+ym.slice(5)}월분`;
@@ -3085,8 +3085,8 @@ function mailText(kind,v){
       `${hi}${B&&B.name} ${v.nos}의 ${d8m(v.from)} ~ ${d8m(v.to)} 거래 명세서(받을 돈 · 보증금)를 보내드립니다.${v.memo?`\n\n${v.memo}`:''}\n\n첨부한 명세서를 확인해 주세요.`],
     '웰컴 메시지':()=>[`[${B&&B.name}] 입주를 환영합니다 (${v.nos})`,
       `${hi}${v.ten}의 ${B&&B.name} ${v.nos} 계약을 환영합니다.\n\n계약 기간: ${d8m(v.from)} ~ ${d8m(v.to)}\n청구서: 매달 ${B&&ruleKo(B.billDay)}에 메일로 보내드리고, 납부마감일은 ${B&&ruleKo(B.dueDay)}입니다.\n${B&&payLine(B)}\n\n궁금한 점은 아래 담당자에게 연락해 주세요.`],
-    '임대인 보고서':()=>[`[${B&&B.name}] ${Y(v.ym)} 운영 보고`,
-      `${hi}${B&&B.name}의 ${Y(v.ym)} 운영 보고서를 보내드립니다.\n\n청구: ${W(v.bill)} · 수납: ${W(v.paid)} · 미납: ${v.unpaid!=null?W(v.unpaid):won(Math.max(0,(v.bill||0)-(v.paid||0)))}\n공실: ${v.vac||0} / ${v.unit||0}유닛\n\n자세한 내용은 첨부한 보고서를 확인해 주세요.`],
+    '월 마감 보고서':()=>[`[${B&&B.name}] ${Y(v.ym)} 월 마감 보고서`,
+      `${hi}${B&&B.name}의 ${Y(v.ym)} 월 마감 보고서를 보내드립니다.\n\n청구: ${W(v.bill)} · 수납: ${W(v.paid)} · 미납: ${v.unpaid!=null?W(v.unpaid):won(Math.max(0,(v.bill||0)-(v.paid||0)))}\n공실: ${v.vac||0} / ${v.unit||0}유닛\n\n자세한 내용은 첨부한 보고서를 확인해 주세요.`],
     '계정 초대':()=>[`[BRIKKA] ${v.op||'(주)테온하우스'} 관리자 계정 초대`,
       `${hi}${v.op||'(주)테온하우스'}가 BRIKKA 관리자 계정을 만들었습니다.\n아래 버튼을 눌러 비밀번호를 정하면 바로 쓸 수 있습니다. 링크는 24시간 동안 한 번만 쓸 수 있습니다.\n\n[비밀번호 정하기]\n\n초대받을 일이 없다면 이 메일을 무시하세요.`],
     '비밀번호 재설정':()=>[`[BRIKKA] 비밀번호 재설정`,
@@ -3118,7 +3118,7 @@ function stmtMail(k,from,to,memo,at,by){const c=CTRS.find(x=>ckey(x)===k), bd=BU
   return mailAdd({at,kind:'원장 명세서',b:c.b,ks:[k],rel:`${cname(bd.alias,c.no,c.ten)} · ${d8m(from)} ~ ${d8m(to)}`,to:T.map(x=>({n:x.n,mail:x.mail})),how:'수동',by,
     ...mailText('원장 명세서',{bd,who:`${c.ten} ${T[0].n}`,nos:c.no,from,to,memo}),
     att:[{n:`거래명세서_${c.no}_${from}_${to}.pdf`,go:`stOpen('${k}')`}]});}
-/* 목업 예시 — 6 · 7월 청구서 메일(청구서 합쳐 보내기는 한 통), 미납 안내, 임대인 보고서, 웰컴(중계기), 계정 메일.
+/* 목업 예시 — 6 · 7월 청구서 메일(청구서 합쳐 보내기는 한 통), 미납 안내, 월 마감 보고서, 웰컴(중계기), 계정 메일.
    뉴진스 토끼어패럴 7월분은 담당자 주소 오타로 실패했다(지금 주소는 고쳐져 있다 → 다시 보내면 간다) */
 function mailSeed(){if(mailSeeded) return; mailSeeded=true;
   const t=(d,seed)=>`${d} ${hTime(seed)}`;
@@ -3147,7 +3147,7 @@ let fm={kind:'',st:'',ch:'',q:''}, mv=null, mp=1;
 const setFm=(k,v)=>{fm[k]=v;mp=1;render();};
 function mvOpen(id,re){mv={id,re:!!re};DRAWER='mlv';render(true);}
 const MST={'성공':'ok','실패':'da','대기':'mu'};
-/* 계약고유이름 칸 — 계약 메일만. 청구서 합쳐 보내기는 「외 N」. 임대인 보고서 · 계정 메일은 계약이 없다 */
+/* 계약고유이름 칸 — 계약 메일만. 청구서 합쳐 보내기는 「외 N」. 월 마감 보고서 · 계정 메일은 계약이 없다 */
 const mailCtr=m=>{const cs=(m.ks||[]).map(k=>CTRS.find(x=>ckey(x)===k)).filter(Boolean); if(!cs.length) return '<span style="color:var(--faint)">—</span>';
   const c=cs[0]; return `${cname((BUILDINGS.find(x=>x.id===c.b)||{}).alias,c.no,c.ten)}${cs.length>1?` <span class="c2" style="display:inline;margin:0">외 ${cs.length-1}</span>`:''}`;};
 function NTF6(){
@@ -3178,7 +3178,7 @@ function NTF6(){
     시스템이 보낸 메일을 <b>보내던 그대로</b>(제목 · 본문 · 첨부 · 받는 주소) 남깁니다. 담당자 주소를 나중에 바꿔도 여기 주소는 그대로입니다. 지우지 않습니다.<br>
     실패해도 자동으로 다시 보내지 않습니다. 주소가 틀렸으면 계약의 담당자 정보를 고친 뒤 다시 보냅니다. 다시 보내면 새 줄이 생기고 원래 줄은 그대로입니다.<br>
     채널은 지금은 이메일뿐입니다(알림톡은 2차). 받는 사람이 여럿이면 첫 사람과 「외 N」으로 보이고, 마우스를 올리거나 줄을 누르면 모두 보입니다. 실패 이유는 상태에 마우스를 올리면 보입니다. 줄을 누르면 보낸 내용이 열리고, 거기서 다시 보냅니다.<br>
-    수동은 담당자가 보내기를 누른 메일(청구서 · 미납 안내 · 원장 명세서 · 웰컴 · 임대인 보고서 · 비밀번호 재설정), 자동은 시스템이 보낸 메일(계정 초대 · 비밀번호 변경 알림)입니다.
+    수동은 담당자가 보내기를 누른 메일(청구서 · 미납 안내 · 원장 명세서 · 웰컴 · 월 마감 보고서 · 비밀번호 재설정), 자동은 시스템이 보낸 메일(계정 초대 · 비밀번호 변경 알림)입니다.
     로그인 인증 코드 · 비밀번호 찾기 메일은 여기 남기지 않습니다(보안 로그).</div>`;
 }
 function mvHTML(){
@@ -3212,7 +3212,7 @@ function mvHTML(){
   </div></div>`;
 }
 
-/* ═══ REP-1 임대인 보고서 — 건물 × 한 달. 그 건물 임대인 전원에게 한 통(공동소유도 건물 전체 기준, 지분 표시 없음).
+/* ═══ REP-1 월 마감 보고서 — 건물 × 한 달. 그 건물 임대인 전원에게 한 통(공동소유도 건물 전체 기준, 지분 표시 없음).
    마감한 달만 보낸다(숫자가 바뀌지 않게). 미리보기는 언제나. PDF만. 담당자가 쓰는 「이달의 메모」를 싣는다 → 명세변경_261122 42 ═══ */
 let frb={b:'b1',ym:'2026-07'};
 const REP_MEMO={'b1|2026-07':'본관 3층 화장실 누수 — 7/14 배관 교체 완료. 비용 1,320,000원은 건물주 부담으로 따로 청구드립니다.\n8월 중 엘리베이터 정기검사 예정(8/21).',
@@ -3261,7 +3261,7 @@ function repDoc(b,ym){
   const KV=L=>`<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px 14px;font-size:12.5px">${L.map(([k,v])=>`<div><span class="c2" style="margin:0">${k}</span><div style="font-weight:600">${v}</div></div>`).join('')}</div>`;
   const sum=f=>R.IN.reduce((a,x)=>a+x[f],0), bill=sum('bill'), paid=sum('paid');
   return `<div class="repdoc">
-    <div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap"><div style="font-size:18px;font-weight:700">${bd.name} 운영 보고서</div><span class="c2" style="margin:0">${ymKo(ym)}</span></div>
+    <div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap"><div style="font-size:18px;font-weight:700">${bd.name} 월 마감 보고서</div><span class="c2" style="margin:0">${ymKo(ym)}</span></div>
     <div class="c2" style="margin:6px 0 0;white-space:normal">${own} 귀하 · (주)테온하우스 · 기준일 ${d8m(R.D)}${R.closed?' (월 마감일)':' (마감 전 · 오늘)'} · 금액은 부가세 포함</div>
     ${R.memo?`${H('이달의 메모')}<div style="white-space:pre-wrap;font-size:12.5px;line-height:1.7;border-left:3px solid var(--pri);padding:2px 0 2px 10px">${R.memo.replace(/</g,'&lt;')}</div>`:''}
     ${H('1. 임대 현황')}${KV([['전체 유닛',`${R.U.n}개`],['사용중',`${R.U.use}개`],['공실',`${R.U.vac}개`],['비운영중',`${R.U.off}개`],['공실률',`${R.U.rate.toFixed(1)}%`],['임대면적',`${R.U.ar.toLocaleString('ko-KR',{maximumFractionDigits:1})}㎡`],['공실 면적',`${R.U.arVac.toLocaleString('ko-KR',{maximumFractionDigits:1})}㎡`]])}
@@ -3279,27 +3279,27 @@ function repDoc(b,ym){
     <div class="c2" style="margin:14px 0 0;white-space:normal">건물주 부담은 공실 · 비운영중 유닛 몫과 일할로 줄인 몫입니다. 문의: ${bd.name} 관리사무소 · 담당 ${(bd.mgrs||[])[0]||''}</div></div>`;
 }
 function repMail(b,ym,at,by){const bd=BUILDINGS.find(x=>x.id===b), N=mcNum(b,ym);
-  return mailAdd({at,kind:'임대인 보고서',b,rel:`${bd.name} · ${ymKo(ym)}`,to:bd.owners.map(o=>({n:o.n,mail:OWN_MAIL[o.n]||''})),how:'수동',by,
-    ...mailText('임대인 보고서',{bd,who:bd.owners.map(o=>o.n).join(' · '),ym,bill:N.bill,paid:N.paid,vac:bd.vacCnt,unit:bd.unitCnt}),
-    att:[{n:`임대인보고서_${bd.name}_${ym}.pdf`,go:`tab3='보고서';go('pro-3/${b}');frb.b='${b}';rpOpen('${ym}')`}]});}
+  return mailAdd({at,kind:'월 마감 보고서',b,rel:`${bd.name} · ${ymKo(ym)}`,to:bd.owners.map(o=>({n:o.n,mail:OWN_MAIL[o.n]||''})),how:'수동',by,
+    ...mailText('월 마감 보고서',{bd,who:bd.owners.map(o=>o.n).join(' · '),ym,bill:N.bill,paid:N.paid,vac:bd.vacCnt,unit:bd.unitCnt}),
+    att:[{n:`월마감보고서_${bd.name}_${ym}.pdf`,go:`tab3='보고서';go('pro-3/${b}');frb.b='${b}';rpOpen('${ym}')`}]});}
 function repSend(){const {b,ym}=frb; if(!closeOn(b,ym)) return; mailRows();
   repMail(b,ym,`${TODAY_S} ${new Date().toTimeString().slice(0,5)}`,'슈퍼관리자'); (REPS[b]=REPS[b]||{})[ym]=TODAY_S.slice(5);
   say(`${ymKo(ym)} 보고서를 임대인에게 보냈습니다 — 발송 내역에서 볼 수 있습니다`); render(true);}
 /* 건물 상세 › 보고서 탭 — 달마다 한 줄. 줄을 누르면 오른쪽 패널에 그 달 보고서(PDF 그대로) · 메모 · 내려받기 · 메일 보내기.
-   청구 현황에서 마감한 달의 ⋮ › 임대인 보고서로 오면 그 달 패널이 바로 열린다 */
+   청구 현황에서 마감한 달의 ⋮ › 월 마감 보고서로 오면 그 달 패널이 바로 열린다 */
 function t보고서(bdx){
   frb.b=bdx.id; const b=bdx.id, dash='<span style="color:var(--faint)">—</span>';
   const rows=MC_YMS.slice().reverse().map(ym=>{const S=mcState(b,ym), N=mcNum(b,ym), sent=(REPS[b]||{})[ym];
     const due=N.due!=null?N.due:(N.bill||0)-(N.paid||0);
     return `<tr class="mrow" onclick="rpOpen('${ym}')">
       <td><b>${ymKo(ym)}</b></td>
-      <td>${S.k==='마감'?`<span class="bd ok">마감</span> <span class="c2" style="display:inline;margin:0">${d8m('2026-'+S.c.at.slice(0,5))}</span>`:S.k==='진행 중'?'<span class="bd mu">진행 중</span>':'<span class="bd wa">열림</span>'}</td>
+      <td>${S.k==='마감'?'<span class="bd ok">마감</span>':S.k==='진행 중'?'<span class="bd mu">진행 중</span>':'<span class="bd wa">열림</span>'}</td>
       <td class="n">${N.bill?won(N.bill):dash}</td><td class="n">${N.bill?won(N.paid):dash}</td>
       <td class="n">${due>0?`<span style="color:var(--warn)">${won(due)}</span>`:N.bill?won(0):dash}</td>
-      <td>${sent?d8m('2026-'+sent):dash}</td>
-      <td class="c">${moreCell([{t:'상세',go:`rpOpen('${ym}')`},{t:'내려받기',go:`say('${ymKo(ym)} 임대인 보고서 PDF를 내려받습니다(상세 패널을 열지 않고 바로). 메일에 붙는 PDF와 같습니다.\\n목업에서는 파일을 내려받지 않습니다.')`}])}</td></tr>`;}).join('');
+      <td style="padding-left:32px">${sent?d8m('2026-'+sent):dash}</td>
+      <td class="c">${moreCell([{t:'상세',go:`rpOpen('${ym}')`},{t:'내려받기',go:`say('${ymKo(ym)} 월 마감 보고서 PDF를 내려받습니다(상세 패널을 열지 않고 바로). 메일에 붙는 PDF와 같습니다.\\n목업에서는 파일을 내려받지 않습니다.')`}])}</td></tr>`;}).join('');
   return `<div class="tbl" style="margin-top:4px"><div class="tw"><table>
-      <thead><tr><th>청구년월</th><th>마감 여부</th><th class="n">청구액</th><th class="n">수납액</th><th class="n">미납</th><th>발송 일자</th><th class="c">더보기</th></tr></thead>
+      <thead><tr><th>청구년월</th><th>마감 여부</th><th class="n">청구액</th><th class="n">수납액</th><th class="n">미납</th><th style="padding-left:32px">발송 일자</th><th class="c">더보기</th></tr></thead>
       <tbody>${rows}</tbody></table></div></div>
     <div class="hint">달을 누르면 그 달 보고서가 열립니다. 건물 하나 × 한 달이 보고서 한 장이고, 그 건물 임대인 모두에게 한 통으로 보냅니다(공동소유도 건물 전체 기준이고 지분은 나누지 않습니다).<br>
       마감한 달만 보낼 수 있습니다. 숫자는 월 마감일 기준이라 보낸 뒤에 바뀌지 않습니다. 마감 전인 달도 열어 볼 수 있습니다. 금액은 부가세 포함입니다.<br>
@@ -3312,7 +3312,7 @@ function repPanels(){
   const {b,ym}=frb, bd=BUILDINGS.find(x=>x.id===b), closed=!!closeOn(b,ym), sent=(REPS[b]||{})[ym];
   const to=bd.owners.map(o=>({n:o.n,mail:OWN_MAIL[o.n]||''}));
   return `<div class="dro"><div class="ov" onclick="closeDrawer()"></div><div class="pn" style="width:800px">
-    <div class="dh"><div><div class="t">임대인 보고서</div><div class="s">${bd.name} · ${ymKo(ym)}</div></div><button class="x" onclick="closeDrawer()">✕</button></div>
+    <div class="dh"><div><div class="t">월 마감 보고서</div><div class="s">${bd.name} · ${ymKo(ym)}</div></div><button class="x" onclick="closeDrawer()">✕</button></div>
     <div class="db">
       ${!closed?`<div class="prev" style="margin:0 0 12px"><div class="pt">아직 마감 전입니다</div>숫자가 바뀔 수 있어 마감한 뒤에 보냅니다. 내용은 지금 볼 수 있습니다. <span class="lk" onclick="closeDrawer();f12='${ym}';go('pay-12')">청구 현황에서 마감 →</span></div>`
         :sent?`<div class="prev" style="margin:0 0 12px"><div class="pt">${d8m('2026-'+sent)} 보냄</div>다시 보내면 발송 내역에 새 줄이 생깁니다. <span class="lk" onclick="closeDrawer();go('ntf-6')">발송 내역 →</span></div>`:''}
@@ -3320,7 +3320,7 @@ function repPanels(){
         <div class="fr"><span class="fk">받는 사람</span><span class="fv">${to.map(x=>`${x.n} &lt;${x.mail||'이메일 없음'}&gt;`).join(', ')}</span></div>
         <div class="fr" style="align-items:flex-start"><span class="fk">이달의 메모</span><textarea rows="3" style="flex:1;border:1px solid var(--line);border-radius:var(--r-sm);padding:7px 9px;font:inherit;background:var(--bg);color:inherit" placeholder="수리 · 점검 · 공지 등 (선택) — 쓰면 보고서 맨 위에 실립니다" onchange="rpMemo(this.value)">${(REP_MEMO[repKey(b,ym)]||'').replace(/</g,'&lt;')}</textarea></div></div>
       ${repDoc(b,ym)}</div>
-    <div class="df"><button class="btn" onclick="say('임대인 보고서 PDF — 위 보고서를 PDF로 내려받습니다. 메일에 붙는 PDF와 같습니다.\\n목업에서는 파일을 내려받지 않습니다.')">내려받기</button>
+    <div class="df"><button class="btn" onclick="say('월 마감 보고서 PDF — 위 보고서를 PDF로 내려받습니다. 메일에 붙는 PDF와 같습니다.\\n목업에서는 파일을 내려받지 않습니다.')">내려받기</button>
       <button class="btn pri" ${closed?'':'disabled title="마감한 달만 보낼 수 있습니다"'} onclick="repSend()">${sent?'다시 보내기':'메일 보내기'}</button></div>
   </div></div>`;
 }
@@ -3335,7 +3335,7 @@ function TMPMAIL(){
     ['미납 안내','수동 · 미납 관리에서 골라 보냄','대표 담당자','미납 안내 PDF',{bd,who:ten,nos:'{유닛}',due:'{미납액}',fee:'{연체료}',on:'{보낸 날}'}],
     ['원장 명세서','수동 · 계약 원장 탭 「명세서 보내기」','청구서 메일 받는 담당자','거래 명세서 PDF',{bd,who:ten,nos:'{유닛}',from:'{시작일}',to:'{끝일}',memo:'({메모} — 담당자가 넣었을 때만)'}],
     ['웰컴 메시지','수동 · 계약 등록에서 「저장 및 웰컴 메일 보내기」','대표 담당자','없음',{bd,who:ten,ten:'{임차인}',nos:'{유닛}',from:'{계약시작일}',to:'{계약종료일}'}],
-    ['임대인 보고서','수동 · 임대인 보고서 「메일 발송」','임대인','보고서 PDF',{bd,who:'{임대인}',ym:'{청구년월}',bill:'{청구액}',paid:'{수납액}',unpaid:'{미납액}',vac:'{공실 유닛 수}',unit:'{전체 유닛 수}'}],
+    ['월 마감 보고서','수동 · 월 마감 보고서 「메일 발송」','임대인','보고서 PDF',{bd,who:'{임대인}',ym:'{청구년월}',bill:'{청구액}',paid:'{수납액}',unpaid:'{미납액}',vac:'{공실 유닛 수}',unit:'{전체 유닛 수}'}],
     ['계정 초대','자동 · 관리자 계정을 저장하면','그 관리자','없음',{who:'{이름}',op:'{운영사}'}],
     ['비밀번호 재설정','수동 · 사용자 관리 「재설정 메일 발송」 / 자동 · 본인이 로그인 화면에서 비밀번호 찾기','그 관리자','없음',{who:'{이름}',op:'{운영사}'}],
     ['비밀번호 변경 알림','자동 · 비밀번호가 바뀌면','그 관리자','없음',{who:'{이름}',op:'{운영사}',at:'{바뀐 일시}'}]];
@@ -3522,7 +3522,7 @@ const MC={
 /* 마감·마감 취소 이력 — 건물·월별 */
 const MC_LOG={'b1|2026-06':[{at:'07-02 15:10',by:'슈퍼관리자',act:'마감'},{at:'07-03 09:20',by:'슈퍼관리자',act:'마감 취소',why:'루비뮤직 6월 수납 배분을 잘못 기록해 재조정'},
   {at:'07-03 16:40',by:'슈퍼관리자',act:'마감'}]};
-/* 임대인 보고서 발송일 → REP-1 */
+/* 월 마감 보고서 발송일 → REP-1 */
 /* 마감한 뒤에 보낸다 → REP-1 */
 const REPS={b1:{'2026-06':'07-04','2026-07':'08-06'},
   b2:{'2026-06':'07-14'}};
@@ -3587,7 +3587,7 @@ function mcHTML(){
       ${undo&&mcCarryUsed(b,ym)?`<div class="prev warn2"><div class="pt">마감을 취소할 수 없습니다</div>
           이 달 마감 때 넘어간 이월 미납액에 이미 돈이 들어왔습니다. 마감을 풀면 그 돈을 이 달 청구에 다시 나눠야 해 장부가 꼬입니다.</div>`
       :undo?`<div class="prev warn2"><div class="pt">마감을 풀면 이 달의 장부를 다시 고칠 수 있게 됩니다</div>
-          이미 보낸 임대인 보고서와 숫자가 달라질 수 있습니다. 확정한 정산은 마감을 풀어도 고치지 않습니다. 고친 뒤 다시 마감하세요.</div>
+          이미 보낸 월 마감 보고서와 숫자가 달라질 수 있습니다. 확정한 정산은 마감을 풀어도 고치지 않습니다. 고친 뒤 다시 마감하세요.</div>
         <div class="fg" style="margin-top:14px"><div class="fl">취소 사유 (필수)</div>
           <textarea rows="3" style="width:100%;border:1px solid var(--line);border-radius:var(--r-sm);padding:8px;font:inherit"
             placeholder="예: 7월 수납 배분을 잘못 기록해 재조정" oninput="mcx.why=this.value;document.getElementById('mcok').disabled=!this.value.trim()">${mcx.why}</textarea></div>`
