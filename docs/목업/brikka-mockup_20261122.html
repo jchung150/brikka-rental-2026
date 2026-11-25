@@ -525,6 +525,7 @@ tr.mrow{cursor:pointer}tr.mrow td{white-space:nowrap}
 .tml{border:1px solid var(--line);border-radius:var(--r-sm);padding:12px 14px}
 .tms{font-weight:700;margin-bottom:8px}.tmb{white-space:pre-wrap;font-size:12.5px;line-height:1.7}
 .tph{color:var(--pri);background:var(--pri-bg);border-radius:3px;padding:0 2px}
+.repdoc{border:1px solid var(--line);border-radius:var(--r);padding:22px 24px;background:var(--bg);max-width:980px}
 .rcal{position:relative;display:inline-block}
 .fbar .rbtn{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line);background:var(--bg);color:inherit;padding:8px 11px;border-radius:var(--r-sm);font-size:12.5px;font-weight:400;min-width:150px;line-height:normal;cursor:pointer}
 .fbar .rbtn .rcv{margin-left:auto;display:inline-flex;color:inherit}.fbar .rbtn.on{border-color:var(--pri);color:var(--pri)}
@@ -1404,6 +1405,7 @@ function drawerHTML(){
   if(DRAWER==='citem') return ciHTML();
   if(DRAWER==='adjok') return akHTML();
   if(DRAWER==='mlv') return mvHTML();
+  if(DRAWER==='repmemo'||DRAWER==='repsend') return repPanels();
   if(DRAWER!=='additem') return '';
   const used=BLD.charge.filter(c=>c.use).map(c=>c.it);
   const rest=MASTER.filter(m=>!m.fixed&&!BILL[m.code].on&&used.includes(m.name));
@@ -3127,10 +3129,7 @@ function mailSeed(){if(mailSeeded) return; mailSeeded=true;
       const m=billMail(g.map(ckey),ym,`${billOn(ym,bd.id)} ${String(10+g.length%2).padStart(2,'0')}:${String(2+cs.indexOf(c)).padStart(2,'0')}`,by);
       if(m&&bd.id==='b2'&&c.no==='본관601호'&&ym==='2026-07'){m.st='실패';m.why='수신 서버 응답: 주소 없음 (550 5.1.1 user unknown)';m.to=m.to.map(x=>({...x,mail:x.mail.replace('sample','sampel')}));}});}));
   CTRS.filter(c=>c.b==='b1'&&c.st==='진행중'&&arrears(c).due>0).forEach(c=>dueMailOne(ckey(c),t('2026-08-04','due'+c.no),'김관리'));
-  Object.entries(REPS).forEach(([b,o])=>Object.entries(o).forEach(([ym,d])=>{const bd=BUILDINGS.find(x=>x.id===b); if(!bd) return; const N=mcNum(b,ym);
-    mailAdd({at:t('2026-'+d,'rep'+b+ym),kind:'임대인 보고서',b,rel:`${bd.name} · ${ymKo(ym)}`,to:bd.owners.map(o=>({n:o.n,mail:OWN_MAIL[o.n]||''})),how:'수동',by:'슈퍼관리자',
-      ...mailText('임대인 보고서',{bd,who:bd.owners.map(o=>o.n).join(' · '),ym,bill:N.bill,paid:N.paid,vac:bd.vacCnt,unit:bd.unitCnt}),
-      att:[{n:`임대인보고서_${bd.name}_${ym}.pdf`,go:`say('임대인 보고서 PDF — 보고서 화면(REP-1)은 아직 목업에 없습니다')`}]});}));
+  Object.entries(REPS).forEach(([b,o])=>Object.entries(o).forEach(([ym,d])=>{if(BUILDINGS.find(x=>x.id===b)) repMail(b,ym,t('2026-'+d,'rep'+b+ym),'슈퍼관리자');}));
   CTRS.filter(c=>c.b==='b2'&&c.base==='2026-06-01').forEach((c,i)=>welcomeMail(ckey(c),`2026-05-27 14:${String(10+i*3).padStart(2,'0')}`,'이담당'));
   const acct=(at,kind,n,how,by)=>{const g=mgrOf(n); mailAdd({at,kind,rel:`사용자 ${n}`,to:[{n,mail:g.mail}],how,by,...mailText(kind,{who:n,at})});};
   acct('2026-06-02 11:20','계정 초대','최현우','자동','시스템');
@@ -3212,6 +3211,118 @@ function mvHTML(){
     <div class="df">${mv.re?`<button class="btn" onclick="mv.re=false;render(true)">취소</button><button class="btn pri" ${now.length?'':'disabled'} onclick="mailResend()">다시 보내기</button>`
       :`<button class="btn" onclick="mv.re=true;render(true)">다시 보내기</button><button class="btn" onclick="closeDrawer()">닫기</button>`}</div>
   </div></div>`;
+}
+
+/* ═══ REP-1 임대인 보고서 — 건물 × 한 달. 그 건물 임대인 전원에게 한 통(공동소유도 건물 전체 기준, 지분 표시 없음).
+   마감한 달만 보낸다(숫자가 바뀌지 않게). 미리보기는 언제나. PDF만. 담당자가 쓰는 「이달의 메모」를 싣는다 → 명세변경_261122 42 ═══ */
+let frb={b:'b1',ym:'2026-07'}, rm=null;
+const REP_MEMO={'b1|2026-07':'본관 3층 화장실 누수 — 7/14 배관 교체 완료. 비용 1,320,000원은 건물주 부담으로 따로 청구드립니다.\n8월 중 엘리베이터 정기검사 예정(8/21).',
+  'b1|2026-06':'6/18 정기 소방점검 — 지적 사항 없음.'};
+const repKey=(b,ym)=>b+'|'+ym;
+const setFrb=(k,v)=>{frb[k]=v;render();};
+/* 보고서 숫자 — 마감한 달은 마감일 모습 그대로(ctrPay가 마감일 기준), 아니면 오늘 기준 */
+function repData(b,ym){
+  const bd=BUILDINGS.find(x=>x.id===b), closed=!!closeOn(b,ym), D=closeOn(b,ym)||TODAY_S, mEnd=eom(ym), mStart=ym+'-01';
+  const U=withB(b,()=>UNITS.map(u=>({...u})));
+  const nOff=U.filter(u=>u.st==='비운영중').length, nVac=U.filter(u=>u.st==='공실').length, nUse=U.filter(u=>u.st==='사용중').length;
+  const arAll=U.reduce((a,u)=>a+(u.ar||0),0), arVac=U.filter(u=>u.st==='공실').reduce((a,u)=>a+(u.ar||0),0);
+  const cs=CTRS.filter(c=>c.b===b);
+  /* 수입 — 그 달 청구분 항목별(감액 반영) */
+  const inc={};
+  cs.forEach(c=>ctrPay(ckey(c),ym).it.forEach(i=>{const n=i.fee?'연체료':i.n, o=inc[n]=inc[n]||{n,bill:0,paid:0,due:0};
+    o.bill+=i.amt-(i.cut||0); o.paid+=i.paid; o.due+=i.due;}));
+  const ORD=['임대료','고정관리비','전기요금','전력기금','TV수신료','수도요금','가스요금','주차비','정화조청소비','교통유발부담금','연체료'];
+  const IN=Object.values(inc).sort((p,q)=>(ORD.indexOf(p.n)<0?50:ORD.indexOf(p.n))-(ORD.indexOf(q.n)<0?50:ORD.indexOf(q.n)));
+  /* 미납 · 연체 — 기준일에 남은 돈(이 달 청구분 + 넘어온 미납) */
+  const DUE=cs.map(c=>{const k=ckey(c), p=ctrPay(k,ym), due=p.due+(p.carry?p.carry.due:0); if(!due) return null;
+      const from=p.carry&&p.carry.due?p.carry.from:ym, days=Math.max(0,dnum(D)-dnum(dueStr(from,b)));
+      const a=arrears(c), fee=a.months.filter(m=>m.ym<=ym).reduce((x,m)=>x+m.fee,0);
+      return {c,k,due,days,fee};}).filter(x=>x&&x.days>0);   /* 납부마감일 전(납부 전)은 미납이 아니다 */
+  /* 보증금 — 계약 원장의 보증금 계정 */
+  const DEP={open:0,inc:0,dec:0,close:0,rows:[]};
+  cs.forEach(c=>ledgerOf(ckey(c)).rows.filter(r=>r.acc==='임대보증금').forEach(r=>{const v=(r.inc||0)-(r.dec||0);
+    if(r.date<mStart) DEP.open+=v; else if(r.date<=mEnd){DEP.inc+=r.inc||0; DEP.dec+=r.dec||0; DEP.rows.push({c,r});}}));
+  DEP.close=DEP.open+DEP.inc-DEP.dec;
+  /* 계약 현황 — 그 달 말일 기준 */
+  const live=cs.filter(c=>c.st!=='파기됨'&&c.base<=mEnd&&ctrEnd(c)>=mStart&&!(TERMS[ckey(c)]&&TERMS[ckey(c)].out<mStart));
+  const nNew=cs.filter(c=>c.base>=mStart&&c.base<=mEnd).length, nEnd=cs.filter(c=>{const e=(TERMS[ckey(c)]||{}).out||ctrEnd(c);return e>=mStart&&e<=mEnd;}).length;
+  const left=c=>dnum(ctrEnd(c))-dnum(mEnd), exp=n=>live.filter(c=>left(c)>=0&&left(c)<=n).length;
+  /* 관리비 정산 요약 — 그 달 정산 */
+  const SET=SD[b]?withB(b,()=>withMonth(ym,()=>selItems().map(m=>{const R=calc(m);return {n:m.name,total:R.total,bill:R.bill,vac:R.vac};}))):[];
+  return {bd,closed,D,U:{n:U.length,use:nUse,vac:nVac,off:nOff,rate:U.length-nOff?nVac/(U.length-nOff)*100:0,ar:arAll,arVac},IN,DUE,DEP,live,nNew,nEnd,exp,SET,
+    order:U.map(u=>u.no), settled:ym<'2026-08'||(PROG[b]||{}).settle==='확정',
+    issued:IN.length>0,memo:REP_MEMO[repKey(b,ym)]||'',sent:(REPS[b]||{})[ym]||null};
+}
+function repDoc(b,ym){
+  const R=repData(b,ym), bd=R.bd, own=bd.owners.map(o=>o.n).join(' · ');
+  const th='padding:6px 8px;border-bottom:1px solid var(--line);font-size:11.5px;color:var(--muted);text-align:left;font-weight:500', td='padding:6px 8px;border-bottom:1px solid var(--line-2);font-size:12px';
+  const T=(head,rows,empty)=>`<table style="width:100%;border-collapse:collapse"><thead><tr>${head.map(([h,r])=>`<th style="${th}${r?';text-align:right':''}">${h}</th>`).join('')}</tr></thead>
+    <tbody>${rows.length?rows.map(r=>`<tr>${r.map((v,i)=>`<td style="${td}${head[i][1]?';text-align:right;white-space:nowrap':''}">${v}</td>`).join('')}</tr>`).join(''):`<tr><td style="${td}" colspan="${head.length}"><span class="c2" style="margin:0">${empty}</span></td></tr>`}</tbody></table>`;
+  const H=t=>`<div style="margin:16px 0 6px;font-weight:700;font-size:13px">${t}</div>`;
+  const KV=L=>`<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px 14px;font-size:12.5px">${L.map(([k,v])=>`<div><span class="c2" style="margin:0">${k}</span><div style="font-weight:600">${v}</div></div>`).join('')}</div>`;
+  const sum=f=>R.IN.reduce((a,x)=>a+x[f],0), bill=sum('bill'), paid=sum('paid');
+  return `<div class="repdoc">
+    <div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap"><div style="font-size:18px;font-weight:700">${bd.name} 운영 보고서</div><span class="c2" style="margin:0">${ymKo(ym)}</span></div>
+    <div class="c2" style="margin:6px 0 0;white-space:normal">${own} 귀하 · (주)테온하우스 · 기준일 ${d8m(R.D)}${R.closed?' (월 마감일)':' (마감 전 · 오늘)'} · 금액은 부가세 포함</div>
+    ${R.memo?`${H('이달의 메모')}<div style="white-space:pre-wrap;font-size:12.5px;line-height:1.7;border-left:3px solid var(--pri);padding:2px 0 2px 10px">${R.memo.replace(/</g,'&lt;')}</div>`:''}
+    ${H('1. 임대 현황')}${KV([['전체 유닛',`${R.U.n}개`],['사용중',`${R.U.use}개`],['공실',`${R.U.vac}개`],['비운영중',`${R.U.off}개`],['공실률',`${R.U.rate.toFixed(1)}%`],['임대면적',`${R.U.ar.toLocaleString('ko-KR',{maximumFractionDigits:1})}㎡`],['공실 면적',`${R.U.arVac.toLocaleString('ko-KR',{maximumFractionDigits:1})}㎡`]])}
+    ${H('2. 수입 현황')}${R.issued?T([['청구항목'],['청구액',1],['수납액',1],['미납액',1],['수납률',1]],
+      R.IN.map(x=>[x.n,won(x.bill),won(x.paid),x.due?`<span style="color:var(--warn)">${won(x.due)}</span>`:won(0),`${x.bill?Math.round(x.paid/x.bill*100):0}%`])
+        .concat([[`<b>합계</b>`,`<b>${won(bill)}</b>`,`<b>${won(paid)}</b>`,`<b>${won(sum('due'))}</b>`,`<b>${bill?Math.round(paid/bill*100):0}%</b>`]]),''):'<div class="c2" style="margin:0">이 달 청구서를 아직 발행하지 않았습니다.</div>'}
+    ${H('3. 미납 · 연체')}${T([['계약고유이름'],['미납액',1],['연체일수',1],['연체료(예상)',1]],R.DUE.map(x=>[cname(bd.alias,x.c.no,x.c.ten),won(x.due),`${x.days}일`,won(x.fee)]),'미납이 없습니다')}
+    ${H('4. 보증금')}${KV([['기초 잔액',won(R.DEP.open)],['예치',won(R.DEP.inc)],['상계 · 반환',won(R.DEP.dec)],['기말 잔액',won(R.DEP.close)]])}
+    ${R.DEP.rows.length?`<div style="margin-top:8px">${T([['날짜'],['계약고유이름'],['구분'],['금액',1]],R.DEP.rows.map(({c,r})=>[d8m(r.date).slice(2),cname(bd.alias,c.no,c.ten),r.type,won((r.inc||0)||(r.dec||0))]),'')}</div>`:''}
+    ${H('5. 계약 현황')}${KV([['진행중 계약',`${R.live.length}건`],['이 달 신규',`${R.nNew}건`],['이 달 종료',`${R.nEnd}건`],['만료 임박',`90일 ${R.exp(90)} · 60일 ${R.exp(60)} · 30일 ${R.exp(30)}`]])}
+    ${H('6. 임차인 명세')}${T([['유닛'],['임차인'],['계약기간'],['임대료',1],['고정관리비',1],['보증금',1]],
+      R.live.slice().sort((p,q)=>R.order.indexOf(p.no)-R.order.indexOf(q.no)).map(c=>[c.no,c.ten,`${d8m(c.base).slice(2)} ~ ${d8m(ctrEnd(c)).slice(2)}`,won(Math.round(ctrAmt(c,'임대료')*1.1)),won(Math.round(ctrAmt(c,'고정관리비')*1.1)),won(ctrDeposit(c))]),'계약이 없습니다')}
+    ${H('7. 관리비 정산 요약'+(R.settled?'':' <span class="c2" style="display:inline;margin:0;font-weight:400">(정산 확정 전 · 바뀔 수 있음)</span>'))}${R.SET.length?T([['청구항목'],['고지서 총액',1],['임차인 청구분',1],['건물주 부담',1]],
+      R.SET.map(x=>[x.n,won(x.total),won(x.bill),x.vac?won(x.vac):won(0)]).concat([[`<b>합계</b>`,`<b>${won(R.SET.reduce((a,x)=>a+x.total,0))}</b>`,`<b>${won(R.SET.reduce((a,x)=>a+x.bill,0))}</b>`,`<b>${won(R.SET.reduce((a,x)=>a+x.vac,0))}</b>`]]),''):'<div class="c2" style="margin:0">정산 자료가 없습니다.</div>'}
+    <div class="c2" style="margin:14px 0 0;white-space:normal">건물주 부담은 공실 · 비운영중 유닛 몫과 일할로 줄인 몫입니다. 문의: ${bd.name} 관리사무소 · 담당 ${(bd.mgrs||[])[0]||''}</div></div>`;
+}
+function repMail(b,ym,at,by){const bd=BUILDINGS.find(x=>x.id===b), N=mcNum(b,ym);
+  return mailAdd({at,kind:'임대인 보고서',b,rel:`${bd.name} · ${ymKo(ym)}`,to:bd.owners.map(o=>({n:o.n,mail:OWN_MAIL[o.n]||''})),how:'수동',by,
+    ...mailText('임대인 보고서',{bd,who:bd.owners.map(o=>o.n).join(' · '),ym,bill:N.bill,paid:N.paid,vac:bd.vacCnt,unit:bd.unitCnt}),
+    att:[{n:`임대인보고서_${bd.name}_${ym}.pdf`,go:`frb={b:'${b}',ym:'${ym}'};closeDrawer();go('rep-1')`}]});}
+function repSend(){const {b,ym}=frb; if(!closeOn(b,ym)) return; mailRows();
+  repMail(b,ym,`${TODAY_S} ${new Date().toTimeString().slice(0,5)}`,'슈퍼관리자'); (REPS[b]=REPS[b]||{})[ym]=TODAY_S.slice(5);
+  DRAWER=null; say(`${ymKo(ym)} 보고서를 임대인에게 보냈습니다 — 발송 내역에서 볼 수 있습니다`); render(true);}
+function REP1(){
+  const {b,ym}=frb, R=repData(b,ym), bd=R.bd;
+  const S=(k,opts)=>`<select onchange="setFrb('${k}',this.value)">${opts.map(([v,t])=>`<option value="${v}" ${frb[k]===v?'selected':''}>${t}</option>`).join('')}</select>`;
+  const box=!R.closed?`<div class="prev" style="margin:0 0 12px"><div class="pt">${ymKo(ym)}은 아직 마감 전입니다</div>숫자가 바뀔 수 있어 마감한 뒤에 보냅니다. 미리보기는 지금 볼 수 있습니다. <span class="lk" onclick="f12='${ym}';go('pay-12')">청구 현황에서 마감 →</span></div>`
+    :R.sent?`<div class="prev" style="margin:0 0 12px"><div class="pt">${d8m('2026-'+R.sent)} 보냄</div>${bd.owners.map(o=>o.n).join(' · ')}에게 보냈습니다. 다시 보내면 발송 내역에 새 줄이 생깁니다. <span class="lk" onclick="go('ntf-6')">발송 내역 →</span></div>`:'';
+  return `
+  <div class="ph"><h1>임대인 보고서</h1><span class="sid">REP-1</span></div>
+  <div class="fbar">
+    ${S('b',BUILDINGS.map(x=>[x.id,x.name]))}${S('ym',MC_YMS.slice().reverse().map(v=>[v,ymKo(v)]))}
+    <span style="margin-left:auto;display:flex;gap:6px">
+      <button class="btn" onclick="rmOpen()">${R.memo?'메모 수정':'메모 쓰기'}</button>
+      <button class="btn" onclick="say('임대인 보고서 PDF — 아래 보고서를 PDF로 내려받습니다. 메일에 붙는 PDF와 같습니다.\\n목업에서는 파일을 내려받지 않습니다.')">PDF 내려받기</button>
+      <button class="btn pri" ${R.closed?'':'disabled title="마감한 달만 보낼 수 있습니다"'} onclick="DRAWER='repsend';render(true)">메일 보내기</button></span></div>
+  ${box}
+  ${repDoc(b,ym)}
+  <div class="hint">건물 하나 × 한 달이 보고서 한 장입니다. 그 건물 임대인 모두에게 한 통으로 보냅니다(공동소유도 건물 전체 기준이고 지분은 나누지 않습니다).<br>
+    마감한 달만 보낼 수 있습니다. 숫자는 월 마감일 기준이라 보낸 뒤에 바뀌지 않습니다. 금액은 부가세 포함입니다.<br>
+    「이달의 메모」는 담당자가 쓰는 특이사항(수리 · 점검 · 공지)입니다. 비어 있으면 보고서에 싣지 않습니다.</div>`;
+}
+function rmOpen(){rm={t:REP_MEMO[repKey(frb.b,frb.ym)]||''};DRAWER='repmemo';render(true);}
+function rmSave(){const k=repKey(frb.b,frb.ym); if(rm.t.trim()) REP_MEMO[k]=rm.t.trim(); else delete REP_MEMO[k]; rm=null;DRAWER=null;render(true);}
+function repPanels(){
+  const bd=BUILDINGS.find(x=>x.id===frb.b);
+  if(DRAWER==='repmemo'&&rm) return `<div class="dro"><div class="ov" onclick="closeDrawer()"></div><div class="pn">
+    <div class="dh"><div><div class="t">이달의 메모</div><div class="s">${bd.name} · ${ymKo(frb.ym)}</div></div><button class="x" onclick="closeDrawer()">✕</button></div>
+    <div class="db"><textarea rows="8" style="width:100%;box-sizing:border-box;border:1px solid var(--line);border-radius:var(--r-sm);padding:9px 10px;font:inherit;background:var(--bg);color:inherit" placeholder="예: 3층 누수 수리 완료, 8/21 엘리베이터 정기검사" oninput="rm.t=this.value">${rm.t.replace(/</g,'&lt;')}</textarea>
+      <div class="c2" style="white-space:normal">보고서 맨 위 「이달의 메모」로 실립니다. 비우고 저장하면 보고서에서 빠집니다.</div></div>
+    <div class="df"><button class="btn" onclick="closeDrawer()">취소</button><button class="btn pri" onclick="rmSave()">저장</button></div></div></div>`;
+  if(DRAWER==='repsend'){const to=bd.owners.map(o=>({n:o.n,mail:OWN_MAIL[o.n]||''})), sent=(REPS[frb.b]||{})[frb.ym];
+    return `<div class="dro"><div class="ov" onclick="closeDrawer()"></div><div class="pn">
+    <div class="dh"><div><div class="t">보고서 메일 보내기</div><div class="s">${bd.name} · ${ymKo(frb.ym)}</div></div><button class="x" onclick="closeDrawer()">✕</button></div>
+    <div class="db"><div class="fg"><div class="fl">보낼 곳</div>
+      ${to.map(x=>`<div class="fr"><span class="fk">임대인</span><span class="fv">${x.n} &lt;${x.mail||'이메일 없음'}&gt;</span></div>`).join('')}
+      <div class="fr"><span class="fk">첨부</span><span class="fv">임대인보고서_${bd.name}_${frb.ym}.pdf</span></div></div>
+      ${sent?`<div class="prev warn2" style="margin:0"><div class="pt">이미 보낸 보고서입니다(${d8m('2026-'+sent)})</div>다시 보내면 발송 내역에 새 줄이 생깁니다.</div>`:''}</div>
+    <div class="df"><button class="btn" onclick="closeDrawer()">취소</button><button class="btn pri" onclick="repSend()">메일 보내기</button></div></div></div>`;}
+  return '';
 }
 
 /* ═══ 임시 — 메일 문구 9종(초안 · 대표 검토 중). 칸({ })은 시스템이 채운다. 검토가 끝나면 메뉴와 함께 지운다 ═══ */
@@ -3412,8 +3523,9 @@ const MC={
 const MC_LOG={'b1|2026-06':[{at:'07-02 15:10',by:'슈퍼관리자',act:'마감'},{at:'07-03 09:20',by:'슈퍼관리자',act:'마감 취소',why:'루비뮤직 6월 수납 배분을 잘못 기록해 재조정'},
   {at:'07-03 16:40',by:'슈퍼관리자',act:'마감'}]};
 /* 임대인 보고서 발송일 → REP-1 */
-const REPS={b1:{'2026-06':'07-02','2026-07':'08-04'},
-  b2:{'2026-06':'07-12'}};
+/* 마감한 뒤에 보낸다 → REP-1 */
+const REPS={b1:{'2026-06':'07-04','2026-07':'08-06'},
+  b2:{'2026-06':'07-14'}};
 /* 카리나빌딩 외 건물의 7월 미처리 입금 — 예시값 */
 const MC_WAIT={b2:{'2026-07':3}};
 let s11={b:'b1',ym:'2026-07'}, mcx=null;
@@ -3442,14 +3554,12 @@ function mcChecks(b,ym){
   /* 돌려주지 않은 오납 — 이 달에 들어왔고 아직 환불하지 않은 것. 과납은 다음 달로 넘어가므로 확인하지 않는다 */
   const mis=b===RC.b?Object.entries(RC.dec).filter(([no,x])=>x.mis&&!x.mis.refund&&(misDep(no)||{dt:''}).dt.slice(0,7)===ym):[];
   const rest=mis.reduce((a,[no])=>a+misDep(no).amt,0), nOv=mis.length;
-  const rep=(REPS[b]||{})[ym];
   return [
     {t:'관리비 정산 확정',ok:settle==='확정',v:settle,go:'pay-10'},
     {t:'청구서 발행',ok:N.N>0&&N.n===N.N,v:`${N.n} / ${N.N}건`,go:'pay-1'},
     {t:'납부마감일 경과',ok:dnum(TODAY_S)>dnum(due),v:`${due.slice(5).replace('-','.')}${dnum(TODAY_S)>dnum(due)?'':' (아직 전)'}`},
     {t:'처리하지 않은 입금',ok:!wait,v:wait?`${wait}건`:'없음',go:'pay-13'},
     {t:'돌려주지 않은 오납',ok:!rest,v:rest?`${nOv}건 ${won(rest)}`:'없음',go:'pay-13'},
-    {t:'임대인 보고서 발송',ok:!!rep,v:rep?`${rep.replace('-','.')} 발송`:'미발송',go:'rep-1'},
   ];
 }
 const mcState=(b,ym)=>{const c=(MC[b]||{})[ym];
@@ -6864,6 +6974,7 @@ function render(keep){
   else if(id==='pay-14'){html=PAY14();crumb='수납 관리 <span>›</span> <b>수납 현황</b>';}
   else if(id==='pay-13'){html=PAY13();crumb='수납 관리 <span>›</span> <b>입금 매칭</b>';}
   else if(id==='ntf-6'){html=NTF6();crumb='이력 관리 <span>›</span> <b>발송 내역</b>';}
+  else if(id==='rep-1'){html=REP1();crumb='보고서 <span>›</span> <b>임대인 보고서</b>';}
   else if(id==='tmp-mail'){html=TMPMAIL();crumb='<b>메일 문구 (임시)</b>';}
   else{html=TODO(id);const g=MENU.find(m=>m.items&&m.items.some(i=>i.id===id));
     const m=ALL.find(i=>i.id===id);
