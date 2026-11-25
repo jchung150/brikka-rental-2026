@@ -3289,17 +3289,17 @@ function repSend(){const {b,ym}=frb; if(!closeOn(b,ym)) return; mailRows();
    청구 현황에서 마감한 달의 ⋮ › 임대인 보고서로 오면 그 달 패널이 바로 열린다 */
 function t보고서(bdx){
   frb.b=bdx.id; const b=bdx.id, dash='<span style="color:var(--faint)">—</span>';
-  const rows=MC_YMS.slice().reverse().map(ym=>{const S=mcState(b,ym), N=mcNum(b,ym), sent=(REPS[b]||{})[ym], memo=!!REP_MEMO[repKey(b,ym)];
+  const rows=MC_YMS.slice().reverse().map(ym=>{const S=mcState(b,ym), N=mcNum(b,ym), sent=(REPS[b]||{})[ym];
     const due=N.due!=null?N.due:(N.bill||0)-(N.paid||0);
     return `<tr class="mrow" onclick="rpOpen('${ym}')">
       <td><b>${ymKo(ym)}</b></td>
       <td>${S.k==='마감'?`<span class="bd ok">마감</span> <span class="c2" style="display:inline;margin:0">${d8m('2026-'+S.c.at.slice(0,5))}</span>`:S.k==='진행 중'?'<span class="bd mu">진행 중</span>':'<span class="bd wa">열림</span>'}</td>
       <td class="n">${N.bill?won(N.bill):dash}</td><td class="n">${N.bill?won(N.paid):dash}</td>
       <td class="n">${due>0?`<span style="color:var(--warn)">${won(due)}</span>`:N.bill?won(0):dash}</td>
-      <td>${memo?'있음':dash}</td>
-      <td>${sent?`<span class="bd ok">보냄</span> <span class="c2" style="display:inline;margin:0">${d8m('2026-'+sent)}</span>`:S.k==='마감'?'<span class="bd wa">보내기 전</span>':dash}</td></tr>`;}).join('');
+      <td>${sent?d8m('2026-'+sent):dash}</td>
+      <td class="c">${moreCell([{t:'상세',go:`rpOpen('${ym}')`}])}</td></tr>`;}).join('');
   return `<div class="tbl" style="margin-top:4px"><div class="tw"><table>
-      <thead><tr><th>보고 월</th><th>월 마감</th><th class="n">청구액</th><th class="n">수납액</th><th class="n">미납</th><th>이달의 메모</th><th>임대인에게</th></tr></thead>
+      <thead><tr><th>청구년월</th><th>마감 여부</th><th class="n">청구액</th><th class="n">수납액</th><th class="n">미납</th><th>발송 일자</th><th class="c">더보기</th></tr></thead>
       <tbody>${rows}</tbody></table></div></div>
     <div class="hint">달을 누르면 그 달 보고서가 열립니다. 건물 하나 × 한 달이 보고서 한 장이고, 그 건물 임대인 모두에게 한 통으로 보냅니다(공동소유도 건물 전체 기준이고 지분은 나누지 않습니다).<br>
       마감한 달만 보낼 수 있습니다. 숫자는 월 마감일 기준이라 보낸 뒤에 바뀌지 않습니다. 마감 전인 달도 열어 볼 수 있습니다. 금액은 부가세 포함입니다.<br>
@@ -3320,7 +3320,7 @@ function repPanels(){
         <div class="fr"><span class="fk">받는 사람</span><span class="fv">${to.map(x=>`${x.n} &lt;${x.mail||'이메일 없음'}&gt;`).join(', ')}</span></div>
         <div class="fr" style="align-items:flex-start"><span class="fk">이달의 메모</span><textarea rows="3" style="flex:1;border:1px solid var(--line);border-radius:var(--r-sm);padding:7px 9px;font:inherit;background:var(--bg);color:inherit" placeholder="수리 · 점검 · 공지 등 (선택) — 쓰면 보고서 맨 위에 실립니다" onchange="rpMemo(this.value)">${(REP_MEMO[repKey(b,ym)]||'').replace(/</g,'&lt;')}</textarea></div></div>
       ${repDoc(b,ym)}</div>
-    <div class="df"><button class="btn" onclick="say('임대인 보고서 PDF — 위 보고서를 PDF로 내려받습니다. 메일에 붙는 PDF와 같습니다.\\n목업에서는 파일을 내려받지 않습니다.')">PDF 내려받기</button>
+    <div class="df"><button class="btn" onclick="say('임대인 보고서 PDF — 위 보고서를 PDF로 내려받습니다. 메일에 붙는 PDF와 같습니다.\\n목업에서는 파일을 내려받지 않습니다.')">내려받기</button>
       <button class="btn pri" ${closed?'':'disabled title="마감한 달만 보낼 수 있습니다"'} onclick="repSend()">${sent?'다시 보내기':'메일 보내기'}</button></div>
   </div></div>`;
 }
