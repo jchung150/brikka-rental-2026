@@ -1775,8 +1775,8 @@ function bopHTML(){
 }
 function PRO3(id){
   const b=BUILDINGS.find(x=>x.id===id)||BUILDINGS[0];
-  const T=['요약','계약','유닛','주차','관리비','보고서','자료','이력'];
-  const body=({'요약':t요약,'계약':t계약,'유닛':t유닛,'주차':t주차,'관리비':t청구,'보고서':t보고서,'자료':t자료,'이력':b=>histHTML(histB(b),'b'+b.id)}[tab3]||t요약)(b);
+  const T=['요약','계약','유닛','주차','관리비','보고서','자료','이력','발송'];
+  const body=({'요약':t요약,'계약':t계약,'유닛':t유닛,'주차':t주차,'관리비':t청구,'보고서':t보고서,'자료':t자료,'이력':b=>histHTML(histB(b),'b'+b.id),'발송':b=>mailTab(mailOfB(b.id),'mb'+b.id)}[tab3]||t요약)(b);
   return `
   <div class="ph">
     <div class="bsw">
@@ -3158,6 +3158,31 @@ const MST={'성공':'ok','실패':'da','대기':'mu'};
 /* 계약고유이름 칸 — 계약 메일만. 청구서 한 장으로 받기는 「외 N」. 월 마감 보고서 · 계정 메일은 계약이 없다 */
 const mailCtr=m=>{const cs=(m.ks||[]).map(k=>CTRS.find(x=>ckey(x)===k)).filter(Boolean); if(!cs.length) return '<span style="color:var(--faint)">—</span>';
   const c=cs[0]; return `${cname((BUILDINGS.find(x=>x.id===c.b)||{}).alias,c.no,c.ten)}${cs.length>1?` <span class="c2" style="display:inline;margin:0">외 ${cs.length-1}</span>`:''}`;};
+/* 발송 내역 표 — 발송 내역(NTF-6)과 건물 상세 · 계약 상세의 발송 탭이 같은 칸 · 같은 줄을 쓴다 */
+function mailTable(P){const d8=d=>d.replace(/-/g,'.');
+  return `<table>
+    <thead><tr><th>발송일시</th><th>발송종류</th><th>채널</th><th>받는 사람</th><th>받는 주소</th><th>계약고유이름</th><th>발송방식</th><th>담당자</th><th class="c">상태</th><th class="c">더보기</th></tr></thead>
+    <tbody>${P.length?P.map(m=>{const one=(L,f)=>`${L[0]?L[0][f]:'—'}${L.length>1?` <span class="c2" style="display:inline;margin:0">외 ${L.length-1}</span>`:''}`;
+      return `<tr class="mrow" onclick="mvOpen(${m.id})">
+      <td>${d8(m.at)}</td><td>${m.kind}</td><td>${m.ch}</td>
+      <td title="${m.to.map(x=>x.n).join(', ')}">${one(m.to,'n')}</td>
+      <td title="${m.to.map(x=>x.mail).join(', ')}">${one(m.to,'mail')}</td>
+      <td>${mailCtr(m)}</td><td>${m.how}</td><td>${m.by}</td>
+      <td class="c"><span class="bd ${MST[m.st]}" ${m.st==='실패'?`title="${m.why}"`:''}>${m.st}</span>${m.re?' <span class="c2" style="display:inline;margin:0">다시 보냄</span>':''}${m.of?' <span class="c2" style="display:inline;margin:0">다시 보낸 메일</span>':''}</td>
+      <td class="c">${moreCell([{t:'상세',go:`mvOpen(${m.id})`}])}</td></tr>`;}).join('')
+      :`<tr><td colspan="10" style="text-align:center;padding:28px 0;color:var(--muted)">조건에 맞는 발송 내역이 없습니다</td></tr>`}</tbody></table>`;}
+/* 발송 탭 — 발송 내역을 그 건물(그 건물 계약의 메일 · 그 건물 월 마감 보고서) · 그 계약으로 거른 것. 필터 줄도 발송 내역과 같다(기간 · 발송종류 · 채널 · 상태) → 명세변경_261122 46 */
+let fmt={kind:'',st:'',ch:'',from:'',to:''};
+const setFmt=(k,v)=>{fmt[k]=v;Object.keys(hp).forEach(x=>delete hp[x]);render(true);};
+const mailOfB=b=>mailRows().filter(m=>m.b===b||(m.ks||[]).some(k=>(CTRS.find(c=>ckey(c)===k)||{}).b===b));
+const mailOfC=k=>mailRows().filter(m=>(m.ks||[]).includes(k));
+function mailTab(rows,scope){
+  const S=(f,opts,lab)=>`<select onchange="setFmt('${f}',this.value)"><option value="">${lab}</option>${opts.map(v=>`<option ${fmt[f]===v?'selected':''}>${v}</option>`).join('')}</select>`;
+  const R=rows.filter(m=>(!fmt.kind||m.kind===fmt.kind)&&(!fmt.st||m.st===fmt.st)&&(!fmt.ch||m.ch===fmt.ch)&&(!fmt.from||m.at.slice(0,10)>=fmt.from)&&(!fmt.to||m.at.slice(0,10)<=fmt.to))
+    .sort((p,q)=>p.at<q.at?1:p.at>q.at?-1:q.id-p.id);
+  const N=Math.max(1,Math.ceil(R.length/HPER)), cur=Math.min(hp[scope]||1,N), P=R.slice((cur-1)*HPER,cur*HPER);
+  return `${tabBar(`${perBtn('fmt',fmt)}${S('kind',[...new Set(rows.map(m=>m.kind))],'전체 발송종류')}${S('ch',['이메일'],'전체 채널')}${S('st',['성공','실패','대기'],'전체 상태')}`)}
+  <div class="tbl"><div class="tw">${mailTable(P)}</div>${pagerHTML(R.length,cur,`(p=>{hp['${scope}']=p;render(true);})`)}</div>`;}
 function NTF6(){
   const d8=d=>d.replace(/-/g,'.');
   const R=mailRows().filter(m=>(!fm.kind||m.kind===fm.kind)&&(!fm.st||m.st===fm.st)&&(!fm.ch||m.ch===fm.ch)
@@ -3171,16 +3196,7 @@ function NTF6(){
     ${perBtn('fm',fm)}
     ${S('kind',MAIL_KINDS,'전체 발송종류')}${S('ch',['이메일'],'전체 채널')}${S('st',['성공','실패','대기'],'전체 상태')}</div>
   <div class="tbl"><div class="tw"><table>
-    <thead><tr><th>발송일시</th><th>발송종류</th><th>채널</th><th>받는 사람</th><th>받는 주소</th><th>계약고유이름</th><th>발송방식</th><th>담당자</th><th class="c">상태</th><th class="c">더보기</th></tr></thead>
-    <tbody>${P.length?P.map(m=>{const one=(L,f)=>`${L[0]?L[0][f]:'—'}${L.length>1?` <span class="c2" style="display:inline;margin:0">외 ${L.length-1}</span>`:''}`;
-      return `<tr class="mrow" onclick="mvOpen(${m.id})">
-      <td>${d8(m.at)}</td><td>${m.kind}</td><td>${m.ch}</td>
-      <td title="${m.to.map(x=>x.n).join(', ')}">${one(m.to,'n')}</td>
-      <td title="${m.to.map(x=>x.mail).join(', ')}">${one(m.to,'mail')}</td>
-      <td>${mailCtr(m)}</td><td>${m.how}</td><td>${m.by}</td>
-      <td class="c"><span class="bd ${MST[m.st]}" ${m.st==='실패'?`title="${m.why}"`:''}>${m.st}</span>${m.re?' <span class="c2" style="display:inline;margin:0">다시 보냄</span>':''}${m.of?' <span class="c2" style="display:inline;margin:0">다시 보낸 메일</span>':''}</td>
-      <td class="c">${moreCell([{t:'상세',go:`mvOpen(${m.id})`}])}</td></tr>`;}).join('')
-      :`<tr><td colspan="10" style="text-align:center;padding:28px 0;color:var(--muted)">조건에 맞는 발송 내역이 없습니다</td></tr>`}</tbody></table></div>
+    ${mailTable(P)}</div>
     ${PG.pager}</div>
   <div class="hint">
     시스템이 보낸 메일을 <b>보내던 그대로</b>(제목 · 본문 · 첨부 · 받는 주소) 남깁니다. 담당자 주소를 나중에 바꿔도 여기 주소는 그대로입니다. 지우지 않습니다.<br>
@@ -5265,7 +5281,7 @@ function fxConfirm(mail){if(!fxOK()) return; const V=fxV();
   if(fz.mode==='cut') addCut(fz.id,V.amt,TODAY_S,fz.why.trim(),V.sup,V.vat);
   else {issueAdhoc(fz.k,fxName(),V.amt,fz.doc,fz.why.trim(),null,V.sup,V.vat);
     const to=billTo(CTRS.find(x=>ckey(x)===fz.k));
-    if(mail===true&&to.length) clog(fz.k,'청구','발송',`비정기 청구서 메일 — ${fxName()} · ${to.map(x=>x.n).join(', ')}`);}
+}
   DRAWER=null;fz=null;render(true);}
 function fixHTML(){
   if(DRAWER!=='fix'||!fz) return '';
@@ -6138,12 +6154,12 @@ function ctrMore(c,k,pre=[]){
       {t:`재계약 취소`,go:`rnxOpen('${k}')`},
       {t:R,off:'진행중인 계약만 재계약할 수 있습니다'},
       {t:'해지',off:'시작 전인 연장 계약은 재계약 취소로 처리합니다'},
-      {t:'웰컴 재전송',go:`clog('${k}','계약','발송','웰컴 메일 재전송');mailRows();welcomeMail('${k}',TODAY_S+' '+new Date().toTimeString().slice(0,5),'슈퍼관리자');render(true)`},
+      {t:'웰컴 재전송',go:`mailRows();welcomeMail('${k}',TODAY_S+' '+new Date().toTimeString().slice(0,5),'슈퍼관리자');render(true)`},
       {t:'계약 삭제',off:'연장 계약은 재계약 취소로 지웁니다'}]
     :[{t:R,go:`rnwOpen('${k}')`,off:!on?'진행중인 계약만 재계약할 수 있습니다':c.next?'이미 재계약을 등록했습니다. 연장 계약에서 취소할 수 있습니다':''},
       {t:'해지',go:`termOpen('${k}')`,off:on||c.st==='종료됨'&&!TERMS[k]&&!c.next?'':'진행중인 계약 · 해지 처리 전에 끝난 계약만 해지할 수 있습니다'},
       {t:'해지 취소',go:`tcxOpen('${k}')`,off:!(TERMS[k]||{}).act?'해지 처리하지 않은 계약입니다':tcxWhyNot(k)},
-      {t:'웰컴 재전송',go:`clog('${k}','계약','발송','웰컴 메일 재전송');mailRows();welcomeMail('${k}',TODAY_S+' '+new Date().toTimeString().slice(0,5),'슈퍼관리자');render(true)`},
+      {t:'웰컴 재전송',go:`mailRows();welcomeMail('${k}',TODAY_S+' '+new Date().toTimeString().slice(0,5),'슈퍼관리자');render(true)`},
       {t:'계약 삭제',off:bills?'청구서를 발행한 계약은 지울 수 없습니다':'목업에서는 지우지 않습니다'}]));
 }
 
@@ -6167,7 +6183,7 @@ function CTR3head(c,k){
     </div><span class="sid">CTR-3</span>
   </div>
   <div class="tabs">
-    ${['요약','청구·수납','원장','주차','자료','이력'].map(t=>`<button class="${t===tab3c?'on':''}" onclick="tab3c='${t}';render()">${t}</button>`).join('')}
+    ${['요약','청구·수납','원장','주차','자료','이력','발송'].map(t=>`<button class="${t===tab3c?'on':''}" onclick="tab3c='${t}';render()">${t}</button>`).join('')}
   </div>`;
 }
 /* CTR-3 청구·수납 탭 — 수납 내역(PAY-6)과 같은 줄을 이 계약 하나로. 미납·연체료가 있는 달은 「상세」로 미납 상세 패널 */
@@ -6632,7 +6648,7 @@ const isoD=(y,m,d)=>`${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0
 const ymAdd=(ym,n)=>{const [y,m]=ym.split('-').map(Number), d=new Date(Date.UTC(y,m-1+n,1));return d.toISOString().slice(0,7);};
 const dAgo=n=>new Date((dnum(TODAY_S)-n)*864e5).toISOString().slice(0,10);
 /* 같은 달력을 원장(f3) · 변경 이력(frc)이 함께 쓴다 */
-const P3T={f3:()=>f3,frc:()=>frc,fm:()=>fm,fdg:()=>fdg};
+const P3T={f3:()=>f3,frc:()=>frc,fm:()=>fm,fdg:()=>fdg,fmt:()=>fmt};
 function p3Open(t='f3'){const o=P3T[t](); P3=P3?null:{t,from:o.from,to:o.to,ym:(o.to||o.from||TODAY_S).slice(0,7)};render(true);}
 function p3Day(d){if(!P3.from||P3.to){P3.from=d;P3.to='';} else if(d<P3.from){P3.from=d;} else P3.to=d; render(true);}
 function p3Set(from,to){const t=(P3&&P3.t)||'f3', o=P3T[t](); o.from=from;o.to=to;P3=null;if(t==='fm') mp=1;Object.keys(hp).forEach(k=>delete hp[k]);render(true);}
@@ -6853,7 +6869,7 @@ const g3Tog=k=>{g3[k]=!g3Open(k);render(true);};
 function CTR3(k){
   const c=CTRS.find(x=>ckey(x)===k);
   if(!c) return TODO('ctr-1');
-  if(tab3c!=='원장') return CTR3head(c,k)+(tab3c==='청구·수납'?CTR3month(c,k):tab3c==='이력'?histHTML(histC(c),'c'+k):tab3c==='주차'?t주차(BUILDINGS.find(x=>x.id===c.b)||BUILDINGS[0],k):tab3c==='자료'?t자료(BUILDINGS.find(x=>x.id===c.b)||BUILDINGS[0],k):CTR3sum(c,k));
+  if(tab3c!=='원장') return CTR3head(c,k)+(tab3c==='청구·수납'?CTR3month(c,k):tab3c==='이력'?histHTML(histC(c),'c'+k):tab3c==='발송'?mailTab(mailOfC(k),'mc'+k):tab3c==='주차'?t주차(BUILDINGS.find(x=>x.id===c.b)||BUILDINGS[0],k):tab3c==='자료'?t자료(BUILDINGS.find(x=>x.id===c.b)||BUILDINGS[0],k):CTR3sum(c,k));
   const bn=BUILDINGS.find(x=>x.id===c.b)||BUILDINGS[0];
   const L=ledgerOf(k);
   const [from,to]=f3Range();
@@ -7033,7 +7049,6 @@ function stSum(k,from,to){const rows=ledgerOf(k).rows, o={};
     o[a].close=open+o[a].up-o[a].down;});
   return o;}
 function stSend(){if(!st) return; const c=CTRS.find(x=>ckey(x)===st.k), to=billTo(c); if(!to.length||dnum(st.from)>dnum(st.to)) return;
-  clog(st.k,'청구','발송',`원장 명세서 메일 — ${st.from.replace(/-/g,'.')} ~ ${st.to.replace(/-/g,'.')} · ${to.map(x=>x.n).join(', ')}`,st.memo.trim());
   mailRows(); stmtMail(st.k,st.from,st.to,st.memo.trim(),`${TODAY_S} ${new Date().toTimeString().slice(0,5)}`,'슈퍼관리자');
   DRAWER=null;st=null;render(true);}
 /* 명세서 미리보기 — 보낼 PDF 그대로. 계정(받을 돈 · 보증금)마다 시작 잔액 → 그 기간 거래(오래된 것부터) → 끝 잔액.

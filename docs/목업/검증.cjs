@@ -921,16 +921,16 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   r6.push(['과납 환불 취소 — 원장 환불 줄 ⋮ 상세 · 취소 · 사유 없으면 막힘 · 취소하면 원래 줄은 「취소됨」으로 남고 「환불 취소」 10,000 줄 추가 · 과납 18,000으로 돌아옴',
     o0 === 18000 && o1 === 8000 && mm === '상세,취소' && noWhy && ok && orig && orig.cxd && cx && cx.dec === 10000 && cx.why === '금액 오기' && RF.overOf(k) === 18000]); }
 /* 원장 기간 지정 · 명세서 보내기 — 기간 지정이면 그 기간 줄만 · 명세서는 기간의 시작 · 끝 잔액(받을 돈 · 보증금) · 담당자에게 메일 · 이력에 남음 */
-{ const SM = new Function(stub + bare + '; seedJuly(); return {CTR3,ledgerOf,stOpen,stSet,stHTML,stSend,stSum,setF3,CLOG,billTo,CTRS,set tab3c(v){tab3c=v;}};')();
+{ const SM = new Function(stub + bare + '; seedJuly(); return {CTR3,ledgerOf,stOpen,stSet,stHTML,stSend,stSum,setF3,CLOG,billTo,CTRS,MAIL_LOG,mailTab,mailOfC,set tab3c(v){tab3c=v;}};')();
   const k = 'b1별관301호', L = SM.ledgerOf(k); SM.tab3c = '원장';
   SM.setF3('from', '2026-07-11'); const h = SM.CTR3(k); SM.stOpen(k); const h0 = SM.stHTML();
   SM.setF3('from', '2026-07-01'); SM.setF3('to', '2026-07-31'); SM.stOpen(k); const h1 = SM.stHTML(); SM.setF3('from', ''); SM.setF3('to', ''); const he = SM.CTR3(k); const S = SM.stSum(k, '2026-07-01', '2026-07-31'), A = SM.stSum(k, '2000-01-01', '2026-08-10');
   const pre = L.rows.filter(r => r.acc === '매출채권' && r.date < '2026-07-01').at(-1), last = L.rows.filter(r => r.acc === '매출채권' && r.date <= '2026-07-31').at(-1);
-  SM.stSend(); const lg = (SM.CLOG[k] || [])[0];
-  r6.push(['명세서 보내기 — 원장 탭 달력에서 고른 기간 그대로(07.11 ~ 오늘 · 7/1 ~ 7/31 · 비우면 「전체 기간」) · 패널에는 기간 칸 없음 · 시작 잔액 = 6월 끝 잔액 · 끝 잔액 = 7/31 잔액 · 전체 기간 끝 잔액 = 지금 잔액(받을 돈 · 보증금) · 보내면 이력 「원장 명세서 메일」',
+  const c0 = (SM.CLOG[k] || []).length; SM.stSend(); const lg = SM.MAIL_LOG.at(-1), noLog = (SM.CLOG[k] || []).length === c0, tab = SM.mailTab(SM.mailOfC(k), 'mc' + k);
+  r6.push(['명세서 보내기 — 원장 탭 달력에서 고른 기간 그대로(07.11 ~ 오늘 · 7/1 ~ 7/31 · 비우면 「전체 기간」) · 패널에는 기간 칸 없음 · 시작 잔액 = 6월 끝 잔액 · 끝 잔액 = 7/31 잔액 · 전체 기간 끝 잔액 = 지금 잔액(받을 돈 · 보증금) · 보내면 발송 내역 · 계약 상세 발송 탭에 원장 명세서(변경 이력에는 안 남음)',
     /2026\.07\.11 ~ 2026\.08\.10<span class="rcv">/.test(h) && /전체 기간<span class="rcv">/.test(he) && /2026\.07\.11 ~ 2026\.08\.10 <span/.test(h0) && /2026\.07\.01 ~ 2026\.07\.31 <span/.test(h1) && !/type="date"/.test(h1)
     && S.매출채권.open === pre.bal && S.매출채권.close === last.bal && A.매출채권.close === L.bal.매출채권 && A.임대보증금.close === L.bal.임대보증금
-    && SM.billTo(SM.CTRS.find(c => c.no === '별관301호' && c.b === 'b1')).length > 0 && lg && /원장 명세서 메일 — 2026\.07\.01 ~ 2026\.07\.31/.test(lg.sum)]); }
+    && SM.billTo(SM.CTRS.find(c => c.no === '별관301호' && c.b === 'b1')).length > 0 && lg && lg.kind === '원장 명세서' && (lg.ks || []).includes(k) && noLog && /<td>원장 명세서<\/td>/.test(tab) && /<th>발송일시<\/th>/.test(tab)]); }
 /* 수납 현황 — 오늘 기준 건물마다 확인 필요 입금 · 미납(계약 수) · 연체료 · 과납 · 최근 30일 수납액 · 칸을 누르면 그 건물을 고른 채로 이동 */
 { const SU = new Function(stub + bare + '; seedJuly(); return {PAY14,suOf,suGo,CTRS,arrears,f2,RC,get CUR(){return typeof CUR!=="undefined"?CUR:null;}};')();
   const h = SU.PAY14(), b1 = SU.suOf('b1'), A = SU.CTRS.filter(c => c.b === 'b1').map(SU.arrears).filter(a => a.due > 0 || a.fee > 0);
