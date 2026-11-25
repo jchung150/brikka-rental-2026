@@ -1221,11 +1221,11 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   r6.push(['청구항목 상세 — 줄을 누르면 상세 · 더보기 ⋮ 상세·수정·삭제(임대료 잠김) · 정화조청소비 삭제 · 전기요금 계량기 보유 유닛 · 최근 고지서 금액 3개월 · 8월 8,491,672원 · 임대료는 약정액 안내',
     dd && dl && keepRent && gone && /onclick="cdOpen\(codeOf\('전기요금'\)\)"/.test(hrow) && /계량기 보유 유닛/.test(h) && /최근 고지서 금액/.test(h) && /8,491,672/.test(h) && /약정액/.test(r) && !/최근 고지서 금액/.test(r)]); }
 /* 자료 탭 — 체크 선택 삭제 · 더보기(상세·다운로드·삭제) · 삭제 사유 필수 */
-{ const DC = new Function(stub + bare + '; return {PRO3,dPickRow,dPickAll,docOpen,docHTML,docDelOpen,docDel,BUILDINGS,MORE,get dc(){return dc;},set tab3(v){tab3=v;}};')();
+{ const DC = new Function(stub + bare + '; return {PRO3,pick:k=>{selG[k]=true;},docOpen,docHTML,docDelOpen,docDel,BUILDINGS,MORE,get dc(){return dc;},set tab3(v){tab3=v;}};')();
   const b = DC.BUILDINGS[0], n0 = b.docs.length; DC.tab3 = '자료';
   DC.MORE.length = 0; const h0 = DC.PRO3('b1'); const dd = DC.MORE.some(x => x.map(i => i.t).join() === '상세,내려받기,삭제');
   DC.docOpen('b1', 0); const hv = DC.docHTML();
-  DC.dPickRow(1); DC.dPickRow(2); DC.MORE.length = 0; const h1 = DC.PRO3('b1');
+  DC.pick('b1|1'); DC.pick('b1|2'); DC.MORE.length = 0; const h1 = DC.PRO3('b1');
   DC.docDelOpen('b1', [1, 2]); DC.docDel(); const kept = b.docs.length === n0; DC.dc.why = '중복 업로드'; DC.docDel();
   r6.push(['자료 탭 — 더보기 상세·내려받기·삭제 · 상세에 귀속 대상·파일 · 2건 체크 → 선택 삭제 2건 · 사유 없으면 안 지움 · 지우면 2건 줄어듦',
     dd && /귀속 대상/.test(hv) && /선택 삭제 2건/.test(h1) && kept && b.docs.length === n0 - 2]); }
@@ -1319,7 +1319,7 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
 { const DM = new Function(stub + bare + '; return {PRO3,set tab3(v){tab3=v;}};')();
   DM.tab3 = '자료'; const hd = DM.PRO3('b1'); DM.tab3 = '요약'; const hs = DM.PRO3('b1');
   r6.push(['자료 탭 줄 클릭 → 상세 · 요약 탭 건물관리자(카드 목록, 표 아님)에 이름 · 연락처 · 이메일',
-    /<tr class="" style="cursor:pointer" onclick="docOpen\('b1',0\)">/.test(hd) && /<dt>김관리<\/dt>/.test(hs) && /kim@teonhaus.kr/.test(hs) && !/마지막 접속/.test(hs) && !/<th>이름 · 회사/.test(hs)]); }
+    /<tr class="mrow [^"]*" onclick="docOpen\('b1',\d+\)">/.test(hd) && /<dt>김관리<\/dt>/.test(hs) && /kim@teonhaus.kr/.test(hs) && !/마지막 접속/.test(hs) && !/<th>이름 · 회사/.test(hs)]); }
 /* 계약 상세 요약 — 기본정보(건물 · 건물주 · 이 달 청구일 · 납부마감일) · 사업자구분 · 렌트프리 · 기산일 · 보증금 3칸 · 중개사 · 메모 · 수정 패널이 저장됨 */
 { const CS = new Function(stub + bare + '; seedJuly(); return {CTR3,cx3Open,cx3Save,cx3HTML,CTRS,get cx3(){return cx3;},set tab3c(v){tab3c=v;}};')();
   CS.tab3c = '요약'; const h = CS.CTR3('b1본관101호'), h8 = CS.CTR3('b1본관801호'), h4 = CS.CTR3('b1본관401호');
@@ -1396,12 +1396,11 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
 /* 자료 탭 · 이력 검색 — 건물 상세 · 계약 상세가 같은 칸(같은 표) · 자료는 제목 · 파일 이름 · 메모 · 업로드한 사람 · 이력은 계약고유이름 · 변경 요약 · 사유 · 처리자 · 필터와 함께 */
 { const SQ = new Function(stub + bare + '; seedJuly(); return {PRO3,CTR3,BUILDINGS,histB,get fdoc(){return fdoc;},get fh(){return fh;},set tab3(v){tab3=v;},set tab3c(v){tab3c=v;}};')();
   const docs = SQ.BUILDINGS[0].docs, nd = h => (h.match(/onclick="docOpen\('b1',\d+\)">/g) || []).length;
-  const D = q => { SQ.fdoc.q = q; SQ.tab3 = '자료'; return SQ.PRO3('b1'); };
-  const dBox = /id="dq" class="fq"/.test(D(''));
-  const dOk = nd(D('위탁운영')) === 1 && nd(D('연이자 12')) === 0 && nd(D('연 12%')) === 1 && nd(D('박현장')) === docs.filter(d => d.by === '박현장').length && nd(D('박현장')) >= 1
-    && nd(D('본관801호_아이씨비')) === 1 && /조건에 맞는 자료가 없습니다/.test(D('없는자료'));
-  SQ.fdoc.q = '아이씨비'; SQ.tab3c = '자료'; const dc = SQ.CTR3('b1본관801호'); SQ.fdoc.q = '';
-  const dCtr = /id="dq"/.test(dc) && nd(dc) >= 1;
+  const D = q => { SQ.fdoc.by = q; SQ.tab3 = '자료'; return SQ.PRO3('b1'); };
+  const dBox = !/id="dq"/.test(D('')) && /전체 담당자/.test(D('')) && /<select disabled title="이 탭은 이 건물의 자료만 보입니다"><option>카리나빌딩/.test(D(''));
+  const dOk = nd(D('박현장')) === Math.min(10, docs.filter(d => d.by === '박현장').length) && nd(D('박현장')) >= 1 && /조건에 맞는 자료가 없습니다/.test(D('없는사람'));
+  SQ.fdoc.by = ''; SQ.tab3c = '자료'; const dc = SQ.CTR3('b1본관801호');
+  const dCtr = /<select disabled title="이 탭은 이 계약의 자료만 보입니다"><option>계약<\/option>/.test(dc) && nd(dc) >= 1;
   const nh = h => (h.match(/onclick="hdOpen\('bb1',\d+\)">/g) || []).length, H = q => { SQ.fh.by = q; SQ.tab3 = '이력'; return SQ.PRO3('b1'); };
   const hBox = !/id="hq"/.test(H(''));
   const by = SQ.histB(SQ.BUILDINGS[0]).filter(r => r.by === '김관리').length;
@@ -1463,10 +1462,10 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
 { const DF = new Function(stub + bare + '; return {PRO3,CTR3,setFdoc,set tab3(v){tab3=v;},set tab3c(v){tab3c=v;}};')();
   DF.tab3 = '자료'; DF.tab3c = '자료'; const hb = DF.PRO3('b1'), hc = DF.CTR3('b1본관801호'), he = DF.CTR3('b1본관B201호');
   const th = h => (h.match(/<thead>.*?<\/thead>/s) || [''])[0].replace(/onclick="[^"]*"/g, ''), fb = h => (h.match(/<div class="fbar"[\s\S]*?<\/div>/) || [''])[0];
-  const same = th(hb) === th(hc) && th(hc) === th(he) && /전체 카테고리/.test(fb(hb)) && /최근 3개월/.test(fb(hc)) && /최근 3개월/.test(fb(he));
-  const empty = /등록된 자료가 없습니다/.test(he) && /<tbody>/.test(he);
-  DF.setFdoc('c', '계약서'); const fc = DF.PRO3('b1'); DF.setFdoc('c', ''); DF.setFdoc('per', '1'); const fp = DF.PRO3('b1'); DF.setFdoc('per', '');
-  r6.push(['자료 탭 — 건물 · 계약 같은 표 · 같은 필터 줄(카테고리 · 등록일시 기간) · 자료 없는 계약도 표 모양 · 카테고리 · 기간 필터가 걸러짐',
+  const same = th(hb) === th(hc) && th(hc) === th(he) && /<th>귀속 대상<\/th>/.test(th(hb)) && /전체 카테고리/.test(fb(hb)) && /class="rcal"/.test(fb(hc)) && /class="rcal"/.test(fb(he));
+  const empty = /조건에 맞는 자료가 없습니다/.test(he) && /<tbody>/.test(he);
+  DF.setFdoc('c', '계약서'); const fc = DF.PRO3('b1'); DF.setFdoc('c', ''); DF.setFdoc('from', '2026-07-11'); const fp = DF.PRO3('b1'); DF.setFdoc('from', '');
+  r6.push(['자료 탭 — 건물 · 계약 · 자료 보관함 같은 표 · 같은 필터 줄(기간 · 카테고리 · 귀속 대상 · 건물(잠김) · 담당자) · 자료 없는 계약도 표 모양 · 카테고리 · 기간 필터가 걸러짐',
     same && empty && /임대차계약서/.test(fc) && !/등기부등본/.test(fc) && !/임대차계약서 본관801호/.test(fp)]); }
 /* 수납 내역 · 미납 관리 더보기 — 입금 확인(그 임차인의 입금만 거른 입금 매칭) · 수납 처리는 없다 → 명세변경_261108 25 */
 { const MV = new Function(stub + bare + '; seedJuly(); return {PAY6,PAY2,PAY13,CTR3,ledBtns,ledgerOf,depCheck,normName,RC,MORE,set tab3c(v){tab3c=v;}};')();

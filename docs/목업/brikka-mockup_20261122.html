@@ -2477,30 +2477,14 @@ function upHTML(){
 }
 /* 자료 탭 목록 — 건물 상세(ck 없음)와 계약 상세(ck = 계약 키)가 같은 표 · 같은 필터 줄을 쓴다. 계약 상세는 그 계약에 귀속된 문서만 → PRO-3 · CTR-3
    필터: 카테고리 · 업로드 일시 기간(원장 탭과 같은 기간 선택) */
-let fdoc={c:'',per:'',q:''};
+let fdoc={from:'',to:'',c:'',tk:'',by:''};
 const setFdoc=(f,v)=>{fdoc[f]=v;render(true);};
 function t자료(b,ck){
-  const from=fdoc.per?dnum(TODAY_S)-({'1':30,'3':91,'12':365}[fdoc.per]):null;
-  const ids=b.docs.map((_,i)=>i).filter(i=>{const d=b.docs[i];return (!ck||d.k===ck)&&qHit(fdoc.q,[dTitle(d),d.t,d.m,d.by])&&(!fdoc.c||d.c===fdoc.c)&&(from==null||dnum(d.at.slice(0,10))>=from);});
-  const nSel=ids.filter(i=>selD[i]).length, all=ids.length&&nSel===ids.length;
-  const cats=ck?DOC_CAT_OF.계약:DOC_CAT;
-  const sel=`${qBox('dq',fdoc.q,'setFdoc')}<select onchange="setFdoc('c',this.value)"><option value="">전체 카테고리</option>${cats.map(v=>`<option ${fdoc.c===v?'selected':''}>${v}</option>`).join('')}</select>
-      <select onchange="setFdoc('per',this.value)">${[['','전체 기간'],['1','최근 1개월'],['3','최근 3개월'],['12','최근 12개월']].map(([v,t])=>`<option value="${v}" ${fdoc.per===v?'selected':''}>${t}</option>`).join('')}</select>`,
-    btns=(sm=>`<button class="btn${sm}" ${nSel?'':'disabled title="삭제할 문서를 체크하세요"'} onclick="docDelOpen('${b.id}',${JSON.stringify(ids.filter(i=>selD[i]))})">선택 삭제${nSel?` ${nSel}건`:''}</button>
-      <button class="btn pri${sm}" onclick="upOpen('${b.id}',false${ck?`,'${ck}'`:''})">+ 파일 업로드</button>`);
-  return `${tabBar(sel,btns(''))}<div class="tbl">
-    <div class="tw"><table>
-      <thead><tr><th class="c" style="width:44px"><span class="cb ${all?'on':''}" style="cursor:pointer" onclick="dPickIds(${JSON.stringify(ids)},${all?'false':'true'})"></span></th>
-        <th>제목 <span class="so">⇅</span></th><th>카테고리</th><th>파일 형식</th><th>담당자</th><th>업로드 일시 <span class="so">⇅</span></th><th class="c">더보기</th></tr></thead>
-      <tbody>${ids.length?paged('doc'+b.id+(ck||''),ids,HPER,JSON.stringify(fdoc)).rows.map(i=>{const d=b.docs[i];return `<tr class="${selD[i]?'on':''}" style="cursor:pointer" onclick="docOpen('${b.id}',${i})">
-        <td class="c"><span class="cb ${selD[i]?'on':''}" style="cursor:pointer" onclick="dPickRow(${i},event)"></span></td>
-        <td><div class="c1">${dTitle(d)}</div></td>
-        <td><span class="bd mu">${d.c}</span></td><td>${docExt(d.t)}</td><td>${d.by}</td>
-        <td style="white-space:nowrap">${d.at.replace(/-/g,'.')}</td>
-        <td class="c">${moreCell([{t:'상세',go:`docOpen('${b.id}',${i})`},{t:'내려받기',go:`docDown('${b.id}',${i})`},{t:'삭제',go:`docDelOpen('${b.id}',[${i}])`}])}</td></tr>`;}).join('')
-      :`<tr><td colspan="7" style="text-align:center;padding:28px 0;color:var(--muted)">${fdoc.c||fdoc.per||fdoc.q.trim()?'조건에 맞는 자료가 없습니다':'등록된 자료가 없습니다'}</td></tr>`}</tbody>
-    </table></div>${paged('doc'+b.id+(ck||''),ids,HPER,JSON.stringify(fdoc)).pager}</div>
-    <div class="hint">이 ${ck?'계약':'건물'}에 올린 문서입니다. 줄을 누르면 문서를 봅니다. 여러 개를 지울 때는 체크한 뒤 <b>선택 삭제</b>를 누릅니다.</div>`;
+  const all=docAll().filter(x=>x.b.id===b.id&&(!ck||x.d.k===ck)), L=docFilt(all,fdoc), PG=paged('doc'+b.id+(ck||''),L,HPER,JSON.stringify(fdoc));
+  const S=(k,opts,lab)=>`<select onchange="setFdoc('${k}',this.value)"><option value="">${lab}</option>${opts.map(v=>`<option ${fdoc[k]===v?'selected':''}>${v}</option>`).join('')}</select>`;
+  const lock=(t,v)=>`<select disabled title="${t}"><option>${v}</option></select>`;
+  const fb=`${perBtn('fdoc',fdoc)}${S('c',ck?DOC_CAT_OF.계약:DOC_CAT,'전체 카테고리')}${ck?lock('이 탭은 이 계약의 자료만 보입니다','계약'):S('tk',['건물','계약','임차인','임대인'],'전체 귀속 대상')}${lock(`이 탭은 이 ${ck?'계약':'건물'}의 자료만 보입니다`,b.name)}${S('by',[...new Set(all.map(x=>x.d.by))].filter(Boolean).sort(),'전체 담당자')}`;
+  return `${tabBar(fb,docBtns(L,`upOpen('${b.id}',false${ck?`,'${ck}'`:''})`))}<div class="tbl"><div class="tw">${docTable(L,PG.rows)}</div>${PG.pager}</div>`;
 }
 
 /* ═══ 청구항목 상세 — 관리비 탭의 더보기 「상세」. 설정을 한눈에 보고, 최근 3개월 고지서 금액을 본다. 고치려면 「수정」 → PRO-3 ═══ */
@@ -3530,31 +3514,36 @@ function REC1(){
    귀속 대상(건물 · 계약 · 임차인 · 임대인)으로 찾는다 → 09 DOC-1~3 ═══ */
 let fdg={from:'',to:'',c:'',tk:'',b:'',by:'',ext:''}, selG={};
 const setFdg=(k,v)=>{fdg[k]=v;render(true);};
-function DOC1(){
-  const all=BUILDINGS.flatMap(b=>b.docs.map((d,i)=>({b,d,i,tk:d.k?'계약':'건물',ext:docExt(d.t)})));
-  const L=all.filter(x=>(!fdg.from||x.d.at.slice(0,10)>=fdg.from)&&(!fdg.to||x.d.at.slice(0,10)<=fdg.to)&&(!fdg.c||x.d.c===fdg.c)&&(!fdg.tk||x.tk===fdg.tk)
-      &&(!fdg.b||x.b.id===fdg.b)&&(!fdg.by||x.d.by===fdg.by)&&(!fdg.ext||x.ext===fdg.ext)).sort((p,q)=>p.d.at<q.d.at?1:-1);
-  const PG=paged('doc1',L,HMAIN,JSON.stringify(fdg)), key=x=>x.b.id+'|'+x.i;
-  const nSel=L.filter(x=>selG[key(x)]).length, allOn=L.length&&nSel===L.length;
-  const S=(k,opts,lab)=>`<select onchange="setFdg('${k}',this.value)"><option value="">${lab}</option>${opts.map(v=>Array.isArray(v)?v:[v,v]).map(([v,t])=>`<option value="${v}" ${fdg[k]===v?'selected':''}>${t}</option>`).join('')}</select>`;
-  const uniq=f=>[...new Set(all.map(f))].filter(Boolean).sort();
-  const selList=JSON.stringify(BUILDINGS.map(b=>[b.id,L.filter(x=>x.b.id===b.id&&selG[key(x)]).map(x=>x.i)])).replace(/"/g,"'");
-  return `
-  <div class="ph"><h1>자료 보관함</h1><span class="sid">DOC-1</span></div>
-  <div class="fbar">${perBtn('fdg',fdg)}${S('c',DOC_CAT,'전체 카테고리')}${S('tk',['건물','계약','임차인','임대인'],'전체 귀속 대상')}${S('b',BUILDINGS.map(b=>[b.id,b.name]),'전체 건물')}${S('by',uniq(x=>x.d.by),'전체 담당자')}
-    <span style="margin-left:auto;display:flex;gap:6px">
-      <button class="btn" ${nSel?'':'disabled title="내려받을 문서를 체크하세요"'} onclick="say('선택한 문서 ${nSel}건을 ZIP 파일 하나로 내려받습니다.\\n목업에서는 파일을 내려받지 않습니다.')">선택 내려받기${nSel?` ${nSel}건`:''}</button>
-      <button class="btn" ${nSel?'':'disabled title="삭제할 문서를 체크하세요"'} onclick="docDelOpenG(${selList})">선택 삭제${nSel?` ${nSel}건`:''}</button>
-      <button class="btn pri" onclick="upOpen('${fdg.b||'b1'}');up.g=true;render(true)">+ 파일 업로드</button></span></div>
-  <div class="tbl"><div class="tw"><table>
-    <thead><tr><th class="c" style="width:44px"><span class="cb ${allOn?'on':''}" style="cursor:pointer" onclick="selG={};${allOn?'':`${JSON.stringify(L.map(key)).replace(/"/g,"'")}.forEach(k=>selG[k]=true);`}render(true)"></span></th>
+/* 자료 표 — 자료 보관함(DOC-1)과 건물 상세 · 계약 상세의 자료 탭이 같은 필터 · 같은 칸 · 같은 체크를 쓴다 */
+const docKey=x=>x.b.id+'|'+x.i;
+const docAll=()=>BUILDINGS.flatMap(b=>b.docs.map((d,i)=>({b,d,i,tk:d.k?'계약':'건물',ext:docExt(d.t)})));
+const docFilt=(L,f)=>L.filter(x=>(!f.from||x.d.at.slice(0,10)>=f.from)&&(!f.to||x.d.at.slice(0,10)<=f.to)&&(!f.c||x.d.c===f.c)&&(!f.tk||x.tk===f.tk)
+      &&(!f.b||x.b.id===f.b)&&(!f.by||x.d.by===f.by)).sort((p,q)=>p.d.at<q.d.at?1:-1);
+const docSelList=L=>JSON.stringify(BUILDINGS.map(b=>[b.id,L.filter(x=>x.b.id===b.id&&selG[docKey(x)]).map(x=>x.i)])).replace(/"/g,"'");
+function docBtns(L,upGo){const nSel=L.filter(x=>selG[docKey(x)]).length;
+  return `<button class="btn" ${nSel?'':'disabled title="내려받을 문서를 체크하세요"'} onclick="say('선택한 문서 ${nSel}건을 ZIP 파일 하나로 내려받습니다.\\n목업에서는 파일을 내려받지 않습니다.')">선택 내려받기${nSel?` ${nSel}건`:''}</button>
+      <button class="btn" ${nSel?'':'disabled title="삭제할 문서를 체크하세요"'} onclick="docDelOpenG(${docSelList(L)})">선택 삭제${nSel?` ${nSel}건`:''}</button>
+      <button class="btn pri" onclick="${upGo}">+ 파일 업로드</button>`;}
+function docTable(L,P){const allOn=L.length&&L.every(x=>selG[docKey(x)]);
+  return `<table>
+    <thead><tr><th class="c" style="width:44px"><span class="cb ${allOn?'on':''}" style="cursor:pointer" onclick="selG={};${allOn?'':`${JSON.stringify(L.map(docKey)).replace(/"/g,"'")}.forEach(k=>selG[k]=true);`}render(true)"></span></th>
       <th>제목</th><th>카테고리</th><th>귀속 대상</th><th>파일 형식</th><th class="n">크기</th><th>담당자</th><th>업로드 일시</th><th class="c">더보기</th></tr></thead>
-    <tbody>${L.length?PG.rows.map(x=>`<tr class="mrow ${selG[key(x)]?'on':''}" onclick="docOpen('${x.b.id}',${x.i})">
-      <td class="c"><span class="cb ${selG[key(x)]?'on':''}" style="cursor:pointer" onclick="event.stopPropagation();selG['${key(x)}']=!selG['${key(x)}'];render(true)"></span></td>
+    <tbody>${L.length?P.map(x=>`<tr class="mrow ${selG[docKey(x)]?'on':''}" onclick="docOpen('${x.b.id}',${x.i})">
+      <td class="c"><span class="cb ${selG[docKey(x)]?'on':''}" style="cursor:pointer" onclick="event.stopPropagation();selG['${docKey(x)}']=!selG['${docKey(x)}'];render(true)"></span></td>
       <td>${dTitle(x.d)}</td><td><span class="bd mu">${x.d.c}</span></td>
       <td>${x.d.k?`계약 · ${docCtr(x.b,x.d)}`:`건물 · ${x.b.name}`}</td><td>${x.ext}</td><td class="n">${x.d.sz}</td><td>${x.d.by}</td><td>${x.d.at.replace(/-/g,'.')}</td>
       <td class="c">${moreCell([{t:'상세',go:`docOpen('${x.b.id}',${x.i})`},{t:'내려받기',go:`docDown('${x.b.id}',${x.i})`},{t:'삭제',go:`docDelOpen('${x.b.id}',[${x.i}])`}])}</td></tr>`).join('')
-      :`<tr><td colspan="9" style="text-align:center;padding:28px 0;color:var(--muted)">조건에 맞는 자료가 없습니다</td></tr>`}</tbody></table></div>${PG.pager}</div>
+      :`<tr><td colspan="9" style="text-align:center;padding:28px 0;color:var(--muted)">조건에 맞는 자료가 없습니다</td></tr>`}</tbody></table>`;}
+function DOC1(){
+  const all=docAll(), L=docFilt(all,fdg);
+  const PG=paged('doc1',L,HMAIN,JSON.stringify(fdg));
+  const S=(k,opts,lab)=>`<select onchange="setFdg('${k}',this.value)"><option value="">${lab}</option>${opts.map(v=>Array.isArray(v)?v:[v,v]).map(([v,t])=>`<option value="${v}" ${fdg[k]===v?'selected':''}>${t}</option>`).join('')}</select>`;
+  const uniq=f=>[...new Set(all.map(f))].filter(Boolean).sort();
+  return `
+  <div class="ph"><h1>자료 보관함</h1><span class="sid">DOC-1</span></div>
+  <div class="fbar">${perBtn('fdg',fdg)}${S('c',DOC_CAT,'전체 카테고리')}${S('tk',['건물','계약','임차인','임대인'],'전체 귀속 대상')}${S('b',BUILDINGS.map(b=>[b.id,b.name]),'전체 건물')}${S('by',uniq(x=>x.d.by),'전체 담당자')}
+    <span style="margin-left:auto;display:flex;gap:6px">${docBtns(L,`upOpen('${fdg.b||'b1'}');up.g=true;render(true)`)}</span></div>
+  <div class="tbl"><div class="tw">${docTable(L,PG.rows)}</div>${PG.pager}</div>
   <div class="hint">모든 건물 · 계약에 올린 문서입니다. 건물 상세 · 계약 상세의 자료 탭은 이 목록을 그 건물 · 그 계약으로 거른 것입니다. 줄을 누르면 자료 상세가 열립니다.<br>
     올릴 때는 건물을 고르고, 계약 문서면 계약을 고릅니다(카테고리는 귀속 대상에 맞는 것만). 지우려면 사유가 필요하고 변경 이력에 남습니다.<br>
     여러 문서를 체크하면 ZIP 하나로 내려받거나 함께 지울 수 있습니다. 목업 문서는 카리나빌딩 예시뿐입니다.</div>`;
@@ -6648,7 +6637,7 @@ const isoD=(y,m,d)=>`${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0
 const ymAdd=(ym,n)=>{const [y,m]=ym.split('-').map(Number), d=new Date(Date.UTC(y,m-1+n,1));return d.toISOString().slice(0,7);};
 const dAgo=n=>new Date((dnum(TODAY_S)-n)*864e5).toISOString().slice(0,10);
 /* 같은 달력을 원장(f3) · 변경 이력(frc)이 함께 쓴다 */
-const P3T={f3:()=>f3,frc:()=>frc,fm:()=>fm,fdg:()=>fdg,fmt:()=>fmt,fh:()=>fh};
+const P3T={f3:()=>f3,frc:()=>frc,fm:()=>fm,fdg:()=>fdg,fmt:()=>fmt,fh:()=>fh,fdoc:()=>fdoc};
 function p3Open(t='f3'){const o=P3T[t](); P3=P3?null:{t,from:o.from,to:o.to,ym:(o.to||o.from||TODAY_S).slice(0,7)};render(true);}
 function p3Day(d){if(!P3.from||P3.to){P3.from=d;P3.to='';} else if(d<P3.from){P3.from=d;} else P3.to=d; render(true);}
 function p3Set(from,to){const t=(P3&&P3.t)||'f3', o=P3T[t](); o.from=from;o.to=to;P3=null;if(t==='fm') mp=1;Object.keys(hp).forEach(k=>delete hp[k]);render(true);}
