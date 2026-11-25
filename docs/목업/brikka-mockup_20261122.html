@@ -276,7 +276,11 @@ table.bt2 td{padding:9px 12px}
 .ph .sid{font-size:10.5px;color:var(--muted);background:var(--neutral-bg);padding:2px 8px;border-radius:99px;font-weight:500}
 .ph .act{margin-left:auto;display:flex;gap:8px}
 /* 화면 제목 줄 — 위에 붙어 있고 아래에 회색 선이 본문 끝까지. 시험: 대시보드만 */
-.ph.pbar{position:sticky;top:0;z-index:5;background:var(--canvas);margin:0 -28px 18px;padding:8px 28px 14px;border-bottom:1px solid var(--line)}
+.ph.pbar{position:sticky;top:0;z-index:5;background:var(--canvas);margin:0 -28px 18px;padding:14px 28px;border-bottom:1px solid var(--line)}
+.ph.pbar .act{align-items:center;gap:0}
+/* 제목 줄이 있는 화면은 위쪽 버전 · 날짜 줄을 제목 줄 오른쪽으로 옮긴다(한 줄) */
+.main:has(.pbar) .top{display:none}
+.main:has(.pbar) .wrap{padding-top:0}
 
 /* ── 부품 ── */
 .btn{border:1px solid var(--line);background:var(--bg);color:var(--ink-2);padding:7px 13px;
@@ -3662,7 +3666,7 @@ function DASH1(){
   const H=Bs.flatMap(histB).concat(CON_LOG.filter(r=>!fdb||r.bs.includes(fdb))).filter(r=>!HDEL.has(hKey(r))).sort((p,q)=>p.at<q.at?1:p.at>q.at?-1:0).slice(0,10);
   HROWS.dash=H;
   return `
-  <div class="ph pbar"><h1>대시보드</h1><span class="sid">DASH-1</span></div>
+  <div class="ph pbar"><h1>대시보드</h1><span class="sid">DASH-1</span><div class="act">${(document.querySelector('header.top')||{}).innerHTML||''}</div></div>
   <div class="fbar">
     <select onchange="fdb=this.value;render()"><option value="">전체 건물</option>
       ${BUILDINGS.map(b=>`<option value="${b.id}" ${fdb===b.id?'selected':''}>${b.name}</option>`).join('')}</select></div>
