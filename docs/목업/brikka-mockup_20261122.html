@@ -3297,7 +3297,7 @@ function t보고서(bdx){
       <td class="n">${N.bill?won(N.bill):dash}</td><td class="n">${N.bill?won(N.paid):dash}</td>
       <td class="n">${due>0?`<span style="color:var(--warn)">${won(due)}</span>`:N.bill?won(0):dash}</td>
       <td>${sent?d8m('2026-'+sent):dash}</td>
-      <td class="c">${moreCell([{t:'상세',go:`rpOpen('${ym}')`}])}</td></tr>`;}).join('');
+      <td class="c">${moreCell([{t:'상세',go:`rpOpen('${ym}')`},{t:'내려받기',go:`say('${ymKo(ym)} 임대인 보고서 PDF를 내려받습니다(상세 패널을 열지 않고 바로). 메일에 붙는 PDF와 같습니다.\\n목업에서는 파일을 내려받지 않습니다.')`}])}</td></tr>`;}).join('');
   return `<div class="tbl" style="margin-top:4px"><div class="tw"><table>
       <thead><tr><th>청구년월</th><th>마감 여부</th><th class="n">청구액</th><th class="n">수납액</th><th class="n">미납</th><th>발송 일자</th><th class="c">더보기</th></tr></thead>
       <tbody>${rows}</tbody></table></div></div>
