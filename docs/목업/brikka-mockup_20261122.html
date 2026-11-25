@@ -3727,7 +3727,6 @@ function PAY14(){
     </tr>`).join('');
   return `
   <div class="ph"><h1>수납 현황</h1><span class="sid">PAY-14</span></div>
-  <div class="fbar"><span style="color:var(--muted);font-size:12px">${TODAY_S.replace(/-/g,'.')} 기준 · 건물 ${BUILDINGS.length}개</span></div>
   <div class="two" style="grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px">
     ${[['미납액 합계',won(T.due),`${T.dueN}개 계약 · 연체료 ${won(T.fee)}`],
        ['확인이 필요한 입금',`${T.wait}건`,'입금 매칭에서 확정 전'],
