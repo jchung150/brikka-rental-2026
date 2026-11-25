@@ -155,14 +155,18 @@ for (const b of ['b2']) run('PRO-3 ' + b, "tab3='요약';PRO3('" + b + "')");
   const ok = base && log && onlyB2 && per && pnl; if (!ok) fail = 1;
   console.log('② 변경 이력 — 모든 건물 이력 · 연락처 수정이 임차인 · 임대인 이력으로(바뀐 칸 전 · 후) · 건물 필터 · 기간 달력(원장과 같은 것) · 줄을 누르면 상세  ' + (ok ? 'OK' : '✗ ' + JSON.stringify({base, log, onlyB2, per, pnl}))); }
 /* 자료 보관함(DOC-1) — 모든 건물 · 계약 문서 · 귀속 대상 칸 · 필터(기간 달력 · 카테고리 · 귀속 대상 · 건물 · 업로드한 사람 · 파일 형식) · 체크해서 ZIP · 함께 삭제(사유) · 업로드는 건물을 고름 */
-{ const DG = new Function(stub + bare + '; return {DOC1,fdg,docDelOpenG,docDel,docHTML,upOpen,upHTML,BUILDINGS,get dc(){return dc;},get up(){return up;},set selG(v){selG=v;}};')();
+{ const DG = new Function(stub + bare + '; return {DOC1,fdg,docDelOpenG,docDel,docHTML,upOpen,upHTML,upMissing,BUILDINGS,get dc(){return dc;},get up(){return up;},set selG(v){selG=v;}};')();
   const h = DG.DOC1(), n = (h.match(/class="mrow/g) || []).length, tot = DG.BUILDINGS.reduce((a, b) => a + b.docs.length, 0);
   const list = n === Math.min(25, tot) && /계약 · /.test(h) && /건물 · 카리나빌딩/.test(h) && /전체 귀속 대상/.test(h) && h.indexOf('전체 기간') < h.indexOf('전체 카테고리') && /선택 내려받기/.test(h);
   DG.fdg.tk = '계약'; const nk = (DG.DOC1().match(/class="mrow/g) || []).length; DG.fdg.tk = ''; const byT = nk > 0 && nk < n;
   const b0 = DG.BUILDINGS[0].docs.length; DG.docDelOpenG([['b1', [0, 1]], ['b2', []]]); const ph = DG.docHTML(); DG.dc.why = '중복'; DG.docDel(); const del = /2건/.test(ph) && DG.BUILDINGS[0].docs.length === b0 - 2;
-  DG.upOpen('b1'); DG.up.g = true; const uh = DG.upHTML(); const upl = /<option value="b2"/.test(uh);
-  const ok = list && byT && del && upl; if (!ok) fail = 1;
-  console.log('② 자료 보관함 — 모든 문서 한 목록(귀속 대상 · 크기) · 기간 먼저 · 귀속 대상 필터 · 체크 → ZIP · 함께 삭제(사유) · 업로드에서 건물 고름  ' + (ok ? 'OK' : '✗ ' + JSON.stringify({list, byT, del, upl}))); }
+  DG.upOpen('b1'); DG.up.g = true; const uh = DG.upHTML(); const upl = /<option value="b2"/.test(uh) && /한 파일 20MB까지/.test(uh);
+  const ff = DG.up.files[0]; Object.assign(ff, {t:'자료.zip', sz:'1.0 MB', bytes:1e6, ttl:'자료', c:'건물서류'}); const zipBad = /올릴 수 없는 형식/.test(DG.upHTML()) && DG.upMissing().length > 0;
+  Object.assign(ff, {t:'스캔.pdf', sz:'25.0 MB', bytes:25 * 1024 * 1024}); const bigBad = /20MB가 넘습니다/.test(DG.upHTML()) && DG.upMissing().length > 0;
+  Object.assign(ff, {t:'스캔.hwp', sz:'2.0 MB', bytes:2e6}); const okUp = DG.upMissing().length === 0;
+  const lim = zipBad && bigBad && okUp;
+  const ok = list && byT && del && upl && lim; if (!ok) fail = 1;
+  console.log('② 자료 보관함 — 모든 문서 한 목록(귀속 대상 · 크기) · 기간 먼저 · 귀속 대상 필터 · 체크 → ZIP · 함께 삭제(사유) · 업로드에서 건물 고름 · ZIP · 20MB 넘는 파일 막힘 · HWP 됨  ' + (ok ? 'OK' : '✗ ' + JSON.stringify({list, byT, del, upl, lim}))); }
 /* 발송 내역(NTF-6) — 보낸 그대로 남김 · 실패는 자동으로 다시 보내지 않음 · 다시 보내면 새 줄(원래 줄 그대로) · 보내는 화면(청구서 발행 · 미납 안내 · 명세서 · 웰컴)이 남김 → 명세변경_261122 38 */
 { const M = new Function(stub + bare + '; seedJuly(); return {mailRows,NTF6,mvOpen,mvHTML,mailResend,dashItems,issueAsk,issueGo,dueMail,stOpen,stSend,CTRS,ckey,setFm,set f1b(v){f1.b=v;}};')();
   const R0 = M.mailRows(), n0 = R0.length, fl = R0.filter(m => m.st === '실패'), f = fl[0];

@@ -2406,13 +2406,13 @@ function docHTML(){
   </div></div>`;}
   const d=b.docs[dc.i], ext=docExt(d.t);
   return `<div class="dro"><div class="ov" onclick="closeDrawer()"></div><div class="pn">
-    <div class="dh"><div><div class="t">${dTitle(d)}</div><div class="s">${b.name} · 문서 상세</div></div>
+    <div class="dh"><div><div class="t">${dTitle(d)}</div><div class="s">${b.name} · 자료 상세</div></div>
       <button class="x" onclick="closeDrawer()">✕</button></div>
     <div class="db">
       <div class="fg"><div class="fl">문서 정보</div>
         ${R('제목',dTitle(d))}${R('카테고리',`<span class="bd mu">${d.c}</span>`)}${R('귀속 대상',d.k?`계약 · ${docCtr(b,d)}`:`건물 · ${b.name}`)}
         ${R('파일',`${d.t} <span class="c2">${ext} · ${d.sz}</span>`)}
-        ${R('담당자',d.by)}${R('등록일시',d.at.replace(/-/g,'.'))}${R('메모',d.m||'—')}</div>
+        ${R('담당자',d.by)}${R('업로드 일시',d.at.replace(/-/g,'.'))}${R('메모',d.m||'—')}</div>
     </div>
     <div class="df"><button class="btn pri" onclick="docDown('${b.id}',${dc.i})">내려받기</button>
       <button class="btn" onclick="docDelOpen('${b.id}',[${dc.i}])">삭제</button></div>
@@ -2428,10 +2428,13 @@ const upSlot=()=>({t:'',sz:'',ttl:'',c:'',m:'',k:''});
 function upOpen(bid,fromNc,ck){up={bid,nc:!!fromNc,ck:ck||'',files:[{...upSlot(),k:ck||''}],tried:false};DRAWER='upl';render(true);}
 /* 관련 계약 — 건물 자료보관에서 올릴 때만 고른다. 고르면 귀속 대상이 그 계약이 되고 카테고리도 계약용으로 바뀐다 */
 function upCtr(k){const f=up.files[0]; f.k=k; if(f.c&&!DOC_CAT_OF[k?'계약':'건물'].includes(f.c)) f.c=''; render(true);}
-function upSet(i,file){const f=up.files[i]; f.t=file.name; f.sz=fileSz(file.size); if(!f.ttl.trim()) f.ttl=docTitle(file.name); render(true);}
+/* 올릴 수 있는 파일 — 한 파일 20MB까지 · 문서(PDF · 한글 · 오피스)와 사진만. 압축 파일 · 실행 파일 · 동영상은 받지 않는다 → 명세변경_261122 44 */
+const UP_MAX=20*1024*1024, UP_EXT=['PDF','HWP','HWPX','DOC','DOCX','XLS','XLSX','PPT','PPTX','JPG','JPEG','PNG','HEIC'];
+const upBad=f=>!f.t?'':!UP_EXT.includes(docExt(f.t))?`올릴 수 없는 형식입니다(${docExt(f.t)||'확장자 없음'}). PDF · 한글 · 오피스 · 사진만 올립니다`:f.bytes>UP_MAX?`20MB가 넘습니다(${f.sz}). 20MB까지 올립니다`:'';
+function upSet(i,file){const f=up.files[i]; f.t=file.name; f.sz=fileSz(file.size); f.bytes=file.size; if(!f.ttl.trim()) f.ttl=docTitle(file.name); render(true);}
 function upPick(i){const el=document.createElement('input');el.type='file';el.onchange=()=>{if(el.files[0]) upSet(i,el.files[0]);};el.click();}
 function upMissing(){const m=[], f=up.files[0];
-  if(!f.t) m.push('파일'); if(!f.ttl.trim()) m.push('제목'); if(!f.c) m.push('카테고리'); return m;}
+  if(!f.t) m.push('파일'); else if(upBad(f)) m.push('파일 형식 · 크기'); if(!f.ttl.trim()) m.push('제목'); if(!f.c) m.push('카테고리'); return m;}
 function upSave(){up.tried=true; if(upMissing().length){render(true);return;}
   const b=BUILDINGS.find(x=>x.id===up.bid), now=`${TODAY_S} ${new Date().toTimeString().slice(0,5)}`;
   if(up.nc) up.files.forEach(f=>nc.files.push({file:f.t,t:f.ttl.trim(),c:f.c,m:f.m.trim()}));
@@ -2444,6 +2447,7 @@ function upHTML(){
   const R=(k,body,req)=>`<div class="fr"><span class="fk">${k}${req?' <b style="color:var(--warn)">*</b>':''}</span>${body}</div>`;
   const slot=(f,i)=>`
         ${R('파일',`<button class="btn sm" onclick="upPick(${i})">파일 찾기</button>${f.t?`<span class="fv">${f.t} <span class="c2">${f.sz}</span></span>`:'<span class="c2" style="margin:0">선택된 파일 없음</span>'}`,1)}
+        ${upBad(f)?`<div class="c2" style="margin:-4px 0 9px;color:var(--danger);white-space:normal">${upBad(f)}</div>`:'<div class="c2" style="margin:-4px 0 9px;white-space:normal">PDF · 한글 · 오피스(워드 · 엑셀 · 파워포인트) · 사진(JPG · PNG · HEIC), 한 파일 20MB까지</div>'}
         ${R('제목',`<input type="text" value="${f.ttl}" placeholder="파일을 고르면 파일 이름으로 채워집니다" oninput="up.files[${i}].ttl=this.value" style="${inp};width:100%">`,1)}
         ${R('카테고리',`<select onchange="up.files[${i}].c=this.value;render(true)" style="${inp}"><option value="">선택</option>${DOC_CAT_OF[up.nc||f.k?'계약':'건물'].map(c=>`<option ${f.c===c?'selected':''}>${c}</option>`).join('')}</select>`,1)}
         ${R('메모',`<input type="text" value="${f.m}" oninput="up.files[${i}].m=this.value" style="${inp};width:100%">`)}`;
@@ -2464,7 +2468,7 @@ function upHTML(){
   </div></div>`;
 }
 /* 자료보관 목록 — 건물 상세(ck 없음)와 계약 상세(ck = 계약 키)가 같은 표 · 같은 필터 줄을 쓴다. 계약 상세는 그 계약에 귀속된 문서만 → PRO-3 · CTR-3
-   필터: 카테고리 · 등록일시 기간(원장 탭과 같은 기간 선택) */
+   필터: 카테고리 · 업로드 일시 기간(원장 탭과 같은 기간 선택) */
 let fdoc={c:'',per:'',q:''};
 const setFdoc=(f,v)=>{fdoc[f]=v;render(true);};
 function t자료(b,ck){
@@ -2479,7 +2483,7 @@ function t자료(b,ck){
   return `${tabBar(sel,btns(''))}<div class="tbl">
     <div class="tw"><table>
       <thead><tr><th class="c" style="width:44px"><span class="cb ${all?'on':''}" style="cursor:pointer" onclick="dPickIds(${JSON.stringify(ids)},${all?'false':'true'})"></span></th>
-        <th>제목 <span class="so">⇅</span></th><th>카테고리</th><th>파일 형식</th><th>담당자</th><th>등록일시 <span class="so">⇅</span></th><th class="c">더보기</th></tr></thead>
+        <th>제목 <span class="so">⇅</span></th><th>카테고리</th><th>파일 형식</th><th>담당자</th><th>업로드 일시 <span class="so">⇅</span></th><th class="c">더보기</th></tr></thead>
       <tbody>${ids.length?paged('doc'+b.id+(ck||''),ids,HPER,JSON.stringify(fdoc)).rows.map(i=>{const d=b.docs[i];return `<tr class="${selD[i]?'on':''}" style="cursor:pointer" onclick="docOpen('${b.id}',${i})">
         <td class="c"><span class="cb ${selD[i]?'on':''}" style="cursor:pointer" onclick="dPickRow(${i},event)"></span></td>
         <td><div class="c1">${dTitle(d)}</div></td>
@@ -3186,13 +3190,13 @@ function mvHTML(){
     <div class="dh"><div><div class="t">${mv.re?'다시 보내기':'발송 내용'}</div><div class="s">${m.kind} · ${d8(m.at)}</div></div>
       <button class="x" onclick="closeDrawer()">✕</button></div>
     <div class="db">
-      <div class="fg"><div class="fl">발송 정보</div>
+      <div class="fg">
         ${Rw('상태',`<span class="bd ${MST[m.st]}">${m.st}</span>${m.st==='실패'?`<div class="c2" style="color:var(--danger);white-space:normal">${m.why}</div>`:''}`)}
         ${Rw('받는 사람',m.to.map(x=>`${x.n} &lt;${x.mail}&gt;`).join('<br>'))}
         ${Rw('채널',m.ch)}${Rw('관련 대상',m.rel)}${Rw('발송방식',m.how)}${Rw('담당자',m.by)}
         ${m.of?Rw('원래 메일',`<span class="lk" onclick="mvOpen(${m.of})">${d8((MAIL_LOG.find(x=>x.id===m.of)||{at:''}).at)} 발송 →</span>`):''}
         ${m.re?Rw('다시 보낸 메일',`<span class="lk" onclick="mvOpen(${m.re})">${d8((MAIL_LOG.find(x=>x.id===m.re)||{at:''}).at)} 발송 →</span>`):''}</div>
-      <div class="fg"><div class="fl">메일 내용</div>
+      <div class="fg">
         <div style="border:1px solid var(--line);border-radius:var(--r-sm);padding:12px 14px">
           <div style="font-weight:700;margin-bottom:8px">${m.subj}</div>
           <div style="white-space:pre-wrap;font-size:12.5px;line-height:1.7">${m.body}</div>
@@ -3517,14 +3521,14 @@ function DOC1(){
       <button class="btn pri" onclick="upOpen('${fdg.b||'b1'}');up.g=true;render(true)">+ 파일 업로드</button></span></div>
   <div class="tbl"><div class="tw"><table>
     <thead><tr><th class="c" style="width:44px"><span class="cb ${allOn?'on':''}" style="cursor:pointer" onclick="selG={};${allOn?'':`${JSON.stringify(L.map(key)).replace(/"/g,"'")}.forEach(k=>selG[k]=true);`}render(true)"></span></th>
-      <th>제목</th><th>카테고리</th><th>귀속 대상</th><th>파일 형식</th><th class="n">크기</th><th>담당자</th><th>등록일시</th><th class="c">더보기</th></tr></thead>
+      <th>제목</th><th>카테고리</th><th>귀속 대상</th><th>파일 형식</th><th class="n">크기</th><th>담당자</th><th>업로드 일시</th><th class="c">더보기</th></tr></thead>
     <tbody>${L.length?PG.rows.map(x=>`<tr class="mrow ${selG[key(x)]?'on':''}" onclick="docOpen('${x.b.id}',${x.i})">
       <td class="c"><span class="cb ${selG[key(x)]?'on':''}" style="cursor:pointer" onclick="event.stopPropagation();selG['${key(x)}']=!selG['${key(x)}'];render(true)"></span></td>
       <td>${dTitle(x.d)}</td><td><span class="bd mu">${x.d.c}</span></td>
       <td>${x.d.k?`계약 · ${docCtr(x.b,x.d)}`:`건물 · ${x.b.name}`}</td><td>${x.ext}</td><td class="n">${x.d.sz}</td><td>${x.d.by}</td><td>${x.d.at.replace(/-/g,'.')}</td>
       <td class="c">${moreCell([{t:'상세',go:`docOpen('${x.b.id}',${x.i})`},{t:'내려받기',go:`docDown('${x.b.id}',${x.i})`},{t:'삭제',go:`docDelOpen('${x.b.id}',[${x.i}])`}])}</td></tr>`).join('')
       :`<tr><td colspan="9" style="text-align:center;padding:28px 0;color:var(--muted)">조건에 맞는 자료가 없습니다</td></tr>`}</tbody></table></div>${PG.pager}</div>
-  <div class="hint">모든 건물 · 계약에 올린 문서입니다. 건물 상세 · 계약 상세의 자료보관 탭은 이 목록을 그 건물 · 그 계약으로 거른 것입니다. 줄을 누르면 문서 상세가 열립니다.<br>
+  <div class="hint">모든 건물 · 계약에 올린 문서입니다. 건물 상세 · 계약 상세의 자료보관 탭은 이 목록을 그 건물 · 그 계약으로 거른 것입니다. 줄을 누르면 자료 상세가 열립니다.<br>
     올릴 때는 건물을 고르고, 계약 문서면 계약을 고릅니다(카테고리는 귀속 대상에 맞는 것만). 지우려면 사유가 필요하고 변경 이력에 남습니다.<br>
     여러 문서를 체크하면 ZIP 하나로 내려받거나 함께 지울 수 있습니다. 목업 문서는 카리나빌딩 예시뿐입니다.</div>`;
 }
