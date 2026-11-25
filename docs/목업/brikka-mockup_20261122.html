@@ -3299,7 +3299,7 @@ function t보고서(bdx){
       <td style="padding-left:32px">${sent?d8m('2026-'+sent):dash}</td>
       <td class="c">${moreCell([{t:'상세',go:`rpOpen('${ym}')`},{t:'내려받기',go:`say('${ymKo(ym)} 월 마감 보고서 PDF를 내려받습니다(상세 패널을 열지 않고 바로). 메일에 붙는 PDF와 같습니다.\\n목업에서는 파일을 내려받지 않습니다.')`}])}</td></tr>`;}).join('');
   return `<div class="tbl" style="margin-top:4px"><div class="tw"><table>
-      <thead><tr><th>청구년월</th><th>마감 여부</th><th class="n">청구액</th><th class="n">수납액</th><th class="n">미납</th><th style="padding-left:32px">발송 일자</th><th class="c">더보기</th></tr></thead>
+      <thead><tr><th>청구년월</th><th>마감</th><th class="n">청구액</th><th class="n">수납액</th><th class="n">미납</th><th style="padding-left:32px">발송 일자</th><th class="c">더보기</th></tr></thead>
       <tbody>${rows}</tbody></table></div></div>
     <div class="hint">달을 누르면 그 달 보고서가 열립니다. 건물 하나 × 한 달이 보고서 한 장이고, 그 건물 임대인 모두에게 한 통으로 보냅니다(공동소유도 건물 전체 기준이고 지분은 나누지 않습니다).<br>
       마감한 달만 보낼 수 있습니다. 숫자는 월 마감일 기준이라 보낸 뒤에 바뀌지 않습니다. 마감 전인 달도 열어 볼 수 있습니다. 금액은 부가세 포함입니다.<br>
