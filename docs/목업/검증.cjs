@@ -106,7 +106,7 @@ for (const b of ['b2', 'b4']) run('PRO-3 ' + b, "tab3='요약';PRO3('" + b + "')
   const all = ['settle', 'wait', 'issue', 'term', 'adj', 'mgmt', 'mail'].every(k => a[k]) && !a.fetch && !a.manual && !a.dep && !a.close
     && a.issue[0].n === '카즈하타워' && /16일 지남/.test(a.issue[0].when) && a.mgmt[0].n === '뉴진스하우스' && /38일 남음/.test(a.mgmt[0].when)
     && /쿠키랩/.test(a.term[0].n) && /아마데우스/.test(a.adj[0].n) && /김하늘/.test(a.wait.map(r => r.d).join()) && a.wait[0].n === '카리나빌딩';
-  const view = /확인이 필요한 일/.test(h) && ['청구', '입금', '계약', '건물 · 메일'].every(t => h.includes('<div class="ct">' + t + '<')) && /카즈하타워 <span class="dact">청구서 발행/.test(h) && /최근 작업 이력/.test(h) && /공실률/.test(h) && /숨긴 항목: 은행 거래내역 수집 중단/.test(h) && D.HROWS.dash.length === 10;
+  const view = !/확인이 필요한 일/.test(h) && ['청구', '입금', '계약', '건물 · 메일'].every(t => h.includes('<div class="ct">' + t + '<')) && /카즈하타워 <span class="dact">청구서 발행/.test(h) && /최근 작업 이력/.test(h) && /공실률/.test(h) && /숨긴 항목: 은행 거래내역 수집 중단/.test(h) && D.HROWS.dash.length === 10;
   D.setB('b2'); const b = on(); const one = !b.settle && !b.issue && !b.adj && b.wait.length === 1 && b.term && b.mail;
   D.setB(''); D.PROG.b1.settle = '확정'; D.PROG.b4.inv = 14; const c = on(); const gone = !c.settle && !c.issue;
   const bell = !/toggleNoti|id="noti"/.test(html) && /location\.hash\|\|'#\/dash-1'/.test(html);

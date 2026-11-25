@@ -508,7 +508,6 @@ table.nowr th,table.nowr td{white-space:nowrap}
 .dlt{font-size:11px;font-weight:700;margin-left:4px}
 .dlt.up{color:var(--warn)} .dlt.dn{color:var(--muted)}
 .card.dk{cursor:pointer}.card.dk:hover{border-color:var(--pri)}
-.dsec{display:flex;align-items:baseline;gap:8px;margin:4px 0 10px;font-size:13.5px}
 .dgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-bottom:16px;align-items:start}
 @media (max-width:900px){.dgrid{grid-template-columns:1fr}}
 .dcard > .ct{border-bottom:1px solid var(--line)}
@@ -3133,7 +3132,6 @@ function DASH1(){
         <div class="dw ${r.age>0?'late':''}">${r.when.split(' · ').pop()}<div class="c2">${r.when.includes(' · ')?r.when.split(' · ')[0]:''}</div></div>
         <span class="dgo">›</span></div>`).join('')}</div>
       ${rows.length>5?`<div class="dmore" onclick="dsTog('${ck}')">${all?'접기':`${rows.length-5}건 더 보기`}</div>`:''}</div>`;}).filter(Boolean);
-  const nAll=L.reduce((a,x)=>a+x.rows.length,0);
   /* 3단 — 최근 작업 이력 10건 */
   const H=Bs.flatMap(histB).filter(r=>!HDEL.has(hKey(r))).sort((p,q)=>p.at<q.at?1:p.at>q.at?-1:0).slice(0,10);
   HROWS.dash=H;
@@ -3144,8 +3142,7 @@ function DASH1(){
       ${BUILDINGS.map(b=>`<option value="${b.id}" ${fdb===b.id?'selected':''}>${b.name}</option>`).join('')}</select>
     <span style="color:var(--muted);font-size:12px">${TODAY_S.replace(/-/g,'.')} 기준</span></div>
   <div class="two" style="grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px">${top}</div>
-  <div class="dsec"><b>확인이 필요한 일</b><span class="c2" style="margin:0">${nAll?`${nAll}건`:'지금 확인할 일이 없습니다'}</span></div>
-  ${cards.length?`<div class="dgrid">${cards.join('')}</div>`:''}
+  ${cards.length?`<div class="dgrid">${cards.join('')}</div>`:`<div class="card"><div class="cc" style="padding:16px"><div class="c2" style="margin:0">지금 확인할 일이 없습니다.</div></div></div>`}
   <div class="card"><div class="ct">최근 작업 이력<span class="sub">최근 10건</span><span class="ca"><span class="lk" style="font-weight:400;font-size:12px" onclick="go('rec-1')">전체보기 →</span></span></div>
     <div class="tw"><table>
       <thead><tr><th>일시</th><th>대상 종류</th><th>대상 이름</th><th>변경 유형</th><th>처리자</th></tr></thead>
