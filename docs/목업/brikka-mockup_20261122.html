@@ -275,6 +275,8 @@ table.bt2 td{padding:9px 12px}
 .ph h1{margin:0;font-size:19px;font-weight:700;letter-spacing:-.01em}
 .ph .sid{font-size:10.5px;color:var(--muted);background:var(--neutral-bg);padding:2px 8px;border-radius:99px;font-weight:500}
 .ph .act{margin-left:auto;display:flex;gap:8px}
+.fbar > .act{margin-left:auto;display:flex;gap:8px;align-items:center}
+.fbar > [style*="margin-left:auto"] ~ .act{margin-left:0}
 /* 화면 제목 줄 — 목업 버전 · 날짜를 제목과 같은 줄 오른쪽 끝에 둔다(위쪽 줄 없음). 제목 줄이 없는 화면은 위쪽 줄을 그대로 보인다 */
 .ph .pver{margin-left:auto;display:flex;align-items:center}
 .ph .act ~ .pver{margin-left:16px}
@@ -2672,13 +2674,13 @@ function PAY10_0(){
 function pay10Head(sel){
   return `
   <div class="ph"><h1>관리비 정산</h1><span class="sid">PAY-10</span>
-    <div class="act">${f10ym!=='2026-08'?'':(()=>{const un=(sel||[]).filter(x=>!SAVED[x.code]);
-      return `<button class="btn pri" ${un.length?'disabled':''} onclick="say('정산 확정 → 산출 결과를 고정합니다. 청구 건은 청구서 발행 때 만들어집니다')">정산 확정</button>`;})()}</div>
   </div>
   <div class="fbar">
     <select onchange="f10b=this.value;render()">${BUILDINGS.filter(b=>b.id!=='b3').map(b=>`<option value="${b.id}" ${f10b===b.id?'selected':''}>${b.name}</option>`).join('')}</select>
     <select onchange="f10ym=this.value;render()">${[['2026-08','2026년 8월분'],['2026-07','2026년 7월분'],['2026-06','2026년 6월분']]
       .map(([v,t])=>`<option value="${v}" ${f10ym===v?'selected':''}>${t}</option>`).join('')}</select>
+    <div class="act">${f10ym!=='2026-08'?'':(()=>{const un=(sel||[]).filter(x=>!SAVED[x.code]);
+      return `<button class="btn pri" ${un.length?'disabled':''} onclick="say('정산 확정 → 산출 결과를 고정합니다. 청구 건은 청구서 발행 때 만들어집니다')">정산 확정</button>`;})()}</div>
   </div>
   ${!sel?'':`<div class="itab">
     ${(sel||[]).map(x=>{const f0=itemFlag(x), f=f0.c==='ok'&&!SAVED[x.code]&&!PAST_CTX?{t:'',c:'plain'}:f0, on=x.code===((sel.some(y=>y.code===pCode)&&pCode)||sel[0].code);return `
@@ -4157,10 +4159,6 @@ function PAY1(){
   }).join('');
   return `
   <div class="ph"><h1>청구서 발행</h1><span class="sid">PAY-1</span>
-    <div class="act"><button class="btn" ${rows.length?'':'disabled'} onclick="pv1Open(${JSON.stringify((nSel?wait.filter(c=>sel1[c.k]):rows).map(c=>c.k)).replace(/"/g,"'")})">미리보기${nSel?` ${nSel}건`:''}</button>
-      <button class="btn pri" ${ok&&!stop&&!PAST_CTX&&wait.length?'':'disabled'}
-        onclick="issueAsk(${JSON.stringify((nSel?wait.filter(c=>sel1[c.k]):wait).map(c=>c.k)).replace(/"/g,"'")})">
-        ${nSel?`선택 ${nSel}건 발행`:`전체 ${wait.length}건 발행`}</button></div>
   </div>
   <div class="fbar">
     <select onchange="setF1('b',this.value)">
@@ -4172,6 +4170,10 @@ function PAY1(){
       ${['','발행 대기','발행 완료'].map(v=>`<option value="${v}" ${f1.st===v?'selected':''}>${v||'전체 상태'}</option>`).join('')}
     </select>
     <span class="c2" style="margin-left:auto">거래내역 <b style="color:var(--ink-2)">${FETCH_AT}</b>까지 · 발행할 때 한 번 더 가져옵니다</span>
+    <div class="act"><button class="btn" ${rows.length?'':'disabled'} onclick="pv1Open(${JSON.stringify((nSel?wait.filter(c=>sel1[c.k]):rows).map(c=>c.k)).replace(/"/g,"'")})">미리보기${nSel?` ${nSel}건`:''}</button>
+      <button class="btn pri" ${ok&&!stop&&!PAST_CTX&&wait.length?'':'disabled'}
+        onclick="issueAsk(${JSON.stringify((nSel?wait.filter(c=>sel1[c.k]):wait).map(c=>c.k)).replace(/"/g,"'")})">
+        ${nSel?`선택 ${nSel}건 발행`:`전체 ${wait.length}건 발행`}</button></div>
   </div>
   ${!PAST_CTX&&rcOpenB(f1.b)?`<div class="fnd wa3"><span class="h">미매칭 입금 ${rcOpenB(f1.b)}건이 있습니다</span>
     확정하지 않은 입금은 이 청구서의 미납 · 연체료에 반영되지 않습니다. 발행은 막지 않습니다.
@@ -4824,9 +4826,6 @@ function PAY13_0(){
   const d=Q.find(x=>x.no===RC.cur);
   const head=`
   <div class="ph"><h1>입금 매칭</h1><span class="sid">PAY-13</span>
-    <div class="act">
-      <button class="btn" ${mcLocked(RC.b,RC.f.ym)?'disabled':''} onclick="bkOpen()">은행 거래내역 업로드</button>
-</div>
   </div>
   <div class="fbar">
     <select onchange="setRC('b',this.value)">
@@ -4841,6 +4840,9 @@ function PAY13_0(){
       ${Object.values(B).sort((a,b)=>a.n<b.n?-1:1).map(t=>`<option value="${t.k}" ${RC.f.ten===t.k?'selected':''}>${t.n}</option>`).join('')}
     </select>
     <span class="c2" style="margin-left:auto">${Q.length?`처리 <b style="color:var(--ink)">${done}</b> / ${Q.length}건 · `:''}거래내역 <b style="color:var(--ink-2)">${FETCH_AT}</b>까지 · 1시간마다 자동으로 가져옵니다</span>
+    <div class="act">
+      <button class="btn" ${mcLocked(RC.b,RC.f.ym)?'disabled':''} onclick="bkOpen()">은행 거래내역 업로드</button>
+</div>
   </div>
   ${bkUps().length?`<div class="c2" style="margin:-4px 0 12px;white-space:normal">올린 거래내역 ${bkUps().map(u=>{const t=(bkAccts(bn).find(x=>x.a===u.a)||{}).t;
     return `<span style="margin-left:10px"><b style="color:var(--ink-2)">${t?t+' 계좌':''} ${u.a}</b> · ${u.file} · ${u.at.slice(5).replace('-','.')} ${u.by}</span>`;}).join('')}</div>`:''}`;
@@ -5535,9 +5537,6 @@ function PAY2(){
   }).join('');
   return `
   <div class="ph"><h1>미납 관리</h1><span class="sid">PAY-2</span>
-    <div class="act">
-      <button class="btn" ${nSel?'':'disabled'} onclick="pvDueOpen(${JSON.stringify(rows.filter(a=>sel2[a.k]&&(a.due>0||a.fee>0)).map(a=>a.k)).replace(/"/g,"'")})">미리보기</button>
-      <button class="btn pri" ${nSel?'':'disabled'} onclick="dueMail(${JSON.stringify(rows.filter(a=>sel2[a.k]&&(a.due>0||a.fee>0)).map(a=>a.k)).replace(/"/g,"'")})">미납 안내 메일${nSel?` ${nSel}건`:''}</button></div>
   </div>
   <div class="fbar">
     <select onchange="setF2('b',this.value)">
@@ -5549,6 +5548,9 @@ function PAY2(){
     <select onchange="setF2('dd',this.value)">
       ${[['','전체 연체일수'],['30','30일 이상'],['60','60일 이상'],['90','90일 이상']].map(([v,t])=>`<option value="${v}" ${f2.dd===v?'selected':''}>${t}</option>`).join('')}
     </select>
+    <div class="act">
+      <button class="btn" ${nSel?'':'disabled'} onclick="pvDueOpen(${JSON.stringify(rows.filter(a=>sel2[a.k]&&(a.due>0||a.fee>0)).map(a=>a.k)).replace(/"/g,"'")})">미리보기</button>
+      <button class="btn pri" ${nSel?'':'disabled'} onclick="dueMail(${JSON.stringify(rows.filter(a=>sel2[a.k]&&(a.due>0||a.fee>0)).map(a=>a.k)).replace(/"/g,"'")})">미납 안내 메일${nSel?` ${nSel}건`:''}</button></div>
   </div>
   ${waitN?`<div class="fnd wa3"><span class="h">확정 전 입금 ${waitN}건</span>
     아직 기록되지 않은 입금이 있어 이미 낸 계약도 미납으로 보입니다.
