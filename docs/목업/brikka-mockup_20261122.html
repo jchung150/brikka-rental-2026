@@ -620,8 +620,6 @@ const MENU=[
    {id:'pay-13',n:'입금 매칭',sid:'PAY-13',i:'card'},
    {id:'pay-6',n:'수납 내역',sid:'PAY-6',i:'list'},
    {id:'pay-2',n:'미납 관리',sid:'PAY-2',i:'wallet'}]},
- {k:'보고',g:'보고서',i:'chart',items:[
-   {id:'rep-1',n:'임대인 보고서',sid:'REP-1',i:'chart'}]},
  {k:'상대',g:'연락처',i:'users',items:[
    {id:'user-6',n:'임차인',sid:'USER-6',i:'users'},
    {id:'user-8',n:'임대인',sid:'USER-8',i:'home'},
@@ -1776,8 +1774,8 @@ function bopHTML(){
 }
 function PRO3(id){
   const b=BUILDINGS.find(x=>x.id===id)||BUILDINGS[0];
-  const T=['요약','계약','유닛','주차','관리비','자료보관','이력'];
-  const body=({'요약':t요약,'계약':t계약,'유닛':t유닛,'주차':t주차,'관리비':t청구,'자료보관':t자료,'이력':b=>histHTML(histB(b),'b'+b.id)}[tab3]||t요약)(b);
+  const T=['요약','계약','유닛','주차','관리비','보고서','자료보관','이력'];
+  const body=({'요약':t요약,'계약':t계약,'유닛':t유닛,'주차':t주차,'관리비':t청구,'보고서':t보고서,'자료보관':t자료,'이력':b=>histHTML(histB(b),'b'+b.id)}[tab3]||t요약)(b);
   return `
   <div class="ph">
     <div class="bsw">
@@ -3009,7 +3007,8 @@ function PAY12(){
     /* 더보기(⋮) — 마감 · 마감 취소. 할 수 없는 쪽은 흐리게, 이유는 마우스를 올리면 */
     const act=moreCell([
       {t:'마감',go:`mc12('${b.id}','close')`,off:S.k==='마감'?'이미 마감한 달입니다':S.k==='진행 중'?'청구서 발행 전이라 마감할 수 없습니다':''},
-      {t:'마감 취소',go:`mc12('${b.id}','undo')`,off:S.k==='마감'?'':'마감하지 않은 달입니다',title:S.k==='마감'?'슈퍼관리자만 · 사유를 남깁니다':''}]);
+      {t:'마감 취소',go:`mc12('${b.id}','undo')`,off:S.k==='마감'?'':'마감하지 않은 달입니다',title:S.k==='마감'?'슈퍼관리자만 · 사유를 남깁니다':''},
+      {t:'임대인 보고서',go:`frb.ym='${f12}';tab3='보고서';go('pro-3/${b.id}')`,off:S.k==='마감'?'':'마감한 달만 보냅니다'}]);
     return `<tr>
       <td><div class="c1">${b.name}</div><div class="c2">${b.kind} · ${b.unitCnt}유닛</div></td>
       <td class="st c" onclick="go('pay-10')"><span class="stp"><span class="dot2" style="background:var(--${set==='확정'?'ok':set==='작성중'?'warn':'faint'})"></span>${set}</span></td>
@@ -3282,23 +3281,20 @@ function repDoc(b,ym){
 function repMail(b,ym,at,by){const bd=BUILDINGS.find(x=>x.id===b), N=mcNum(b,ym);
   return mailAdd({at,kind:'임대인 보고서',b,rel:`${bd.name} · ${ymKo(ym)}`,to:bd.owners.map(o=>({n:o.n,mail:OWN_MAIL[o.n]||''})),how:'수동',by,
     ...mailText('임대인 보고서',{bd,who:bd.owners.map(o=>o.n).join(' · '),ym,bill:N.bill,paid:N.paid,vac:bd.vacCnt,unit:bd.unitCnt}),
-    att:[{n:`임대인보고서_${bd.name}_${ym}.pdf`,go:`frb={b:'${b}',ym:'${ym}'};closeDrawer();go('rep-1')`}]});}
+    att:[{n:`임대인보고서_${bd.name}_${ym}.pdf`,go:`frb.ym='${ym}';tab3='보고서';closeDrawer();go('pro-3/${b}')`}]});}
 function repSend(){const {b,ym}=frb; if(!closeOn(b,ym)) return; mailRows();
   repMail(b,ym,`${TODAY_S} ${new Date().toTimeString().slice(0,5)}`,'슈퍼관리자'); (REPS[b]=REPS[b]||{})[ym]=TODAY_S.slice(5);
   DRAWER=null; say(`${ymKo(ym)} 보고서를 임대인에게 보냈습니다 — 발송 내역에서 볼 수 있습니다`); render(true);}
-function REP1(){
-  const {b,ym}=frb, R=repData(b,ym), bd=R.bd;
+/* 건물 상세 › 보고서 탭 — 그 건물의 달을 골라 본다. 청구 현황에서 마감한 달의 ⋮ › 임대인 보고서로도 온다 */
+function t보고서(bdx){
+  frb.b=bdx.id; const {b,ym}=frb, R=repData(b,ym), bd=R.bd;
   const S=(k,opts)=>`<select onchange="setFrb('${k}',this.value)">${opts.map(([v,t])=>`<option value="${v}" ${frb[k]===v?'selected':''}>${t}</option>`).join('')}</select>`;
   const box=!R.closed?`<div class="prev" style="margin:0 0 12px"><div class="pt">${ymKo(ym)}은 아직 마감 전입니다</div>숫자가 바뀔 수 있어 마감한 뒤에 보냅니다. 미리보기는 지금 볼 수 있습니다. <span class="lk" onclick="f12='${ym}';go('pay-12')">청구 현황에서 마감 →</span></div>`
     :R.sent?`<div class="prev" style="margin:0 0 12px"><div class="pt">${d8m('2026-'+R.sent)} 보냄</div>${bd.owners.map(o=>o.n).join(' · ')}에게 보냈습니다. 다시 보내면 발송 내역에 새 줄이 생깁니다. <span class="lk" onclick="go('ntf-6')">발송 내역 →</span></div>`:'';
-  return `
-  <div class="ph"><h1>임대인 보고서</h1><span class="sid">REP-1</span></div>
-  <div class="fbar">
-    ${S('b',BUILDINGS.map(x=>[x.id,x.name]))}${S('ym',MC_YMS.slice().reverse().map(v=>[v,ymKo(v)]))}
-    <span style="margin-left:auto;display:flex;gap:6px">
-      <button class="btn" onclick="rmOpen()">${R.memo?'메모 수정':'메모 쓰기'}</button>
+  return `${tabBar(S('ym',MC_YMS.slice().reverse().map(v=>[v,ymKo(v)])),
+      `<button class="btn" onclick="rmOpen()">${R.memo?'메모 수정':'메모 쓰기'}</button>
       <button class="btn" onclick="say('임대인 보고서 PDF — 아래 보고서를 PDF로 내려받습니다. 메일에 붙는 PDF와 같습니다.\\n목업에서는 파일을 내려받지 않습니다.')">PDF 내려받기</button>
-      <button class="btn pri" ${R.closed?'':'disabled title="마감한 달만 보낼 수 있습니다"'} onclick="DRAWER='repsend';render(true)">메일 보내기</button></span></div>
+      <button class="btn pri" ${R.closed?'':'disabled title="마감한 달만 보낼 수 있습니다"'} onclick="DRAWER='repsend';render(true)">메일 보내기</button>`)}
   ${box}
   ${repDoc(b,ym)}
   <div class="hint">건물 하나 × 한 달이 보고서 한 장입니다. 그 건물 임대인 모두에게 한 통으로 보냅니다(공동소유도 건물 전체 기준이고 지분은 나누지 않습니다).<br>
@@ -6974,7 +6970,6 @@ function render(keep){
   else if(id==='pay-14'){html=PAY14();crumb='수납 관리 <span>›</span> <b>수납 현황</b>';}
   else if(id==='pay-13'){html=PAY13();crumb='수납 관리 <span>›</span> <b>입금 매칭</b>';}
   else if(id==='ntf-6'){html=NTF6();crumb='이력 관리 <span>›</span> <b>발송 내역</b>';}
-  else if(id==='rep-1'){html=REP1();crumb='보고서 <span>›</span> <b>임대인 보고서</b>';}
   else if(id==='tmp-mail'){html=TMPMAIL();crumb='<b>메일 문구 (임시)</b>';}
   else{html=TODO(id);const g=MENU.find(m=>m.items&&m.items.some(i=>i.id===id));
     const m=ALL.find(i=>i.id===id);

@@ -109,7 +109,7 @@ for (const b of ['b2']) run('PRO-3 ' + b, "tab3='요약';PRO3('" + b + "')");
   const ok = area && vat; if (!ok) fail = 1;
   console.log('② 계산 오류 고침 — 정화조청소비 550,000원을 14개 유닛에 임대면적으로(차액 0) · 6월 주차비 부가세 17,100 · 6월 아이씨비 · 케이큐 청구와 입금이 맞음(완납)  ' + (ok ? 'OK' : '✗ ' + JSON.stringify({area, vat}))); }
 /* 임대인 보고서(REP-1) — 건물 × 한 달 · 마감한 달만 보냄 · 이달의 메모 · 숫자는 마감일 기준 → 명세변경_261122 42 */
-{ const RP = new Function(stub + bare + '; seedJuly(); return {REP1,repData,repSend,rmOpen,rmSave,mailRows,mcChecks,REPS,get rm(){return rm;},set frb(v){frb=v;}};')();
+{ const RP = new Function(stub + bare + '; seedJuly(); const REP1=()=>{const b=BUILDINGS.find(x=>x.id===frb.b);tab3=\'보고서\';return PRO3(b.id);}; f12=\'2026-07\'; MORE.length=0; PAY12(); const sc=MORE.flat().filter(i=>i.t===\'임대인 보고서\'); return {REP1,repData,repSend,rmOpen,rmSave,mailRows,mcChecks,REPS,MENU,sc,get rm(){return rm;},set frb(v){frb=v;}};')();
   RP.frb = {b:'b1', ym:'2026-07'}; const h7 = RP.REP1(), D7 = RP.repData('b1', '2026-07');
   const doc = /카리나빌딩 운영 보고서/.test(h7) && /이달의 메모/.test(h7) && /기준일 2026\.08\.05 \(월 마감일\)/.test(h7) && ['1. 임대 현황','2. 수입 현황','3. 미납 · 연체','4. 보증금','5. 계약 현황','6. 임차인 명세','7. 관리비 정산 요약'].every(t => h7.includes(t))
     && D7.DUE.length === 1 && /비씨에이전시/.test(D7.DUE[0].c.ten) && D7.IN.find(x => x.n === '임대료').bill > 0 && !/엑셀/.test(h7);
@@ -118,8 +118,9 @@ for (const b of ['b2']) run('PRO-3 ' + b, "tab3='요약';PRO3('" + b + "')");
   const n0 = RP.mailRows().length; RP.frb = {b:'b1', ym:'2026-07'}; RP.repSend(); const m = RP.mailRows().at(-1);
   const send = RP.mailRows().length === n0 + 1 && m.kind === '임대인 보고서' && m.to.length === 2 && RP.REPS.b1['2026-07'] === '08-10';
   const noChk = !RP.mcChecks('b1', '2026-07').some(x => /임대인 보고서/.test(x.t));
-  const ok = doc && lock && memo && send && noChk; if (!ok) fail = 1;
-  console.log('② 임대인 보고서 — 건물 × 한 달(카리나 7월: 마감일 기준 · 7개 항목 · 메모 · PDF만) · 마감 전(뉴진스 7월)은 보내기 막힘 · 납부 전은 미납 아님 · 메모 쓰기 · 보내면 임대인 2명에게 한 통 · 월 마감 확인에 보고서 항목 없음  ' + (ok ? 'OK' : '✗ ' + JSON.stringify({doc, lock, memo, send, noChk}))); }
+  const tab = />보고서<\/button>/.test(h7) && !JSON.stringify(RP.MENU).includes('rep-1') && RP.sc.length === 2 && RP.sc.filter(i => !i.off).length === 1;
+  const ok = doc && lock && memo && send && noChk && tab; if (!ok) fail = 1;
+  console.log('② 임대인 보고서 — 건물 상세 › 보고서 탭(메뉴 없음 · 청구 현황 ⋮ 바로 가기는 마감한 달만) · 건물 × 한 달(카리나 7월: 마감일 기준 · 7개 항목 · 메모 · PDF만) · 마감 전(뉴진스 7월)은 보내기 막힘 · 납부 전은 미납 아님 · 메모 쓰기 · 보내면 임대인 2명에게 한 통 · 월 마감 확인에 보고서 항목 없음  ' + (ok ? 'OK' : '✗ ' + JSON.stringify({doc, lock, memo, send, noChk, tab}))); }
 /* 발송 내역(NTF-6) — 보낸 그대로 남김 · 실패는 자동으로 다시 보내지 않음 · 다시 보내면 새 줄(원래 줄 그대로) · 보내는 화면(청구서 발행 · 미납 안내 · 명세서 · 웰컴)이 남김 → 명세변경_261122 38 */
 { const M = new Function(stub + bare + '; seedJuly(); return {mailRows,NTF6,mvOpen,mvHTML,mailResend,dashItems,issueAsk,issueGo,dueMail,stOpen,stSend,CTRS,ckey,setFm,set f1b(v){f1.b=v;}};')();
   const R0 = M.mailRows(), n0 = R0.length, fl = R0.filter(m => m.st === '실패'), f = fl[0];
