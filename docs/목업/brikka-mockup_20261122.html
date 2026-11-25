@@ -1403,7 +1403,7 @@ function drawerHTML(){
   if(DRAWER==='citem') return ciHTML();
   if(DRAWER==='adjok') return akHTML();
   if(DRAWER==='mlv') return mvHTML();
-  if(DRAWER==='repmemo'||DRAWER==='repsend') return repPanels();
+  if(DRAWER==='repview') return repPanels();
   if(DRAWER!=='additem') return '';
   const used=BLD.charge.filter(c=>c.use).map(c=>c.it);
   const rest=MASTER.filter(m=>!m.fixed&&!BILL[m.code].on&&used.includes(m.name));
@@ -3008,7 +3008,7 @@ function PAY12(){
     const act=moreCell([
       {t:'마감',go:`mc12('${b.id}','close')`,off:S.k==='마감'?'이미 마감한 달입니다':S.k==='진행 중'?'청구서 발행 전이라 마감할 수 없습니다':''},
       {t:'마감 취소',go:`mc12('${b.id}','undo')`,off:S.k==='마감'?'':'마감하지 않은 달입니다',title:S.k==='마감'?'슈퍼관리자만 · 사유를 남깁니다':''},
-      {t:'임대인 보고서',go:`frb.ym='${f12}';tab3='보고서';go('pro-3/${b.id}')`,off:S.k==='마감'?'':'마감한 달만 보냅니다'}]);
+      {t:'임대인 보고서',go:`tab3='보고서';go('pro-3/${b.id}');rpOpen('${f12}')`,off:S.k==='마감'?'':'마감한 달만 보냅니다'}]);
     return `<tr>
       <td><div class="c1">${b.name}</div><div class="c2">${b.kind} · ${b.unitCnt}유닛</div></td>
       <td class="st c" onclick="go('pay-10')"><span class="stp"><span class="dot2" style="background:var(--${set==='확정'?'ok':set==='작성중'?'warn':'faint'})"></span>${set}</span></td>
@@ -3214,7 +3214,7 @@ function mvHTML(){
 
 /* ═══ REP-1 임대인 보고서 — 건물 × 한 달. 그 건물 임대인 전원에게 한 통(공동소유도 건물 전체 기준, 지분 표시 없음).
    마감한 달만 보낸다(숫자가 바뀌지 않게). 미리보기는 언제나. PDF만. 담당자가 쓰는 「이달의 메모」를 싣는다 → 명세변경_261122 42 ═══ */
-let frb={b:'b1',ym:'2026-07'}, rm=null;
+let frb={b:'b1',ym:'2026-07'};
 const REP_MEMO={'b1|2026-07':'본관 3층 화장실 누수 — 7/14 배관 교체 완료. 비용 1,320,000원은 건물주 부담으로 따로 청구드립니다.\n8월 중 엘리베이터 정기검사 예정(8/21).',
   'b1|2026-06':'6/18 정기 소방점검 — 지적 사항 없음.'};
 const repKey=(b,ym)=>b+'|'+ym;
@@ -3281,44 +3281,48 @@ function repDoc(b,ym){
 function repMail(b,ym,at,by){const bd=BUILDINGS.find(x=>x.id===b), N=mcNum(b,ym);
   return mailAdd({at,kind:'임대인 보고서',b,rel:`${bd.name} · ${ymKo(ym)}`,to:bd.owners.map(o=>({n:o.n,mail:OWN_MAIL[o.n]||''})),how:'수동',by,
     ...mailText('임대인 보고서',{bd,who:bd.owners.map(o=>o.n).join(' · '),ym,bill:N.bill,paid:N.paid,vac:bd.vacCnt,unit:bd.unitCnt}),
-    att:[{n:`임대인보고서_${bd.name}_${ym}.pdf`,go:`frb.ym='${ym}';tab3='보고서';closeDrawer();go('pro-3/${b}')`}]});}
+    att:[{n:`임대인보고서_${bd.name}_${ym}.pdf`,go:`tab3='보고서';go('pro-3/${b}');frb.b='${b}';rpOpen('${ym}')`}]});}
 function repSend(){const {b,ym}=frb; if(!closeOn(b,ym)) return; mailRows();
   repMail(b,ym,`${TODAY_S} ${new Date().toTimeString().slice(0,5)}`,'슈퍼관리자'); (REPS[b]=REPS[b]||{})[ym]=TODAY_S.slice(5);
-  DRAWER=null; say(`${ymKo(ym)} 보고서를 임대인에게 보냈습니다 — 발송 내역에서 볼 수 있습니다`); render(true);}
-/* 건물 상세 › 보고서 탭 — 그 건물의 달을 골라 본다. 청구 현황에서 마감한 달의 ⋮ › 임대인 보고서로도 온다 */
+  say(`${ymKo(ym)} 보고서를 임대인에게 보냈습니다 — 발송 내역에서 볼 수 있습니다`); render(true);}
+/* 건물 상세 › 보고서 탭 — 달마다 한 줄. 줄을 누르면 오른쪽 패널에 그 달 보고서(PDF 그대로) · 메모 · 내려받기 · 메일 보내기.
+   청구 현황에서 마감한 달의 ⋮ › 임대인 보고서로 오면 그 달 패널이 바로 열린다 */
 function t보고서(bdx){
-  frb.b=bdx.id; const {b,ym}=frb, R=repData(b,ym), bd=R.bd;
-  const S=(k,opts)=>`<select onchange="setFrb('${k}',this.value)">${opts.map(([v,t])=>`<option value="${v}" ${frb[k]===v?'selected':''}>${t}</option>`).join('')}</select>`;
-  const box=!R.closed?`<div class="prev" style="margin:0 0 12px"><div class="pt">${ymKo(ym)}은 아직 마감 전입니다</div>숫자가 바뀔 수 있어 마감한 뒤에 보냅니다. 미리보기는 지금 볼 수 있습니다. <span class="lk" onclick="f12='${ym}';go('pay-12')">청구 현황에서 마감 →</span></div>`
-    :R.sent?`<div class="prev" style="margin:0 0 12px"><div class="pt">${d8m('2026-'+R.sent)} 보냄</div>${bd.owners.map(o=>o.n).join(' · ')}에게 보냈습니다. 다시 보내면 발송 내역에 새 줄이 생깁니다. <span class="lk" onclick="go('ntf-6')">발송 내역 →</span></div>`:'';
-  return `${tabBar(S('ym',MC_YMS.slice().reverse().map(v=>[v,ymKo(v)])),
-      `<button class="btn" onclick="rmOpen()">${R.memo?'메모 수정':'메모 쓰기'}</button>
-      <button class="btn" onclick="say('임대인 보고서 PDF — 아래 보고서를 PDF로 내려받습니다. 메일에 붙는 PDF와 같습니다.\\n목업에서는 파일을 내려받지 않습니다.')">PDF 내려받기</button>
-      <button class="btn pri" ${R.closed?'':'disabled title="마감한 달만 보낼 수 있습니다"'} onclick="DRAWER='repsend';render(true)">메일 보내기</button>`)}
-  ${box}
-  ${repDoc(b,ym)}
-  <div class="hint">건물 하나 × 한 달이 보고서 한 장입니다. 그 건물 임대인 모두에게 한 통으로 보냅니다(공동소유도 건물 전체 기준이고 지분은 나누지 않습니다).<br>
-    마감한 달만 보낼 수 있습니다. 숫자는 월 마감일 기준이라 보낸 뒤에 바뀌지 않습니다. 금액은 부가세 포함입니다.<br>
-    「이달의 메모」는 담당자가 쓰는 특이사항(수리 · 점검 · 공지)입니다. 비어 있으면 보고서에 싣지 않습니다.</div>`;
+  frb.b=bdx.id; const b=bdx.id, dash='<span style="color:var(--faint)">—</span>';
+  const rows=MC_YMS.slice().reverse().map(ym=>{const S=mcState(b,ym), N=mcNum(b,ym), sent=(REPS[b]||{})[ym], memo=!!REP_MEMO[repKey(b,ym)];
+    const due=N.due!=null?N.due:(N.bill||0)-(N.paid||0);
+    return `<tr class="mrow" onclick="rpOpen('${ym}')">
+      <td><b>${ymKo(ym)}</b></td>
+      <td>${S.k==='마감'?`<span class="bd ok">마감</span> <span class="c2" style="display:inline;margin:0">${d8m('2026-'+S.c.at.slice(0,5))}</span>`:S.k==='진행 중'?'<span class="bd mu">진행 중</span>':'<span class="bd wa">열림</span>'}</td>
+      <td class="n">${N.bill?won(N.bill):dash}</td><td class="n">${N.bill?won(N.paid):dash}</td>
+      <td class="n">${due>0?`<span style="color:var(--warn)">${won(due)}</span>`:N.bill?won(0):dash}</td>
+      <td>${memo?'있음':dash}</td>
+      <td>${sent?`<span class="bd ok">보냄</span> <span class="c2" style="display:inline;margin:0">${d8m('2026-'+sent)}</span>`:S.k==='마감'?'<span class="bd wa">보내기 전</span>':dash}</td></tr>`;}).join('');
+  return `<div class="tbl" style="margin-top:4px"><div class="tw"><table>
+      <thead><tr><th>보고 월</th><th>월 마감</th><th class="n">청구액</th><th class="n">수납액</th><th class="n">미납</th><th>이달의 메모</th><th>임대인에게</th></tr></thead>
+      <tbody>${rows}</tbody></table></div></div>
+    <div class="hint">달을 누르면 그 달 보고서가 열립니다. 건물 하나 × 한 달이 보고서 한 장이고, 그 건물 임대인 모두에게 한 통으로 보냅니다(공동소유도 건물 전체 기준이고 지분은 나누지 않습니다).<br>
+      마감한 달만 보낼 수 있습니다. 숫자는 월 마감일 기준이라 보낸 뒤에 바뀌지 않습니다. 마감 전인 달도 열어 볼 수 있습니다. 금액은 부가세 포함입니다.<br>
+      「이달의 메모」는 담당자가 쓰는 특이사항(수리 · 점검 · 공지)으로 보고서 맨 위에 실립니다. 비어 있으면 싣지 않습니다.</div>`;
 }
-function rmOpen(){rm={t:REP_MEMO[repKey(frb.b,frb.ym)]||''};DRAWER='repmemo';render(true);}
-function rmSave(){const k=repKey(frb.b,frb.ym); if(rm.t.trim()) REP_MEMO[k]=rm.t.trim(); else delete REP_MEMO[k]; rm=null;DRAWER=null;render(true);}
+function rpOpen(ym){frb.ym=ym;DRAWER='repview';render(true);}
+const rpMemo=v=>{const k=repKey(frb.b,frb.ym); if(v.trim()) REP_MEMO[k]=v.trim(); else delete REP_MEMO[k]; render(true);};
 function repPanels(){
-  const bd=BUILDINGS.find(x=>x.id===frb.b);
-  if(DRAWER==='repmemo'&&rm) return `<div class="dro"><div class="ov" onclick="closeDrawer()"></div><div class="pn">
-    <div class="dh"><div><div class="t">이달의 메모</div><div class="s">${bd.name} · ${ymKo(frb.ym)}</div></div><button class="x" onclick="closeDrawer()">✕</button></div>
-    <div class="db"><textarea rows="8" style="width:100%;box-sizing:border-box;border:1px solid var(--line);border-radius:var(--r-sm);padding:9px 10px;font:inherit;background:var(--bg);color:inherit" placeholder="예: 3층 누수 수리 완료, 8/21 엘리베이터 정기검사" oninput="rm.t=this.value">${rm.t.replace(/</g,'&lt;')}</textarea>
-      <div class="c2" style="white-space:normal">보고서 맨 위 「이달의 메모」로 실립니다. 비우고 저장하면 보고서에서 빠집니다.</div></div>
-    <div class="df"><button class="btn" onclick="closeDrawer()">취소</button><button class="btn pri" onclick="rmSave()">저장</button></div></div></div>`;
-  if(DRAWER==='repsend'){const to=bd.owners.map(o=>({n:o.n,mail:OWN_MAIL[o.n]||''})), sent=(REPS[frb.b]||{})[frb.ym];
-    return `<div class="dro"><div class="ov" onclick="closeDrawer()"></div><div class="pn">
-    <div class="dh"><div><div class="t">보고서 메일 보내기</div><div class="s">${bd.name} · ${ymKo(frb.ym)}</div></div><button class="x" onclick="closeDrawer()">✕</button></div>
-    <div class="db"><div class="fg"><div class="fl">보낼 곳</div>
-      ${to.map(x=>`<div class="fr"><span class="fk">임대인</span><span class="fv">${x.n} &lt;${x.mail||'이메일 없음'}&gt;</span></div>`).join('')}
-      <div class="fr"><span class="fk">첨부</span><span class="fv">임대인보고서_${bd.name}_${frb.ym}.pdf</span></div></div>
-      ${sent?`<div class="prev warn2" style="margin:0"><div class="pt">이미 보낸 보고서입니다(${d8m('2026-'+sent)})</div>다시 보내면 발송 내역에 새 줄이 생깁니다.</div>`:''}</div>
-    <div class="df"><button class="btn" onclick="closeDrawer()">취소</button><button class="btn pri" onclick="repSend()">메일 보내기</button></div></div></div>`;}
-  return '';
+  if(DRAWER!=='repview') return '';
+  const {b,ym}=frb, bd=BUILDINGS.find(x=>x.id===b), closed=!!closeOn(b,ym), sent=(REPS[b]||{})[ym];
+  const to=bd.owners.map(o=>({n:o.n,mail:OWN_MAIL[o.n]||''}));
+  return `<div class="dro"><div class="ov" onclick="closeDrawer()"></div><div class="pn" style="width:800px">
+    <div class="dh"><div><div class="t">임대인 보고서</div><div class="s">${bd.name} · ${ymKo(ym)}</div></div><button class="x" onclick="closeDrawer()">✕</button></div>
+    <div class="db">
+      ${!closed?`<div class="prev" style="margin:0 0 12px"><div class="pt">아직 마감 전입니다</div>숫자가 바뀔 수 있어 마감한 뒤에 보냅니다. 내용은 지금 볼 수 있습니다. <span class="lk" onclick="closeDrawer();f12='${ym}';go('pay-12')">청구 현황에서 마감 →</span></div>`
+        :sent?`<div class="prev" style="margin:0 0 12px"><div class="pt">${d8m('2026-'+sent)} 보냄</div>다시 보내면 발송 내역에 새 줄이 생깁니다. <span class="lk" onclick="closeDrawer();go('ntf-6')">발송 내역 →</span></div>`:''}
+      <div class="fg" style="margin-bottom:12px">
+        <div class="fr"><span class="fk">받는 사람</span><span class="fv">${to.map(x=>`${x.n} &lt;${x.mail||'이메일 없음'}&gt;`).join(', ')}</span></div>
+        <div class="fr" style="align-items:flex-start"><span class="fk">이달의 메모</span><textarea rows="3" style="flex:1;border:1px solid var(--line);border-radius:var(--r-sm);padding:7px 9px;font:inherit;background:var(--bg);color:inherit" placeholder="수리 · 점검 · 공지 등 (선택) — 쓰면 보고서 맨 위에 실립니다" onchange="rpMemo(this.value)">${(REP_MEMO[repKey(b,ym)]||'').replace(/</g,'&lt;')}</textarea></div></div>
+      ${repDoc(b,ym)}</div>
+    <div class="df"><button class="btn" onclick="say('임대인 보고서 PDF — 위 보고서를 PDF로 내려받습니다. 메일에 붙는 PDF와 같습니다.\\n목업에서는 파일을 내려받지 않습니다.')">PDF 내려받기</button>
+      <button class="btn pri" ${closed?'':'disabled title="마감한 달만 보낼 수 있습니다"'} onclick="repSend()">${sent?'다시 보내기':'메일 보내기'}</button></div>
+  </div></div>`;
 }
 
 /* ═══ 임시 — 메일 문구 9종(초안 · 대표 검토 중). 칸({ })은 시스템이 채운다. 검토가 끝나면 메뉴와 함께 지운다 ═══ */
