@@ -4458,7 +4458,7 @@ function addCut(id,amt,date,why,sup,vat){
    막는 경우: 그 기록의 달을 마감했다 · 비정기 청구에 입금이 배분됐다 · 감액으로 생긴 과납을 이미 환불했거나 썼다.
    그때는 이번 달의 청구 추가 · 청구 감액으로 바로잡는다 */
 const CANCELS=[];   /* {kind:'adh'|'cut', rec, date, why} */
-/* 수납 — 원장의 한 입금(dep)이 여러 청구에 나뉘어 있다. 보증금 상계만 여기서 취소한다. 은행 입금은 입금 무효(PAY-9) */
+/* 수납 — 원장의 한 입금(dep)이 여러 청구에 나뉘어 있다. 보증금 상계만 여기서 취소한다. 은행 입금은 입금 매칭의 매칭 무효 → 명세변경_261126 45 */
 function payRec(dep){
   const ev=[];Object.entries(PAYEV).forEach(([id,L])=>L.forEach(e=>{if(e.dep===dep) ev.push({id,...e});}));
   if(!ev.length) return null;
