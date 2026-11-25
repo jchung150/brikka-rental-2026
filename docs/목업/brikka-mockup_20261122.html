@@ -3089,35 +3089,33 @@ function mailNowTo(m){const c=m.ks&&CTRS.find(x=>ckey(x)===m.ks[0]); if(!c) retu
 function mailResend(){const m=MAIL_LOG.find(x=>x.id===mv.id); if(!m) return; const to=mailNowTo(m); if(!to.length) return;
   const n=mailAdd({...m,id:undefined,at:`${TODAY_S} ${new Date().toTimeString().slice(0,5)}`,to,how:'수동',by:'슈퍼관리자',st:'성공',why:'',of:m.id,re:null});
   n.id=++mailSeq; m.re=n.id; mv={id:n.id,re:false}; render(true);}
-let fm={kind:'',ch:'',how:'',st:'',per:'',q:''}, mv=null, mp=1;
+let fm={kind:'',st:'',ch:'',q:''}, mv=null, mp=1;
 const setFm=(k,v)=>{fm[k]=v;mp=1;render();};
 function mvOpen(id,re){mv={id,re:!!re};DRAWER='mlv';render(true);}
 const MST={'성공':'ok','실패':'da','대기':'mu'};
+/* 계약고유이름 칸 — 계약 메일만. 청구서 합쳐 보내기는 「외 N」. 임대인 보고서 · 계정 메일은 계약이 없다 */
+const mailCtr=m=>{const cs=(m.ks||[]).map(k=>CTRS.find(x=>ckey(x)===k)).filter(Boolean); if(!cs.length) return '<span style="color:var(--faint)">—</span>';
+  const c=cs[0]; return `${cname((BUILDINGS.find(x=>x.id===c.b)||{}).alias,c.no,c.ten)}${cs.length>1?` <span class="c2" style="display:inline;margin:0">외 ${cs.length-1}</span>`:''}`;};
 function NTF6(){
   const d8=d=>d.replace(/-/g,'.');
-  /* 기간 — 자료 보관함 · 원장과 같은 고르기(전체 · 최근 1 · 3 · 12개월) */
-  const from=fm.per?dnum(TODAY_S)-({'1':30,'3':91,'12':365}[fm.per]):null;
-  const R=mailRows().filter(m=>(!fm.kind||m.kind===fm.kind)&&(!fm.ch||m.ch===fm.ch)&&(!fm.how||m.how===fm.how)&&(!fm.st||m.st===fm.st)
-      &&(from==null||dnum(m.at)>=from)&&qHit(fm.q,m.to.flatMap(x=>[x.n,x.mail]).concat([m.rel])))
+  const R=mailRows().filter(m=>(!fm.kind||m.kind===fm.kind)&&(!fm.st||m.st===fm.st)&&(!fm.ch||m.ch===fm.ch)
+      &&qHit(fm.q,m.to.flatMap(x=>[x.n,x.mail]).concat([m.rel])))
     .sort((p,q)=>p.at<q.at?1:p.at>q.at?-1:q.id-p.id);
   const N=Math.max(1,Math.ceil(R.length/HPER)), cur=Math.min(mp,N), P=R.slice((cur-1)*HPER,cur*HPER);
   const S=(f,opts,lab)=>`<select onchange="setFm('${f}',this.value)"><option value="">${lab}</option>${opts.map(v=>`<option ${fm[f]===v?'selected':''}>${v}</option>`).join('')}</select>`;
-  const nFail=mailRows().filter(m=>m.st==='실패'&&!m.re).length;
   return `
   <div class="ph"><h1>발송 내역</h1><span class="sid">NTF-6</span></div>
   <div class="fbar">
     ${qBox('mq',fm.q,'setFm')}
-    ${S('kind',MAIL_KINDS,'전체 발송종류')}${S('ch',['이메일'],'전체 채널')}${S('how',['수동','자동'],'전체 발송방식')}${S('st',['성공','실패','대기'],'전체 상태')}
-    <select onchange="setFm('per',this.value)">${[['','전체 기간'],['1','최근 1개월'],['3','최근 3개월'],['12','최근 12개월']].map(([v,t])=>`<option value="${v}" ${fm.per===v?'selected':''}>${t}</option>`).join('')}</select>
-    <span style="margin-left:auto;color:var(--muted);font-size:12px">${R.length}건${nFail?` · <b style="color:var(--danger)">다시 보내지 않은 실패 ${nFail}건</b>`:''}</span></div>
+    ${S('kind',MAIL_KINDS,'전체 발송종류')}${S('st',['성공','실패','대기'],'전체 상태')}${S('ch',['이메일'],'전체 채널')}</div>
   <div class="tbl"><div class="tw"><table>
-    <thead><tr><th>발송일시</th><th>발송종류</th><th>채널</th><th>받는 사람</th><th>받는 주소</th><th>관련 대상</th><th>발송방식</th><th>보낸 사람</th><th class="c">상태</th><th class="c">더보기</th></tr></thead>
+    <thead><tr><th>발송일시</th><th>발송종류</th><th>채널</th><th>받는 사람</th><th>받는 주소</th><th>계약고유이름</th><th>발송방식</th><th>보낸 사람</th><th class="c">상태</th><th class="c">더보기</th></tr></thead>
     <tbody>${P.length?P.map(m=>{const one=(L,f)=>`${L[0]?L[0][f]:'—'}${L.length>1?` <span class="c2" style="display:inline;margin:0">외 ${L.length-1}</span>`:''}`;
       return `<tr class="mrow" onclick="mvOpen(${m.id})">
       <td>${d8(m.at)}</td><td>${m.kind}</td><td>${m.ch}</td>
       <td title="${m.to.map(x=>x.n).join(', ')}">${one(m.to,'n')}</td>
       <td title="${m.to.map(x=>x.mail).join(', ')}">${one(m.to,'mail')}</td>
-      <td>${m.rel}</td><td>${m.how}</td><td>${m.by}</td>
+      <td>${mailCtr(m)}</td><td>${m.how}</td><td>${m.by}</td>
       <td class="c"><span class="bd ${MST[m.st]}" ${m.st==='실패'?`title="${m.why}"`:''}>${m.st}</span>${m.re?' <span class="c2" style="display:inline;margin:0">다시 보냄</span>':''}${m.of?' <span class="c2" style="display:inline;margin:0">다시 보낸 메일</span>':''}</td>
       <td class="c">${moreCell([{t:'내용 보기',go:`mvOpen(${m.id})`},{t:'다시 보내기',go:`mvOpen(${m.id},1)`,off:m.ks||m.to.length?'':'받는 사람이 없습니다'}])}</td></tr>`;}).join('')
       :`<tr><td colspan="10" style="text-align:center;padding:28px 0;color:var(--muted)">조건에 맞는 발송 내역이 없습니다</td></tr>`}</tbody></table></div>
