@@ -3146,7 +3146,7 @@ function NTF6(){
     ${qBox('mq',fm.q,'setFm')}
     ${S('kind',MAIL_KINDS,'전체 발송종류')}${S('st',['성공','실패','대기'],'전체 상태')}${S('ch',['이메일'],'전체 채널')}</div>
   <div class="tbl"><div class="tw"><table>
-    <thead><tr><th>발송일시</th><th>발송종류</th><th>채널</th><th>받는 사람</th><th>받는 주소</th><th>계약고유이름</th><th>발송방식</th><th>보낸 사람</th><th class="c">상태</th><th class="c">더보기</th></tr></thead>
+    <thead><tr><th>발송일시</th><th>발송종류</th><th>채널</th><th>받는 사람</th><th>받는 주소</th><th>계약고유이름</th><th>발송방식</th><th>보낸 사람</th><th class="c">상태</th></tr></thead>
     <tbody>${P.length?P.map(m=>{const one=(L,f)=>`${L[0]?L[0][f]:'—'}${L.length>1?` <span class="c2" style="display:inline;margin:0">외 ${L.length-1}</span>`:''}`;
       return `<tr class="mrow" onclick="mvOpen(${m.id})">
       <td>${d8(m.at)}</td><td>${m.kind}</td><td>${m.ch}</td>
@@ -3154,13 +3154,13 @@ function NTF6(){
       <td title="${m.to.map(x=>x.mail).join(', ')}">${one(m.to,'mail')}</td>
       <td>${mailCtr(m)}</td><td>${m.how}</td><td>${m.by}</td>
       <td class="c"><span class="bd ${MST[m.st]}" ${m.st==='실패'?`title="${m.why}"`:''}>${m.st}</span>${m.re?' <span class="c2" style="display:inline;margin:0">다시 보냄</span>':''}${m.of?' <span class="c2" style="display:inline;margin:0">다시 보낸 메일</span>':''}</td>
-      <td class="c">${moreCell([{t:'내용 보기',go:`mvOpen(${m.id})`},{t:'다시 보내기',go:`mvOpen(${m.id},1)`,off:m.ks||m.to.length?'':'받는 사람이 없습니다'}])}</td></tr>`;}).join('')
-      :`<tr><td colspan="10" style="text-align:center;padding:28px 0;color:var(--muted)">조건에 맞는 발송 내역이 없습니다</td></tr>`}</tbody></table></div>
+</tr>`;}).join('')
+      :`<tr><td colspan="9" style="text-align:center;padding:28px 0;color:var(--muted)">조건에 맞는 발송 내역이 없습니다</td></tr>`}</tbody></table></div>
     ${pagerHTML(R.length,cur,`(p=>{mp=p;render(true);})`)}</div>
   <div class="hint">
     시스템이 보낸 메일을 <b>보내던 그대로</b>(제목 · 본문 · 첨부 · 받는 주소) 남깁니다. 담당자 주소를 나중에 바꿔도 여기 주소는 그대로입니다. 지우지 않습니다.<br>
     실패해도 자동으로 다시 보내지 않습니다. 주소가 틀렸으면 계약의 담당자 정보를 고친 뒤 다시 보냅니다. 다시 보내면 새 줄이 생기고 원래 줄은 그대로입니다.<br>
-    채널은 지금은 이메일뿐입니다(알림톡은 2차). 받는 사람이 여럿이면 첫 사람과 「외 N」으로 보이고, 마우스를 올리거나 줄을 누르면 모두 보입니다. 실패 이유는 상태에 마우스를 올리면 보입니다.<br>
+    채널은 지금은 이메일뿐입니다(알림톡은 2차). 받는 사람이 여럿이면 첫 사람과 「외 N」으로 보이고, 마우스를 올리거나 줄을 누르면 모두 보입니다. 실패 이유는 상태에 마우스를 올리면 보입니다. 줄을 누르면 보낸 내용이 열리고, 거기서 다시 보냅니다.<br>
     수동은 담당자가 보내기를 누른 메일(청구서 · 미납 안내 · 원장 명세서 · 웰컴 · 임대인 보고서 · 비밀번호 재설정), 자동은 시스템이 보낸 메일(계정 초대 · 비밀번호 변경 알림)입니다.
     로그인 인증 코드 · 비밀번호 찾기 메일은 여기 남기지 않습니다(보안 로그).</div>`;
 }
