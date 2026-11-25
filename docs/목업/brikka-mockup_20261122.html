@@ -563,7 +563,6 @@ tr.mrow{cursor:pointer}tr.mrow td{white-space:nowrap}
   </aside>
   <div class="main">
     <header class="top">
-      <div class="crumb" id="crumb"></div>
       <div class="sp"></div>
       <div class="ver" title="목업 버전 — 아직 완성본이 아니다. 기능정의서가 정본">목업 2026.11.22판 · 작업 중</div>
       <div class="today" title="오늘 — 목업의 기준 시점">2026년 8월 10일(월)</div>
@@ -6978,7 +6977,8 @@ function render(keep){
   else{html=TODO(id);const g=MENU.find(m=>m.items&&m.items.some(i=>i.id===id));
     const m=ALL.find(i=>i.id===id);
     crumb=(g?g.g+' <span>›</span> ':'')+`<b>${m?m.n:'—'}</b>`;}
-  $('#crumb').innerHTML=crumb;$('#view').innerHTML=html+drawerHTML();
+  /* 브레드크럼은 두지 않는다 — 화면 깊이가 2단(목록 → 상세)뿐이고 왼쪽 메뉴 · 제목이 위치를 보여 준다 */
+  $('#view').innerHTML=html+drawerHTML();
   if(keep) window.scrollTo(0,y); else if(!DRAWER) window.scrollTo(0,0);
 }
 /* 화면을 옮기면 맨 위부터 보인다 — 이벤트 객체가 keep으로 들어가지 않게 감싼다 */
