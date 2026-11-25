@@ -520,6 +520,11 @@ table.nowr th,table.nowr td{white-space:nowrap}
 .drow .dw.late{color:var(--warn)}.drow .dw .c2{font-weight:400;margin:0}
 .dgo{color:var(--faint);font-size:16px}
 tr.mrow{cursor:pointer}tr.mrow td{white-space:nowrap}
+.tmg{display:grid;grid-template-columns:repeat(auto-fill,minmax(420px,1fr));gap:12px;margin-bottom:12px;align-items:start}
+@media (max-width:520px){.tmg{grid-template-columns:1fr}}
+.tml{border:1px solid var(--line);border-radius:var(--r-sm);padding:12px 14px}
+.tms{font-weight:700;margin-bottom:8px}.tmb{white-space:pre-wrap;font-size:12.5px;line-height:1.7}
+.tph{color:var(--pri);background:var(--pri-bg);border-radius:3px;padding:0 2px}
 .dmore{padding:9px 16px;border-top:1px solid var(--line-2);font-size:12px;color:var(--pri);cursor:pointer;text-align:center}
 </style>
 
@@ -613,6 +618,8 @@ const MENU=[
    {id:'user-2',n:'사용자 관리',sid:'USER-2',i:'users'},
    {id:'sys-1',n:'운영사 관리',sid:'SYS-1',i:'cog'},
    {id:'user-1',n:'프로필',sid:'USER-1',i:'user'}]},
+ /* 임시 — 메일 문구 검토용(명세변경_261122 42). 검토가 끝나면 지운다 */
+ {id:'tmp-mail',n:'메일 문구 (임시)',sid:'삭제 예정',i:'mail'},
 ];
 const ALL=MENU.flatMap(m=>m.items||[m]);
 /* 열림 상태 · 접힘 상태 — 브라우저에 기억시킨다 */
@@ -3040,32 +3047,34 @@ function mailAdd(o){const m={id:++mailSeq,ch:'이메일',st:'성공',why:'',how:
    제목 [보내는 곳] 내용 · 본문 인사 → 내용 → (첨부 안내) → 서명. 건물 메일 서명은 건물 · 운영사 · 건물 관리자에서, 계정 메일은 BRIKKA · 운영사 */
 const d8m=d=>(d||'').replace(/-/g,'.');
 const ruleKo=r=>(r||'').replace('전월','전달 ').replace('당월','').replace('익월','다음 달 ').replace(/\s+/g,' ').trim();
-const signB=bd=>{const g=mgrOf((bd.mgrs||[])[0]); return `──\n${bd.name} 관리사무소 · ${g.co||'(주)테온하우스'}\n담당 ${g.n} · ${g.tel||''} · ${g.mail||''}\n이 메일은 보내기 전용입니다. 문의는 위 담당자에게 해 주세요.`;};
-const signA=()=>`──\nBRIKKA · (주)테온하우스\n이 메일은 보내기 전용입니다.`;
+const signB=bd=>{const g=bd.ph?{n:'{건물 관리자}',co:'{운영사}',tel:'{관리자 연락처}',mail:'{관리자 이메일}'}:mgrOf((bd.mgrs||[])[0]); return `──\n${bd.name} 관리사무소 · ${g.co||'(주)테온하우스'}\n담당 ${g.n} · ${g.tel||''} · ${g.mail||''}\n이 메일은 보내기 전용입니다. 문의는 위 담당자에게 해 주세요.`;};
+const signA=ph=>`──\nBRIKKA · ${ph?'{운영사}':'(주)테온하우스'}\n이 메일은 보내기 전용입니다.`;
 const payLine=bd=>bd.feeAcct&&bd.feeAcct!==bd.acct?`납부 계좌: 임대료 ${bd.acct} (${bd.acctName}) · 관리비 ${bd.feeAcct} (${bd.feeAcctName})`:`납부 계좌: ${bd.acct} (${bd.acctName})`;
 function mailText(kind,v){
   const B=v.bd, hi=`${v.who} 님, 안녕하세요.\n\n`;
+  /* 문구 검토 화면은 칸 이름({청구년월} 등)을 그대로 넣는다 */
+  const Y=ym=>String(ym).startsWith('{')?ym:ymKo(ym), W=x=>typeof x==='string'?x:won(x||0);
   const T={
-    '청구서':()=>[`[${B&&B.name}] ${v.ym&&ymKo(v.ym)} 청구서 (${v.nos})`,
-      `${hi}${B&&B.name} ${v.nos}의 ${v.ym&&ymKo(v.ym)} 청구서를 보내드립니다.\n\n납부마감일: ${d8m(v.due)}\n${B&&payLine(B)}\n\n항목별 금액은 첨부한 청구서를 확인해 주세요.`],
-    '청구서 재발송':()=>[`[${B&&B.name}] ${v.ym&&ymKo(v.ym)} 청구서 다시 보냄 (${v.nos})`,
-      `${hi}앞서 보내드린 ${B&&B.name} ${v.nos}의 ${v.ym&&ymKo(v.ym)} 청구서를 바로잡아 다시 보내드립니다.\n이전 청구서는 쓰지 마시고 이 청구서로 납부해 주세요.\n\n납부마감일: ${d8m(v.due)}\n${B&&payLine(B)}\n\n항목별 금액은 첨부한 청구서를 확인해 주세요.`],
+    '청구서':()=>[`[${B&&B.name}] ${Y(v.ym)} 청구서 (${v.nos})`,
+      `${hi}${B&&B.name} ${v.nos}의 ${Y(v.ym)} 청구서를 보내드립니다.\n\n납부마감일: ${d8m(v.due)}\n${B&&payLine(B)}\n\n항목별 금액은 첨부한 청구서를 확인해 주세요.`],
+    '청구서 재발송':()=>[`[${B&&B.name}] ${Y(v.ym)} 청구서 다시 보냄 (${v.nos})`,
+      `${hi}앞서 보내드린 ${B&&B.name} ${v.nos}의 ${Y(v.ym)} 청구서를 바로잡아 다시 보내드립니다.\n이전 청구서는 쓰지 마시고 이 청구서로 납부해 주세요.\n\n납부마감일: ${d8m(v.due)}\n${B&&payLine(B)}\n\n항목별 금액은 첨부한 청구서를 확인해 주세요.`],
     '미납 안내':()=>[`[${B&&B.name}] 미납 안내 (${v.nos})`,
-      `${hi}${B&&B.name} ${v.nos}에 납부마감일이 지난 금액이 있어 알려 드립니다.\n\n미납액: ${won(v.due||0)}\n연체료(예상): ${won(v.fee||0)} (${d8m(v.on)} 기준)\n${B&&payLine(B)}\n\n달마다 미납액 · 연체일수 · 연체료는 첨부한 미납 안내를 확인해 주세요.\n이미 납부하셨다면 이 안내와 엇갈린 것이니 양해 부탁드립니다.`],
+      `${hi}${B&&B.name} ${v.nos}에 납부마감일이 지난 금액이 있어 알려 드립니다.\n\n미납액: ${W(v.due)}\n연체료(예상): ${W(v.fee)} (${d8m(v.on)} 기준)\n${B&&payLine(B)}\n\n달마다 미납액 · 연체일수 · 연체료는 첨부한 미납 안내를 확인해 주세요.\n이미 납부하셨다면 이 안내와 엇갈린 것이니 양해 부탁드립니다.`],
     '원장 명세서':()=>[`[${B&&B.name}] 거래 명세서 (${v.nos} · ${d8m(v.from)} ~ ${d8m(v.to)})`,
       `${hi}${B&&B.name} ${v.nos}의 ${d8m(v.from)} ~ ${d8m(v.to)} 거래 명세서(받을 돈 · 보증금)를 보내드립니다.${v.memo?`\n\n${v.memo}`:''}\n\n첨부한 명세서를 확인해 주세요.`],
     '웰컴 메시지':()=>[`[${B&&B.name}] 입주를 환영합니다 (${v.nos})`,
       `${hi}${v.ten}의 ${B&&B.name} ${v.nos} 계약을 환영합니다.\n\n계약 기간: ${d8m(v.from)} ~ ${d8m(v.to)}\n청구서: 매달 ${B&&ruleKo(B.billDay)}에 메일로 보내드리고, 납부마감일은 ${B&&ruleKo(B.dueDay)}입니다.\n${B&&payLine(B)}\n\n궁금한 점은 아래 담당자에게 연락해 주세요.`],
-    '임대인 보고서':()=>[`[${B&&B.name}] ${v.ym&&ymKo(v.ym)} 운영 보고`,
-      `${hi}${B&&B.name}의 ${v.ym&&ymKo(v.ym)} 운영 보고서를 보내드립니다.\n\n청구: ${won(v.bill||0)} · 수납: ${won(v.paid||0)} · 미납: ${won(Math.max(0,(v.bill||0)-(v.paid||0)))}\n공실: ${v.vac||0} / ${v.unit||0}유닛\n\n자세한 내용은 첨부한 보고서를 확인해 주세요.`],
-    '계정 초대':()=>[`[BRIKKA] (주)테온하우스 관리자 계정 초대`,
-      `${hi}(주)테온하우스가 BRIKKA 관리자 계정을 만들었습니다.\n아래 버튼을 눌러 비밀번호를 정하면 바로 쓸 수 있습니다. 링크는 24시간 동안 한 번만 쓸 수 있습니다.\n\n[비밀번호 정하기]\n\n초대받을 일이 없다면 이 메일을 무시하세요.`],
+    '임대인 보고서':()=>[`[${B&&B.name}] ${Y(v.ym)} 운영 보고`,
+      `${hi}${B&&B.name}의 ${Y(v.ym)} 운영 보고서를 보내드립니다.\n\n청구: ${W(v.bill)} · 수납: ${W(v.paid)} · 미납: ${v.unpaid!=null?W(v.unpaid):won(Math.max(0,(v.bill||0)-(v.paid||0)))}\n공실: ${v.vac||0} / ${v.unit||0}유닛\n\n자세한 내용은 첨부한 보고서를 확인해 주세요.`],
+    '계정 초대':()=>[`[BRIKKA] ${v.op||'(주)테온하우스'} 관리자 계정 초대`,
+      `${hi}${v.op||'(주)테온하우스'}가 BRIKKA 관리자 계정을 만들었습니다.\n아래 버튼을 눌러 비밀번호를 정하면 바로 쓸 수 있습니다. 링크는 24시간 동안 한 번만 쓸 수 있습니다.\n\n[비밀번호 정하기]\n\n초대받을 일이 없다면 이 메일을 무시하세요.`],
     '비밀번호 재설정':()=>[`[BRIKKA] 비밀번호 재설정`,
       `${hi}비밀번호 재설정 요청을 받았습니다.\n아래 버튼을 눌러 새 비밀번호를 정하세요. 링크는 1시간 동안 한 번만 쓸 수 있습니다.\n\n[새 비밀번호 정하기]\n\n요청하지 않았다면 이 메일을 무시하세요. 비밀번호는 바뀌지 않습니다.`],
     '비밀번호 변경 알림':()=>[`[BRIKKA] 비밀번호가 바뀌었습니다`,
       `${hi}${d8m(v.at)}에 BRIKKA 비밀번호가 바뀌었습니다.\n본인이 바꾸셨다면 확인만 하시면 됩니다.\n\n본인이 바꾸지 않았다면 바로 로그인 화면의 「비밀번호를 잊으셨나요?」로 비밀번호를 바꾸고 슈퍼관리자에게 알리세요.`]};
   const [subj,body]=T[kind]();
-  return {subj,body:`${body}\n\n${B?signB(B):signA()}`};
+  return {subj,body:`${body}\n\n${B?signB(B):signA(v.op)}`};
 }
 function billMail(keys,ym,at,by,kind){
   const cs=keys.map(k=>CTRS.find(x=>ckey(x)===k)), c=cs[0], bd=BUILDINGS.find(x=>x.id===c.b)||BUILDINGS[0], to=billTo(c);
@@ -3184,6 +3193,32 @@ function mvHTML(){
     <div class="df">${mv.re?`<button class="btn" onclick="mv.re=false;render(true)">취소</button><button class="btn pri" ${now.length?'':'disabled'} onclick="mailResend()">다시 보내기</button>`
       :`<button class="btn" onclick="mv.re=true;render(true)">다시 보내기</button><button class="btn" onclick="closeDrawer()">닫기</button>`}</div>
   </div></div>`;
+}
+
+/* ═══ 임시 — 메일 문구 9종(명세변경_261122 42). 칸({ })은 시스템이 채운다. 검토가 끝나면 메뉴와 함께 지운다 ═══ */
+function TMPMAIL(){
+  const bd={ph:1,name:'{건물명}',acct:'{은행 계좌번호}',acctName:'{예금주}',feeAcct:'{은행 계좌번호}',billDay:'{청구일}',dueDay:'{납부마감일 규칙}'};
+  const ten='{임차인} {담당자}';
+  const L=[
+    ['청구서','수동 · 청구서 발행에서 「메일 보내고 발행」','청구서 메일 받는 담당자','청구서 PDF',{bd,who:ten,ym:'{청구년월}',nos:'{유닛}',due:'{납부마감일}'}],
+    ['청구서 재발송','수동 · 청구서를 취소하고 다시 발행할 때','청구서 메일 받는 담당자','청구서 PDF',{bd,who:ten,ym:'{청구년월}',nos:'{유닛}',due:'{납부마감일}'}],
+    ['미납 안내','수동 · 미납 관리에서 골라 보냄','대표 담당자','미납 안내 PDF',{bd,who:ten,nos:'{유닛}',due:'{미납액}',fee:'{연체료}',on:'{보낸 날}'}],
+    ['원장 명세서','수동 · 계약 원장 탭 「명세서 보내기」','청구서 메일 받는 담당자','거래 명세서 PDF',{bd,who:ten,nos:'{유닛}',from:'{시작일}',to:'{끝일}',memo:'({메모} — 담당자가 넣었을 때만)'}],
+    ['웰컴 메시지','수동 · 계약 등록에서 「저장 및 웰컴 메일 보내기」','대표 담당자','없음',{bd,who:ten,ten:'{임차인}',nos:'{유닛}',from:'{계약시작일}',to:'{계약종료일}'}],
+    ['임대인 보고서','수동 · 임대인 보고서 「메일 발송」','임대인','보고서 PDF',{bd,who:'{임대인}',ym:'{청구년월}',bill:'{청구액}',paid:'{수납액}',unpaid:'{미납액}',vac:'{공실 유닛 수}',unit:'{전체 유닛 수}'}],
+    ['계정 초대','자동 · 관리자 계정을 저장하면','그 관리자','없음',{who:'{이름}',op:'{운영사}'}],
+    ['비밀번호 재설정','수동 · 사용자 관리 「재설정 메일 발송」 / 자동 · 본인이 로그인 화면에서 비밀번호 찾기','그 관리자','없음',{who:'{이름}',op:'{운영사}'}],
+    ['비밀번호 변경 알림','자동 · 비밀번호가 바뀌면','그 관리자','없음',{who:'{이름}',op:'{운영사}',at:'{바뀐 일시}'}]];
+  const hl=t=>t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/\{[^}]+\}/g,x=>`<span class="tph">${x}</span>`);
+  return `
+  <div class="ph"><h1>메일 문구</h1><span class="sid">임시 · 삭제 예정</span></div>
+  <div class="hint" style="margin:0 0 14px">명세변경_261122 42의 9종 문구를 검토하는 임시 화면입니다. <span class="tph">{ }</span> 칸은 시스템이 채웁니다. 문구는 코드에 고정되고, 바꾸려면 명세변경으로 요청합니다. 실제로 보낸 메일은 발송 내역에서 봅니다.</div>
+  <div class="tmg">${L.map(([k,when,to,att,v],i)=>{const t=mailText(k,v);
+    return `<div class="card" style="margin:0"><div class="ct">${'①②③④⑤⑥⑦⑧⑨'[i]} ${k}</div>
+      <div class="cc"><dl class="dl" style="margin-bottom:10px"><dt>언제</dt><dd>${when}</dd><dt>받는 사람</dt><dd>${to}</dd><dt>첨부</dt><dd>${att}</dd></dl>
+        <div class="tml"><div class="tms">${hl(t.subj)}</div><div class="tmb">${hl(t.body)}</div></div></div></div>`;}).join('')}</div>
+  <div class="hint">관리비 계좌가 따로 있는 건물은 납부 계좌 줄이 「임대료 {계좌} · 관리비 {계좌}」 두 개가 됩니다. 청구서 합쳐 보내기면 {유닛}이 「본관801호 · 본관701호」가 됩니다.<br>
+    로그인 인증 코드 · 슈퍼관리자 넘기기 인증 코드 메일은 개발 코드에 있는 문구 그대로 둡니다(이 화면에 없음).</div>`;
 }
 
 /* ═══ DASH-1 대시보드 — 로그인하면 처음 보는 화면. 1단 지금 상태 · 2단 확인이 필요한 일(핵심) · 3단 최근 작업 이력.
@@ -6801,6 +6836,7 @@ function render(keep){
   else if(id==='pay-14'){html=PAY14();crumb='수납 관리 <span>›</span> <b>수납 현황</b>';}
   else if(id==='pay-13'){html=PAY13();crumb='수납 관리 <span>›</span> <b>입금 매칭</b>';}
   else if(id==='ntf-6'){html=NTF6();crumb='이력 관리 <span>›</span> <b>발송 내역</b>';}
+  else if(id==='tmp-mail'){html=TMPMAIL();crumb='<b>메일 문구 (임시)</b>';}
   else{html=TODO(id);const g=MENU.find(m=>m.items&&m.items.some(i=>i.id===id));
     const m=ALL.find(i=>i.id===id);
     crumb=(g?g.g+' <span>›</span> ':'')+`<b>${m?m.n:'—'}</b>`;}
