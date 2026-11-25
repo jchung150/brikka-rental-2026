@@ -159,7 +159,7 @@ for (const b of ['b2']) run('PRO-3 ' + b, "tab3='요약';PRO3('" + b + "')");
   const R0 = M.mailRows(), n0 = R0.length, fl = R0.filter(m => m.st === '실패'), f = fl[0];
   const seed = n0 === 57 && fl.length === 1 && /토끼어패럴/.test(f.rel) && /sampel/.test(f.to[0].mail) && R0.filter(m => m.kind === '청구서').length === 46
     && !R0.some(m => /인증 코드|비밀번호 찾기/.test(m.kind)) && R0.some(m => m.kind === '계정 초대' && m.how === '자동') && R0.some(m => m.kind === '비밀번호 변경 알림');
-  const h = M.NTF6(); const list = /발송 내역/.test(h) && !/다시 보내지 않은 실패/.test(h) && /<th>계약고유이름<\/th>/.test(h) && h.indexOf('전체 발송종류') < h.indexOf('전체 상태') && h.indexOf('전체 상태') < h.indexOf('전체 채널') && !/전체 발송방식/.test(h) && /전체 기간/.test(h) && h.indexOf('전체 기간') < h.indexOf('전체 발송종류') && !/class="fq"/.test(h);
+  const h = M.NTF6(); const list = /발송 내역/.test(h) && !/다시 보내지 않은 실패/.test(h) && /<th>계약고유이름<\/th>/.test(h) && h.indexOf('전체 발송종류') < h.indexOf('전체 채널') && h.indexOf('전체 채널') < h.indexOf('전체 상태') && !/전체 발송방식/.test(h) && /전체 기간/.test(h) && h.indexOf('전체 기간') < h.indexOf('전체 발송종류') && !/class="fq"/.test(h);
   M.mvOpen(f.id, 1); const ph = M.mvHTML(); M.mailResend(); const R1 = M.mailRows(), nw = R1[R1.length - 1];
   const re = /보낸 때와 주소가 다릅니다/.test(ph) && /📎 청구서_2026-07_본관601호\.pdf/.test(ph) && R1.length === n0 + 1 && f.st === '실패' && f.re === nw.id && nw.of === f.id
     && nw.st === '성공' && /sample\.kr/.test(nw.to[0].mail) && !M.dashItems().find(x => x.k === 'mail').rows.length;
