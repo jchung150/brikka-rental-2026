@@ -3638,7 +3638,7 @@ function DASH1(){
     card('공실률',`${unit?(vac/unit*100).toFixed(1):'0.0'}%`,`공실 ${vac} / 전체 ${unit}유닛`,`go('pro-1')`),
     card(`${+LY.slice(5)}월분 청구 · 수납`,won(paid),`청구 ${won(bill)} · 수납률 ${bill?Math.round(paid/bill*100):0}%`,`f12='${LY}';go('pay-12')`),
     card('미납액',won(due),`${dueN}개 계약 · 연체료(예상) ${won(fee)}`,`${fdb?`f2.b='${fdb}';`:''}go('pay-2')`,due>0),
-    card('만료 임박 계약',`${exp(90)}건`,`90일 안 ${exp(90)} · 60일 안 ${exp(60)} · 30일 안 ${exp(30)}`,`f1c.dd='90';f1c.st='진행중';f1c.b='${fdb}';go('ctr-1')`)].join('');
+    card('만료 임박 계약',`${exp(90)}건`,`30일 안 ${exp(30)} · 31~60일 ${exp(60)-exp(30)} · 61~90일 ${exp(90)-exp(60)}`,`f1c.dd='90';f1c.st='진행중';f1c.b='${fdb}';go('ctr-1')`)].join('');
   /* 2단 — 확인이 필요한 일. 건수가 0인 항목은 숨긴다 */
   const L=dashItems(), by=Object.fromEntries(L.map(x=>[x.k,x])), off=L.filter(x=>!x.rows.length);
   /* 업무별 카드 4개(청구 · 입금 · 계약 · 메일) — 늘 같은 자리 · 같은 높이. 카드 안에 할 일을 급한 순으로 3줄, 더 있으면 펼친다. 빈 줄은 비워 둔다 */
@@ -3653,7 +3653,7 @@ function DASH1(){
       <div class="dlist">${show.map(r=>`<div class="drow" onclick="${r.go}" title="${r.why}">
         <div class="dm"><div class="c1">${r.n} <span class="dact">${ACT[r.k]}</span></div>
           <div class="c2">${r.t} · ${r.d}</div></div>
-        <div class="dw ${r.age>0?'late':''}">${r.when.split(' · ').pop()}<div class="c2">${r.when.includes(' · ')?r.when.split(' · ')[0]:''}</div></div>
+        <div class="dw ${r.age>0?'late':''}">${r.when.split(' · ').pop()}</div>
         <span class="dgo">›</span></div>`).join('')}${Array.from({length:Math.max(0,3-show.length)},(_,i)=>`<div class="drow none">${!rows.length&&!i?'<span class="c2" style="margin:0">할 일이 없습니다</span>':''}</div>`).join('')}</div>
       ${rows.length>3?`<div class="dmore" onclick="dsTog('${ck}')">${all?'접기':`${rows.length-3}건 더 보기`}</div>`:''}</div>`;});
   /* 3단 — 최근 변경 이력 10건 */
@@ -3663,8 +3663,7 @@ function DASH1(){
   <div class="ph"><h1>대시보드</h1><span class="sid">DASH-1</span></div>
   <div class="fbar">
     <select onchange="fdb=this.value;render()"><option value="">전체 건물</option>
-      ${BUILDINGS.map(b=>`<option value="${b.id}" ${fdb===b.id?'selected':''}>${b.name}</option>`).join('')}</select>
-    <span style="color:var(--muted);font-size:12px">${TODAY_S.replace(/-/g,'.')} 기준</span></div>
+      ${BUILDINGS.map(b=>`<option value="${b.id}" ${fdb===b.id?'selected':''}>${b.name}</option>`).join('')}</select></div>
   <div class="two" style="grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px">${top}</div>
   <div class="dgrid">${cards.join('')}</div>
   <div class="card"><div class="ct">최근 변경 이력<span class="sub">최근 10건</span><span class="ca"><span class="lk" style="font-weight:400;font-size:12px" onclick="go('rec-1')">전체보기 →</span></span></div>
