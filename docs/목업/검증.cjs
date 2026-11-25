@@ -127,8 +127,8 @@ for (const b of ['b2']) run('PRO-3 ' + b, "tab3='요약';PRO3('" + b + "')");
 { const TN = new Function(stub + bare + '; seedJuly(); return {CONTACTS,cnOpen,cnEdit,cnSave,cnHTML,OWN_MAIL,tenAliases,ttaxOf,RC,fct,MENU,CTRS,CLOG,get cv(){return cv;}};')();
   const cnt = k => { TN.fct.kind = k; const n = (TN.CONTACTS().match(/class="mrow"/g) || []).length; TN.fct.kind = ''; return n; };
   const nT = cnt('임차인'), nO = cnt('임대인'), nA = cnt('중개사'), nAll = cnt('');
-  const h = TN.CONTACTS(); const list = nT === 22 && nO === 4 && nA >= 6 && nAll === nT + nO + nA && /본관801호 · 본관701호/.test(h) && /카리나빌딩 60%/.test(h) && /\(종료\) 뉴진스 본관601호/.test(h)
-    && TN.MENU.some(m => m.id === 'contacts') && !JSON.stringify(TN.MENU).includes('user-8') && /cnOpen\('임대인'/.test(h) && /cnOpen\('중개사'/.test(h);
+  const h = TN.CONTACTS(); TN.fct.kind = '임대인'; const hO = TN.CONTACTS(); TN.fct.kind = '임차인'; const hT = TN.CONTACTS(); TN.fct.kind = ''; const list = nT === 22 && nO === 4 && nA >= 6 && nAll === Math.min(25, nT + nO + nA) && (nT + nO + nA <= 25 || /class="pgr"/.test(TN.CONTACTS())) && /본관801호 · 본관701호/.test(h) && /카리나빌딩 60%/.test(hO) && /\(종료\) 뉴진스 본관601호/.test(hT)
+    && TN.MENU.some(m => m.id === 'contacts') && !JSON.stringify(TN.MENU).includes('user-8') && /cnOpen\('임대인'/.test(hO) && (TN.fct.kind = '중개사', /cnOpen\('중개사'/.test(TN.CONTACTS())) && (TN.fct.kind = '', true);
   TN.fct.q = 'ICB'; const byAlias = (TN.CONTACTS().match(/class="mrow"/g) || []).length === 1; TN.fct.q = ''; TN.fct.b = 'b2'; const byB = !/카리나\|/.test(TN.CONTACTS()) && /뉴진스하우스/.test(TN.CONTACTS()); TN.fct.b = '';
   TN.cnOpen('임차인', encodeURIComponent('(주)아이씨비')); const p1 = TN.cnHTML();
   const ten = /width:520px/.test(p1) && /대표 담당자/.test(p1) && /ICB/.test(p1) && /tax@icb\.co\.kr/.test(p1) && /178,000,000원/.test(p1) && /계약 2건/.test(p1) && />수정</.test(p1);
@@ -1258,9 +1258,9 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   PT.tab3 = '요약'; const sum = PT.PRO3('b1'); PT.tab3 = '주차'; const h0 = PT.PRO3('b1');
   const order = h0.indexOf('>유닛<') < h0.indexOf('>주차<') && h0.indexOf('>주차<') < h0.indexOf('>관리비<');
   const rows = (h0.match(/onclick="vdOpen\('b1',\d+\)"><td class="c1"/g) || []).length;
-  const flat = rows === 31 && /<th>차량번호<\/th><th>차량 소유자<\/th><th>연락처<\/th><th>차종<\/th><th>계약고유이름<\/th><th>주차구분<\/th>/.test(h0)
+  const flat = rows === 10 && /class="pgr"/.test(h0) && />4<\/button>/.test(h0) && /<th>차량번호<\/th><th>차량 소유자<\/th><th>연락처<\/th><th>차종<\/th><th>계약고유이름<\/th><th>주차구분<\/th>/.test(h0)
     && !/class="grp"/.test(h0) && !/전체 (펼치기|접기)/.test(h0) && !/무료 \d+대 초과/.test(h0) && !/무료 주차를 넘은 계약/.test(h0)
-    && h0.indexOf('10버3291') < h0.indexOf('45라0809') && /미확인/.test(h0) && !/주차면 32|등록 31대/.test(h0) && /\+ 차량 추가/.test(h0) && !/전체 요금부과/.test(h0);
+    && h0.includes('10버3291') && /미확인/.test(h0) && !/주차면 32|등록 31대/.test(h0) && /\+ 차량 추가/.test(h0) && !/전체 요금부과/.test(h0);
   PT.fpk.k = 'b1본관501호'; const h1 = PT.PRO3('b1'); const pick = /총 4대 · 무료 3대 \+ 월정액 0대 · 기타 1대/.test(h1) && /연락처 미확인/.test(h1) && !/10버3291/.test(h1) && /기타 · 아난티 호텔/.test(h1);
   PT.fpk.k = '';
   PT.CPARK['b1본관801호'].free = 2; const h2 = PT.PRO3('b1'); PT.CPARK['b1본관801호'].free = 3;
@@ -1272,7 +1272,7 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   PT.vehOpen('b1'); Object.assign(PT.vh, {k:'b1본관801호', plate:'88너8888', own:'김호텔', tel:'010-0000-0002', fee:'무료', loc:'기타', place:''}); PT.vehSave();
   const etc1 = PT.vehMissing().join() === '장소'; PT.vh.place = '아난티 호텔'; PT.vehSave(); PT.fpk.k = 'b1본관801호'; const h3 = PT.PRO3('b1'); PT.fpk.k = '';
   const etc = etc1 && PT.vehOf('b1본관801호').length === 6 && /기타 · 아난티 호텔/.test(h3) && /총 6대 · 무료 3대 \+ 월정액 2대 · 기타 1대/.test(h3);
-  r6.push(['주차 탭 — 유닛·주차·관리비 순 · 31대 한 단 명부(차량번호 · 소유자 · 연락처 · 차종 · 계약고유이름 · 주차구분 · 요금부과) · 묶음 줄 · 펼치기 없음 · 계약을 고르면 「총 4대 · 무료 3대 + 월정액 0대 · 기타 1대」 · 무료 초과면 표 위 안내(누르면 그 계약) · 기타는 장소 필수 · 무료 대수에 안 셈 · 차량 줄을 누르면 상세 · 무료 초과로 새로 넣기 막힘 · 차량번호 중복 막힘',
+  r6.push(['주차 탭 — 유닛·주차·관리비 순 · 31대 한 단 명부(10대씩 쪽 나눔 · 차량번호 · 소유자 · 연락처 · 차종 · 계약고유이름 · 주차구분 · 요금부과) · 묶음 줄 · 펼치기 없음 · 계약을 고르면 「총 4대 · 무료 3대 + 월정액 0대 · 기타 1대」 · 무료 초과면 표 위 안내(누르면 그 계약) · 기타는 장소 필수 · 무료 대수에 안 셈 · 차량 줄을 누르면 상세 · 무료 초과로 새로 넣기 막힘 · 차량번호 중복 막힘',
     order && !/등록 차량/.test(sum) && flat && pick && over && det && overFree && dupP && ok && etc]); }
 /* 주차 탭 검색 — 차량번호 · 소유자 · 연락처 · 계약고유이름 일부, 띄어쓰기 · 하이픈 무시 · 필터와 함께 · 계약 상세 주차 탭에는 검색 칸 없음 */
 { const PQ = new Function(stub + bare + '; return {PRO3,CTR3,get fpk(){return fpk;},set tab3(v){tab3=v;},set tab3c(v){tab3c=v;}};')();
@@ -1354,7 +1354,7 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   BT.tab3 = '요약'; const h0 = BT.PRO3('b1'); BT.tab3 = '계약'; const h1 = BT.PRO3('b1'), h2 = BT.PRO3('b2');
   const order = h0.indexOf('>요약<') < h0.indexOf('>계약<') && h0.indexOf('>계약<') < h0.indexOf('>유닛<');
   const n1 = BT.CTRS.filter(c => c.b === 'b1' && c.st === '진행중').length, rowsOf = h => (h.match(/<tr onclick="tab3c='요약';go\('ctr-3\//g) || []).length;
-  const only = rowsOf(h1) === n1 && !/뉴진스\|/.test(h1) && rowsOf(h2) === BT.CTRS.filter(c => c.b === 'b2' && c.st === '진행중').length && !/>전체 건물</.test(h1);
+  const only = rowsOf(h1) === Math.min(10, n1) && (n1 <= 10 || /class="pgr"/.test(h1)) && !/뉴진스\|/.test(h1) && rowsOf(h2) === Math.min(10, BT.CTRS.filter(c => c.b === 'b2' && c.st === '진행중').length) && !/>전체 건물</.test(h1);
   BT.nc = null; const p = BT.CTR2(), hv = /<span class="fk">종류<\/span>/.test(p) || /냉난방기/.test(p) && !/placeholder="종류 \(예/.test(p);
   r6.push(['건물 상세 계약 탭 — 요약 · 계약 · 유닛 순서 · 계약 목록과 같은 표 · 그 건물 계약만(건물 필터 없음) · 냉난방기 카드는 종류 · 대수 · 소유 · 메모 줄', order && only && hv && /\+ 새로운 계약 등록/.test(h1)]); }
 /* 건물 목록 검색 — 건물 이름 · 별칭 · 주소 · 건물주(공동 소유자 포함) · 건물관리자(두 번째 관리자 포함) 일부 · 필터와 함께 */

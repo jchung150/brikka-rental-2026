@@ -1695,7 +1695,8 @@ function bDel(id){const i=BUILDINGS.findIndex(b=>b.id===id); if(i<0||BUILDINGS[i
 function PRO1(){
   const list=BUILDINGS.filter(b=>qHit(f1p.q,[b.name,b.alias,b.addr,b.addr2,...b.owners.map(o=>o.n),...b.mgrs])
     &&(!f1p.kind||b.kind===f1p.kind)&&(!f1p.mgr||(f1p.mgr==='-'?!b.mgrs.length:b.mgrs.includes(f1p.mgr))));
-  const rows=list.map(b=>{
+  const PG=paged('pro1',list,HMAIN,JSON.stringify(f1p));
+  const rows=PG.rows.map(b=>{
     const d=dday(b.mgmtEnd);
     return `<tr onclick="go('pro-3/${b.id}')">
       <td><div class="c1">${b.name}${bOp(b.id)==='비운영중'?' <span class="bd mu">비운영중</span>':''}</div><div class="c2">${b.alias} · ${b.kind}</div></td>
@@ -1723,13 +1724,7 @@ function PRO1(){
       <th>건물주 <span class="so">⇅</span></th><th>건물관리자 <span class="so">⇅</span></th>
       <th class="n">임대가능면적 <span class="so">⇅</span></th><th class="n">공실률 <span class="so">⇅</span></th><th class="c">더보기</th>
     </tr></thead><tbody>${rows||'<tr><td colspan="7"><div class="empty">조건에 맞는 건물이 없습니다</div></td></tr>'}</tbody>
-  </table></div>
-  <div class="pgw">
-    <div class="mid">
-      <button class="pgb">‹ Previous</button><button class="pgb on">1</button><button class="pgb">Next ›</button>
-    </div>
-    <span class="pgi">${list.length?`1–${list.length}`:'0'} / 총 ${list.length}개</span>
-  </div></div>`;
+  </table></div>${PG.pager}</div>`;
 }
 
 /* ═══ PRO-3 ═══ */
@@ -2208,8 +2203,8 @@ function t주차(b,fixK){
   <div class="tbl">
     ${list.length?`<div class="tw"><table>
       <thead><tr><th>차량번호</th><th>차량 소유자</th><th>연락처</th><th>차종</th>${fixK?'':'<th>계약고유이름</th>'}<th>주차구분</th><th>요금부과</th><th class="c">더보기</th></tr></thead>
-      <tbody>${list.map(vrow).join('')}</tbody>
-    </table></div>`:`<div class="empty">${!all.length?'등록된 차량이 없습니다':q?'찾는 차량이 없습니다':'조건에 맞는 차량이 없습니다'}</div>`}
+      <tbody>${paged('veh'+b.id+(fixK||''),list,HPER,JSON.stringify(fpk)).rows.map(vrow).join('')}</tbody>
+    </table></div>${paged('veh'+b.id+(fixK||''),list,HPER,JSON.stringify(fpk)).pager}`:`<div class="empty">${!all.length?'등록된 차량이 없습니다':q?'찾는 차량이 없습니다':'조건에 맞는 차량이 없습니다'}</div>`}
   </div>
   <div class="hint">${fixK?'이 계약에 등록된 차량입니다. 위에 차량 대수가 보입니다.':'이 건물에 등록된 차량을 한 줄에 한 대씩, 계약 · 차량번호 순으로 봅니다. 검색은 차량번호 · 차량 소유자 · 연락처 · 계약고유이름에서 일부만 맞아도 찾습니다(띄어쓰기 · 하이픈 무시). 계약을 고르면 그 계약의 차량 대수가 위에 보입니다.'} 무료 차량이 계약의 무료 주차 대수를 넘으면 <b>무료 ○대 초과</b>로 표시합니다(주차구분 기타는 세지 않음). 넘는 차량은 월정액으로 바꿔 주차비를 받습니다.<br>
     비상시 연락해야 하므로 소유자 · 연락처가 비어 있는 차량은 <b>미확인</b>으로 표시합니다.</div>`;
@@ -2481,14 +2476,14 @@ function t자료(b,ck){
     <div class="tw"><table>
       <thead><tr><th class="c" style="width:44px"><span class="cb ${all?'on':''}" style="cursor:pointer" onclick="dPickIds(${JSON.stringify(ids)},${all?'false':'true'})"></span></th>
         <th>제목 <span class="so">⇅</span></th><th>카테고리</th><th>파일 형식</th><th>업로드한 사람</th><th>등록일시 <span class="so">⇅</span></th><th class="c">더보기</th></tr></thead>
-      <tbody>${ids.length?ids.map(i=>{const d=b.docs[i];return `<tr class="${selD[i]?'on':''}" style="cursor:pointer" onclick="docOpen('${b.id}',${i})">
+      <tbody>${ids.length?paged('doc'+b.id+(ck||''),ids,HPER,JSON.stringify(fdoc)).rows.map(i=>{const d=b.docs[i];return `<tr class="${selD[i]?'on':''}" style="cursor:pointer" onclick="docOpen('${b.id}',${i})">
         <td class="c"><span class="cb ${selD[i]?'on':''}" style="cursor:pointer" onclick="dPickRow(${i},event)"></span></td>
         <td><div class="c1">${dTitle(d)}</div></td>
         <td><span class="bd mu">${d.c}</span></td><td>${docExt(d.t)}</td><td>${d.by}</td>
         <td style="white-space:nowrap">${d.at.replace(/-/g,'.')}</td>
         <td class="c">${moreCell([{t:'상세',go:`docOpen('${b.id}',${i})`},{t:'내려받기',go:`docDown('${b.id}',${i})`},{t:'삭제',go:`docDelOpen('${b.id}',[${i}])`}])}</td></tr>`;}).join('')
       :`<tr><td colspan="7" style="text-align:center;padding:28px 0;color:var(--muted)">${fdoc.c||fdoc.per||fdoc.q.trim()?'조건에 맞는 자료가 없습니다':'등록된 자료가 없습니다'}</td></tr>`}</tbody>
-    </table></div></div>
+    </table></div>${paged('doc'+b.id+(ck||''),ids,HPER,JSON.stringify(fdoc)).pager}</div>
     <div class="hint">이 ${ck?'계약':'건물'}에 올린 문서입니다. 줄을 누르면 문서를 봅니다. 여러 개를 지울 때는 체크한 뒤 <b>선택 삭제</b>를 누릅니다.</div>`;
 }
 
@@ -3152,7 +3147,7 @@ function NTF6(){
   const R=mailRows().filter(m=>(!fm.kind||m.kind===fm.kind)&&(!fm.st||m.st===fm.st)&&(!fm.ch||m.ch===fm.ch)
       &&(!fm.from||m.at.slice(0,10)>=fm.from)&&(!fm.to||m.at.slice(0,10)<=fm.to)&&qHit(fm.q,m.to.flatMap(x=>[x.n,x.mail]).concat([m.rel])))
     .sort((p,q)=>p.at<q.at?1:p.at>q.at?-1:q.id-p.id);
-  const N=Math.max(1,Math.ceil(R.length/HPER)), cur=Math.min(mp,N), P=R.slice((cur-1)*HPER,cur*HPER);
+  const PG=paged('ntf',R,HMAIN,JSON.stringify({kind:fm.kind,st:fm.st,ch:fm.ch,from:fm.from,to:fm.to})), P=PG.rows;
   const S=(f,opts,lab)=>`<select onchange="setFm('${f}',this.value)"><option value="">${lab}</option>${opts.map(v=>`<option ${fm[f]===v?'selected':''}>${v}</option>`).join('')}</select>`;
   return `
   <div class="ph"><h1>발송 내역</h1><span class="sid">NTF-6</span></div>
@@ -3170,7 +3165,7 @@ function NTF6(){
       <td class="c"><span class="bd ${MST[m.st]}" ${m.st==='실패'?`title="${m.why}"`:''}>${m.st}</span>${m.re?' <span class="c2" style="display:inline;margin:0">다시 보냄</span>':''}${m.of?' <span class="c2" style="display:inline;margin:0">다시 보낸 메일</span>':''}</td>
 </tr>`;}).join('')
       :`<tr><td colspan="9" style="text-align:center;padding:28px 0;color:var(--muted)">조건에 맞는 발송 내역이 없습니다</td></tr>`}</tbody></table></div>
-    ${pagerHTML(R.length,cur,`(p=>{mp=p;render(true);})`)}</div>
+    ${PG.pager}</div>
   <div class="hint">
     시스템이 보낸 메일을 <b>보내던 그대로</b>(제목 · 본문 · 첨부 · 받는 주소) 남깁니다. 담당자 주소를 나중에 바꿔도 여기 주소는 그대로입니다. 지우지 않습니다.<br>
     실패해도 자동으로 다시 보내지 않습니다. 주소가 틀렸으면 계약의 담당자 정보를 고친 뒤 다시 보냅니다. 다시 보내면 새 줄이 생기고 원래 줄은 그대로입니다.<br>
@@ -3362,18 +3357,19 @@ function CONTACTS(){
   const O=ownList().map(o=>({k:'임대인',name:o.n,sub:o.biz,per:o.n,tel:o.tel,mail:o.mail,rel:o.bs.map(x=>`${x.b.name}${x.share<100?` ${x.share}%`:''}`).join(' / '),bs:o.bs.map(x=>x.b.id),q:[],go:op('임대인',o.biz)}));
   const A=agList().map(a=>({k:'중개사',name:a.n,sub:a.no,per:a.ceo,tel:a.tel,mail:'',rel:`${unitTx(a.cs.slice(0,2))}${a.cs.length>2?` 외 ${a.cs.length-2}`:''}`,bs:a.cs.map(c=>c.b),q:[a.addr],go:op('중개사',a.no||a.n)}));
   const R=[...T,...O,...A].filter(x=>(!fct.kind||x.k===fct.kind)&&(!fct.b||x.bs.includes(fct.b))&&qHit(fct.q,[x.name,x.sub,x.per,x.tel,x.mail,...x.q]));
+  const PG=paged('con',R,HMAIN,JSON.stringify(fct));
   const S=(k,opts)=>`<select onchange="setFct('${k}',this.value)">${opts.map(([v,t])=>`<option value="${v}" ${fct[k]===v?'selected':''}>${t}</option>`).join('')}</select>`;
   return `
   <div class="ph"><h1>연락처</h1><span class="sid">USER-6 · 8 · 10</span></div>
   <div class="fbar">${qBox('cq2',fct.q,'setFct')}${S('kind',[['','전체 구분'],['임차인','임차인'],['임대인','임대인'],['중개사','중개사']])}${S('b',[['','전체 건물'],...BUILDINGS.map(b=>[b.id,b.name])])}</div>
   <div class="tbl"><div class="tw"><table>
     <thead><tr><th>구분</th><th>이름</th><th>연락할 사람</th><th>연락처</th><th>이메일</th><th>건물 · 유닛</th><th class="c">더보기</th></tr></thead>
-    <tbody>${R.length?R.map(x=>`<tr class="mrow" onclick="${x.go}">
+    <tbody>${R.length?PG.rows.map(x=>`<tr class="mrow" onclick="${x.go}">
       <td><span class="bd ${KB[x.k]}">${x.k}</span></td>
       <td><div class="c1">${x.name}</div><div class="c2">${x.sub||''}</div></td>
       <td>${x.per||dash}</td><td>${x.tel||dash}</td><td>${x.mail||dash}</td><td>${x.rel}</td>
       <td class="c">${moreCell([{t:'상세',go:x.go}])}</td></tr>`).join('')
-      :`<tr><td colspan="7" style="text-align:center;padding:28px 0;color:var(--muted)">조건에 맞는 연락처가 없습니다</td></tr>`}</tbody></table></div></div>
+      :`<tr><td colspan="7" style="text-align:center;padding:28px 0;color:var(--muted)">조건에 맞는 연락처가 없습니다</td></tr>`}</tbody></table></div>${PG.pager}</div>
   <div class="hint">임차인 · 임대인 · 중개사를 한 목록에서 찾습니다. 검색은 이름 · 사람 · 전화 · 이메일 · 사업자(등록)번호 · 입금자명 별칭으로 합니다. 줄을 누르면 오른쪽에 상세가 열립니다.<br>
     임차인은 사업자마다 한 줄(연락할 사람은 대표 담당자), 임대인은 사람마다 한 줄(공동소유면 지분), 중개사는 사무소마다 한 줄입니다. 사업자등록번호 · 연락처 일부는 목업 예시값입니다.</div>`;
 }
@@ -3473,7 +3469,7 @@ function REC1(){
   const R=all.filter(r=>(!frc.b||hBld(r).includes(frc.b))&&(!frc.kind||r.kind===frc.kind)&&(!frc.type||r.type===frc.type)&&(!frc.by||r.by===frc.by)
       &&(!frc.from||r.at.slice(0,10)>=frc.from)&&(!frc.to||r.at.slice(0,10)<=frc.to)&&qHit(frc.q,[r.name,r.sum,r.why,r.by]))
     .sort((p,q)=>p.at<q.at?1:p.at>q.at?-1:0);
-  const N=Math.max(1,Math.ceil(R.length/HPER)), cur=Math.min(hp.rec||1,N), P=R.slice((cur-1)*HPER,cur*HPER);
+  const PG=paged('rec',R,HMAIN,JSON.stringify(frc)), P=PG.rows, off=PG.off;
   HROWS.rec=R;
   const S=(k,opts,lab)=>`<select onchange="setFrc('${k}',this.value)"><option value="">${lab}</option>${opts.map(v=>Array.isArray(v)?v:[v,v]).map(([v,t])=>`<option value="${v}" ${frc[k]===v?'selected':''}>${t}</option>`).join('')}</select>`;
   const uniq=f=>[...new Set(all.map(f))].filter(Boolean).sort();
@@ -3482,13 +3478,13 @@ function REC1(){
   <div class="fbar">${perBtn('frc',frc)}${S('b',BUILDINGS.map(b=>[b.id,b.name]),'전체 건물')}${S('kind',uniq(r=>r.kind),'전체 대상 종류')}${S('type',uniq(r=>r.type),'전체 변경 유형')}${S('by',uniq(r=>r.by),'전체 처리자')}</div>
   <div class="tbl"><div class="tw"><table>
     <thead><tr><th>일시</th><th>대상 종류</th><th>계약고유이름</th><th>변경 유형</th><th>변경 요약</th><th>처리자</th><th class="c">더보기</th></tr></thead>
-    <tbody>${R.length?P.map((r,i)=>`<tr style="cursor:pointer" onclick="hdOpen('rec',${(cur-1)*HPER+i})">
+    <tbody>${R.length?P.map((r,i)=>`<tr style="cursor:pointer" onclick="hdOpen('rec',${off+i})">
         <td style="white-space:nowrap">${r.at.replace(/-/g,'.')}</td>
         <td><span class="bd mu">${r.kind}</span></td><td style="white-space:nowrap">${recName(r)}</td><td>${r.type}</td>
         <td style="white-space:nowrap">${r.sum}</td><td style="white-space:nowrap">${r.by}</td>
-        <td class="c">${moreCell([{t:'상세',go:`hdOpen('rec',${(cur-1)*HPER+i})`},{t:'삭제',go:`hdOpen('rec',${(cur-1)*HPER+i},true)`,title:'슈퍼관리자만 · 사유를 남깁니다'}])}</td></tr>`).join('')
+        <td class="c">${moreCell([{t:'상세',go:`hdOpen('rec',${off+i})`},{t:'삭제',go:`hdOpen('rec',${off+i},true)`,title:'슈퍼관리자만 · 사유를 남깁니다'}])}</td></tr>`).join('')
       :`<tr><td colspan="7" style="text-align:center;padding:28px 0;color:var(--muted)">조건에 맞는 이력이 없습니다</td></tr>`}</tbody></table></div>
-    ${pagerHTML(R.length,cur,`(p=>{hp.rec=p;render(true);})`)}</div>
+    ${PG.pager}</div>
   <div class="hint">모든 건물의 변경 이력입니다. 건물 상세 · 계약 상세의 이력 탭은 이 표를 그 건물 · 그 계약으로 거른 것입니다. 줄을 누르면 상세(변경 전 · 후)가 열립니다.<br>
     사유는 줄을 누르면 상세에서 봅니다. 계약이 아닌 이력(건물 설정 · 월 마감 · 임차인 · 임대인)은 그 이름이 보입니다.<br>
     이력은 고칠 수 없고, 슈퍼관리자만 사유를 적고 지웁니다(지운 기록은 따로 남고 원장 거래는 지워지지 않습니다). 금액의 흐름은 계약 원장에서 봅니다.<br>
@@ -4061,7 +4057,8 @@ function PAY1(){
   const overs=rows.filter(c=>c.over>0), overSum=overs.reduce((a,c)=>a+c.over,0);
   const supT=rows.reduce((a,c)=>a+c.sup,0), vatT=rows.reduce((a,c)=>a+c.vat,0);
   const anyOpen=rows.some(c=>gOpen(c.k));
-  const body=rows.map(c=>{
+  const PG1=paged('pay1',rows,HMAIN,JSON.stringify(f1));
+  const body=PG1.rows.map(c=>{
     const op=gOpen(c.k), on=!!sel1[c.k], can=c.st==='발행 대기';
     return `
     <div class="schr iss grp" onclick="gTog('${c.k}')">
@@ -4155,6 +4152,7 @@ function PAY1(){
         <div></div>
         <div class="n">${won(supT)}</div><div class="n">${won(vatT)}</div>
         <div class="n"><span class="c2">VAT 포함</span>${won(total)}</div><div></div><div></div></div>
+      ${PG1.pager}
     </div>`}
   <div class="hint">
     이번 회차에 발행할 청구서다. <b>계약당 1장</b>이며 고정액 항목과 정산 항목을 함께 담는다 → 2부<br>
@@ -4839,7 +4837,11 @@ function PAY13_0(){
     거래내역은 자동으로 가져옵니다(${FETCH_AT}까지). 연동이 멈췄으면 은행 거래내역 업로드나 거래내역 직접 입력으로 넣습니다.</div></div>`);
 
   /* 대기열 */
-  const queue=Q.map(q=>{
+  /* 대기열도 25줄씩. 고른 입금이 바뀌면 그 입금이 있는 쪽으로 간다 */
+  const sig13=JSON.stringify([RC.f.b,RC.f.ym,RC.f.ten]); if(hpSig.pay13!==sig13){hpSig.pay13=sig13;hp.pay13=1;}
+  if(RC.cur!==PAY13.cur){PAY13.cur=RC.cur; const qi=Q.findIndex(q=>q.no===RC.cur); if(qi>=0) hp.pay13=Math.floor(qi/HMAIN)+1;}
+  const PG13=paged('pay13',Q,HMAIN,sig13);
+  const queue=PG13.rows.map(q=>{
     const x=RC.dec[q.no]||{}, on=q.no===RC.cur;
     const tag=x.done?'<span class="bd ok">확정</span>'
       :x.ex?'<span class="bd mu">무시</span>'
@@ -4959,7 +4961,7 @@ function PAY13_0(){
   :allDone?`<div class="fnd"><span class="h">모든 입금을 처리했습니다</span>
     계약별로 다 받았는지는 수납 내역에서 확인하세요. <b class="lk" onclick="go('pay-6')">수납 내역으로 이동 →</b></div>`:''}
   <div class="mw">
-    <div class="mq"><div class="mqh">대기열 <span class="c2" style="margin:0">입금일시 순</span></div>${queue}
+    <div class="mq"><div class="mqh">대기열 <span class="c2" style="margin:0">입금일시 순</span></div>${queue}${PG13.pager}
 </div>
     <div class="${lk?'locked':''}">${panel}</div>
   </div>`;
@@ -5043,7 +5045,8 @@ function PAY6_0(){
     return moreCell([{t:'입금 확인',go:`depCheck('${x.k}')`},
       {t:'청구서 보기',go:`billView('${x.k}','${RC.f.ym}')`},
       {t:'원장 보기',go:`tab3c='원장';go('ctr-3/${x.k}')`}]);};
-  const body=rows.map(x=>rcvRow(x,{cls:'ctr',op:g6Open(x.k),tog:`g6Tog('${x.k}')`,label:cnameHTML(bn.alias,x.c.no,x.c.ten),ym:RC.f.ym,more:more(x)})).join('');
+  const PG6=paged('pay6',rows,HMAIN,JSON.stringify(RC.f));
+  const body=PG6.rows.map(x=>rcvRow(x,{cls:'ctr',op:g6Open(x.k),tog:`g6Tog('${x.k}')`,label:cnameHTML(bn.alias,x.c.no,x.c.ten),ym:RC.f.ym,more:more(x)})).join('');
   return `
   <div class="ph"><h1>수납 내역</h1><span class="sid">PAY-6</span>
   </div>
@@ -5071,6 +5074,7 @@ function PAY6_0(){
     <div class="schr ctr sum"><div>합계 <span class="lock">계약 ${rows.length}</span></div>
       <div class="n">${won(T.bill)}</div><div class="n">${won(T.paid)}</div>
       <div class="n">${T.due?`<span style="color:var(--warn)">${won(T.due)}</span>`:'—'}</div><div></div><div></div></div>
+    ${PG6.pager}
   </div>`}
   <div class="hint">
     선택한 달의 청구를 계약별로 다 받았는지 봅니다. 금액은 부가세 포함입니다.<br>
@@ -5496,7 +5500,8 @@ function PAY2(){
   const ymK=ym=>ym.slice(2).replace('-','.')+'월';
   const md=d=>d.slice(5).replace('-','.');
   const dash='<span style="color:var(--faint)">—</span>';
-  const body=rows.map(a=>{
+  const PG2=paged('pay2',rows,HMAIN,JSON.stringify(f2));
+  const body=PG2.rows.map(a=>{
     const op=g2Open(a.k), on=!!sel2[a.k], can=a.due>0||a.fee>0;
     return `<div class="schr arr grp" onclick="g2Tog('${a.k}')">
       <div class="nm">${can?`<span class="cb ${on?'on':''}" onclick="pick2('${a.k}',event)"></span>`:'<span class="cb dis"></span>'}<span class="tg ${op?'op':''}">${ic('chev',16)}</span>${cnameHTML(bn.alias,a.c.no,a.c.ten)}${
@@ -5545,6 +5550,7 @@ function PAY2(){
     <div class="schr arr sum"><div>합계</div>
       <div class="n">${T.due?`<span style="color:var(--warn)">${won(T.due)}</span>`:'—'}</div><div></div><div></div>
       <div class="n">${T.fee?won(T.fee):'—'}</div><div></div></div>
+    ${PG2.pager}
   </div>`}
   <div class="hint">
     미납이 있는 계약을 모았습니다. 청구서에 들어간 연체료도 미납입니다. 아직 청구 전인 연체료는 연체료 칸에 따로 보입니다. 계약 줄을 누르면 달별 미납이 펼쳐지고, 달별 줄의 <b>상세</b>를 누르면 그 달의 미납 내역이 오른쪽에 열립니다.<br>
@@ -5611,7 +5617,8 @@ function ctrFbar(f,set,withB,right){
     ${right?`<span style="margin-left:auto;display:flex;gap:6px">${right}</span>`:''}
   </div>`;
 }
-function ctrTbl(rows){
+function ctrTbl(all,key,per,sig){
+  const PG=paged(key,all,per,sig), rows=PG.rows;
   const BA=id=>(BUILDINGS.find(x=>x.id===id)||{}).alias||'';
   const d8=d=>d.replace(/-/g,'.');
   return `<div class="tbl"><div class="tw"><table class="nowr">
@@ -5625,13 +5632,13 @@ function ctrTbl(rows){
         {t:`재계약`,go:`rnwOpen('${ckey(c)}')`,off:c.st!=='진행중'?'진행중인 계약만 재계약할 수 있습니다':c.next?'이미 재계약을 등록했습니다':''},
         {t:'해지',go:`tab3c='요약';go('ctr-3/${ckey(c)}');termOpen('${ckey(c)}')`,off:c.st==='진행중'||c.st==='종료됨'&&!TERMS[ckey(c)]&&!c.next?'':'진행중인 계약 · 해지 처리 전에 끝난 계약만 해지할 수 있습니다'}])}</td></tr>`).join('')}
       ${rows.length?'':'<tr><td colspan="5"><div class="empty">조건에 맞는 계약이 없습니다</div></td></tr>'}
-    </tbody></table></div></div>`;
+    </tbody></table></div>${PG.pager}</div>`;
 }
 function CTR1(){
   return `
   <div class="ph"><h1>계약 목록</h1><span class="sid">CTR-1</span></div>
   ${ctrFbar(f1c,'setF1c',true,`<button class="btn pri" onclick="nc=null;go('ctr-2')">+ 새로운 계약 등록</button>`)}
-  ${ctrTbl(ctrRowsOf(f1c,f1c.b))}
+  ${ctrTbl(ctrRowsOf(f1c,f1c.b),'ctr1',HMAIN,JSON.stringify(f1c))}
   <div class="hint">행을 누르면 계약 상세로 들어갑니다. 원장은 계약 상세의 원장 탭에 있습니다.<br>
     임대료·관리비는 부가세를 포함한 월 금액입니다. 보증금에는 부가세가 없습니다.<br>
     목업의 계약 종료일·보증금은 예시값입니다.</div>`;
@@ -5641,7 +5648,7 @@ let fbc={st:'진행중',dd:'',q:''};
 const setFbc=(k,v)=>{fbc[k]=v;render(true);};
 function t계약(b){
   return `${ctrFbar(fbc,'setFbc',false,`<button class="btn pri" ${bOp(b.id)==='비운영중'?'disabled title="비운영중인 건물은 계약을 등록할 수 없습니다"':''} onclick="nc=null;ncInit();nc.b='${b.id}';go('ctr-2')">+ 새로운 계약 등록</button>`)}
-  ${ctrTbl(ctrRowsOf(fbc,b.id))}
+  ${ctrTbl(ctrRowsOf(fbc,b.id),'bc'+b.id,HPER,JSON.stringify(fbc))}
   <div class="hint">이 건물의 계약만 보입니다. 표와 필터는 계약 목록(CTR-1)과 같습니다.</div>`;
 }
 
@@ -6637,7 +6644,7 @@ function p3HTML(){
 }
 /* 거래유형 필터 — 고른 유형과 그 취소 줄을 함께 보인다(수납 → 수납 · 수납 취소). 잔액 칸은 거르기 전 원장 그대로 */
 const F3TP=['청구','감액','수납','환불','보증금 예치','보증금 상계','보증금 반환'];
-const setF3=(k,v)=>{f3[k]=v;render();};
+const setF3=(k,v)=>{f3[k]=v;Object.keys(hp).filter(x=>x[0]==='l').forEach(x=>delete hp[x]);render();};   /* 필터를 바꾸면 1쪽 */
 /* 연체료는 비과세(일반내역서) → 4.4.3 */
 const isTaxItem=n=>{if(n==='연체료') return false; const m=MASTER.find(x=>x.name===n.split(' ')[0]);return m?isTax(m.bill):true;};
 function ledgerOf(k){
@@ -6774,7 +6781,12 @@ const hp={};
 const HPER=10;
 const setFh=(f,v)=>{fh[f]=v;Object.keys(hp).forEach(k=>delete hp[k]);render(true);};
 /* 페이지 나누기 — 이전 · 번호 · 다음. 페이지가 하나면 보이지 않는다 */
-function pagerHTML(n,cur,go){const N=Math.ceil(n/HPER); if(N<=1) return '';
+/* 쪽 나누기 — 모든 목록 같은 규칙: 메인 목록 25줄 · 상세 탭 · 패널 안의 표 10줄(HPER) · 번호는 표 테두리 안 맨 아래 가운데 · 10개씩 묶음 · 한 쪽뿐이면 숨김 · 필터를 바꾸면 1쪽 */
+const HMAIN=25, hpSig={};
+function paged(key,list,per,sig){if(hpSig[key]!==sig){hpSig[key]=sig;hp[key]=1;}
+  const N=Math.max(1,Math.ceil(list.length/per)), cur=Math.min(hp[key]||1,N);
+  return {rows:list.slice((cur-1)*per,cur*per),off:(cur-1)*per,pager:pagerHTML(list.length,cur,`(p=>{hp['${key}']=p;render(true);})`,per)};}
+function pagerHTML(n,cur,go,per=HPER){const N=Math.ceil(n/per); if(N<=1) return '';
   /* 쪽 번호는 10개씩 묶어 보인다(1~10, 11~20 …). ‹ › 는 한 쪽씩 */
   const st=Math.floor((cur-1)/10)*10+1, en=Math.min(N,st+9);
   return `<div class="pgr"><button ${cur<=1?'disabled':''} onclick="${go}(${cur-1})">‹</button>${Array.from({length:en-st+1},(_,i)=>st+i).map(p=>`<button class="${p===cur?'on':''}" onclick="${go}(${p})">${p}</button>`).join('')}<button ${cur>=N?'disabled':''} onclick="${go}(${cur+1})">›</button></div>`;}
