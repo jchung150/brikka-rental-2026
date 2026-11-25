@@ -1776,7 +1776,7 @@ function bopHTML(){
 function PRO3(id){
   const b=BUILDINGS.find(x=>x.id===id)||BUILDINGS[0];
   const T=['요약','계약','유닛','주차','관리비','보고서','자료','이력','발송'];
-  const body=({'요약':t요약,'계약':t계약,'유닛':t유닛,'주차':t주차,'관리비':t청구,'보고서':t보고서,'자료':t자료,'이력':b=>histHTML(histB(b),'b'+b.id),'발송':b=>mailTab(mailOfB(b.id),'mb'+b.id)}[tab3]||t요약)(b);
+  const body=({'요약':t요약,'계약':t계약,'유닛':t유닛,'주차':t주차,'관리비':t청구,'보고서':t보고서,'자료':t자료,'이력':b=>histHTML(histB(b),'b'+b.id,b.id),'발송':b=>mailTab(mailOfB(b.id),'mb'+b.id)}[tab3]||t요약)(b);
   return `
   <div class="ph">
     <div class="bsw">
@@ -6648,7 +6648,7 @@ const isoD=(y,m,d)=>`${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0
 const ymAdd=(ym,n)=>{const [y,m]=ym.split('-').map(Number), d=new Date(Date.UTC(y,m-1+n,1));return d.toISOString().slice(0,7);};
 const dAgo=n=>new Date((dnum(TODAY_S)-n)*864e5).toISOString().slice(0,10);
 /* 같은 달력을 원장(f3) · 변경 이력(frc)이 함께 쓴다 */
-const P3T={f3:()=>f3,frc:()=>frc,fm:()=>fm,fdg:()=>fdg,fmt:()=>fmt};
+const P3T={f3:()=>f3,frc:()=>frc,fm:()=>fm,fdg:()=>fdg,fmt:()=>fmt,fh:()=>fh};
 function p3Open(t='f3'){const o=P3T[t](); P3=P3?null:{t,from:o.from,to:o.to,ym:(o.to||o.from||TODAY_S).slice(0,7)};render(true);}
 function p3Day(d){if(!P3.from||P3.to){P3.from=d;P3.to='';} else if(d<P3.from){P3.from=d;} else P3.to=d; render(true);}
 function p3Set(from,to){const t=(P3&&P3.t)||'f3', o=P3T[t](); o.from=from;o.to=to;P3=null;if(t==='fm') mp=1;Object.keys(hp).forEach(k=>delete hp[k]);render(true);}
@@ -6803,7 +6803,7 @@ function histB(b){
     L.forEach(x=>out.push({at:'2026-'+x.at,by:x.by,kind:'월 마감',name:`${b.name} ${+ym.slice(5)}월분`,type:x.act.replace(' ',''),sum:`${+ym.slice(5)}월분 ${x.act}`,why:x.why||'',b:b.id,ym}));});
   return out.concat(...CTRS.filter(c=>c.b===b.id).map(histC));
 }
-let fh={kind:'',type:'',q:''}, hd=null;
+let fh={kind:'',type:'',by:'',from:'',to:''}, hd=null;
 const HDEL=new Set();   /* 슈퍼관리자가 지운 이력 — 목록에서 뺀다. 원장 거래는 그대로 */
 const hKey=r=>[r.at,r.kind,r.name,r.sum].join('|');
 const HROWS={};
@@ -6845,23 +6845,18 @@ function hdHTML(){
     :`<div class="df"><button class="btn" title="슈퍼관리자만" style="color:var(--danger)" onclick="hdDel={why:''};render(true)">삭제</button><button class="btn" onclick="closeDrawer()">닫기</button></div>`}
   </div></div>`;
 }
-function histHTML(rows,scope){
+/* 이력 탭 — 변경 이력(REC-1)과 같은 필터 줄(기간 · 건물 · 대상 종류 · 변경 유형 · 담당자) · 같은 표. 건물은 그 건물로 잠근다(이 탭은 그 건물 · 그 계약만) */
+function histHTML(rows,scope,bid){
   const S=(f,opts,lab)=>`<select onchange="setFh('${f}',this.value)"><option value="">${lab}</option>${opts.map(v=>`<option ${fh[f]===v?'selected':''}>${v}</option>`).join('')}</select>`;
-  const R=rows.filter(r=>!HDEL.has(hKey(r))&&(!fh.kind||r.kind===fh.kind)&&(!fh.type||r.type===fh.type)&&qHit(fh.q,[r.name,r.sum,r.why,r.by]))
+  const R=rows.filter(r=>!HDEL.has(hKey(r))&&(!fh.kind||r.kind===fh.kind)&&(!fh.type||r.type===fh.type)&&(!fh.by||r.by===fh.by)
+      &&(!fh.from||r.at.slice(0,10)>=fh.from)&&(!fh.to||r.at.slice(0,10)<=fh.to))
     .sort((p,q)=>p.at<q.at?1:p.at>q.at?-1:0);
   const N=Math.max(1,Math.ceil(R.length/HPER)), cur=Math.min(hp[scope]||1,N), P=R.slice((cur-1)*HPER,cur*HPER);
   HROWS[scope]=R;
-  const d=a=>a.replace(/-/g,'.');
-  const fb=`${qBox('hq',fh.q,'setFh')}${S('kind',[...new Set(rows.map(r=>r.kind))],'전체 대상 종류')}${S('type',[...new Set(rows.map(r=>r.type))],'전체 변경 유형')}`;
-  return `${tabBar(fb)}<div class="tbl">
-    <div class="tw"><table>
-      <thead><tr><th>일시</th><th>대상 종류</th><th>계약고유이름</th><th>변경 유형</th><th>변경 요약</th><th>담당자</th><th class="c">더보기</th></tr></thead>
-      <tbody>${R.length?P.map((r,i)=>`<tr style="cursor:pointer" onclick="hdOpen('${scope}',${(cur-1)*HPER+i})">
-          <td style="white-space:nowrap">${d(r.at)}</td>
-          <td><span class="bd mu">${r.kind}</span></td><td style="white-space:nowrap">${r.name}</td><td>${r.type}</td>
-          <td style="white-space:nowrap">${r.sum}</td><td style="white-space:nowrap">${r.by}</td>
-          <td class="c">${moreCell([{t:'상세',go:`hdOpen('${scope}',${(cur-1)*HPER+i})`},{t:'삭제',go:`hdOpen('${scope}',${(cur-1)*HPER+i},true)`}])}</td></tr>`).join(''):`<tr><td colspan="7" style="text-align:center;padding:28px 0;color:var(--muted)">조건에 맞는 이력이 없습니다</td></tr>`}</tbody></table>
-      ${pagerHTML(R.length,cur,`(p=>{hp['${scope}']=p;render(true);})`)}</div></div>`;
+  const uniq=f=>[...new Set(rows.map(f))].filter(Boolean).sort(), bn=(BUILDINGS.find(b=>b.id===bid)||{}).name||'';
+  const fb=`${perBtn('fh',fh)}<select disabled title="이 탭은 이 건물의 이력만 보입니다"><option>${bn}</option></select>${S('kind',uniq(r=>r.kind),'전체 대상 종류')}${S('type',uniq(r=>r.type),'전체 변경 유형')}${S('by',uniq(r=>r.by),'전체 담당자')}`;
+  return `${tabBar(fb)}<div class="tbl"><div class="tw">${recTable(R.length?P:[],scope,(cur-1)*HPER,'조건에 맞는 이력이 없습니다')}</div>
+      ${pagerHTML(R.length,cur,`(p=>{hp['${scope}']=p;render(true);})`)}</div>`;
 }
 let tab3c='요약', g3={}, g3All=false;
 const g3Open=k=>(k in g3)?g3[k]:g3All;
@@ -6869,7 +6864,7 @@ const g3Tog=k=>{g3[k]=!g3Open(k);render(true);};
 function CTR3(k){
   const c=CTRS.find(x=>ckey(x)===k);
   if(!c) return TODO('ctr-1');
-  if(tab3c!=='원장') return CTR3head(c,k)+(tab3c==='청구·수납'?CTR3month(c,k):tab3c==='이력'?histHTML(histC(c),'c'+k):tab3c==='발송'?mailTab(mailOfC(k),'mc'+k):tab3c==='주차'?t주차(BUILDINGS.find(x=>x.id===c.b)||BUILDINGS[0],k):tab3c==='자료'?t자료(BUILDINGS.find(x=>x.id===c.b)||BUILDINGS[0],k):CTR3sum(c,k));
+  if(tab3c!=='원장') return CTR3head(c,k)+(tab3c==='청구·수납'?CTR3month(c,k):tab3c==='이력'?histHTML(histC(c),'c'+k,c.b):tab3c==='발송'?mailTab(mailOfC(k),'mc'+k):tab3c==='주차'?t주차(BUILDINGS.find(x=>x.id===c.b)||BUILDINGS[0],k):tab3c==='자료'?t자료(BUILDINGS.find(x=>x.id===c.b)||BUILDINGS[0],k):CTR3sum(c,k));
   const bn=BUILDINGS.find(x=>x.id===c.b)||BUILDINGS[0];
   const L=ledgerOf(k);
   const [from,to]=f3Range();

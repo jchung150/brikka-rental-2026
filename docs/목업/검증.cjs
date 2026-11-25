@@ -1402,13 +1402,13 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
     && nd(D('본관801호_아이씨비')) === 1 && /조건에 맞는 자료가 없습니다/.test(D('없는자료'));
   SQ.fdoc.q = '아이씨비'; SQ.tab3c = '자료'; const dc = SQ.CTR3('b1본관801호'); SQ.fdoc.q = '';
   const dCtr = /id="dq"/.test(dc) && nd(dc) >= 1;
-  const nh = h => (h.match(/onclick="hdOpen\('bb1',\d+\)">/g) || []).length, H = q => { SQ.fh.q = q; SQ.tab3 = '이력'; return SQ.PRO3('b1'); };
-  const hBox = /id="hq" class="fq"/.test(H(''));
+  const nh = h => (h.match(/onclick="hdOpen\('bb1',\d+\)">/g) || []).length, H = q => { SQ.fh.by = q; SQ.tab3 = '이력'; return SQ.PRO3('b1'); };
+  const hBox = !/id="hq"/.test(H(''));
   const by = SQ.histB(SQ.BUILDINGS[0]).filter(r => r.by === '김관리').length;
-  const hOk = nh(H('별관 301호')) > 0 && /별관301호/.test(H('별관 301호')) && nh(H('김관리')) === Math.min(10, by) && /조건에 맞는 이력이 없습니다/.test(H('없는이력'));
-  SQ.fh.q = ''; SQ.tab3c = '이력'; const hc = SQ.CTR3('b1본관801호');
+  const hOk = nh(H('김관리')) === Math.min(10, by) && /조건에 맞는 이력이 없습니다/.test(H('없는사람'));
+  SQ.fh.by = ''; SQ.tab3c = '이력'; const hc = SQ.CTR3('b1본관801호');
   r6.push(['자료 탭 · 이력 검색 — 필터 줄 맨 앞 · 자료는 제목 · 파일 이름 · 메모(「연 12%」) · 업로드한 사람 · 이력은 계약고유이름(「별관 301호」) · 처리자 · 없으면 「조건에 맞는 …이 없습니다」 · 계약 상세 자료 탭 · 이력에도 같은 칸',
-    dBox && dOk && dCtr && hBox && by > 0 && hOk && /id="hq"/.test(hc)]); }
+    dBox && dOk && dCtr && hBox && by > 0 && hOk && /전체 담당자/.test(hc)]); }
 /* 계약 목록 검색 — 계약고유이름(건물 별칭 · 유닛 · 임차인) · 건물 이름 일부, 띄어쓰기 · | 무시 · 필터와 함께 · 건물 상세 계약 탭도 같은 칸 */
 { const CQ = new Function(stub + bare + '; seedJuly(); return {CTR1,PRO3,CTRS,get f1c(){return f1c;},get fbc(){return fbc;},set tab3(v){tab3=v;}};')();
   const n = h => (h.match(/<tr onclick="tab3c='요약';go\('ctr-3\//g) || []).length;
@@ -1441,14 +1441,14 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   const th = h => (h.match(/<thead><tr><th>일시<\/th>.*?<\/tr><\/thead>/) || [''])[0], nRow = h => (h.match(/<td><span class="bd mu">/g) || []).length;
   const same = th(hb) && th(hb) === th(hc) && /<th>대상 종류<\/th><th>계약고유이름<\/th><th>변경 유형<\/th><th>변경 요약<\/th><th>담당자<\/th>/.test(th(hb));
   const allT = HI.histB(HI.BUILDINGS[0]).every(r => /^\d{4}-\d\d-\d\d \d\d:\d\d$/.test(r.at));
-  const ui = [hb, hc].every(h => !/<div class="ct">이력<\/div>/.test(h) && /<div class="fbar"><span class="fqw">.*?id="hq"/.test(h) && !/class="hint"/.test(h.split('id="hq"')[1] || ''));
-  const page = nRow(hb) === 10 && /<\/table>\s*<div class="pgr">[\s\S]*?<\/div><\/div>/.test(hb) && /hp\['bb1'\]=p/.test(hb);
+  const ui = [hb, hc].every(h => !/<div class="ct">이력<\/div>/.test(h) && /<div class="fbar"><span class="rcal">/.test(h) && !/id="hq"/.test(h) && /<select disabled title="이 탭은 이 건물의 이력만 보입니다"><option>카리나빌딩<\/option>/.test(h) && /전체 담당자/.test(h) && !/class="hint"/.test(h.split('전체 담당자')[1] || ''));
+  const page = nRow(hb) === 10 && /<\/table><\/div>\s*<div class="pgr">/.test(hb) && /hp\['bb1'\]=p/.test(hb);
   const f = (k, v, h) => { HI.setFh(k, v); const r = h(); HI.setFh(k, ''); return r; };
   const bOk = /마감 취소/.test(f('kind', '월 마감', () => HI.PRO3('b1'))) && /관리비 설정 — /.test(f('kind', '건물 관리비 설정', () => HI.PRO3('b1')))
-    && /별관301호/.test(f('q', '별관301호', () => HI.PRO3('b1'))) && /본관801호/.test(f('q', '본관801호', () => HI.PRO3('b1')));
+    && !/<td style="white-space:nowrap">이담당<\/td>/.test(f('by', '김관리', () => HI.PRO3('b1'))) && /<td style="white-space:nowrap">김관리<\/td>/.test(f('by', '김관리', () => HI.PRO3('b1')));
   const cOk = /계약 등록/.test(f('type', '등록', () => { HI.hp['cb1본관801호'] = 9; const x = HI.CTR3('b1본관801호'); HI.hp['cb1본관801호'] = 1; return x; }))
     && /07월분 청구서/.test(f('kind', '청구', () => HI.CTR3('b1본관801호'))) && /입금 /.test(f('kind', '수납', () => HI.CTR3('b1본관801호')));
-  const cOnly = /조건에 맞는 이력이 없습니다/.test(f('q', '별관301호', () => HI.CTR3('b1본관801호'))) && !/마감 취소/.test(hc) && /담당자 추가/.test(hc) && nRow(hc) <= 10;
+  const cOnly = /조건에 맞는 이력이 없습니다/.test(f('kind', '월 마감', () => HI.CTR3('b1본관801호'))) && !/마감 취소/.test(hc) && /담당자 추가/.test(hc) && nRow(hc) <= 10;
   HI.cx3Open('b1본관801호', 'memo'); HI.cx3.memo = '시험'; HI.cx3Save(); const live = /메모 수정/.test(HI.CTR3('b1본관801호'));
   HI.hdOpen('cb1본관801호', HI.HROWS['cb1본관801호'].findIndex(r => /담당자 추가/.test(r.sum))); const hd1 = HI.hdHTML();
   HI.hdOpen('cb1본관801호', HI.HROWS['cb1본관801호'].findIndex(r => r.kind === '수납')); const hd2 = HI.hdHTML();
@@ -1457,7 +1457,7 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   const n0 = HI.HROWS['cb1본관801호'].length, di = HI.HROWS['cb1본관801호'].findIndex(r => /담당자 추가/.test(r.sum));
   HI.hdOpen('cb1본관801호', di, true); HI.hdDelete(); const kept = HI.hdHTML() !== '';
   HI.hdDel.why = '잘못 기록'; HI.hdDelete(); const h2 = HI.CTR3('b1본관801호'); const del = kept && !/담당자 추가/.test(h2) && HI.HROWS['cb1본관801호'].length === n0 - 1;
-  r6.push(['이력 탭 — 건물 상세 · 계약 상세 같은 표 · 일시는 모두 시각까지 · 대상 종류 · 변경 유형 필터 줄(검색 없음 · 카드 제목 없음) · 안내 문구 없음 · 한 페이지 10줄(페이지 번호) · 건물은 월 마감 · 관리비 설정 · 모든 계약 · 계약은 그 계약만 · 수정하면 바로 쌓임 · 더보기(상세 · 삭제) · 줄을 누르면 상세 패널(변경 전/후 · 닫기 · 삭제만, 원장 거래 없음) · 삭제는 사유 필수',
+  r6.push(['이력 탭 — 건물 상세 · 계약 상세 같은 표 · 일시는 모두 시각까지 · 변경 이력과 같은 필터 줄(기간 · 건물은 잠김 · 대상 종류 · 변경 유형 · 담당자, 검색 없음 · 카드 제목 없음) · 안내 문구 없음 · 한 페이지 10줄(페이지 번호) · 건물은 월 마감 · 관리비 설정 · 모든 계약 · 계약은 그 계약만 · 수정하면 바로 쌓임 · 더보기(상세 · 삭제) · 줄을 누르면 상세 패널(변경 전/후 · 닫기 · 삭제만, 원장 거래 없음) · 삭제는 사유 필수',
     same && allT && ui && page && bOk && cOk && cOnly && live && exp && del]); }
 /* 자료 탭 — 건물 · 계약 같은 표 · 같은 필터 줄(카테고리 · 기간) · 빈 계약도 표 모양 그대로 */
 { const DF = new Function(stub + bare + '; return {PRO3,CTR3,setFdoc,set tab3(v){tab3=v;},set tab3c(v){tab3c=v;}};')();
