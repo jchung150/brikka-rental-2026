@@ -3115,7 +3115,7 @@ function stmtMail(k,from,to,memo,at,by){const c=CTRS.find(x=>ckey(x)===k), bd=BU
   return mailAdd({at,kind:'원장 명세서',b:c.b,ks:[k],rel:`${cname(bd.alias,c.no,c.ten)} · ${d8m(from)} ~ ${d8m(to)}`,to:T.map(x=>({n:x.n,mail:x.mail})),how:'수동',by,
     ...mailText('원장 명세서',{bd,who:`${c.ten} ${T[0].n}`,nos:c.no,from,to,memo}),
     att:[{n:`거래명세서_${c.no}_${from}_${to}.pdf`,go:`stOpen('${k}')`}]});}
-/* 목업 예시 — 6 · 7월 청구서 메일(청구서 합쳐 보내기는 한 통), 미납 안내, 월 마감 보고서, 웰컴(중계기), 계정 메일.
+/* 목업 예시 — 6 · 7월 청구서 메일(청구서 한 장으로 받기는 한 통), 미납 안내, 월 마감 보고서, 웰컴(중계기), 계정 메일.
    뉴진스 토끼어패럴 7월분은 담당자 주소 오타로 실패했다(지금 주소는 고쳐져 있다 → 다시 보내면 간다) */
 function mailSeed(){if(mailSeeded) return; mailSeeded=true;
   const t=(d,seed)=>`${d} ${hTime(seed)}`;
@@ -3144,7 +3144,7 @@ let fm={kind:'',st:'',ch:'',q:''}, mv=null, mp=1;
 const setFm=(k,v)=>{fm[k]=v;mp=1;render();};
 function mvOpen(id,re){mv={id,re:!!re};DRAWER='mlv';render(true);}
 const MST={'성공':'ok','실패':'da','대기':'mu'};
-/* 계약고유이름 칸 — 계약 메일만. 청구서 합쳐 보내기는 「외 N」. 월 마감 보고서 · 계정 메일은 계약이 없다 */
+/* 계약고유이름 칸 — 계약 메일만. 청구서 한 장으로 받기는 「외 N」. 월 마감 보고서 · 계정 메일은 계약이 없다 */
 const mailCtr=m=>{const cs=(m.ks||[]).map(k=>CTRS.find(x=>ckey(x)===k)).filter(Boolean); if(!cs.length) return '<span style="color:var(--faint)">—</span>';
   const c=cs[0]; return `${cname((BUILDINGS.find(x=>x.id===c.b)||{}).alias,c.no,c.ten)}${cs.length>1?` <span class="c2" style="display:inline;margin:0">외 ${cs.length-1}</span>`:''}`;};
 function NTF6(){
@@ -3407,13 +3407,13 @@ function cnHTML(){
           +In('대표자명','ceo')+In('사업장 주소','addr')+In('업태 · 종목','item'))
         +G('입금자명 별칭',`${cv.f.al.map((a,i)=>`<div class="fr"><span class="fv" style="flex:1">${a}</span><button class="btn sm" onclick="cv.f.al.splice(${i},1);render(true)">지우기</button></div>`).join('')}
           <div class="fr"><input type="text" value="${cv.f.na.replace(/"/g,'&quot;')}" placeholder="은행에 찍히는 입금자명 (예: ICB)" oninput="cv.f.na=this.value" style="${inp}"><button class="btn sm" onclick="const v=cv.f.na.trim();if(v&&!cv.f.al.includes(v)){cv.f.al.push(v);cv.f.na='';}render(true)">더하기</button></div>`)
-        +G('청구서 · 세금계산서',`<div class="fr"><span class="fk">청구서 합쳐 보내기</span><label style="display:flex;gap:6px;align-items:center"><input type="checkbox" ${cv.f.merge?'checked':''} onchange="cv.f.merge=this.checked"> 같은 건물 계약들을 PDF 한 장으로</label></div>`
+        +G('청구서 · 세금계산서',`<div class="fr"><span class="fk">청구서 한 장으로 받기</span><label style="display:flex;gap:6px;align-items:center"><input type="checkbox" ${cv.f.merge?'checked':''} onchange="cv.f.merge=this.checked"> 같은 건물 계약들을 PDF 한 장으로</label></div>`
           +In('세금계산서 이메일 1','m1','회계 담당자')+In('세금계산서 이메일 2','m2','선택')+In('종사업장번호','sub','4자리 · 없으면 비움'))
         +'<div class="c2" style="white-space:normal">이 사업자의 모든 계약에 반영됩니다. 담당자는 계약마다 달라 계약 상세에서 고칩니다.</div>'
       :G('사업자 정보',Rw('사업자등록번호',I.biz)+Rw('사업자구분',I.kind==='개인'?'개인사업자':I.kind)+Rw('대표자명',I.ceo)+Rw('사업장 주소',I.addr))
         +G('대표 담당자',Rw('이름',`${p.n}${p.t?` · ${p.t}`:''}`)+Rw('연락처',p.tel)+Rw('이메일',p.mail))
-        +G('돈',Rw('현재 미납액',S.due?`<span style="color:var(--warn)">${won(S.due)}</span>`:won(0))+Rw('보증금 잔액',won(S.dep))+Rw('최근 입금일',S.last?d8m(S.last):dash))
-        +G('입금 · 청구',Rw('입금자명 별칭',al.length?al.map(a=>`<span class="bd mu">${a}</span>`).join(' '):dash)+Rw('청구서 합쳐 보내기',MERGE_PDF[id]?'예':'아니오')
+        +G('거래 요약',Rw('현재 미납액',S.due?`<span style="color:var(--warn)">${won(S.due)}</span>`:won(0))+Rw('보증금 잔액',won(S.dep))+Rw('최근 입금일',S.last?d8m(S.last):dash))
+        +G('입금 · 청구',Rw('입금자명 별칭',al.length?al.map(a=>`<span class="bd mu">${a}</span>`).join(' '):dash)+Rw('청구서 한 장으로 받기',MERGE_PDF[id]?'예':'아니오')
           +Rw('세금계산서 이메일',tx.mail.filter(Boolean).join(', ')||'<span style="color:var(--warn)">미입력</span>')+(tx.sub?Rw('종사업장번호',tx.sub):''))
         +G(`계약 ${cs.length}건`,ctrT(cs.slice().sort((a,b)=>a.base<b.base?1:-1)));}
   if(k==='임대인'){const o=ownList().find(x=>x.biz===id); name=o.n;
@@ -3459,7 +3459,7 @@ function TMPMAIL(){
     return `<div class="card" style="margin:0"><div class="ct">${'①②③④⑤⑥⑦⑧⑨'[i]} ${k}</div>
       <div class="cc"><dl class="dl" style="margin-bottom:10px"><dt>언제</dt><dd>${when}</dd><dt>받는 사람</dt><dd>${to}</dd><dt>첨부</dt><dd>${att}</dd></dl>
         <div class="tml"><div class="tms">${hl(t.subj)}</div><div class="tmb">${hl(t.body)}</div></div></div></div>`;}).join('')}</div>
-  <div class="hint">관리비 계좌가 따로 있는 건물은 납부 계좌 줄이 「임대료 {계좌} · 관리비 {계좌}」 두 개가 됩니다. 청구서 합쳐 보내기면 {유닛}이 「본관801호 · 본관701호」가 됩니다.<br>
+  <div class="hint">관리비 계좌가 따로 있는 건물은 납부 계좌 줄이 「임대료 {계좌} · 관리비 {계좌}」 두 개가 됩니다. 청구서 한 장으로 받기면 {유닛}이 「본관801호 · 본관701호」가 됩니다.<br>
     로그인 인증 코드 · 슈퍼관리자 넘기기 인증 코드 메일은 개발 코드에 있는 문구 그대로 둡니다(이 화면에 없음).</div>`;
 }
 
@@ -3743,7 +3743,7 @@ const CITEM={
 /* 계약 — 임차인명과 임대료·고정관리비는 2026-08 실제 청구서 기준(VAT 포함 ÷ 1.1). 기산일은 예시값이다.
    rate는 연체이자율(연 %)이다. 계약마다 다르며 없으면 8%다 → CTR-2
    계약은 유닛마다 따로 둔다. (주)아이씨비 본관701호·본관801호는 계약서가 한 장이지만 한 층만 해지할 수 있어야 하므로
-   계약 2건이다. 실제 청구서는 한 장이다 → 임차인 「청구서 합쳐 보내기」 PAY-1 · USER-7
+   계약 2건이다. 실제 청구서는 한 장이다 → 임차인 「청구서 한 장으로 받기」 PAY-1 · USER-7
    본관B101호은 건물주가 직접 쓰는 공간이라 비운영중이다. 산출 금액은 건축주가 부담한다 → 3.2 */
 /* 계약 식별 — 기존 계약은 건물+유닛. 같은 유닛에 다음 계약을 미리 등록하면 시작일을 붙여 구분한다 */
 const ckey=c=>c.key||c.b+c.no;
@@ -3814,7 +3814,7 @@ CTRS.forEach((c,i)=>{if(!c.ag) c.ag={...AG_POOL[i%AG_POOL.length]};});
    카리나빌딩은 수납 기록(PAY-6)의 결과에서 계산한다 → dueOf. 나머지 건물은 예시값이다 */
 const UNPAID={
 };
-/* 청구서 합쳐 보내기 — 임차인(사업자) 설정. 같은 건물의 계약들을 PDF 한 장으로 발송한다.
+/* 청구서 한 장으로 받기 — 임차인(사업자) 설정. 같은 건물의 계약들을 PDF 한 장으로 발송한다.
    청구·원장은 계약별 그대로다 → PAY-1 · USER-7 */
 const MERGE_PDF={'(주)아이씨비':true};
 let f1={b:'b1',st:'',ym:'2026-08'};                  /* 회차 화면이므로 건물을 하나 고른다 */
@@ -3841,7 +3841,7 @@ function issue1(keys){if(f1.b==='b1') snapDates(SETTLE.ym); const R=ISSUE(); key
     ISS[k]={at:TODAY_S,mail:mail1&&billTo(CTRS.find(x=>ckey(x)===k)).length>0,fee:c&&c.feeIn?fee:0,feeAll:fee,cut:FEE_CUT[k],bills:c&&LEDB.includes(f1.b)?regBills(c,to):[]}; if(fee) FEE_CUT[k]=to;
     /* 남은 과납(선납 포함)이 있으면 발행하면서 새 청구에 먼저 배분한다 → 4.3.4 */
     if(c&&LEDB.includes(f1.b)) creditK(k,SETTLE.ym,TODAY_S);});
-  /* 청구서 메일 — 발송 내역에 남긴다. 청구서 합쳐 보내기는 한 통. 같은 달 청구서를 이미 보냈으면 청구서 재발송 */
+  /* 청구서 메일 — 발송 내역에 남긴다. 청구서 한 장으로 받기는 한 통. 같은 달 청구서를 이미 보냈으면 청구서 재발송 */
   if(mail1){const done=new Set(), now=`${TODAY_S} ${new Date().toTimeString().slice(0,5)}`;
     keys.forEach(k=>{if(done.has(k)) return; const c=CTRS.find(x=>ckey(x)===k); if(!c) return;
       const g=MERGE_PDF[c.ten]?keys.filter(x=>{const y=CTRS.find(z=>ckey(z)===x);return y&&y.ten===c.ten&&y.b===c.b;}):[k]; g.forEach(x=>done.add(x));

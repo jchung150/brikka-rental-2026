@@ -154,7 +154,7 @@ for (const b of ['b2']) run('PRO-3 ' + b, "tab3='요약';PRO3('" + b + "')");
   const hooks = bm.kind === '청구서' && bm.ym === '2026-08' && bm.ks[0] === k && n3 === n2 + 1 && mg.ks.length === 2
     && dm.kind === '미납 안내' && sm.kind === '원장 명세서';
   const ok = seed && list && re && hooks; if (!ok) fail = 1;
-  console.log('② 발송 내역 — 6 · 7월 청구서 46통(합쳐 보내기 한 통, 토끼어패럴 7월분 실패 1건) · 다시 보내면 새 줄(지금 담당자 주소) · 원래 줄 그대로 · 대시보드에서 빠짐 · 발행 · 미납 안내 · 명세서가 남김  ' + (ok ? 'OK' : '✗ ' + JSON.stringify({seed, list, re, hooks}))); }
+  console.log('② 발송 내역 — 6 · 7월 청구서 46통(한 장으로 받기 한 통, 토끼어패럴 7월분 실패 1건) · 다시 보내면 새 줄(지금 담당자 주소) · 원래 줄 그대로 · 대시보드에서 빠짐 · 발행 · 미납 안내 · 명세서가 남김  ' + (ok ? 'OK' : '✗ ' + JSON.stringify({seed, list, re, hooks}))); }
 /* 대시보드(DASH-1) — 확인이 필요한 일: 건수가 0이면 숨김 · 건물을 고르면 그 건물만 · 처리하면 사라짐. 직원 알림은 이 화면 하나(종 모양 알림 없음) → 명세변경_261122 38 · 41 */
 { const D = new Function(stub + bare + '; seedJuly(); return {dashItems,DASH1,PROG,HROWS,akOpen,akOK,akHTML,CTRS,CTR3,setB:v=>{fdb=v},set tab3c(v){tab3c=v;}};')();
   const on = () => Object.fromEntries(D.dashItems().filter(x => x.rows.length).map(x => [x.k, x.rows]));
