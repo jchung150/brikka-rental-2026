@@ -3479,17 +3479,18 @@ function REC1(){
   const uniq=f=>[...new Set(all.map(f))].filter(Boolean).sort();
   return `
   <div class="ph"><h1>변경 이력</h1><span class="sid">REC-1</span></div>
-  <div class="fbar">${qBox('rq',frc.q,'setFrc')}${S('b',BUILDINGS.map(b=>[b.id,b.name]),'전체 건물')}${S('kind',uniq(r=>r.kind),'전체 대상 종류')}${S('type',uniq(r=>r.type),'전체 변경 유형')}${S('by',uniq(r=>r.by),'전체 처리자')}${perBtn('frc',frc)}</div>
+  <div class="fbar">${S('b',BUILDINGS.map(b=>[b.id,b.name]),'전체 건물')}${S('kind',uniq(r=>r.kind),'전체 대상 종류')}${S('type',uniq(r=>r.type),'전체 변경 유형')}${S('by',uniq(r=>r.by),'전체 처리자')}${perBtn('frc',frc)}</div>
   <div class="tbl"><div class="tw"><table>
-    <thead><tr><th>일시</th><th>대상 종류</th><th>대상 이름</th><th>변경 유형</th><th>변경 요약</th><th>처리자</th><th class="c">더보기</th></tr></thead>
+    <thead><tr><th>일시</th><th>대상 종류</th><th>계약고유이름</th><th>변경 유형</th><th>변경 요약</th><th>처리자</th><th class="c">더보기</th></tr></thead>
     <tbody>${R.length?P.map((r,i)=>`<tr style="cursor:pointer" onclick="hdOpen('rec',${(cur-1)*HPER+i})">
         <td style="white-space:nowrap">${r.at.replace(/-/g,'.')}</td>
         <td><span class="bd mu">${r.kind}</span></td><td style="white-space:nowrap">${recName(r)}</td><td>${r.type}</td>
-        <td>${r.sum}${r.why?`<div class="c2">사유: ${r.why}</div>`:''}</td><td style="white-space:nowrap">${r.by}</td>
+        <td style="white-space:nowrap">${r.sum}</td><td style="white-space:nowrap">${r.by}</td>
         <td class="c">${moreCell([{t:'상세',go:`hdOpen('rec',${(cur-1)*HPER+i})`},{t:'삭제',go:`hdOpen('rec',${(cur-1)*HPER+i},true)`,title:'슈퍼관리자만 · 사유를 남깁니다'}])}</td></tr>`).join('')
       :`<tr><td colspan="7" style="text-align:center;padding:28px 0;color:var(--muted)">조건에 맞는 이력이 없습니다</td></tr>`}</tbody></table></div>
     ${pagerHTML(R.length,cur,`(p=>{hp.rec=p;render(true);})`)}</div>
   <div class="hint">모든 건물의 변경 이력입니다. 건물 상세 · 계약 상세의 이력 탭은 이 표를 그 건물 · 그 계약으로 거른 것입니다. 줄을 누르면 상세(변경 전 · 후)가 열립니다.<br>
+    사유는 줄을 누르면 상세에서 봅니다. 계약이 아닌 이력(건물 설정 · 월 마감 · 임차인 · 임대인)은 그 이름이 보입니다.<br>
     이력은 고칠 수 없고, 슈퍼관리자만 사유를 적고 지웁니다(지운 기록은 따로 남고 원장 거래는 지워지지 않습니다). 금액의 흐름은 계약 원장에서 봅니다.<br>
     대상 종류 「임차인 · 임대인」은 연락처에서 고친 기록입니다(명세변경_261122 43).</div>`;
 }
@@ -6814,7 +6815,7 @@ function histHTML(rows,scope){
       <tbody>${R.length?P.map((r,i)=>`<tr style="cursor:pointer" onclick="hdOpen('${scope}',${(cur-1)*HPER+i})">
           <td style="white-space:nowrap">${d(r.at)}</td>
           <td><span class="bd mu">${r.kind}</span></td><td style="white-space:nowrap">${r.name}</td><td>${r.type}</td>
-          <td>${r.sum}${r.why?`<div class="c2">사유: ${r.why}</div>`:''}</td><td style="white-space:nowrap">${r.by}</td>
+          <td style="white-space:nowrap">${r.sum}</td><td style="white-space:nowrap">${r.by}</td>
           <td class="c">${moreCell([{t:'상세',go:`hdOpen('${scope}',${(cur-1)*HPER+i})`},{t:'삭제',go:`hdOpen('${scope}',${(cur-1)*HPER+i},true)`}])}</td></tr>`).join(''):`<tr><td colspan="7" style="text-align:center;padding:28px 0;color:var(--muted)">조건에 맞는 이력이 없습니다</td></tr>`}</tbody></table>
       ${pagerHTML(R.length,cur,`(p=>{hp['${scope}']=p;render(true);})`)}</div></div>`;
 }
