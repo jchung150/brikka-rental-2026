@@ -202,7 +202,7 @@ for (const b of ['b2']) run('PRO-3 ' + b, "tab3='요약';PRO3('" + b + "')");
   const all = ['settle', 'wait', 'term', 'adj', 'mail'].every(k => a[k]) && !a.mgmt && !a.issue && !a.fetch && !a.manual && !a.dep && !a.close
 
     && /쿠키랩/.test(a.term[0].n) && /아마데우스/.test(a.adj[0].n) && /김하늘/.test(a.wait.map(r => r.d).join()) && a.wait[0].n === '카리나빌딩';
-  const view = !/확인이 필요한 일/.test(h) && ['청구', '입금', '계약', '메일'].every(t => h.includes('<div class="ct">' + t + '<')) && /카리나빌딩 <span class="dact">정산 확정/.test(h) && /최근 작업 이력/.test(h) && /공실률/.test(h) && /숨긴 항목: 발행하지 않은 청구서 · 은행 거래내역 수집 중단/.test(h) && D.HROWS.dash.length === 10;
+  const view = !/확인이 필요한 일/.test(h) && ['청구', '입금', '계약', '메일'].every(t => h.includes('<div class="ct">' + t + '<')) && /카리나빌딩 <span class="dact">정산 확정/.test(h) && /최근 변경 이력/.test(h) && /공실률/.test(h) && /숨긴 항목: 발행하지 않은 청구서 · 은행 거래내역 수집 중단/.test(h) && D.HROWS.dash.length === 10;
   const slots = (h.match(/class="drow none"/g) || []).length === 12 - 6 && !/위탁운영계약/.test(h);
   D.setB('b2'); const b = on(); const hb = D.DASH1(); const one = !b.settle && !b.issue && !b.adj && b.wait.length === 1 && b.term && b.mail && /할 일이 없습니다/.test(hb) && (hb.match(/class="card dcard"/g) || []).length === 4;
   D.setB(''); const k6 = 'b1본관601호'; D.tab3c = '요약'; const c3 = D.CTR3(k6); D.akOpen(k6, 0); const ph = D.akHTML(); D.akOK();
@@ -1387,7 +1387,7 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   const none = n(L('없는건물')) === 0; BQ.f1p.q = '';
   r6.push(['건물 목록 검색 — 필터 줄 맨 앞 · 「카리나빌딩」 · 「카리나 빌딩」 · 「양화로 156」 · 공동 건물주 「윈터」 · 두 번째 관리자 「박현장」은 카리나빌딩 1건 · 「마포구」는 마포구 건물 모두',
     all === 2 && box && one && mapo && none]); }
-/* 자료보관 · 이력 검색 — 건물 상세 · 계약 상세가 같은 칸(같은 표) · 자료는 제목 · 파일 이름 · 메모 · 업로드한 사람 · 이력은 대상 이름 · 변경 요약 · 사유 · 처리자 · 필터와 함께 */
+/* 자료보관 · 이력 검색 — 건물 상세 · 계약 상세가 같은 칸(같은 표) · 자료는 제목 · 파일 이름 · 메모 · 업로드한 사람 · 이력은 계약고유이름 · 변경 요약 · 사유 · 처리자 · 필터와 함께 */
 { const SQ = new Function(stub + bare + '; seedJuly(); return {PRO3,CTR3,BUILDINGS,histB,get fdoc(){return fdoc;},get fh(){return fh;},set tab3(v){tab3=v;},set tab3c(v){tab3c=v;}};')();
   const docs = SQ.BUILDINGS[0].docs, nd = h => (h.match(/onclick="docOpen\('b1',\d+\)">/g) || []).length;
   const D = q => { SQ.fdoc.q = q; SQ.tab3 = '자료보관'; return SQ.PRO3('b1'); };
@@ -1401,7 +1401,7 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   const by = SQ.histB(SQ.BUILDINGS[0]).filter(r => r.by === '김관리').length;
   const hOk = nh(H('별관 301호')) > 0 && /별관301호/.test(H('별관 301호')) && nh(H('김관리')) === Math.min(10, by) && /조건에 맞는 이력이 없습니다/.test(H('없는이력'));
   SQ.fh.q = ''; SQ.tab3c = '이력'; const hc = SQ.CTR3('b1본관801호');
-  r6.push(['자료보관 · 이력 검색 — 필터 줄 맨 앞 · 자료는 제목 · 파일 이름 · 메모(「연 12%」) · 업로드한 사람 · 이력은 대상 이름(「별관 301호」) · 처리자 · 없으면 「조건에 맞는 …이 없습니다」 · 계약 상세 자료보관 · 이력에도 같은 칸',
+  r6.push(['자료보관 · 이력 검색 — 필터 줄 맨 앞 · 자료는 제목 · 파일 이름 · 메모(「연 12%」) · 업로드한 사람 · 이력은 계약고유이름(「별관 301호」) · 처리자 · 없으면 「조건에 맞는 …이 없습니다」 · 계약 상세 자료보관 · 이력에도 같은 칸',
     dBox && dOk && dCtr && hBox && by > 0 && hOk && /id="hq"/.test(hc)]); }
 /* 계약 목록 검색 — 계약고유이름(건물 별칭 · 유닛 · 임차인) · 건물 이름 일부, 띄어쓰기 · | 무시 · 필터와 함께 · 건물 상세 계약 탭도 같은 칸 */
 { const CQ = new Function(stub + bare + '; seedJuly(); return {CTR1,PRO3,CTRS,get f1c(){return f1c;},get fbc(){return fbc;},set tab3(v){tab3=v;}};')();
@@ -1433,7 +1433,7 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
 { const HI = new Function(stub + bare + '; seedJuly(); return {PRO3,CTR3,histB,BUILDINGS,cx3Open,cx3Save,setFh,hdOpen,hdHTML,hdDelete,get hdDel(){return hdDel;},HROWS,set tab3(v){tab3=v;},set tab3c(v){tab3c=v;},hp,get cx3(){return cx3;}};')();
   HI.tab3 = '이력'; const hb = HI.PRO3('b1'); HI.tab3c = '이력'; const hc = HI.CTR3('b1본관801호');
   const th = h => (h.match(/<thead><tr><th>일시<\/th>.*?<\/tr><\/thead>/) || [''])[0], nRow = h => (h.match(/<td><span class="bd mu">/g) || []).length;
-  const same = th(hb) && th(hb) === th(hc) && /<th>대상 종류<\/th><th>대상 이름<\/th><th>변경 유형<\/th><th>변경 요약<\/th><th>담당자<\/th>/.test(th(hb));
+  const same = th(hb) && th(hb) === th(hc) && /<th>대상 종류<\/th><th>계약고유이름<\/th><th>변경 유형<\/th><th>변경 요약<\/th><th>담당자<\/th>/.test(th(hb));
   const allT = HI.histB(HI.BUILDINGS[0]).every(r => /^\d{4}-\d\d-\d\d \d\d:\d\d$/.test(r.at));
   const ui = [hb, hc].every(h => !/<div class="ct">이력<\/div>/.test(h) && /<div class="fbar"><span class="fqw">.*?id="hq"/.test(h) && !/class="hint"/.test(h.split('id="hq"')[1] || ''));
   const page = nRow(hb) === 10 && /<\/table>\s*<div class="pgr">[\s\S]*?<\/div><\/div>/.test(hb) && /hp\['bb1'\]=p/.test(hb);
