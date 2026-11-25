@@ -185,6 +185,14 @@ for (const b of ['b2']) run('PRO-3 ' + b, "tab3='요약';PRO3('" + b + "')");
   const sec = hd.slice(hd.indexOf('최근 변경 이력')), n = (sec.match(/onclick="hdOpen\('dash',\d+\)"/g) || []).length;
   const ok = th(sec) !== '' && th(sec) === th(hr) && n === 10 && (sec.match(/title="더보기"/g) || []).length === 10 && !/작업 이력/.test(hd); if (!ok) fail = 1;
   console.log('② 대시보드 최근 변경 이력 — 변경 이력과 같은 칸 · 순서 · 더보기 · 최근 10건  ' + (ok ? 'OK' : '✗ ' + JSON.stringify({same: th(sec) === th(hr), n}))); }
+/* 보고서 탭 필터 — 기간(청구년월) · 발송 여부 · 건물 필터 없음 */
+{ const RF2 = new Function(stub + bare + '; seedJuly(); return {PRO3,REPS,setFrf,set tab3(v){tab3=v;}};')();
+  RF2.tab3 = '보고서'; const nr = h => (h.match(/<tr class="mrow" onclick="rpOpen/g) || []).length, h0 = RF2.PRO3('b1'), all = nr(h0);
+  const sentN = Object.keys(RF2.REPS.b1 || {}).length; RF2.setFrf('sent', '보냄'); const hs = RF2.PRO3('b1'); RF2.setFrf('sent', '안 보냄'); const hn = RF2.PRO3('b1'); RF2.setFrf('sent', '');
+  RF2.setFrf('from', '2026-07-01'); RF2.setFrf('to', '2026-07-31'); const h7 = RF2.PRO3('b1'); RF2.setFrf('from', ''); RF2.setFrf('to', '');
+  const ok = /class="rcal"/.test(h0) && /전체 발송 여부/.test(h0) && !/전체 건물/.test(h0.split('<table')[0]) && nr(hs) === sentN && nr(hs) + nr(hn) === all && nr(h7) === 1 && /rpOpen\('2026-07'\)/.test(h7);
+  if (!ok) fail = 1;
+  console.log('② 보고서 탭 필터 — 기간 · 발송 여부(보냄 ' + sentN + ' · 안 보냄 ' + (all - sentN) + ') · 건물 필터 없음  ' + (ok ? 'OK' : '✗')); }
 /* 발송 내역(NTF-6) — 보낸 그대로 남김 · 실패는 자동으로 다시 보내지 않음 · 다시 보내면 새 줄(원래 줄 그대로) · 보내는 화면(청구서 발행 · 미납 안내 · 명세서 · 웰컴)이 남김 → 명세변경_261122 38 */
 { const M = new Function(stub + bare + '; seedJuly(); return {mailRows,NTF6,mvOpen,mvHTML,mailResend,dashItems,issueAsk,issueGo,dueMail,stOpen,stSend,CTRS,ckey,setFm,set f1b(v){f1.b=v;}};')();
   const R0 = M.mailRows(), n0 = R0.length, fl = R0.filter(m => m.st === '실패'), f = fl[0];

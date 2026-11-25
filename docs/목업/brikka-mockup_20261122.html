@@ -3294,9 +3294,16 @@ function repSend(){const {b,ym}=frb; if(!closeOn(b,ym)) return; mailRows();
   say(`${ymKo(ym)} 보고서를 임대인에게 보냈습니다 — 발송 내역에서 볼 수 있습니다`); render(true);}
 /* 건물 상세 › 보고서 탭 — 달마다 한 줄. 줄을 누르면 오른쪽 패널에 그 달 보고서(PDF 그대로) · 메모 · 내려받기 · 메일 보내기.
    청구 현황에서 마감한 달의 ⋮ › 월 마감 보고서로 오면 그 달 패널이 바로 열린다 */
+/* 필터 — 기간(청구년월) · 발송 여부. 건물 필터는 없다(그 건물 탭) */
+let frf={from:'',to:'',sent:''};
+const setFrf=(k,v)=>{frf[k]=v;Object.keys(hp).forEach(x=>delete hp[x]);render(true);};
 function t보고서(bdx){
   frb.b=bdx.id; const b=bdx.id, dash='<span style="color:var(--faint)">—</span>';
-  const rows=MC_YMS.slice().reverse().map(ym=>{const S=mcState(b,ym), N=mcNum(b,ym), sent=(REPS[b]||{})[ym];
+  const YM=MC_YMS.slice().reverse().filter(ym=>(!frf.from||ym>=frf.from.slice(0,7))&&(!frf.to||ym<=frf.to.slice(0,7))
+      &&(!frf.sent||(frf.sent==='보냄')===!!(REPS[b]||{})[ym]));
+  const N0=Math.max(1,Math.ceil(YM.length/HPER)), cur=Math.min(hp['rp'+b]||1,N0);
+  const fb=`${perBtn('frf',frf)}<select onchange="setFrf('sent',this.value)">${[['','전체 발송 여부'],['보냄','보냄'],['안 보냄','안 보냄']].map(([v,t])=>`<option value="${v}" ${frf.sent===v?'selected':''}>${t}</option>`).join('')}</select>`;
+  const rows=YM.slice((cur-1)*HPER,cur*HPER).map(ym=>{const S=mcState(b,ym), N=mcNum(b,ym), sent=(REPS[b]||{})[ym];
     const due=N.due!=null?N.due:(N.bill||0)-(N.paid||0);
     return `<tr class="mrow" onclick="rpOpen('${ym}')">
       <td><b>${ymKo(ym)}</b></td>
@@ -3305,9 +3312,9 @@ function t보고서(bdx){
       <td class="n">${due>0?`<span style="color:var(--warn)">${won(due)}</span>`:N.bill?won(0):dash}</td>
       <td style="padding-left:32px">${sent?d8m('2026-'+sent):dash}</td>
       <td class="c">${moreCell([{t:'상세',go:`rpOpen('${ym}')`},{t:'내려받기',go:`say('${ymKo(ym)} 월 마감 보고서 PDF를 내려받습니다(상세 패널을 열지 않고 바로). 메일에 붙는 PDF와 같습니다.\\n목업에서는 파일을 내려받지 않습니다.')`}])}</td></tr>`;}).join('');
-  return `<div class="tbl" style="margin-top:4px"><div class="tw"><table>
+  return `${tabBar(fb)}<div class="tbl"><div class="tw"><table>
       <thead><tr><th>청구년월</th><th>마감</th><th class="n">청구액</th><th class="n">수납액</th><th class="n">미납액</th><th style="padding-left:32px">발송 일자</th><th class="c">더보기</th></tr></thead>
-      <tbody>${rows}</tbody></table></div></div>
+      <tbody>${rows||`<tr><td colspan="7" style="text-align:center;padding:28px 0;color:var(--muted)">조건에 맞는 보고서가 없습니다</td></tr>`}</tbody></table></div>${pagerHTML(YM.length,cur,`(p=>{hp['rp${b}']=p;render(true);})`)}</div>
     <div class="hint">달을 누르면 그 달 보고서가 열립니다. 건물 하나 × 한 달이 보고서 한 장이고, 그 건물 임대인 모두에게 한 통으로 보냅니다(공동소유도 건물 전체 기준이고 지분은 나누지 않습니다).<br>
       마감한 달만 보낼 수 있습니다. 숫자는 월 마감일 기준이라 보낸 뒤에 바뀌지 않습니다. 마감 전인 달도 열어 볼 수 있습니다. 금액은 부가세 포함입니다.<br>
       「이달의 메모」는 담당자가 쓰는 특이사항(수리 · 점검 · 공지)으로 보고서 맨 위에 실립니다. 비어 있으면 싣지 않습니다.</div>`;
@@ -6636,7 +6643,7 @@ const isoD=(y,m,d)=>`${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0
 const ymAdd=(ym,n)=>{const [y,m]=ym.split('-').map(Number), d=new Date(Date.UTC(y,m-1+n,1));return d.toISOString().slice(0,7);};
 const dAgo=n=>new Date((dnum(TODAY_S)-n)*864e5).toISOString().slice(0,10);
 /* 같은 달력을 원장(f3) · 변경 이력(frc)이 함께 쓴다 */
-const P3T={f3:()=>f3,frc:()=>frc,fm:()=>fm,fdg:()=>fdg,fmt:()=>fmt,fh:()=>fh,fdoc:()=>fdoc};
+const P3T={f3:()=>f3,frc:()=>frc,fm:()=>fm,fdg:()=>fdg,fmt:()=>fmt,fh:()=>fh,fdoc:()=>fdoc,frf:()=>frf};
 function p3Open(t='f3'){const o=P3T[t](); P3=P3?null:{t,from:o.from,to:o.to,ym:(o.to||o.from||TODAY_S).slice(0,7)};render(true);}
 function p3Day(d){if(!P3.from||P3.to){P3.from=d;P3.to='';} else if(d<P3.from){P3.from=d;} else P3.to=d; render(true);}
 function p3Set(from,to){const t=(P3&&P3.t)||'f3', o=P3T[t](); o.from=from;o.to=to;P3=null;if(t==='fm') mp=1;Object.keys(hp).forEach(k=>delete hp[k]);render(true);}
