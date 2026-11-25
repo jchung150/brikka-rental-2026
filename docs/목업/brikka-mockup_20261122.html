@@ -3138,7 +3138,7 @@ function mvHTML(){
     <div class="db">
       <div class="fg"><div class="fl">발송 정보</div>
         ${Rw('상태',`<span class="bd ${MST[m.st]}">${m.st}</span>${m.st==='실패'?`<div class="c2" style="color:var(--danger);white-space:normal">${m.why}</div>`:''}`)}
-        ${Rw('받는 사람',m.to.map(x=>`${x.n} &lt;${x.mail}&gt;`).join('<br>')+'<div class="c2">보낸 때의 주소</div>')}
+        ${Rw('받는 사람',m.to.map(x=>`${x.n} &lt;${x.mail}&gt;`).join('<br>'))}
         ${Rw('채널',m.ch)}${Rw('관련 대상',m.rel)}${Rw('발송방식',m.how)}${Rw('보낸 사람',m.by)}
         ${m.of?Rw('원래 메일',`<span class="lk" onclick="mvOpen(${m.of})">${d8((MAIL_LOG.find(x=>x.id===m.of)||{at:''}).at)} 발송 →</span>`):''}
         ${m.re?Rw('다시 보낸 메일',`<span class="lk" onclick="mvOpen(${m.re})">${d8((MAIL_LOG.find(x=>x.id===m.re)||{at:''}).at)} 발송 →</span>`):''}</div>
