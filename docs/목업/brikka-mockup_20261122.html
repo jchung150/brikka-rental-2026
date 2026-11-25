@@ -1400,9 +1400,7 @@ function drawerHTML(){
   if(DRAWER==='adjok') return akHTML();
   if(DRAWER==='mlv') return mvHTML();
   if(DRAWER==='repview') return repPanels();
-  if(DRAWER==='tedit') return teHTML();
-  if(DRAWER==='agv') return agHTML();
-  if(DRAWER==='oedit') return oeHTML();
+  if(DRAWER==='cndet') return cnHTML();
   if(DRAWER!=='additem') return '';
   const used=BLD.charge.filter(c=>c.use).map(c=>c.it);
   const rest=MASTER.filter(m=>!m.fixed&&!BILL[m.code].on&&used.includes(m.name));
@@ -1479,7 +1477,7 @@ function ddBadge(end){
 /* ═══ 네비 ═══ */
 const navLink=(i,sub)=>`<a onclick="go('${i.id}')" data-id="${i.id}" data-n="${i.n}">${sub?'':ic(i.i)}<span>${i.n}</span><span class="sid">${i.sid}</span></a>`;
 /* 상세 화면은 목록 메뉴를 켠다 */
-const NAV_PARENT={'user-7':'contacts','user-9':'contacts','pro-2':'pro-1','ctr-2':'ctr-1','ctr-4':'ctr-1','ctr-3':'ctr-1','pro-3':'pro-1'};
+const NAV_PARENT={'pro-2':'pro-1','ctr-2':'ctr-1','ctr-4':'ctr-1','ctr-3':'ctr-1','pro-3':'pro-1'};
 function paintNav(cur){
   const a0=(cur||'').split('/')[0], active=NAV_PARENT[a0]||a0;
   $('#nav').innerHTML=MENU.map(m=>{
@@ -3324,9 +3322,9 @@ function repPanels(){
   </div></div>`;
 }
 
-/* ═══ USER-6 · USER-7 임차인 — 사업자마다 한 줄. 상세는 탭(요약 · 계약이력 · 자료보관).
-   사업자 정보 · 입금자명 별칭 · 청구서 합쳐 보내기 · 세금계산서 받는 정보는 여기서 고친다(그 사업자의 모든 계약에 반영). 담당자는 계약에서 → 08 USER-6 · 7 ═══ */
-/* 사업자 정보 — 목업 예시값. BIZ에 있으면 그 값, 없으면 이름으로 만든 가짜 번호 · 대표자 */
+/* ═══ 연락처 — 임차인 · 임대인 · 중개사를 한 목록에. 줄을 누르면 오른쪽 패널(셋 모두 같은 틀: 기본 정보 · 연락 · 관련 계약 · 건물).
+   임차인 · 임대인은 패널 안에서 고친다(사업자등록번호는 못 고침). 중개사는 계약의 중개사 카드에서 고친다 → 08 USER-6~10 ═══ */
+/* 임차인 사업자 정보 — 목업 예시값. BIZ에 있으면 그 값, 없으면 이름으로 만든 가짜 번호 · 대표자 */
 const TINFO={};
 const tenHash=s=>{let h=0;for(const ch of s) h=(h*31+ch.charCodeAt(0))>>>0;return h;};
 function tenInfo(ten){
@@ -3338,106 +3336,33 @@ function tenInfo(ten){
 const tenAliases=ten=>{const k=normName(ten);return Object.keys(RC.alias).filter(nm=>RC.alias[nm]===k).sort();};
 const tenCtrs=ten=>CTRS.filter(c=>c.ten===ten);
 function tenSum(ten){
-  const cs=tenCtrs(ten), ks=new Set(cs.map(ckey));
-  const bill=BILLS.filter(i=>ks.has(i.k)).reduce((a,i)=>a+i.amt,0);
-  let paid=0,last=null; BILLS.filter(i=>ks.has(i.k)).forEach(i=>(PAYEV[i.id]||[]).forEach(e=>{if(String(e.dep).startsWith('cr')) return; paid+=e.amt; if(!last||e.date>last) last=e.date;}));
-  return {bill,paid,due:cs.reduce((a,c)=>a+arrears(c).due,0),dep:cs.reduce((a,c)=>a+ledgerOf(ckey(c)).bal.임대보증금,0),last};}
-let tab7='요약', te=null;
-function USER7(ten){
-  const cs=tenCtrs(ten); if(!cs.length) return TODO('contacts');
-  const I=tenInfo(ten), T=['요약','계약이력','자료보관'], dash='<span style="color:var(--faint)">—</span>';
-  const card=(t,body,act)=>`<div class="card"><div class="ct">${t}${act?`<span class="ca">${act}</span>`:''}</div><div class="cc">${body}</div></div>`;
-  const ed=m=>moreCell([{t:'수정',go:`teOpen('${ten.replace(/'/g,"\\'")}','${m}')`}]);
-  let body='';
-  if(tab7==='요약'){const S=tenSum(ten), al=tenAliases(ten), tx=ttaxOf(ten), p=pplOf(cs[0])[0], multi=BUILDINGS.some(b=>cs.filter(c=>c.b===b.id&&c.st==='진행중').length>1);
-    body=`<div class="two">
-      ${card('사업자 정보',`<dl class="dl"><dt>상호</dt><dd>${ten}</dd><dt>사업자등록번호</dt><dd>${I.biz}<span class="lock">고칠 수 없음</span></dd><dt>사업자구분</dt><dd>${I.kind==='개인'?'개인사업자':I.kind}</dd>
-        <dt>대표자명</dt><dd>${I.ceo}</dd><dt>사업장 주소</dt><dd>${I.addr||'—'}</dd><dt>업태 · 종목</dt><dd>${I.item||'—'}</dd></dl>`,ed('info'))}
-      ${card('거래 요약',`<dl class="dl"><dt>누적 청구액</dt><dd>${won(S.bill)}</dd><dt>누적 수납액</dt><dd>${won(S.paid)}</dd>
-        <dt>현재 미납액</dt><dd>${S.due?`<span style="color:var(--warn)">${won(S.due)}</span>`:won(0)}</dd><dt>보증금 잔액</dt><dd>${won(S.dep)}</dd><dt>최근 입금일</dt><dd>${S.last?d8m(S.last):'—'}</dd></dl>
-        <div class="c2" style="white-space:normal">이 사업자의 모든 계약을 합한 값입니다(계약 ${cs.length}건).</div>`)}</div>
-    <div class="two">
-      ${card('입금자명 별칭',`${al.length?`<div style="display:flex;flex-wrap:wrap;gap:6px">${al.map(a=>`<span class="bd mu">${a}</span>`).join('')}</div>`:'<div class="c2" style="margin:0">등록된 별칭이 없습니다</div>'}
-        <div class="c2" style="white-space:normal;margin-top:8px">은행 입금자명이 이 이름이면 입금 매칭이 이 임차인으로 자동 매칭합니다. 입금 매칭에서 처음 짝지을 때 등록되고, 여기서 더하거나 지웁니다.</div>`,ed('alias'))}
-      ${card('청구서 · 세금계산서',`<dl class="dl"><dt>청구서 합쳐 보내기</dt><dd>${MERGE_PDF[ten]?'예':'아니오'}<span class="lock">${multi?'같은 건물 계약이 여럿일 때 PDF 한 장':'같은 건물 계약이 하나라 쓰이지 않음'}</span></dd>
-        <dt>세금계산서 받는 이메일</dt><dd>${tx.mail.filter(Boolean).join(', ')||'<span style="color:var(--warn)">세금계산서 정보 미입력</span>'}</dd><dt>종사업장번호</dt><dd>${tx.sub||'—'}</dd></dl>`,ed('bill'))}</div>
-    ${card('대표 담당자',`<dl class="dl"><dt>이름</dt><dd>${p.n}${p.t?` <span class="c2" style="display:inline;margin:0">${p.t}</span>`:''}</dd><dt>연락처</dt><dd>${p.tel||'—'}</dd><dt>이메일</dt><dd>${p.mail||'—'}</dd></dl>
-      <div class="c2" style="white-space:normal">계약마다 담당자가 다를 수 있어 계약 상세 › 요약 › 담당자에서 고칩니다. 여기는 첫 계약의 대표 담당자입니다.</div>`)}`;}
-  else if(tab7==='계약이력'){const BN=id=>(BUILDINGS.find(x=>x.id===id)||{});
-    body=`<div class="tbl" style="margin-top:4px"><div class="tw"><table>
-      <thead><tr><th>계약고유이름</th><th>건물</th><th>계약기간</th><th class="n">임대료</th><th class="n">고정관리비</th><th class="n">보증금</th><th>계약상태</th></tr></thead>
-      <tbody>${cs.slice().sort((p,q)=>p.base<q.base?1:-1).map(c=>`<tr class="mrow" onclick="tab3c='요약';go('ctr-3/${encodeURIComponent(ckey(c))}')">
-        <td>${cname(BN(c.b).alias,c.no,c.ten)}</td><td>${BN(c.b).name}</td><td>${d8m(c.base)} ~ ${d8m(ctrEnd(c))}</td>
-        <td class="n">${won(Math.round(ctrAmt(c,'임대료')*1.1))}</td><td class="n">${won(Math.round(ctrAmt(c,'고정관리비')*1.1))}</td><td class="n">${won(ctrDeposit(c))}</td>
-        <td><span class="bd ${c.st==='진행중'?'ok':'mu'}">${c.st}</span></td></tr>`).join('')}</tbody></table></div></div>
-      <div class="hint">이 사업자의 모든 계약입니다(과거 계약 포함). 줄을 누르면 계약 상세로 갑니다. 금액은 부가세 포함입니다.</div>`;}
-  else {const ks=new Set(cs.map(ckey)), D=BUILDINGS.flatMap(b=>b.docs.filter(d=>ks.has(d.k)).map(d=>({...d,bn:b.name})));
-    body=`<div class="tbl" style="margin-top:4px"><div class="tw"><table>
-      <thead><tr><th>제목</th><th>카테고리</th><th>계약</th><th>올린 사람</th><th>올린 날</th></tr></thead>
-      <tbody>${D.length?D.map(d=>{const c=CTRS.find(x=>ckey(x)===d.k);return `<tr><td>${dTitle(d)}<div class="c2">${d.sz} · ${d.m||''}</div></td><td>${d.c}</td><td>${c?c.no:'—'}</td><td>${d.by}</td><td>${d8m(d.at.slice(0,10))}</td></tr>`;}).join('')
-        :`<tr><td colspan="5" style="text-align:center;padding:28px 0;color:var(--muted)">자료가 없습니다</td></tr>`}</tbody></table></div></div>
-      <div class="hint">이 사업자의 계약에 올린 자료입니다. 올리기 · 지우기는 계약 상세 › 자료보관과 같은 패널입니다(목업은 목록만).</div>`;}
-  return `
-  <div class="ph"><h1>${ten}</h1><span class="bd mu">${I.kind==='개인'?'개인사업자':I.kind}</span><span class="sid">USER-7</span></div>
-  <div class="tabs">${T.map(t=>`<button class="${t===tab7?'on':''}" onclick="tab7='${t}';render()">${t}</button>`).join('')}</div>${body}`;
-}
-/* 수정 패널 — 카드마다 오른쪽 패널. 사업자등록번호는 고치지 않는다 */
-function teOpen(ten,m){const I=tenInfo(ten), tx=ttaxOf(ten);
-  te={ten,m,f:{ceo:I.ceo,addr:I.addr,item:I.item,kind:I.kind,al:tenAliases(ten),na:'',merge:!!MERGE_PDF[ten],m1:tx.mail[0]||'',m2:tx.mail[1]||'',sub:tx.sub||''}};DRAWER='tedit';render(true);}
-function teSave(){const {ten,m,f}=te, I=tenInfo(ten), k=normName(ten);
-  if(m==='info'){if(!f.ceo.trim()) return; Object.assign(I,{ceo:f.ceo.trim(),addr:f.addr.trim(),item:f.item.trim(),kind:f.kind});}
-  if(m==='alias'){Object.keys(RC.alias).filter(nm=>RC.alias[nm]===k&&!f.al.includes(nm)).forEach(nm=>delete RC.alias[nm]); f.al.forEach(nm=>{RC.alias[nm]=k;});}
-  if(m==='bill'){if(f.sub&&!/^\d{4}$/.test(f.sub)) return; MERGE_PDF[ten]=f.merge; TTAX[ten]={mail:[f.m1.trim(),f.m2.trim()].filter(Boolean),sub:f.sub};}
-  te=null;DRAWER=null;render(true);}
-function teHTML(){
-  if(DRAWER!=='tedit'||!te) return '';
-  const f=te.f, inp='border:1px solid var(--line);border-radius:var(--r-sm);padding:7px 9px;font:inherit;background:var(--bg);color:inherit;width:100%;box-sizing:border-box';
-  const R=(k,b)=>`<div class="fr"><span class="fk">${k}</span><div style="flex:1">${b}</div></div>`, T=(x,ph)=>`<input type="text" value="${(f[x]||'').replace(/"/g,'&quot;')}" placeholder="${ph||''}" oninput="te.f.${x}=this.value" style="${inp}">`;
-  const TT={info:'사업자 정보 수정',alias:'입금자명 별칭',bill:'청구서 · 세금계산서'}[te.m];
-  let b='';
-  if(te.m==='info') b=`<div class="fg">${R('상호',`<span class="fv">${te.ten}</span>`)}${R('사업자등록번호',`<span class="fv">${tenInfo(te.ten).biz} <span class="lock">고칠 수 없음 · 잘못 넣었으면 계약을 다시 등록</span></span>`)}
-      ${R('사업자구분',`<select onchange="te.f.kind=this.value" style="${inp}">${['법인','개인'].map(v=>`<option value="${v}" ${f.kind===v?'selected':''}>${v==='개인'?'개인사업자':v}</option>`).join('')}</select>`)}
-      ${R('대표자명',T('ceo'))}${R('사업장 주소',T('addr'))}${R('업태 · 종목',T('item','예: 서비스 · 광고대행'))}</div>
-      <div class="c2" style="white-space:normal">이 사업자의 모든 계약에 함께 반영됩니다.</div>`;
-  if(te.m==='alias') b=`<div class="fg">${f.al.length?f.al.map((a,i)=>`<div class="fr"><span class="fv" style="flex:1">${a}</span><button class="btn sm" onclick="te.f.al.splice(${i},1);render(true)">지우기</button></div>`).join(''):'<div class="c2" style="margin:0">등록된 별칭이 없습니다</div>'}
-      <div class="fr" style="margin-top:8px"><input type="text" value="${f.na.replace(/"/g,'&quot;')}" placeholder="은행에 찍히는 입금자명 (예: ICB)" oninput="te.f.na=this.value" style="${inp}">
-        <button class="btn sm" onclick="const v=te.f.na.trim();if(v&&!te.f.al.includes(v)){te.f.al.push(v);te.f.na='';}render(true)">더하기</button></div></div>
-      <div class="c2" style="white-space:normal">은행 입금자명이 별칭과 같으면 입금 매칭이 이 임차인으로 자동 매칭합니다. 다른 임차인 별칭과 같은 이름은 넣지 않습니다.</div>`;
-  if(te.m==='bill') b=`<div class="fg">${R('청구서 합쳐 보내기',`<label style="display:flex;gap:6px;align-items:center"><input type="checkbox" ${f.merge?'checked':''} onchange="te.f.merge=this.checked"> 같은 건물 계약들의 청구서를 PDF 한 장으로 보냅니다</label>`)}
-      ${R('세금계산서 받는 이메일 1',T('m1','회계 담당자 이메일'))}${R('세금계산서 받는 이메일 2',T('m2','선택'))}${R('종사업장번호',T('sub','4자리 · 없으면 비움'))}
-      ${f.sub&&!/^\d{4}$/.test(f.sub)?'<div class="c2" style="color:var(--danger)">종사업장번호는 숫자 4자리입니다</div>':''}</div>
-      <div class="c2" style="white-space:normal">세금계산서 받는 이메일은 청구서 메일 받는 담당자와 따로입니다(보통 회계 담당자). 1차는 세금계산서를 발행하지 않고 정보만 둡니다.</div>`;
-  return `<div class="dro"><div class="ov" onclick="closeDrawer()"></div><div class="pn">
-    <div class="dh"><div><div class="t">${TT}</div><div class="s">${te.ten}</div></div><button class="x" onclick="closeDrawer()">✕</button></div>
-    <div class="db">${b}</div>
-    <div class="df"><button class="btn" onclick="closeDrawer()">취소</button><button class="btn pri" onclick="teSave()">저장</button></div></div></div>`;
-}
-
-/* ═══ 연락처 — 임차인 · 임대인 · 중개사를 한 목록에. 공통 칸만 보이고, 줄을 누르면 각자의 상세(임차인 · 임대인은 화면, 중개사는 패널).
-   급할 때 사람을 찾는 곳이라 이름 · 사람 · 전화 · 이메일 · 별칭 · 사업자번호 어느 것으로도 찾는다 → 08 USER-6 · 8 · 10 ═══ */
+  const cs=tenCtrs(ten), ks=new Set(cs.map(ckey)); let last=null;
+  BILLS.filter(i=>ks.has(i.k)).forEach(i=>(PAYEV[i.id]||[]).forEach(e=>{if(!String(e.dep).startsWith('cr')&&(!last||e.date>last)) last=e.date;}));
+  return {due:cs.reduce((a,c)=>a+arrears(c).due,0),dep:cs.reduce((a,c)=>a+ledgerOf(ckey(c)).bal.임대보증금,0),last};}
 /* 임대인 — 건물의 소유자(owners)에서 사업자번호로 묶는다. 연락처 · 주소는 목업 예시값 */
 const OINFO={};
 function ownList(){const m={};
   BUILDINGS.forEach(b=>(b.owners||[]).forEach(o=>{const x=m[o.biz]=m[o.biz]||{biz:o.biz,n:o.n,bs:[]}; x.bs.push({b,share:o.share});}));
   return Object.values(m).map(x=>{const h=tenHash(x.n);
-    if(!OINFO[x.biz]) OINFO[x.biz]={kind:/^\d{3}-8\d/.test(x.biz)?'법인':'개인',ceo:x.n,addr:`서울특별시 ${['마포구 독막로','용산구 이촌로','서초구 반포대로','성동구 왕십리로'][h%4]} ${10+h%180}`,tel:`010-${String(2000+h%7000).padStart(4,'0')}-${String(1000+(h>>>5)%9000).padStart(4,'0')}`};
+    if(!OINFO[x.biz]) OINFO[x.biz]={kind:/^\d{3}-8\d/.test(x.biz)?'법인':'개인',addr:`서울특별시 ${['마포구 독막로','용산구 이촌로','서초구 반포대로','성동구 왕십리로'][h%4]} ${10+h%180}`,tel:`010-${String(2000+h%7000).padStart(4,'0')}-${String(1000+(h>>>5)%9000).padStart(4,'0')}`};
     return {...x,...OINFO[x.biz],mail:OWN_MAIL[x.n]||''};});}
 /* 중개사 — 계약마다 넣은 중개사를 등록번호로 묶는다 */
 function agList(){const m={};
   CTRS.filter(c=>c.ag&&c.ag.n).forEach(c=>{const k=c.ag.no||c.ag.n; (m[k]=m[k]||{...c.ag,cs:[]}).cs.push(c);});
   return Object.values(m);}
-let fct={kind:'',b:'',q:''}, agv=null;
+let fct={kind:'',b:'',q:''}, cv=null;
 const setFct=(k,v)=>{fct[k]=v;render();};
+const KB={'임차인':'ac','임대인':'ok','중개사':'mu'};
 function CONTACTS(){
   const BN=id=>(BUILDINGS.find(x=>x.id===id)||{}), dash='<span style="color:var(--faint)">—</span>';
   const unitTx=cs=>[...new Set(cs.map(c=>c.b))].map(b=>`${BN(b).alias} ${cs.filter(c=>c.b===b).map(c=>c.no).join(' · ')}`).join(' / ');
+  const op=(k,id)=>`cnOpen('${k}','${encodeURIComponent(id)}')`;
   const T=[...new Set(CTRS.map(c=>c.ten))].map(ten=>{const all=tenCtrs(ten), live=all.filter(c=>c.st==='진행중'||c.st==='준비중'), cs=live.length?live:all, p=pplOf(cs[0])[0], I=tenInfo(ten);
-      return {k:'임차인',name:ten,sub:I.biz,per:p.n,tel:p.tel,mail:p.mail,rel:(live.length?'':'(종료) ')+unitTx(cs),bs:cs.map(c=>c.b),q:[I.biz,I.ceo,...tenAliases(ten)],go:`tab7='요약';go('user-7/${encodeURIComponent(ten)}')`};});
-  const O=ownList().map(o=>({k:'임대인',name:o.n,sub:o.biz,per:o.ceo,tel:o.tel,mail:o.mail,rel:o.bs.map(x=>`${x.b.name}${x.share<100?` ${x.share}%`:''}`).join(' / '),bs:o.bs.map(x=>x.b.id),q:[],go:`tab9='요약';go('user-9/${o.biz}')`}));
-  const A=agList().map(a=>({k:'중개사',name:a.n,sub:a.no,per:a.ceo,tel:a.tel,mail:'',rel:`${unitTx(a.cs.slice(0,2))}${a.cs.length>2?` 외 ${a.cs.length-2}`:''}`,bs:a.cs.map(c=>c.b),q:[a.addr],go:`agOpen('${a.no||a.n}')`}));
+      return {k:'임차인',name:ten,sub:I.biz,per:p.n,tel:p.tel,mail:p.mail,rel:(live.length?'':'(종료) ')+unitTx(cs),bs:cs.map(c=>c.b),q:[I.biz,I.ceo,...tenAliases(ten)],go:op('임차인',ten)};});
+  const O=ownList().map(o=>({k:'임대인',name:o.n,sub:o.biz,per:o.n,tel:o.tel,mail:o.mail,rel:o.bs.map(x=>`${x.b.name}${x.share<100?` ${x.share}%`:''}`).join(' / '),bs:o.bs.map(x=>x.b.id),q:[],go:op('임대인',o.biz)}));
+  const A=agList().map(a=>({k:'중개사',name:a.n,sub:a.no,per:a.ceo,tel:a.tel,mail:'',rel:`${unitTx(a.cs.slice(0,2))}${a.cs.length>2?` 외 ${a.cs.length-2}`:''}`,bs:a.cs.map(c=>c.b),q:[a.addr],go:op('중개사',a.no||a.n)}));
   const R=[...T,...O,...A].filter(x=>(!fct.kind||x.k===fct.kind)&&(!fct.b||x.bs.includes(fct.b))&&qHit(fct.q,[x.name,x.sub,x.per,x.tel,x.mail,...x.q]));
   const S=(k,opts)=>`<select onchange="setFct('${k}',this.value)">${opts.map(([v,t])=>`<option value="${v}" ${fct[k]===v?'selected':''}>${t}</option>`).join('')}</select>`;
-  const KB={'임차인':'ac','임대인':'ok','중개사':'mu'};
   return `
   <div class="ph"><h1>연락처</h1><span class="sid">USER-6 · 8 · 10</span></div>
   <div class="fbar">${qBox('cq2',fct.q,'setFct')}${S('kind',[['','전체 구분'],['임차인','임차인'],['임대인','임대인'],['중개사','중개사']])}${S('b',[['','전체 건물'],...BUILDINGS.map(b=>[b.id,b.name])])}</div>
@@ -3449,59 +3374,67 @@ function CONTACTS(){
       <td>${x.per||dash}</td><td>${x.tel||dash}</td><td>${x.mail||dash}</td><td>${x.rel}</td>
       <td class="c">${moreCell([{t:'상세',go:x.go}])}</td></tr>`).join('')
       :`<tr><td colspan="7" style="text-align:center;padding:28px 0;color:var(--muted)">조건에 맞는 연락처가 없습니다</td></tr>`}</tbody></table></div></div>
-  <div class="hint">임차인 · 임대인 · 중개사를 한 목록에서 찾습니다. 검색은 이름 · 사람 · 전화 · 이메일 · 사업자(등록)번호 · 입금자명 별칭으로 합니다.<br>
-    임차인은 사업자마다 한 줄(연락할 사람은 대표 담당자), 임대인은 사람마다 한 줄(공동소유면 지분), 중개사는 사무소마다 한 줄입니다. 줄을 누르면 상세가 열립니다.<br>
-    중개사 정보는 계약마다 넣고 계약 상세의 중개사 카드에서 고칩니다. 사업자등록번호 · 연락처 일부는 목업 예시값입니다.</div>`;
+  <div class="hint">임차인 · 임대인 · 중개사를 한 목록에서 찾습니다. 검색은 이름 · 사람 · 전화 · 이메일 · 사업자(등록)번호 · 입금자명 별칭으로 합니다. 줄을 누르면 오른쪽에 상세가 열립니다.<br>
+    임차인은 사업자마다 한 줄(연락할 사람은 대표 담당자), 임대인은 사람마다 한 줄(공동소유면 지분), 중개사는 사무소마다 한 줄입니다. 사업자등록번호 · 연락처 일부는 목업 예시값입니다.</div>`;
 }
-/* 중개사 상세 — 오른쪽 패널. 여기서 고치지 않는다 → USER-10 */
-function agOpen(k){agv=k;DRAWER='agv';render(true);}
-function agHTML(){
-  if(DRAWER!=='agv'||!agv) return '';
-  const a=agList().find(x=>(x.no||x.n)===agv); if(!a) return '';
-  const BN=id=>(BUILDINGS.find(x=>x.id===id)||{}), Rw=(k,v)=>`<div class="fr"><span class="fk">${k}</span><span class="fv">${v}</span></div>`;
-  return `<div class="dro"><div class="ov" onclick="closeDrawer()"></div><div class="pn">
-    <div class="dh"><div><div class="t">${a.n}</div><div class="s">중개사 · 중개한 계약 ${a.cs.length}건</div></div><button class="x" onclick="closeDrawer()">✕</button></div>
-    <div class="db"><div class="fg"><div class="fl">사무소</div>${Rw('대표자',a.ceo||'—')}${Rw('등록번호',a.no||'—')}${Rw('연락처',a.tel||'—')}${Rw('소재지',a.addr||'—')}</div>
-      <div class="fg"><div class="fl">중개한 계약</div>
-      <div class="tw" style="border:1px solid var(--line);border-radius:var(--r-sm)"><table><thead><tr><th>계약고유이름</th><th>계약기간</th><th>상태</th><th class="n">수수료율</th></tr></thead>
-        <tbody>${a.cs.map(c=>`<tr class="mrow" onclick="closeDrawer();tab3c='요약';go('ctr-3/${encodeURIComponent(ckey(c))}')"><td>${cname(BN(c.b).alias,c.no,c.ten)}</td><td>${d8m(c.base).slice(2)} ~ ${d8m(ctrEnd(c)).slice(2)}</td>
-          <td><span class="bd ${c.st==='진행중'?'ok':'mu'}">${c.st}</span></td><td class="n">${c.ag.fee?`${c.ag.fee}%`:'<span style="color:var(--warn)">미입력</span>'}</td></tr>`).join('')}</tbody></table></div>
-      <div class="c2" style="white-space:normal">중개사 정보와 수수료율은 계약마다 넣고 계약 상세의 중개사 카드에서 고칩니다. 수수료율은 기록만 하고 계산에 쓰지 않습니다.</div></div></div>
-    <div class="df"><button class="btn" onclick="closeDrawer()">닫기</button></div></div></div>`;
-}
-/* 임대인 상세 — 요약 · 건물 · 자료보관. 기본정보는 패널에서 고친다(사업자등록번호는 못 고침). 수수료 · 운영방식은 보이지 않는다(대외비) → USER-9 */
-let tab9='요약', oe=null;
-function USER9(biz){
-  const o=ownList().find(x=>x.biz===biz); if(!o) return TODO('user-6');
-  const T=['요약','건물','자료보관'], card=(t,body,act)=>`<div class="card"><div class="ct">${t}${act?`<span class="ca">${act}</span>`:''}</div><div class="cc">${body}</div></div>`;
-  let body='';
-  if(tab9==='요약') body=card('기본정보',`<dl class="dl"><dt>임대인명</dt><dd>${o.n}</dd><dt>구분</dt><dd>${o.kind}</dd><dt>사업자등록번호</dt><dd>${o.biz}<span class="lock">고칠 수 없음</span></dd>
-      <dt>주소</dt><dd>${o.addr}</dd><dt>연락처</dt><dd>${o.tel}</dd><dt>이메일</dt><dd>${o.mail||'<span style="color:var(--warn)">미입력 — 월 마감 보고서를 보낼 수 없습니다</span>'}<span class="lock">월 마감 보고서 받는 곳</span></dd></dl>`,
-      moreCell([{t:'수정',go:`oeOpen('${biz}')`}]))+`<div class="hint">고치면 이 임대인의 모든 건물에 반영됩니다. 위탁 수수료 · 운영방식은 대외비라 보이지 않습니다.</div>`;
-  else if(tab9==='건물') body=`<div class="tbl" style="margin-top:4px"><div class="tw"><table>
-      <thead><tr><th>건물</th><th>주소</th><th>건물유형</th><th class="n">지분</th><th class="n">유닛</th><th class="n">공실률</th><th>위탁운영계약</th><th class="c">더보기</th></tr></thead>
-      <tbody>${o.bs.map(({b,share})=>{const d=dday(b.mgmtEnd), nOff=0, rate=b.unitCnt?b.vacCnt/(b.unitCnt-nOff)*100:0;
-        return `<tr class="mrow" onclick="tab3='요약';go('pro-3/${b.id}')"><td>${b.name}</td><td>${b.addr}</td><td>${b.kind}</td><td class="n">${share}%</td><td class="n">${b.unitCnt}개</td><td class="n">${rate.toFixed(1)}%</td>
-          <td>${d8m(b.mgmtStart)} ~ ${d8m(b.mgmtEnd)} <span class="c2" style="display:inline;margin:0;${d<=90?'color:var(--warn)':''}">${d>=0?`${d}일 남음`:'만료'}</span></td>
-          <td class="c">${moreCell([{t:'건물 정보',go:`tab3='요약';go('pro-3/${b.id}')`},{t:'유닛 정보',go:`tab3='유닛';go('pro-3/${b.id}')`},{t:'월 마감 보고서',go:`tab3='보고서';go('pro-3/${b.id}')`}])}</td></tr>`;}).join('')}</tbody></table></div></div>
-      <div class="hint">이 임대인이 가진 건물입니다. 건물은 여기서 고치지 않고 건물 상세에서 고칩니다. 월 마감 보고서는 건물마다 따로입니다.</div>`;
-  else body=`<div class="tbl" style="margin-top:4px"><div class="empty">자료가 없습니다</div></div><div class="hint">임대인 신분증 · 위임장 같은 자료를 둡니다. 올리기 · 지우기는 건물 자료보관과 같은 패널입니다(목업은 목록만).</div>`;
-  return `
-  <div class="ph"><h1>${o.n}</h1><span class="bd ok">임대인</span><span class="sid">USER-9</span></div>
-  <div class="tabs">${T.map(t=>`<button class="${t===tab9?'on':''}" onclick="tab9='${t}';render()">${t}</button>`).join('')}</div>${body}`;
-}
-function oeOpen(biz){const o=ownList().find(x=>x.biz===biz); oe={biz,n:o.n,f:{addr:o.addr,tel:o.tel,mail:o.mail}};DRAWER='oedit';render(true);}
-function oeSave(){const {biz,n,f}=oe; if(f.mail&&!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(f.mail)) return; Object.assign(OINFO[biz],{addr:f.addr.trim(),tel:f.tel.trim()}); OWN_MAIL[n]=f.mail.trim(); oe=null;DRAWER=null;render(true);}
-function oeHTML(){
-  if(DRAWER!=='oedit'||!oe) return '';
+/* 상세 패널 — 셋 모두 같은 틀. 보기 ↔ 고치기(임차인 · 임대인) */
+function cnOpen(k,id){id=decodeURIComponent(id); cv={k,id,edit:false};DRAWER='cndet';render(true);}
+function cnEdit(){const {k,id}=cv;
+  if(k==='임차인'){const I=tenInfo(id), tx=ttaxOf(id); cv.f={kind:I.kind,ceo:I.ceo,addr:I.addr,item:I.item,al:tenAliases(id),na:'',merge:!!MERGE_PDF[id],m1:tx.mail[0]||'',m2:tx.mail[1]||'',sub:tx.sub||''};}
+  if(k==='임대인'){const o=ownList().find(x=>x.biz===id); cv.f={addr:o.addr,tel:o.tel,mail:o.mail};}
+  cv.edit=true;render(true);}
+const cnBad=()=>{const f=cv.f||{}; if(cv.k==='임차인') return !f.ceo.trim()?'대표자명을 넣으세요':f.sub&&!/^\d{4}$/.test(f.sub)?'종사업장번호는 숫자 4자리입니다':'';
+  if(cv.k==='임대인') return f.mail&&!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(f.mail)?'이메일 형식이 아닙니다':''; return '';};
+function cnSave(){if(cnBad()) return; const {k,id,f}=cv;
+  if(k==='임차인'){Object.assign(tenInfo(id),{kind:f.kind,ceo:f.ceo.trim(),addr:f.addr.trim(),item:f.item.trim()}); const nk=normName(id);
+    Object.keys(RC.alias).filter(nm=>RC.alias[nm]===nk&&!f.al.includes(nm)).forEach(nm=>delete RC.alias[nm]); f.al.forEach(nm=>{RC.alias[nm]=nk;});
+    MERGE_PDF[id]=f.merge; TTAX[id]={mail:[f.m1.trim(),f.m2.trim()].filter(Boolean),sub:f.sub};}
+  if(k==='임대인'){const o=ownList().find(x=>x.biz===id); Object.assign(OINFO[id],{addr:f.addr.trim(),tel:f.tel.trim()}); OWN_MAIL[o.n]=f.mail.trim();}
+  cv.edit=false;cv.f=null;render(true);}
+function cnHTML(){
+  if(DRAWER!=='cndet'||!cv) return '';
+  const {k,id,edit}=cv, BN=b=>(BUILDINGS.find(x=>x.id===b)||{}), dash='—';
+  const Rw=(a,v,lock)=>`<div class="fr"><span class="fk">${a}</span><span class="fv">${v||dash}${lock?`<span class="lock">${lock}</span>`:''}</span></div>`;
   const inp='border:1px solid var(--line);border-radius:var(--r-sm);padding:7px 9px;font:inherit;background:var(--bg);color:inherit;width:100%;box-sizing:border-box';
-  const R=(k,x)=>`<div class="fr"><span class="fk">${k}</span><div style="flex:1"><input type="text" value="${(oe.f[x]||'').replace(/"/g,'&quot;')}" oninput="oe.f.${x}=this.value" style="${inp}"></div></div>`;
-  const bad=oe.f.mail&&!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(oe.f.mail);
-  return `<div class="dro"><div class="ov" onclick="closeDrawer()"></div><div class="pn">
-    <div class="dh"><div><div class="t">기본정보 수정</div><div class="s">${oe.n}</div></div><button class="x" onclick="closeDrawer()">✕</button></div>
-    <div class="db"><div class="fg">${R('주소','addr')}${R('연락처','tel')}${R('이메일','mail')}${bad?'<div class="c2" style="color:var(--danger)">이메일 형식이 아닙니다</div>':''}</div>
-      <div class="c2" style="white-space:normal">이메일은 월 마감 보고서를 받는 곳입니다. 이 임대인의 모든 건물에 반영됩니다.</div></div>
-    <div class="df"><button class="btn" onclick="closeDrawer()">취소</button><button class="btn pri" onclick="oeSave()">저장</button></div></div></div>`;
+  const In=(a,x,ph)=>`<div class="fr"><span class="fk">${a}</span><div style="flex:1"><input type="text" value="${(cv.f[x]||'').replace(/"/g,'&quot;')}" placeholder="${ph||''}" oninput="cv.f.${x}=this.value" style="${inp}"></div></div>`;
+  const G=(t,b)=>`<div class="fg"><div class="fl">${t}</div>${b}</div>`;
+  const ctrT=cs=>`<div class="tw" style="border:1px solid var(--line);border-radius:var(--r-sm)"><table><thead><tr><th>계약고유이름</th><th>계약기간</th><th>상태</th></tr></thead>
+    <tbody>${cs.map(c=>`<tr class="mrow" onclick="closeDrawer();tab3c='요약';go('ctr-3/${encodeURIComponent(ckey(c))}')"><td>${cname(BN(c.b).alias,c.no,c.ten)}</td><td>${d8m(c.base).slice(2)} ~ ${d8m(ctrEnd(c)).slice(2)}</td><td><span class="bd ${c.st==='진행중'?'ok':'mu'}">${c.st}</span></td></tr>`).join('')}</tbody></table></div>`;
+  let name='', body='';
+  if(k==='임차인'){const I=tenInfo(id), cs=tenCtrs(id), p=pplOf((cs.find(c=>c.st==='진행중')||cs[0]))[0], S=tenSum(id), tx=ttaxOf(id), al=tenAliases(id); name=id;
+    body=edit?G('사업자 정보',Rw('사업자등록번호',I.biz,'고칠 수 없음')
+          +`<div class="fr"><span class="fk">사업자구분</span><div style="flex:1"><select onchange="cv.f.kind=this.value" style="${inp}">${['법인','개인'].map(v=>`<option value="${v}" ${cv.f.kind===v?'selected':''}>${v==='개인'?'개인사업자':v}</option>`).join('')}</select></div></div>`
+          +In('대표자명','ceo')+In('사업장 주소','addr')+In('업태 · 종목','item'))
+        +G('입금자명 별칭',`${cv.f.al.map((a,i)=>`<div class="fr"><span class="fv" style="flex:1">${a}</span><button class="btn sm" onclick="cv.f.al.splice(${i},1);render(true)">지우기</button></div>`).join('')}
+          <div class="fr"><input type="text" value="${cv.f.na.replace(/"/g,'&quot;')}" placeholder="은행에 찍히는 입금자명 (예: ICB)" oninput="cv.f.na=this.value" style="${inp}"><button class="btn sm" onclick="const v=cv.f.na.trim();if(v&&!cv.f.al.includes(v)){cv.f.al.push(v);cv.f.na='';}render(true)">더하기</button></div>`)
+        +G('청구서 · 세금계산서',`<div class="fr"><span class="fk">청구서 합쳐 보내기</span><label style="display:flex;gap:6px;align-items:center"><input type="checkbox" ${cv.f.merge?'checked':''} onchange="cv.f.merge=this.checked"> 같은 건물 계약들을 PDF 한 장으로</label></div>`
+          +In('세금계산서 이메일 1','m1','회계 담당자')+In('세금계산서 이메일 2','m2','선택')+In('종사업장번호','sub','4자리 · 없으면 비움'))
+        +'<div class="c2" style="white-space:normal">이 사업자의 모든 계약에 반영됩니다. 담당자는 계약마다 달라 계약 상세에서 고칩니다.</div>'
+      :G('사업자 정보',Rw('사업자등록번호',I.biz)+Rw('사업자구분',I.kind==='개인'?'개인사업자':I.kind)+Rw('대표자명',I.ceo)+Rw('사업장 주소',I.addr))
+        +G('대표 담당자',Rw('이름',`${p.n}${p.t?` · ${p.t}`:''}`)+Rw('연락처',p.tel)+Rw('이메일',p.mail))
+        +G('돈',Rw('현재 미납액',S.due?`<span style="color:var(--warn)">${won(S.due)}</span>`:won(0))+Rw('보증금 잔액',won(S.dep))+Rw('최근 입금일',S.last?d8m(S.last):dash))
+        +G('입금 · 청구',Rw('입금자명 별칭',al.length?al.map(a=>`<span class="bd mu">${a}</span>`).join(' '):dash)+Rw('청구서 합쳐 보내기',MERGE_PDF[id]?'예':'아니오')
+          +Rw('세금계산서 이메일',tx.mail.filter(Boolean).join(', ')||'<span style="color:var(--warn)">미입력</span>')+(tx.sub?Rw('종사업장번호',tx.sub):''))
+        +G(`계약 ${cs.length}건`,ctrT(cs.slice().sort((a,b)=>a.base<b.base?1:-1)));}
+  if(k==='임대인'){const o=ownList().find(x=>x.biz===id); name=o.n;
+    body=edit?G('기본 정보',Rw('사업자등록번호',o.biz,'고칠 수 없음')+In('주소','addr')+In('연락처','tel')+In('이메일','mail'))
+        +'<div class="c2" style="white-space:normal">이메일은 월 마감 보고서를 받는 곳입니다. 이 임대인의 모든 건물에 반영됩니다.</div>'
+      :G('기본 정보',Rw('사업자등록번호',o.biz)+Rw('구분',o.kind)+Rw('주소',o.addr))
+        +G('연락',Rw('연락처',o.tel)+Rw('이메일',o.mail||'<span style="color:var(--warn)">미입력 — 월 마감 보고서를 보낼 수 없습니다</span>','월 마감 보고서 받는 곳'))
+        +G(`보유 건물 ${o.bs.length}개`,`<div class="tw" style="border:1px solid var(--line);border-radius:var(--r-sm)"><table><thead><tr><th>건물</th><th class="n">지분</th><th>위탁운영계약</th></tr></thead>
+          <tbody>${o.bs.map(({b,share})=>{const d=dday(b.mgmtEnd);return `<tr class="mrow" onclick="closeDrawer();tab3='요약';go('pro-3/${b.id}')"><td>${b.name}</td><td class="n">${share}%</td><td>~ ${d8m(b.mgmtEnd)} <span class="c2" style="display:inline;margin:0;${d<=90?'color:var(--warn)':''}">${d>=0?`${d}일 남음`:'만료'}</span></td></tr>`;}).join('')}</tbody></table></div>
+          <div class="c2" style="white-space:normal">건물을 누르면 건물 상세로 갑니다(월 마감 보고서는 건물 상세 › 보고서). 수수료 · 운영방식은 대외비라 보이지 않습니다.</div>`);}
+  if(k==='중개사'){const a=agList().find(x=>(x.no||x.n)===id); name=a.n;
+    body=G('사무소',Rw('등록번호',a.no)+Rw('대표자',a.ceo)+Rw('소재지',a.addr))+G('연락',Rw('연락처',a.tel))
+      +G(`중개한 계약 ${a.cs.length}건`,`<div class="tw" style="border:1px solid var(--line);border-radius:var(--r-sm)"><table><thead><tr><th>계약고유이름</th><th>상태</th><th class="n">수수료율</th></tr></thead>
+        <tbody>${a.cs.map(c=>`<tr class="mrow" onclick="closeDrawer();tab3c='요약';go('ctr-3/${encodeURIComponent(ckey(c))}')"><td>${cname(BN(c.b).alias,c.no,c.ten)}</td><td><span class="bd ${c.st==='진행중'?'ok':'mu'}">${c.st}</span></td><td class="n">${c.ag.fee?`${c.ag.fee}%`:'<span style="color:var(--warn)">미입력</span>'}</td></tr>`).join('')}</tbody></table></div>
+        <div class="c2" style="white-space:normal">중개사 정보와 수수료율은 계약마다 넣고 계약 상세의 중개사 카드에서 고칩니다. 수수료율은 기록만 하고 계산에 쓰지 않습니다.</div>`);}
+  const bad=edit?cnBad():'';
+  return `<div class="dro"><div class="ov" onclick="closeDrawer()"></div><div class="pn" style="width:520px">
+    <div class="dh"><div><div class="t">${name}</div><div class="s"><span class="bd ${KB[k]}">${k}</span>${edit?' · 고치는 중':''}</div></div><button class="x" onclick="closeDrawer()">✕</button></div>
+    <div class="db">${body}${bad?`<div class="c2" style="color:var(--danger)">${bad}</div>`:''}</div>
+    <div class="df">${edit?`<button class="btn" onclick="cv.edit=false;render(true)">취소</button><button class="btn pri" ${bad?'disabled':''} onclick="cnSave()">저장</button>`
+      :`<button class="btn" onclick="closeDrawer()">닫기</button>${k!=='중개사'?'<button class="btn pri" onclick="cnEdit()">수정</button>':''}`}</div></div></div>`;
 }
 
 /* ═══ 임시 — 메일 문구 9종(초안 · 대표 검토 중). 칸({ })은 시스템이 채운다. 검토가 끝나면 메뉴와 함께 지운다 ═══ */
@@ -7154,8 +7087,6 @@ function render(keep){
   else if(id==='pay-13'){html=PAY13();crumb='수납 관리 <span>›</span> <b>입금 매칭</b>';}
   else if(id==='ntf-6'){html=NTF6();crumb='이력 관리 <span>›</span> <b>발송 내역</b>';}
   else if(id==='contacts'){html=CONTACTS();crumb='';}
-  else if(id==='user-9'){html=USER9(decodeURIComponent(arg||''));crumb='';}
-  else if(id==='user-7'){html=USER7(decodeURIComponent(arg||''));crumb='';}
   else if(id==='tmp-mail'){html=TMPMAIL();crumb='<b>메일 문구 (임시)</b>';}
   else{html=TODO(id);const g=MENU.find(m=>m.items&&m.items.some(i=>i.id===id));
     const m=ALL.find(i=>i.id===id);
