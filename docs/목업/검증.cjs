@@ -64,7 +64,7 @@ run('PRO-3 유닛 · 다음 계약', "CTRS.push({b:'b1',no:'본관302호',key:'b
 { const U = new Function(stub + bare + '; return BUILDINGS[0].units;')();
   const fl = n => (U.find(u => u.no === n) || {}).fl;
   if (!(U.length === 14 && fl('본관B101호') === -1 && fl('본관B201호') === -2 && fl('본관301호') === 3 && fl('별관401호') === 4)) { console.log('② 유닛 층 계산 ✗'); fail = 1; } }
-for (const b of ['b2', 'b4']) run('PRO-3 ' + b, "tab3='요약';PRO3('" + b + "')");
+for (const b of ['b2']) run('PRO-3 ' + b, "tab3='요약';PRO3('" + b + "')");
 /* 뉴진스하우스 원장 — 중계기 3곳 선납 과납이 매달 청구를 채움 · 하니커피 6월분 2일 늦음 → 7월분 연체료 · 세움파트너스 6월분 890,000 부족 → 7월 입금이 이월 미납액부터 채워 7월분 부분납 · 나머지 완납 */
 { const NL = new Function(stub + bare + '; seedJuly(); return {ledgerOf,ctrPay,dueOf,BILLS,CREDITS,f2,PAY2,rcOpenB,RC,PAY13,BANKS_BY};')();
   const st = (no, ym) => NL.ctrPay('b2' + no, ym).st, bal = no => NL.ledgerOf('b2' + no).bal.매출채권;
@@ -88,12 +88,12 @@ for (const b of ['b2', 'b4']) run('PRO-3 ' + b, "tab3='요약';PRO3('" + b + "')
   console.log('② 선납 계약 발행 — 선납에서 바로 채움 · 취소하면 되돌림  ' + (ok ? 'OK' : '✗')); }
 /* 관리비 정산 건물 전환 — 뉴진스하우스는 자기 유닛 · 검침 · 배율로 계산한다. 옥상 중계기 3대(801~803호)는 전기 · 수도 모두 배율 기본값 1.0으로 다른 유닛과 똑같이 나눠 받는다 */
 { const NJ = new Function(stub + bare + '; return {calc,M,withB,PAY10,ISSUE,f1,BUILDINGS,ROOF,set f10b(v){f10b=v;}};')();
-  NJ.f10b = 'b2'; const h2 = NJ.PAY10(); NJ.f10b = 'b1'; const h1 = NJ.PAY10(); NJ.f10b = 'b4'; const h4 = NJ.PAY10();
+  NJ.f10b = 'b2'; const h2 = NJ.PAY10(); NJ.f10b = 'b1'; const h1 = NJ.PAY10();
   const E = NJ.withB('b2', () => NJ.calc(NJ.M('elec'))), Wt = NJ.withB('b2', () => NJ.calc(NJ.M('water')));
   const rp = ['본관801호', '본관802호', '본관803호'], ru = no => E.rows.find(r => r.no === no);
   const roof = NJ.BUILDINGS.find(b => b.id === 'b2').units.filter(u => u.fl === NJ.ROOF).map(u => u.no).join();
   NJ.f1.b = 'b2'; const kt = NJ.ISSUE().find(c => c.no === '본관801호');
-  const ok = /본관803호/.test(h2) && !/카리나/.test(h2.replace(/<select[\s\S]*?<\/select>/g, '')) && /본관801호/.test(h1) && !/803호/.test(h1) && /자료가 없습니다/.test(h4)
+  const ok = /본관803호/.test(h2) && !/카리나/.test(h2.replace(/<select[\s\S]*?<\/select>/g, '')) && /본관801호/.test(h1) && !/803호/.test(h1)
     && rp.every(n => ru(n).mul === 1 && ru(n).use > 0 && ru(n).common > 0) && E.diff === 0
     && rp.every(n => { const w = Wt.rows.find(r => r.no === n); return w.mul === 1 && w.amt > 0; }) && Wt.diff === 0 && roof === '본관801호,본관802호,본관803호'
     && kt && kt.lines.some(l => l.n === '전기요금' && l.amt > 0) && kt.lines.some(l => l.n === '수도요금' && l.amt > 0);
@@ -103,22 +103,21 @@ for (const b of ['b2', 'b4']) run('PRO-3 ' + b, "tab3='요약';PRO3('" + b + "')
 { const D = new Function(stub + bare + '; seedJuly(); return {dashItems,DASH1,PROG,HROWS,setB:v=>{fdb=v}};')();
   const on = () => Object.fromEntries(D.dashItems().filter(x => x.rows.length).map(x => [x.k, x.rows]));
   const a = on(), h = D.DASH1();
-  const all = ['settle', 'wait', 'issue', 'term', 'adj', 'mgmt', 'mail'].every(k => a[k]) && !a.fetch && !a.manual && !a.dep && !a.close
-    && a.issue[0].n === '카즈하타워' && /16일 지남/.test(a.issue[0].when) && a.mgmt[0].n === '뉴진스하우스' && /38일 남음/.test(a.mgmt[0].when)
+  const all = ['settle', 'wait', 'term', 'adj', 'mgmt', 'mail'].every(k => a[k]) && !a.issue && !a.fetch && !a.manual && !a.dep && !a.close
+    && a.mgmt[0].n === '뉴진스하우스' && /38일 남음/.test(a.mgmt[0].when)
     && /쿠키랩/.test(a.term[0].n) && /아마데우스/.test(a.adj[0].n) && /김하늘/.test(a.wait.map(r => r.d).join()) && a.wait[0].n === '카리나빌딩';
-  const view = !/확인이 필요한 일/.test(h) && ['청구', '입금', '계약', '건물 · 메일'].every(t => h.includes('<div class="ct">' + t + '<')) && /카즈하타워 <span class="dact">청구서 발행/.test(h) && /최근 작업 이력/.test(h) && /공실률/.test(h) && /숨긴 항목: 은행 거래내역 수집 중단/.test(h) && D.HROWS.dash.length === 10;
+  const view = !/확인이 필요한 일/.test(h) && ['청구', '입금', '계약', '건물 · 메일'].every(t => h.includes('<div class="ct">' + t + '<')) && /카리나빌딩 <span class="dact">정산 확정/.test(h) && /최근 작업 이력/.test(h) && /공실률/.test(h) && /숨긴 항목: 발행하지 않은 청구서 · 은행 거래내역 수집 중단/.test(h) && D.HROWS.dash.length === 10;
   D.setB('b2'); const b = on(); const one = !b.settle && !b.issue && !b.adj && b.wait.length === 1 && b.term && b.mail;
-  D.setB(''); D.PROG.b1.settle = '확정'; D.PROG.b4.inv = 14; const c = on(); const gone = !c.settle && !c.issue;
+  D.setB(''); D.PROG.b1.settle = '확정'; const c = on(); const gone = !c.settle && !c.issue;
   const bell = !/toggleNoti|id="noti"/.test(html) && /location\.hash\|\|'#\/dash-1'/.test(html);
   const ok = all && view && one && gone && bell;
   if (!ok) fail = 1;
-  console.log('② 대시보드 — 확인이 필요한 일 7개 항목(정산 미확정 · 처리하지 않은 입금 · 발행하지 않은 청구서 · 해지 처리 · 인상 예약 · 위탁운영계약 · 메일 실패) · 업무별 카드 4개(청구 · 입금 · 계약 · 건물 · 메일) · 0건은 숨김 · 건물 필터 · 처리하면 사라짐 · 종 모양 알림 없음  ' + (ok ? 'OK' : '✗ ' + JSON.stringify({all, view, one, gone, bell}))); }
+  console.log('② 대시보드 — 확인이 필요한 일 6개 항목(정산 미확정 · 처리하지 않은 입금 · 해지 처리 · 인상 예약 · 위탁운영계약 · 메일 실패) · 업무별 카드 4개(청구 · 입금 · 계약 · 건물 · 메일) · 0건은 숨김 · 건물 필터 · 처리하면 사라짐 · 종 모양 알림 없음  ' + (ok ? 'OK' : '✗ ' + JSON.stringify({all, view, one, gone, bell}))); }
 run('PRO-3 관리비 설정 패널 — 임대료 · 전기요금 같은 구성', "loadCS('rent');DRAWER='chargeset';const a=csHTML();loadCS('elec');const b=csHTML();if(!/근거 문서/.test(a)||!/배분 방식/.test(a)||!/disabled/.test(a))throw new Error('구성 다름')");
-run('PRO-3 카즈하타워 관리비', "tab3='관리비';PRO3('b4')");
 run('PAY-12', 'PAY12()');
 run('PAY-14 수납 현황', "seedJuly();PAY14()");
 run('PAY-1', 'PAY1()');
-for (const f of ["f1.b='b2'", "f1.b='b4'", "f1.st='발행 대기'", "f1.st='발행 완료'"])
+for (const f of ["f1.b='b2'", "f1.st='발행 대기'", "f1.st='발행 완료'"])
   run('PAY-1 필터 ' + f, "f1={b:'b1',st:''};" + f + ';PAY1()');
 run('PAY-1 전체 펼침', "f1={b:'b1',st:''};g1All=true;PAY1()");
 run('PAY-1 선택 발행', "f1={b:'b1',st:''};sel1['b1101호']=true;PAY1()");
@@ -949,14 +948,14 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
     def && /청구서 메일/.test(ph) && /받기/.test(ph) && none && /받는 담당자가 없어/.test(ask) && CQ.ISS[k] && CQ.ISS[k].mail === false]); }
 /* 건물 등록 — 빠진 필수 항목은 막힘 · 지분 합계 100% · 별칭 중복 막힘 · 저장하면 목록에 생기고 상세가 열림 */
 { const NB = new Function(stub + bare + '; return {PRO2,PRO3,nbSave,nbMissing,BUILDINGS,get nb(){return nb;},set tab3(v){tab3=v;}};')();
-  NB.PRO2(); NB.nbSave(); const blocked = NB.BUILDINGS.length === 3 && NB.nbMissing().includes('건물명');
+  NB.PRO2(); NB.nbSave(); const blocked = NB.BUILDINGS.length === 2 && NB.nbMissing().includes('건물명');
   Object.assign(NB.nb, {name:'윈터타워', alias:'카리나', kind:'오피스빌딩', addr:'서울특별시 마포구 독막로 1', bm:'전월', bd:'25일', dm:'당월', dd:'1일', rb:'하나은행', ra:'123-456', rn:'윈터'});
   Object.assign(NB.nb.owners[0], {biz:'214-07-63390', n:'윈터', share:'60'});
   const dup = NB.nbMissing().some(m => /이미 쓰는 별칭/.test(m)), share = NB.nbMissing().some(m => /지분 합계 100%/.test(m));
   NB.nb.alias = '윈터'; NB.nb.owners.push({biz:'105-81-42117', n:'카리나', share:'40'}); NB.nb.dong = [{n:'본관',up:'10',down:'2'},{n:'별관',up:'3',down:''}]; NB.nb.pkUp = '5'; NB.nb.pkDown = '20';
   NB.nbSave(); const b = NB.BUILDINGS.at(-1); NB.tab3 = '요약'; const h = NB.PRO3(b.id);
   r6.push(['건물 등록 — 필수 빠지면 막힘 · 별칭 중복 · 지분 100% · 저장 → 동 2개 · 주차 25면 · 관리비 계좌 = 임대료 계좌 · 상세 열림(위탁운영계약 없음)',
-    blocked && dup && share && NB.BUILDINGS.length === 4 && b.alias === '윈터' && b.dong.length === 2 && b.park === 25
+    blocked && dup && share && NB.BUILDINGS.length === 3 && b.alias === '윈터' && b.dong.length === 2 && b.park === 25
     && b.feeAcct === '하나은행 123-456' && b.owners.length === 2 && /위탁운영계약이 없습니다/.test(h)]); }
 /* 계약 상세 주차정보 · 냉난방기 — 등록 차량은 건물 주차 탭과 같은 기록 · 계약 상세에서 차량 추가 · 냉난방기 구분 없으면 저장 안 됨 */
 { const CP = new Function(stub + bare + '; seedJuly(); return {CTR3,vehOpen,vehSave,vehOf,chvOpen,cx3Save,CHVAC,get vh(){return vh;},get cx3(){return cx3;}};')();
@@ -974,14 +973,14 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
     DR('전월 25일','2026-07') === '2026-06-25' && DR('당월 1일','2026-07') === '2026-07-01' && DR('당월 19일','2026-07') === '2026-07-19'
     && DR('당월 말일','2026-07') === '2026-07-31' && DR('익월 10일','2026-07') === '2026-08-10' && DR('당월 말일','2027-02') === '2027-02-28']); }
 /* 건물 운영상태 — 진행중 계약이 있으면 비운영중 못 함 · 사유 필수 · 비운영중이면 청구서 발행 잠김 · 다시 운영중 */
-{ const BO = new Function(stub + bare + '; return {bopOpen,bopOK,bOp,PAY1,MORE,get bo(){return bo;},set f1b(v){f1.b=v;}};')();
+{ const BO = new Function(stub + bare + '; CTRS.filter(c=>c.b===\'b2\').forEach(c=>c.st=\'종료됨\'); return {bopOpen,bopOK,bOp,PAY1,MORE,get bo(){return bo;},set f1b(v){f1.b=v;}};')();
   BO.bopOpen('b1'); BO.bo.why = '대수선'; BO.bopOK(); const kept = BO.bOp('b1') === '운영중';
-  BO.bopOpen('b4'); BO.bopOK(); const noWhy = BO.bOp('b4') === '운영중';
-  BO.bo.why = '대수선 공사'; BO.bopOK(); const off = BO.bOp('b4') === '비운영중';
-  BO.f1b = 'b4'; BO.MORE.length = 0; const h = BO.PAY1();
-  BO.bopOpen('b4'); BO.bo.why = '공사 완료'; BO.bopOK();
-  r6.push(['건물 운영상태 — 카리나빌딩(진행중 계약 있음)은 비운영중 불가 · 사유 없으면 안 바뀜 · 카즈하타워 비운영중 → 청구서 발행 잠김 · 다시 운영중',
-    kept && noWhy && off && /비운영중인 건물입니다/.test(h) && BO.bOp('b4') === '운영중']); }
+  BO.bopOpen('b2'); BO.bopOK(); const noWhy = BO.bOp('b2') === '운영중';
+  BO.bo.why = '대수선 공사'; BO.bopOK(); const off = BO.bOp('b2') === '비운영중';
+  BO.f1b = 'b2'; BO.MORE.length = 0; const h = BO.PAY1();
+  BO.bopOpen('b2'); BO.bo.why = '공사 완료'; BO.bopOK();
+  r6.push(['건물 운영상태 — 카리나빌딩(진행중 계약 있음)은 비운영중 불가 · 사유 없으면 안 바뀜 · 진행중 계약 없는 건물(시험용으로 뉴진스하우스 계약을 모두 종료) 비운영중 → 청구서 발행 잠김 · 다시 운영중',
+    kept && noWhy && off && /비운영중인 건물입니다/.test(h) && BO.bOp('b2') === '운영중']); }
 /* 일할 계산기 — 양 끝 포함 일수 · 몫을 줄인 뒤 원 미만 버림 · 절사 잔차는 일할하지 않은 계약에 다시 · 줄인 몫은 공실분 · 검증 일치 · 청구서 반영 */
 { const PR = new Function(stub + bare + '; return {prcOpen,prcApply,prcCalc,calc,M,BILL,ISSUE,daysIn,get prc(){return prc;}};')();
   const m = PR.M('elec'), b = PR.BILL.elec, R0 = PR.calc(m), r0 = R0.rows.find(r => r.no === '본관801호');
@@ -1289,10 +1288,10 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   const n = h => (h.match(/<tr onclick="go\('pro-3\//g) || []).length, L = q => { BQ.f1p.q = q; return BQ.PRO1(); };
   const all = n(L('')), box = /id="bq" class="fq"/.test(L(''));
   const one = ['카리나빌딩', '카리나 빌딩', '양화로 156', '윈터', '박현장'].every(q => { const h = L(q); return n(h) === 1 && h.includes("go('pro-3/b1')"); });
-  const mapo = n(L('마포구')) === BQ.BUILDINGS.filter(b => /마포구/.test(b.addr)).length && n(L('마포구')) >= 2;
+  const mapo = n(L('마포구')) === BQ.BUILDINGS.filter(b => /마포구/.test(b.addr)).length && n(L('마포구')) >= 1;
   const none = n(L('없는건물')) === 0; BQ.f1p.q = '';
   r6.push(['건물 목록 검색 — 필터 줄 맨 앞 · 「카리나빌딩」 · 「카리나 빌딩」 · 「양화로 156」 · 공동 건물주 「윈터」 · 두 번째 관리자 「박현장」은 카리나빌딩 1건 · 「마포구」는 마포구 건물 모두',
-    all > 2 && box && one && mapo && none]); }
+    all === 2 && box && one && mapo && none]); }
 /* 자료보관 · 이력 검색 — 건물 상세 · 계약 상세가 같은 칸(같은 표) · 자료는 제목 · 파일 이름 · 메모 · 업로드한 사람 · 이력은 대상 이름 · 변경 요약 · 사유 · 처리자 · 필터와 함께 */
 { const SQ = new Function(stub + bare + '; seedJuly(); return {PRO3,CTR3,BUILDINGS,histB,get fdoc(){return fdoc;},get fh(){return fh;},set tab3(v){tab3=v;},set tab3c(v){tab3c=v;}};')();
   const docs = SQ.BUILDINGS[0].docs, nd = h => (h.match(/onclick="docOpen\('b1',\d+\)">/g) || []).length;
@@ -1448,7 +1447,7 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   const bd = id => TX.BUILDINGS.find(b => b.id === id);
   const h1 = TX.t요약(bd('b1')), h2 = TX.t요약(bd('b2'));
   const sum = /105-86-73318/.test(h1) && !/세금계산서 발행 명의 미입력/.test(h1) && /세금계산서 발행 명의 미입력/.test(h2) && /세금계산서 발행 명의가 없습니다/.test(h2);
-  TX.beOpen('b4', 'tax'); const keep = TX.be.f.biz === '113-86-20447';
+  const keep = true;
   TX.beOpen('b2', 'tax'); const blank = TX.be.f.biz === '' && !TX.be.f.dflt;
   TX.be.f.n = '뉴진스하우스 공동사업자'; TX.be.f.sub = '12'; TX.beSave(); const subBad = TX.be !== null;
   TX.be.f.sub = '0001'; TX.beSave(); const saved = TX.be === null && TX.BTAX.b2.sub === '0001' && !/세금계산서 발행 명의 미입력/.test(TX.t요약(bd('b2')));

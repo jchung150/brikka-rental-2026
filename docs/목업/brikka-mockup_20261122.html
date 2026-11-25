@@ -678,23 +678,6 @@ const BUILDINGS=[
    {it:'교통유발부담금',use:0,bill:'',meter:'',mtr:'',rest:'',basis:''},
    {it:'정화조청소비',use:0,bill:'',meter:'',mtr:'',rest:'',basis:''}],
   billDay:'당월 25일',dueDay:'익월 10일'},
-
- {id:'b4',name:'카즈하타워',alias:'카즈하',kind:'복합상가',addr:'서울특별시 마포구 월드컵로 12',addr2:'서울 마포구 합정동 381-4',
-  owner:'카즈하',ownerBiz:'113-86-20447',owners:[{n:'카즈하',biz:'113-86-20447',share:100}],built:'2012-08-01',approved:'2013-03-15',mgrs:['최현우'],
-  area:3180.6,gross:4120.2,up:6,down:1,park:14,pk:{up:4,down:10,mech:0},hvac:['EHP(시스템에어컨)'],unitCnt:14,vacCnt:2,opCnt:0,vac:12.4,
-  acct:'우리은행 1005-903-442118',acctName:'카즈하',feeAcct:'우리은행 1005-903-442118',feeAcctName:'카즈하',
-  mgmtStart:'2025-07-01',mgmtEnd:'2027-06-30',fee:'임대료의 4%',mode:'임대인 직수취',
-  bondBank:'우리은행 문래지점',bondTel:'02-2632-4410',bondMax:900000000,bondNow:640000000,
-  fac:['옥상정원','무인택배함'],units:[],docs:[],
-  charge:[
-   {it:'전기요금',use:1,bill:'세금계산서',cycle:'매월',meter:'없음',mtr:'—',
-    basis:'임대면적',doc:'한국전력 고지서(공용부)'},
-   {it:'수도요금',use:1,bill:'계산서',cycle:'격월',meter:'없음',mtr:'—',
-    basis:'임대면적',doc:'상수도사업본부 고지서'},
-   {it:'정화조청소비',use:1,bill:'계산서',cycle:'반기',meter:'없음',mtr:'—',
-    basis:'임대면적',doc:'청소업체 내역서'}],
-  billDay:'전월 25일',dueDay:'당월 1일'},
-
 ];
 BUILDINGS.forEach(b=>{b.park=b.pk.up+b.pk.down+b.pk.mech;});
 /* 총 주차면수는 지상 자주식 · 지하 자주식 · 기계식의 합 */
@@ -825,12 +808,10 @@ let f10ym='2026-08', f10b='b1';
 const PROG={
  b1:{settle:'작성중',inv:0,invN:13,amt:0,paid:0,paidN:0,closed:false,closedAt:null,due:'08-31'},
  b2:{settle:'확정', inv:0,invN:11,amt:0,paid:0,paidN:0,closed:false,closedAt:null,due:'09-10'},
- b4:{settle:'확정',inv:0,invN:14,amt:0,paid:0,paidN:0,closed:false,closedAt:null,due:'08-31'},
 };
 /* 지난 회차(7월) — 모두 발행·마감했다. 카리나빌딩은 원장에서 계산한다 → PAY12 */
 const PROG7={
  b2:{settle:'확정',inv:11,invN:11,amt:47830000,paid:45020000,paidN:10,closed:false,closedAt:null,due:'08-10'},
- b4:{settle:'확정',inv:12,invN:12,amt:61200000,paid:61200000,paidN:12,closed:true,closedAt:'08-06',due:'07-31'},
 };
 const selItems=()=>MASTER.filter(m=>!m.fixed&&BILL[m.code].on);
 /* 배분 우선순위 — 임대료 1 · 고정관리비 2 · 비정기 청구 98 · 연체료 99는 고정. 나머지 청구항목은 3~97을 건물에서 정한다(건물 설정이 없으면 기준표 기본값) → PRO-3 · 4.3 · 명세변경 23 */
@@ -1534,7 +1515,7 @@ const BTAX={
   /* 공동소유 — 소유자 각자가 아니라 공동사업자 번호 하나로 발행한다 */
   b1:{biz:'105-86-73318',sub:'',n:'카리나빌딩 공동사업자(카리나 외 1)',ceo:'카리나',addr:'서울특별시 마포구 양화로 156',up:'부동산업',jong:'비주거용 건물 임대업',mail:'tax@karina.co.kr'},
   /* b2 뉴진스하우스 — 비어 있다(공동소유라 기본값도 없다) → 「세금계산서 발행 명의 미입력」 */
-  b4:{biz:'113-86-20447',sub:'',n:'카즈하',ceo:'카즈하',addr:'서울특별시 마포구 월드컵로 12',up:'부동산업',jong:'비주거용 건물 임대업',mail:''}};
+};
 const txAny=t=>!!t&&Object.values(t).some(v=>String(v||'').trim());
 const txSubBad=v=>!!String(v||'').trim()&&!/^\d{4}$/.test(String(v).trim());
 /* 기본값 — 임대인이 한 명이면 그 임대인의 사업자등록번호 · 상호(개인이면 대표자명도)와 건물주소. 공동소유면 비워 둔다 */
@@ -3154,14 +3135,14 @@ function DASH1(){
     직원에게 가는 알림은 이 화면 하나입니다. 메일이나 팝업으로 따로 알리지 않습니다. 처리하면 그 줄이 사라지고, 건수가 0인 항목은 보이지 않습니다.<br>
     줄을 누르면 처리하는 화면으로 갑니다. 카드 안은 급한 순(오래 기다린 것 · 날짜가 가까운 것)이고 5건이 넘으면 펼쳐서 봅니다. 할 일이 없는 카드는 보이지 않습니다.<br>
     ${off.length?`지금 해당이 없어 숨긴 항목: ${off.map(x=>x.t).join(' · ')}.<br>`:''}
-    목업 예시: 카즈하타워 8월분(청구일 7/25)은 정산을 확정하고 발행하지 않은 상태, 아마데우스 9/1 임대료 인상 예약, 토끼어패럴 7월분 청구서 메일 실패.</div>`;
+    목업 예시: 아마데우스 9/1 임대료 인상 예약, 토끼어패럴 7월분 청구서 메일 실패.</div>`;
 }
 
 /* ═══ PAY-14 수납 현황 — 「수납 관리」 메뉴를 누르면 열린다. 오늘 기준으로 건물마다 돈의 상태를 본다(달을 고르지 않는다).
    칸을 누르면 그 건물을 고른 채로 일하는 화면(입금 매칭 · 미납 관리 · 수납 내역)으로 간다. 명세변경에는 적지 않는다 — 화면 구성이라 목업이 기준이다 ═══ */
 /* 원장 자료가 있는 건물 — 카리나빌딩 · 뉴진스하우스. 나머지는 목업 예시값. 은행 거래내역(입금 매칭)은 카리나빌딩뿐이다 */
 const LEDB=['b1','b2'];
-const SU_EX={b4:{wait:0,due:1250000,dueN:1,fee:4110,over:0,overN:0,paid:61200000}};
+const SU_EX={};
 function suOf(b){
   if(!LEDB.includes(b)) return SU_EX[b]||{wait:0,due:0,dueN:0,fee:0,over:0,overN:0,paid:0};
   const cs=CTRS.filter(c=>c.b===b), A=cs.map(arrears).filter(a=>a.due>0||a.fee>0), O=cs.map(c=>overOf(ckey(c))).filter(v=>v>0);
@@ -3216,14 +3197,12 @@ const MC_YMS=['2026-06','2026-07','2026-08'];
 const MC={
  b1:{'2026-06':{at:'07-03 16:40',by:'슈퍼관리자'},'2026-07':{at:'08-05 18:10',by:'슈퍼관리자'}},
  b2:{'2026-06':{at:'07-13 10:30',by:'슈퍼관리자'}},
- b4:{'2026-06':{at:'07-06 10:15',by:'슈퍼관리자'},'2026-07':{at:'08-06 11:20',by:'슈퍼관리자'}},
 };
 /* 마감·마감 취소 이력 — 건물·월별 */
 const MC_LOG={'b1|2026-06':[{at:'07-02 15:10',by:'슈퍼관리자',act:'마감'},{at:'07-03 09:20',by:'슈퍼관리자',act:'마감 취소',why:'루비뮤직 6월 수납 배분을 잘못 기록해 재조정'},
   {at:'07-03 16:40',by:'슈퍼관리자',act:'마감'}]};
 /* 임대인 보고서 발송일 → REP-1 */
 const REPS={b1:{'2026-06':'07-02','2026-07':'08-04'},
-  b4:{'2026-06':'07-05','2026-07':'08-05'},
   b2:{'2026-06':'07-12'}};
 /* 카리나빌딩 외 건물의 7월 미처리 입금 — 예시값 */
 const MC_WAIT={b2:{'2026-07':3}};
