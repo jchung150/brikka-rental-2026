@@ -2409,7 +2409,7 @@ function docHTML(){
     <div class="dh"><div><div class="t">${dTitle(d)}</div><div class="s">${b.name} · 자료 상세</div></div>
       <button class="x" onclick="closeDrawer()">✕</button></div>
     <div class="db">
-      <div class="fg"><div class="fl">문서 정보</div>
+      <div class="fg">
         ${R('제목',dTitle(d))}${R('카테고리',`<span class="bd mu">${d.c}</span>`)}${R('귀속 대상',d.k?`계약 · ${docCtr(b,d)}`:`건물 · ${b.name}`)}
         ${R('파일',`${d.t} <span class="c2">${ext} · ${d.sz}</span>`)}
         ${R('담당자',d.by)}${R('업로드 일시',d.at.replace(/-/g,'.'))}${R('메모',d.m||'—')}</div>
@@ -3374,7 +3374,7 @@ function CONTACTS(){
     <thead><tr><th>구분</th><th>이름</th><th>연락할 사람</th><th>연락처</th><th>이메일</th><th>건물 · 유닛</th><th class="c">더보기</th></tr></thead>
     <tbody>${R.length?PG.rows.map(x=>`<tr class="mrow" onclick="${x.go}">
       <td><span class="bd ${KB[x.k]}">${x.k}</span></td>
-      <td><div class="c1">${x.name}</div><div class="c2">${x.sub||''}</div></td>
+      <td><span class="c1">${x.name}</span></td>
       <td>${x.per||dash}</td><td>${x.tel||dash}</td><td>${x.mail||dash}</td><td>${x.rel}</td>
       <td class="c">${moreCell([{t:'상세',go:x.go}])}</td></tr>`).join('')
       :`<tr><td colspan="7" style="text-align:center;padding:28px 0;color:var(--muted)">조건에 맞는 연락처가 없습니다</td></tr>`}</tbody></table></div>${PG.pager}</div>
@@ -6843,7 +6843,7 @@ function hdHTML(){
     <div class="dh"><div><div class="t">이력 상세</div><div class="s">${r.name}</div></div>
       <button class="x" onclick="closeDrawer()">✕</button></div>
     <div class="db">
-      <div class="fg"><div class="fl">기본 정보</div>
+      <div class="fg">
         ${Rw('일시',d(r.at))}${Rw('대상 종류',`<span class="bd mu">${r.kind}</span>`)}${Rw('대상 이름',r.name)}${Rw('변경 유형',r.type)}
         ${Rw('변경 요약',r.sum)}${Rw('담당자',r.by)}${Rw('사유',r.why||'—')}</div>
       ${r.chg&&r.chg.length?`<div class="fg"><div class="fl">변경 항목</div>
