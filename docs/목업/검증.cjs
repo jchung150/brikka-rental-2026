@@ -123,6 +123,17 @@ for (const b of ['b2']) run('PRO-3 ' + b, "tab3='요약';PRO3('" + b + "')");
   const tab = dl && !JSON.stringify(RP.MENU).includes('rep-1') && RP.sc.length === 2 && RP.sc.filter(i => !i.off).length === 1 && /rpOpen\('2026-07'\)/.test(RP.sc[0].go);
   const ok = lst && doc && lock && memo && send && noChk && tab; if (!ok) fail = 1;
   console.log('② 월 마감 보고서 — 건물 상세 › 보고서 탭은 달 목록(청구년월 · 마감 · 청구 · 수납 · 미납 · 발송 일자 · 더보기) · 줄을 누르면 패널(카리나 7월: 마감일 기준 · 7개 항목 · 메모 · PDF만) · 마감 전(뉴진스 7월)은 보내기 막힘 · 납부 전은 미납 아님 · 메모 쓰기 · 보내면 임대인 2명에게 한 통 · 메뉴 없음 · 청구 현황 ⋮는 그 달 패널로  ' + (ok ? 'OK' : '✗ ' + JSON.stringify({lst, doc, lock, memo, send, noChk, tab}))); }
+/* 임차인(USER-6 · 7) — 사업자마다 한 줄(유닛 묶음 · 미납 합계) · 상세 탭 3개 · 별칭 · 합쳐 보내기 · 세금계산서 정보를 패널에서 고침(모든 계약 공통) */
+{ const TN = new Function(stub + bare + '; seedJuly(); return {USER6,USER7,teOpen,teSave,tenAliases,tenSum,ttaxOf,MERGE_PDF,RC,f6t,get te(){return te;},set tab7(v){tab7=v;}};')();
+  const h6 = TN.USER6(), n6 = (h6.match(/class="mrow"/g) || []).length;
+  const list = n6 === 21 && /본관801호 · 본관701호/.test(h6) && /5,176,383원/.test(h6);
+  TN.f6t.due = '1'; const due = (TN.USER6().match(/class="mrow"/g) || []).length >= 1; TN.f6t.due = ''; TN.f6t.q = 'ICB'; const byAlias = (TN.USER6().match(/class="mrow"/g) || []).length === 1; TN.f6t.q = '';
+  const h7 = TN.USER7('(주)아이씨비'); const det = ['요약','계약이력','자료보관'].every(t => h7.includes(`>${t}</button>`)) && /고칠 수 없음/.test(h7) && /ICB/.test(h7) && /tax@icb\.co\.kr/.test(h7) && /178,000,000원/.test(h7);
+  TN.teOpen('(주)아이씨비', 'alias'); TN.te.f.al.push('아이씨비 주식회사'); TN.teSave(); const al = TN.tenAliases('(주)아이씨비').includes('아이씨비 주식회사') && !!TN.RC.alias['아이씨비 주식회사'];
+  TN.teOpen('(유)고우컴퍼니', 'bill'); TN.te.f.m1 = 'tax@gou.kr'; TN.te.f.sub = '12'; TN.teSave(); const badSub = TN.te !== null && TN.ttaxOf('(유)고우컴퍼니').mail.length === 0; TN.te.f.sub = '0001'; TN.teSave(); const bill = badSub && TN.ttaxOf('(유)고우컴퍼니').mail[0] === 'tax@gou.kr' && TN.ttaxOf('(유)고우컴퍼니').sub === '0001';
+  TN.tab7 = '계약이력'; const hist = /카리나\|본관701호\|\(주\)아이씨비/.test(TN.USER7('(주)아이씨비'));
+  const ok = list && due && byAlias && det && al && bill && hist; if (!ok) fail = 1;
+  console.log('② 임차인 — 목록 사업자 21곳(아이씨비 유닛 2개 묶음 · 비씨에이전시 미납 · 미납 필터 · 별칭 「ICB」로 검색) · 상세 탭 요약 · 계약이력 · 자료보관 · 사업자등록번호 고칠 수 없음 · 별칭 더하기 → 입금 매칭에 등록 · 종사업장번호 4자리 검사  ' + (ok ? 'OK' : '✗ ' + JSON.stringify({list, due, byAlias, det, al, bill, hist}))); }
 /* 발송 내역(NTF-6) — 보낸 그대로 남김 · 실패는 자동으로 다시 보내지 않음 · 다시 보내면 새 줄(원래 줄 그대로) · 보내는 화면(청구서 발행 · 미납 안내 · 명세서 · 웰컴)이 남김 → 명세변경_261122 38 */
 { const M = new Function(stub + bare + '; seedJuly(); return {mailRows,NTF6,mvOpen,mvHTML,mailResend,dashItems,issueAsk,issueGo,dueMail,stOpen,stSend,CTRS,ckey,setFm,set f1b(v){f1.b=v;}};')();
   const R0 = M.mailRows(), n0 = R0.length, fl = R0.filter(m => m.st === '실패'), f = fl[0];

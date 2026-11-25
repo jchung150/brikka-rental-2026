@@ -1403,6 +1403,7 @@ function drawerHTML(){
   if(DRAWER==='adjok') return akHTML();
   if(DRAWER==='mlv') return mvHTML();
   if(DRAWER==='repview') return repPanels();
+  if(DRAWER==='tedit') return teHTML();
   if(DRAWER!=='additem') return '';
   const used=BLD.charge.filter(c=>c.use).map(c=>c.it);
   const rest=MASTER.filter(m=>!m.fixed&&!BILL[m.code].on&&used.includes(m.name));
@@ -1479,7 +1480,7 @@ function ddBadge(end){
 /* ═══ 네비 ═══ */
 const navLink=(i,sub)=>`<a onclick="go('${i.id}')" data-id="${i.id}" data-n="${i.n}">${sub?'':ic(i.i)}<span>${i.n}</span><span class="sid">${i.sid}</span></a>`;
 /* 상세 화면은 목록 메뉴를 켠다 */
-const NAV_PARENT={'pro-2':'pro-1','ctr-2':'ctr-1','ctr-4':'ctr-1','ctr-3':'ctr-1','pro-3':'pro-1'};
+const NAV_PARENT={'user-7':'user-6','pro-2':'pro-1','ctr-2':'ctr-1','ctr-4':'ctr-1','ctr-3':'ctr-1','pro-3':'pro-1'};
 function paintNav(cur){
   const a0=(cur||'').split('/')[0], active=NAV_PARENT[a0]||a0;
   $('#nav').innerHTML=MENU.map(m=>{
@@ -3324,6 +3325,121 @@ function repPanels(){
   </div></div>`;
 }
 
+/* ═══ USER-6 · USER-7 임차인 — 사업자마다 한 줄. 상세는 탭(요약 · 계약이력 · 자료보관).
+   사업자 정보 · 입금자명 별칭 · 청구서 합쳐 보내기 · 세금계산서 받는 정보는 여기서 고친다(그 사업자의 모든 계약에 반영). 담당자는 계약에서 → 08 USER-6 · 7 ═══ */
+/* 사업자 정보 — 목업 예시값. BIZ에 있으면 그 값, 없으면 이름으로 만든 가짜 번호 · 대표자 */
+const TINFO={};
+const tenHash=s=>{let h=0;for(const ch of s) h=(h*31+ch.charCodeAt(0))>>>0;return h;};
+function tenInfo(ten){
+  if(!TINFO[ten]){const z=Object.entries(BIZ).find(([,v])=>v.ten===ten), h=tenHash(ten), c=CTRS.find(x=>x.ten===ten), bd=BUILDINGS.find(x=>x.id===(c||{}).b)||{};
+    TINFO[ten]=z?{biz:z[0],kind:z[1].kind,ceo:z[1].ceo,addr:z[1].addr,item:z[1].item}
+      :{biz:`${String(101+h%790)}-${String(81+h%7)}-${String(10000+h%89999).padStart(5,'0')}`,kind:c?ctrKind(c):'법인',ceo:PPL_N[(h>>>3)%PPL_N.length],addr:`${bd.addr||''} ${c?c.no:''}`.trim(),item:'—'};}
+  return TINFO[ten];}
+/* 입금자명 별칭 — 입금 매칭에서 등록한 이름(자동 매칭에 쓴다) */
+const tenAliases=ten=>{const k=normName(ten);return Object.keys(RC.alias).filter(nm=>RC.alias[nm]===k).sort();};
+const tenCtrs=ten=>CTRS.filter(c=>c.ten===ten);
+function tenSum(ten){
+  const cs=tenCtrs(ten), ks=new Set(cs.map(ckey));
+  const bill=BILLS.filter(i=>ks.has(i.k)).reduce((a,i)=>a+i.amt,0);
+  let paid=0,last=null; BILLS.filter(i=>ks.has(i.k)).forEach(i=>(PAYEV[i.id]||[]).forEach(e=>{if(String(e.dep).startsWith('cr')) return; paid+=e.amt; if(!last||e.date>last) last=e.date;}));
+  return {bill,paid,due:cs.reduce((a,c)=>a+arrears(c).due,0),dep:cs.reduce((a,c)=>a+ledgerOf(ckey(c)).bal.임대보증금,0),last};}
+let f6t={b:'',st:'진행중',kind:'',due:'',q:''}, tab7='요약', te=null;
+const setF6t=(k,v)=>{f6t[k]=v;render();};
+function USER6(){
+  const dash='<span style="color:var(--faint)">—</span>', BN=id=>(BUILDINGS.find(x=>x.id===id)||{});
+  const names=[...new Set(CTRS.map(c=>c.ten))];
+  const rows=names.map(ten=>{const cs=tenCtrs(ten).filter(c=>(!f6t.b||c.b===f6t.b)&&(!f6t.st||c.st===f6t.st)); if(!cs.length) return null;
+      const I=tenInfo(ten), due=cs.reduce((a,c)=>a+arrears(c).due,0), p=pplOf(cs[0])[0];
+      return {ten,cs,I,due,p};}).filter(x=>x&&(!f6t.kind||x.I.kind===f6t.kind)&&(!f6t.due||x.due>0)&&qHit(f6t.q,[x.ten,x.I.biz,x.I.ceo,...tenAliases(x.ten)]));
+  const S=(k,opts)=>`<select onchange="setF6t('${k}',this.value)">${opts.map(([v,t])=>`<option value="${v}" ${f6t[k]===v?'selected':''}>${t}</option>`).join('')}</select>`;
+  return `
+  <div class="ph"><h1>임차인</h1><span class="sid">USER-6</span></div>
+  <div class="fbar">${qBox('tq',f6t.q,'setF6t')}
+    ${S('b',[['','전체 건물'],...BUILDINGS.map(b=>[b.id,b.name])])}${S('st',[['','전체 계약상태'],['진행중','진행중'],['준비중','준비중'],['종료됨','종료됨']])}
+    ${S('kind',[['','전체 사업자구분'],['법인','법인'],['개인','개인사업자']])}${S('due',[['','미납 전체'],['1','미납 있음']])}</div>
+  <div class="tbl"><div class="tw"><table>
+    <thead><tr><th>상호</th><th>사업자구분</th><th>대표자</th><th>임차 유닛</th><th>대표 담당자</th><th class="n">미납액</th><th class="c">더보기</th></tr></thead>
+    <tbody>${rows.length?rows.map(x=>`<tr class="mrow" onclick="tab7='요약';go('user-7/${encodeURIComponent(x.ten)}')">
+      <td><div class="c1">${x.ten}</div><div class="c2">${x.I.biz}</div></td>
+      <td>${x.I.kind==='개인'?'개인사업자':x.I.kind}</td><td>${x.I.ceo}</td>
+      <td>${[...new Set(x.cs.map(c=>BN(c.b).alias))].map(al=>`${al} ${x.cs.filter(c=>BN(c.b).alias===al).map(c=>c.no).join(' · ')}`).join(' / ')}</td>
+      <td><div class="c1">${x.p.n}</div><div class="c2">${x.p.tel||''}</div></td>
+      <td class="n">${x.due?`<span style="color:var(--warn)">${won(x.due)}</span>`:dash}</td>
+      <td class="c">${moreCell([{t:'상세',go:`tab7='요약';go('user-7/${encodeURIComponent(x.ten)}')`}])}</td></tr>`).join('')
+      :`<tr><td colspan="7" style="text-align:center;padding:28px 0;color:var(--muted)">조건에 맞는 임차인이 없습니다</td></tr>`}</tbody></table></div></div>
+  <div class="hint">임차인은 사업자 단위로 한 줄입니다. 한 사업자가 여러 유닛 · 건물을 빌리면 임차 유닛 칸에 묶어 보입니다. 미납액은 그 사업자의 모든 계약을 합한 금액입니다.<br>
+    검색은 상호 · 사업자등록번호 · 대표자 · 입금자명 별칭으로 합니다. 사업자등록번호와 대표자는 목업 예시값입니다.</div>`;
+}
+function USER7(ten){
+  const cs=tenCtrs(ten); if(!cs.length) return TODO('user-6');
+  const I=tenInfo(ten), T=['요약','계약이력','자료보관'], dash='<span style="color:var(--faint)">—</span>';
+  const card=(t,body,act)=>`<div class="card"><div class="ct">${t}${act?`<span class="ca">${act}</span>`:''}</div><div class="cc">${body}</div></div>`;
+  const ed=m=>moreCell([{t:'수정',go:`teOpen('${ten.replace(/'/g,"\\'")}','${m}')`}]);
+  let body='';
+  if(tab7==='요약'){const S=tenSum(ten), al=tenAliases(ten), tx=ttaxOf(ten), p=pplOf(cs[0])[0], multi=BUILDINGS.some(b=>cs.filter(c=>c.b===b.id&&c.st==='진행중').length>1);
+    body=`<div class="two">
+      ${card('사업자 정보',`<dl class="dl"><dt>상호</dt><dd>${ten}</dd><dt>사업자등록번호</dt><dd>${I.biz}<span class="lock">고칠 수 없음</span></dd><dt>사업자구분</dt><dd>${I.kind==='개인'?'개인사업자':I.kind}</dd>
+        <dt>대표자명</dt><dd>${I.ceo}</dd><dt>사업장 주소</dt><dd>${I.addr||'—'}</dd><dt>업태 · 종목</dt><dd>${I.item||'—'}</dd></dl>`,ed('info'))}
+      ${card('거래 요약',`<dl class="dl"><dt>누적 청구액</dt><dd>${won(S.bill)}</dd><dt>누적 수납액</dt><dd>${won(S.paid)}</dd>
+        <dt>현재 미납액</dt><dd>${S.due?`<span style="color:var(--warn)">${won(S.due)}</span>`:won(0)}</dd><dt>보증금 잔액</dt><dd>${won(S.dep)}</dd><dt>최근 입금일</dt><dd>${S.last?d8m(S.last):'—'}</dd></dl>
+        <div class="c2" style="white-space:normal">이 사업자의 모든 계약을 합한 값입니다(계약 ${cs.length}건).</div>`)}</div>
+    <div class="two">
+      ${card('입금자명 별칭',`${al.length?`<div style="display:flex;flex-wrap:wrap;gap:6px">${al.map(a=>`<span class="bd mu">${a}</span>`).join('')}</div>`:'<div class="c2" style="margin:0">등록된 별칭이 없습니다</div>'}
+        <div class="c2" style="white-space:normal;margin-top:8px">은행 입금자명이 이 이름이면 입금 매칭이 이 임차인으로 자동 매칭합니다. 입금 매칭에서 처음 짝지을 때 등록되고, 여기서 더하거나 지웁니다.</div>`,ed('alias'))}
+      ${card('청구서 · 세금계산서',`<dl class="dl"><dt>청구서 합쳐 보내기</dt><dd>${MERGE_PDF[ten]?'예':'아니오'}<span class="lock">${multi?'같은 건물 계약이 여럿일 때 PDF 한 장':'같은 건물 계약이 하나라 쓰이지 않음'}</span></dd>
+        <dt>세금계산서 받는 이메일</dt><dd>${tx.mail.filter(Boolean).join(', ')||'<span style="color:var(--warn)">세금계산서 정보 미입력</span>'}</dd><dt>종사업장번호</dt><dd>${tx.sub||'—'}</dd></dl>`,ed('bill'))}</div>
+    ${card('대표 담당자',`<dl class="dl"><dt>이름</dt><dd>${p.n}${p.t?` <span class="c2" style="display:inline;margin:0">${p.t}</span>`:''}</dd><dt>연락처</dt><dd>${p.tel||'—'}</dd><dt>이메일</dt><dd>${p.mail||'—'}</dd></dl>
+      <div class="c2" style="white-space:normal">계약마다 담당자가 다를 수 있어 계약 상세 › 요약 › 담당자에서 고칩니다. 여기는 첫 계약의 대표 담당자입니다.</div>`)}`;}
+  else if(tab7==='계약이력'){const BN=id=>(BUILDINGS.find(x=>x.id===id)||{});
+    body=`<div class="tbl" style="margin-top:4px"><div class="tw"><table>
+      <thead><tr><th>계약고유이름</th><th>건물</th><th>계약기간</th><th class="n">임대료</th><th class="n">고정관리비</th><th class="n">보증금</th><th>계약상태</th></tr></thead>
+      <tbody>${cs.slice().sort((p,q)=>p.base<q.base?1:-1).map(c=>`<tr class="mrow" onclick="tab3c='요약';go('ctr-3/${encodeURIComponent(ckey(c))}')">
+        <td>${cname(BN(c.b).alias,c.no,c.ten)}</td><td>${BN(c.b).name}</td><td>${d8m(c.base)} ~ ${d8m(ctrEnd(c))}</td>
+        <td class="n">${won(Math.round(ctrAmt(c,'임대료')*1.1))}</td><td class="n">${won(Math.round(ctrAmt(c,'고정관리비')*1.1))}</td><td class="n">${won(ctrDeposit(c))}</td>
+        <td><span class="bd ${c.st==='진행중'?'ok':'mu'}">${c.st}</span></td></tr>`).join('')}</tbody></table></div></div>
+      <div class="hint">이 사업자의 모든 계약입니다(과거 계약 포함). 줄을 누르면 계약 상세로 갑니다. 금액은 부가세 포함입니다.</div>`;}
+  else {const ks=new Set(cs.map(ckey)), D=BUILDINGS.flatMap(b=>b.docs.filter(d=>ks.has(d.k)).map(d=>({...d,bn:b.name})));
+    body=`<div class="tbl" style="margin-top:4px"><div class="tw"><table>
+      <thead><tr><th>제목</th><th>카테고리</th><th>계약</th><th>올린 사람</th><th>올린 날</th></tr></thead>
+      <tbody>${D.length?D.map(d=>{const c=CTRS.find(x=>ckey(x)===d.k);return `<tr><td>${dTitle(d)}<div class="c2">${d.sz} · ${d.m||''}</div></td><td>${d.c}</td><td>${c?c.no:'—'}</td><td>${d.by}</td><td>${d8m(d.at.slice(0,10))}</td></tr>`;}).join('')
+        :`<tr><td colspan="5" style="text-align:center;padding:28px 0;color:var(--muted)">자료가 없습니다</td></tr>`}</tbody></table></div></div>
+      <div class="hint">이 사업자의 계약에 올린 자료입니다. 올리기 · 지우기는 계약 상세 › 자료보관과 같은 패널입니다(목업은 목록만).</div>`;}
+  return `
+  <div class="ph"><h1>${ten}</h1><span class="bd mu">${I.kind==='개인'?'개인사업자':I.kind}</span><span class="sid">USER-7</span></div>
+  <div class="tabs">${T.map(t=>`<button class="${t===tab7?'on':''}" onclick="tab7='${t}';render()">${t}</button>`).join('')}</div>${body}`;
+}
+/* 수정 패널 — 카드마다 오른쪽 패널. 사업자등록번호는 고치지 않는다 */
+function teOpen(ten,m){const I=tenInfo(ten), tx=ttaxOf(ten);
+  te={ten,m,f:{ceo:I.ceo,addr:I.addr,item:I.item,kind:I.kind,al:tenAliases(ten),na:'',merge:!!MERGE_PDF[ten],m1:tx.mail[0]||'',m2:tx.mail[1]||'',sub:tx.sub||''}};DRAWER='tedit';render(true);}
+function teSave(){const {ten,m,f}=te, I=tenInfo(ten), k=normName(ten);
+  if(m==='info'){if(!f.ceo.trim()) return; Object.assign(I,{ceo:f.ceo.trim(),addr:f.addr.trim(),item:f.item.trim(),kind:f.kind});}
+  if(m==='alias'){Object.keys(RC.alias).filter(nm=>RC.alias[nm]===k&&!f.al.includes(nm)).forEach(nm=>delete RC.alias[nm]); f.al.forEach(nm=>{RC.alias[nm]=k;});}
+  if(m==='bill'){if(f.sub&&!/^\d{4}$/.test(f.sub)) return; MERGE_PDF[ten]=f.merge; TTAX[ten]={mail:[f.m1.trim(),f.m2.trim()].filter(Boolean),sub:f.sub};}
+  te=null;DRAWER=null;render(true);}
+function teHTML(){
+  if(DRAWER!=='tedit'||!te) return '';
+  const f=te.f, inp='border:1px solid var(--line);border-radius:var(--r-sm);padding:7px 9px;font:inherit;background:var(--bg);color:inherit;width:100%;box-sizing:border-box';
+  const R=(k,b)=>`<div class="fr"><span class="fk">${k}</span><div style="flex:1">${b}</div></div>`, T=(x,ph)=>`<input type="text" value="${(f[x]||'').replace(/"/g,'&quot;')}" placeholder="${ph||''}" oninput="te.f.${x}=this.value" style="${inp}">`;
+  const TT={info:'사업자 정보 수정',alias:'입금자명 별칭',bill:'청구서 · 세금계산서'}[te.m];
+  let b='';
+  if(te.m==='info') b=`<div class="fg">${R('상호',`<span class="fv">${te.ten}</span>`)}${R('사업자등록번호',`<span class="fv">${tenInfo(te.ten).biz} <span class="lock">고칠 수 없음 · 잘못 넣었으면 계약을 다시 등록</span></span>`)}
+      ${R('사업자구분',`<select onchange="te.f.kind=this.value" style="${inp}">${['법인','개인'].map(v=>`<option value="${v}" ${f.kind===v?'selected':''}>${v==='개인'?'개인사업자':v}</option>`).join('')}</select>`)}
+      ${R('대표자명',T('ceo'))}${R('사업장 주소',T('addr'))}${R('업태 · 종목',T('item','예: 서비스 · 광고대행'))}</div>
+      <div class="c2" style="white-space:normal">이 사업자의 모든 계약에 함께 반영됩니다.</div>`;
+  if(te.m==='alias') b=`<div class="fg">${f.al.length?f.al.map((a,i)=>`<div class="fr"><span class="fv" style="flex:1">${a}</span><button class="btn sm" onclick="te.f.al.splice(${i},1);render(true)">지우기</button></div>`).join(''):'<div class="c2" style="margin:0">등록된 별칭이 없습니다</div>'}
+      <div class="fr" style="margin-top:8px"><input type="text" value="${f.na.replace(/"/g,'&quot;')}" placeholder="은행에 찍히는 입금자명 (예: ICB)" oninput="te.f.na=this.value" style="${inp}">
+        <button class="btn sm" onclick="const v=te.f.na.trim();if(v&&!te.f.al.includes(v)){te.f.al.push(v);te.f.na='';}render(true)">더하기</button></div></div>
+      <div class="c2" style="white-space:normal">은행 입금자명이 별칭과 같으면 입금 매칭이 이 임차인으로 자동 매칭합니다. 다른 임차인 별칭과 같은 이름은 넣지 않습니다.</div>`;
+  if(te.m==='bill') b=`<div class="fg">${R('청구서 합쳐 보내기',`<label style="display:flex;gap:6px;align-items:center"><input type="checkbox" ${f.merge?'checked':''} onchange="te.f.merge=this.checked"> 같은 건물 계약들의 청구서를 PDF 한 장으로 보냅니다</label>`)}
+      ${R('세금계산서 받는 이메일 1',T('m1','회계 담당자 이메일'))}${R('세금계산서 받는 이메일 2',T('m2','선택'))}${R('종사업장번호',T('sub','4자리 · 없으면 비움'))}
+      ${f.sub&&!/^\d{4}$/.test(f.sub)?'<div class="c2" style="color:var(--danger)">종사업장번호는 숫자 4자리입니다</div>':''}</div>
+      <div class="c2" style="white-space:normal">세금계산서 받는 이메일은 청구서 메일 받는 담당자와 따로입니다(보통 회계 담당자). 1차는 세금계산서를 발행하지 않고 정보만 둡니다.</div>`;
+  return `<div class="dro"><div class="ov" onclick="closeDrawer()"></div><div class="pn">
+    <div class="dh"><div><div class="t">${TT}</div><div class="s">${te.ten}</div></div><button class="x" onclick="closeDrawer()">✕</button></div>
+    <div class="db">${b}</div>
+    <div class="df"><button class="btn" onclick="closeDrawer()">취소</button><button class="btn pri" onclick="teSave()">저장</button></div></div></div>`;
+}
+
 /* ═══ 임시 — 메일 문구 9종(초안 · 대표 검토 중). 칸({ })은 시스템이 채운다. 검토가 끝나면 메뉴와 함께 지운다 ═══ */
 function TMPMAIL(){
   const bd={ph:1,name:'{건물명}',acct:'{은행 계좌번호}',acctName:'{예금주}',feeAcct:'{은행 계좌번호}',billDay:'{청구일}',dueDay:'{납부마감일 규칙}'};
@@ -3608,7 +3724,7 @@ function TODO(id){
   const m=ALL.find(i=>i.id===id);
   return `<div class="ph"><h1>${m?m.n:id}</h1>${m?`<span class="sid">${m.sid}</span>`:''}</div>
   <div class="tbl"><div class="empty"><div class="t">아직 만들지 않은 화면입니다</div>
-    구현된 화면 — <b>DASH-1</b> 대시보드 · <b>NTF-6</b> 발송 내역 · <b>PRO-1</b> 건물 목록 · <b>PRO-3</b> 건물 상세 ·
+    구현된 화면 — <b>DASH-1</b> 대시보드 · <b>NTF-6</b> 발송 내역 · <b>USER-6</b> 임차인 · <b>PRO-1</b> 건물 목록 · <b>PRO-3</b> 건물 상세 ·
     <b>PAY-12</b> 청구 현황 · <b>PAY-10</b> 관리비 정산 · <b>PAY-1</b> 청구서 발행 ·
     <b>PAY-13</b> 입금 매칭 · <b>PAY-6</b> 수납 내역 · <b>PAY-2</b> 미납 관리</div></div>`;   /* PAY-8 수납 내역은 PAY-6에 합쳤다 */
 }
@@ -6973,6 +7089,8 @@ function render(keep){
   else if(id==='pay-14'){html=PAY14();crumb='수납 관리 <span>›</span> <b>수납 현황</b>';}
   else if(id==='pay-13'){html=PAY13();crumb='수납 관리 <span>›</span> <b>입금 매칭</b>';}
   else if(id==='ntf-6'){html=NTF6();crumb='이력 관리 <span>›</span> <b>발송 내역</b>';}
+  else if(id==='user-6'){html=USER6();crumb='';}
+  else if(id==='user-7'){html=USER7(decodeURIComponent(arg||''));crumb='';}
   else if(id==='tmp-mail'){html=TMPMAIL();crumb='<b>메일 문구 (임시)</b>';}
   else{html=TODO(id);const g=MENU.find(m=>m.items&&m.items.some(i=>i.id===id));
     const m=ALL.find(i=>i.id===id);
