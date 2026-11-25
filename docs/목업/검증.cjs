@@ -108,7 +108,7 @@ for (const b of ['b2']) run('PRO-3 ' + b, "tab3='요약';PRO3('" + b + "')");
     && FX.ctrPay('b1본관801호', '2026-06').bill === 13702266 && FX.ctrPay('b1본관401호', '2026-06').bill === 16519322;
   const ok = area && vat; if (!ok) fail = 1;
   console.log('② 계산 오류 고침 — 정화조청소비 550,000원을 14개 유닛에 임대면적으로(차액 0) · 6월 주차비 부가세 17,100 · 6월 아이씨비 · 케이큐 청구와 입금이 맞음(완납)  ' + (ok ? 'OK' : '✗ ' + JSON.stringify({area, vat}))); }
-/* 월 마감 보고서(REP-1) — 건물 상세 › 보고서 탭: 달 목록 → 줄을 누르면 패널(보고서 · 메모 · PDF · 메일 보내기) · 건물 × 한 달 · 마감한 달만 보냄 → 명세변경_261122 42 */
+/* 월 마감 보고서(REP-1) — 건물 상세 › 보고서 탭: 달 목록 → 줄을 누르면 패널(보고서 · 메모 · PDF · 메일 보내기) · 건물 × 한 달 · 마감한 달만 보냄 → 명세변경_261126 42 */
 { const RP = new Function(stub + bare + '; seedJuly(); const tabH=b=>{tab3=\'보고서\';return PRO3(b);}; f12=\'2026-07\'; MORE.length=0; PAY12(); const sc=MORE.flat().filter(i=>i.t===\'월 마감 보고서\'); return {MORE,tabH,rpOpen,rpMemo,repPanels,repData,repSend,mailRows,mcChecks,REPS,MENU,sc,set frb(v){frb=v;}};')();
   const list = RP.tabH('b1'); const lst = /<th>청구년월<\/th>/.test(list) && /<th>마감<\/th>/.test(list) && />발송 일자<\/th>/.test(list) && !/<th>(이달의 메모|임대인에게)<\/th>|보내기 전/.test(list) && /<th class="c">더보기<\/th>/.test(list) && /rpOpen\('2026-07'\)/.test(list) && /rpOpen\('2026-08'\)/.test(list) && !/월 마감 보고서<\/div>/.test(list) && !/마감<\/span> <span/.test(list) && /08\.06/.test(list);
   RP.rpOpen('2026-07'); const h7 = RP.repPanels(), D7 = RP.repData('b1', '2026-07');
@@ -167,7 +167,7 @@ for (const b of ['b2']) run('PRO-3 ' + b, "tab3='요약';PRO3('" + b + "')");
   const lim = zipBad && bigBad && okUp;
   const ok = list && byT && del && upl && lim; if (!ok) fail = 1;
   console.log('② 자료 보관함 — 모든 문서 한 목록(귀속 대상 · 크기) · 기간 먼저 · 귀속 대상 필터 · 체크 → ZIP · 함께 삭제(사유) · 업로드에서 건물 고름 · ZIP · 20MB 넘는 파일 막힘 · HWP 됨  ' + (ok ? 'OK' : '✗ ' + JSON.stringify({list, byT, del, upl, lim}))); }
-/* 매칭 무효 — 입금 매칭 확정 카드의 버튼 · 마감한 달은 막힘 · 사유 없음 · 대기열로 돌아오고 미납액이 살아남 · 원장은 수납 취소 · 이력 · 배분 다시 하기 · 직접 입력 없음 → 명세변경_261122 45 */
+/* 매칭 무효 — 입금 매칭 확정 카드의 버튼 · 마감한 달은 막힘 · 사유 없음 · 대기열로 돌아오고 미납액이 살아남 · 원장은 수납 취소 · 이력 · 배분 다시 하기 · 직접 입력 없음 → 명세변경_261126 45 */
 { const stub9 = stub.replace("const location={hash:''}", "const location={hash:'#/pay-13'}");
   const UM = new Function(stub9 + bare + '; seedJuly(); return {RC,useRC,PAY13,rcUnWhy,rcUnmatch,ledgerOf,ctrPay,rcIsOpen,CLOG,DASH1};')();
   UM.useRC('b1'); UM.RC.f.ym = '2026-07'; const d1 = UM.RC.P.dep.find(d => (UM.RC.dec[d.no] || {}).done); UM.RC.cur = d1.no; const h1 = UM.PAY13();
@@ -199,7 +199,7 @@ for (const b of ['b2']) run('PRO-3 ' + b, "tab3='요약';PRO3('" + b + "')");
   console.log('② 보고서 탭 ⋮ — 상세 · 메일 보내기(보냈으면 다시 보내기 · 마감 전은 잠김) · 내려받기  ' + (menu ? 'OK' : '✗ ' + JSON.stringify(M)));
   if (!ok) fail = 1;
   console.log('② 보고서 탭 필터 — 기간 · 발송 여부(보냄 ' + sentN + ' · 안 보냄 ' + (all - sentN) + ') · 건물 필터 없음  ' + (ok ? 'OK' : '✗')); }
-/* 발송 내역(NTF-6) — 보낸 그대로 남김 · 실패는 자동으로 다시 보내지 않음 · 다시 보내면 새 줄(원래 줄 그대로) · 보내는 화면(청구서 발행 · 미납 안내 · 명세서 · 웰컴)이 남김 → 명세변경_261122 38 */
+/* 발송 내역(NTF-6) — 보낸 그대로 남김 · 실패는 자동으로 다시 보내지 않음 · 다시 보내면 새 줄(원래 줄 그대로) · 보내는 화면(청구서 발행 · 미납 안내 · 명세서 · 웰컴)이 남김 → 명세변경_261126 38 */
 { const M = new Function(stub + bare + '; seedJuly(); return {mailRows,NTF6,mvOpen,mvHTML,mailResend,dashItems,issueAsk,issueGo,dueMail,stOpen,stSend,CTRS,ckey,setFm,set f1b(v){f1.b=v;}};')();
   const R0 = M.mailRows(), n0 = R0.length, fl = R0.filter(m => m.st === '실패'), f = fl[0];
   const seed = n0 === 57 && fl.length === 1 && /토끼어패럴/.test(f.rel) && /sampel/.test(f.to[0].mail) && R0.filter(m => m.kind === '청구서').length === 46
@@ -215,7 +215,7 @@ for (const b of ['b2']) run('PRO-3 ' + b, "tab3='요약';PRO3('" + b + "')");
     && dm.kind === '미납 안내' && sm.kind === '원장 명세서';
   const ok = seed && list && re && hooks; if (!ok) fail = 1;
   console.log('② 발송 내역 — 6 · 7월 청구서 46통(한 장으로 받기 한 통, 토끼어패럴 7월분 실패 1건) · 다시 보내면 새 줄(지금 담당자 주소) · 원래 줄 그대로 · 대시보드에서 빠짐 · 발행 · 미납 안내 · 명세서가 남김  ' + (ok ? 'OK' : '✗ ' + JSON.stringify({seed, list, re, hooks}))); }
-/* 대시보드(DASH-1) — 확인이 필요한 일: 건수가 0이면 숨김 · 건물을 고르면 그 건물만 · 처리하면 사라짐. 직원 알림은 이 화면 하나(종 모양 알림 없음) → 명세변경_261122 38 · 41 */
+/* 대시보드(DASH-1) — 확인이 필요한 일: 건수가 0이면 숨김 · 건물을 고르면 그 건물만 · 처리하면 사라짐. 직원 알림은 이 화면 하나(종 모양 알림 없음) → 명세변경_261126 38 · 41 */
 { const D = new Function(stub + bare + '; seedJuly(); return {dashItems,DASH1,PROG,HROWS,akOpen,akOK,akHTML,CTRS,CTR3,setB:v=>{fdb=v},set tab3c(v){tab3c=v;}};')();
   const on = () => Object.fromEntries(D.dashItems().filter(x => x.rows.length).map(x => [x.k, x.rows]));
   const a = on(), h = D.DASH1();
