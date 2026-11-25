@@ -2353,26 +2353,29 @@ function udHTML(){
     <div class="df">${foot}</div>
   </div></div>`;
 }
+/* 유닛 탭 — 목록(유닛이 100개여도 찾을 수 있게). 필터: 검색(유닛번호 · 임차인) · 동 · 층 · 상태 · 용도. 한 쪽 10줄 */
+let fu={q:'',dong:'',fl:'',st:'',use:''};
+const setFu=(k,v)=>{fu[k]=v;Object.keys(hp).forEach(x=>delete hp[x]);render(true);};
+const unitDong=u=>(u.no.match(/^(.*?)(B?\d+(층|호)|옥상)$/)||[])[1]||'';
 function t유닛(b){
-  const add=tabBar('',`<button class="btn pri" title="슈퍼관리자만" onclick="unOpen('${b.id}')">+ 유닛 등록</button>`);
-  if(!b.units.length) return `${add}<div class="tbl">
-    <div class="empty"><div class="t">등록된 유닛이 없습니다</div>유닛을 등록하면 여기에 표시됩니다.</div></div>`;
-  /* 유닛은 표가 아니라 카드 바둑판이다 — 층 · 면적 · 임차인을 한눈에 본다 */
-  return `
-  ${add}
-  <div><div class="units">
-    ${b.units.map(u=>{
-      return `<div class="unit" onclick="udOpen('${b.id}','${u.no}')">
-      <div class="uh"><span class="un">${u.no}</span>${stb(u.st)}</div>
-      <div class="r"><span>${u.use}</span><b>${flName(u.fl)}</b></div>
-      <div class="r"><span>임대면적</span><b>${m2(u.area)}</b></div>
-      <div class="r"><span>전용면적</span><b>${m2(u.net)} · ${(u.net/u.area*100).toFixed(0)}%</b></div>
-      <div class="r" style="margin-top:6px;padding-top:7px;border-top:1px solid var(--line-2)">
-        <span>임차인</span><b>${u.ten||'<span style="color:var(--faint)">없음</span>'}</b></div>
-    </div>`;}).join('')}</div></div>
-  </div>
-  <div class="hint">유닛을 누르면 오른쪽에 유닛 상세가 열립니다. 거기서 고치거나 지우고, 계약 이력에서 계약 상세로 갈 수 있습니다.<br>
-    목업의 용도·전용면적은 예시값입니다.</div>`;
+  const add=`<button class="btn pri" title="슈퍼관리자만" onclick="unOpen('${b.id}')">+ 유닛 등록</button>`;
+  const U=b.units, uniq=f=>[...new Set(U.map(f))].filter(x=>x!==''&&x!=null);
+  const S=(k,opts,lab)=>`<select onchange="setFu('${k}',this.value)"><option value="">${lab}</option>${opts.map(v=>Array.isArray(v)?v:[v,v]).map(([v,t])=>`<option value="${v}" ${String(fu[k])===String(v)?'selected':''}>${t}</option>`).join('')}</select>`;
+  const fls=uniq(u=>u.fl).sort((a,c)=>(a===ROOF?999:a)-(c===ROOF?999:c));
+  const fb=`${qBox('uq',fu.q,'setFu')}${S('dong',uniq(unitDong),'전체 동')}${S('fl',fls.map(f=>[String(f),flName(f)]),'전체 층')}${S('st',['사용중','공실','비운영중'],'전체 상태')}${S('use',uniq(u=>u.use).sort(),'전체 용도')}`;
+  const L=U.filter(u=>qHit(fu.q,[u.no,u.ten])&&(!fu.dong||unitDong(u)===fu.dong)&&(!fu.fl||String(u.fl)===fu.fl)&&(!fu.st||u.st===fu.st)&&(!fu.use||u.use===fu.use));
+  const N=Math.max(1,Math.ceil(L.length/HPER)), cur=Math.min(hp['un'+b.id]||1,N), P=L.slice((cur-1)*HPER,cur*HPER), dash='<span style="color:var(--faint)">—</span>';
+  return `${tabBar(fb,add)}<div class="tbl"><div class="tw"><table>
+    <thead><tr><th>유닛번호</th><th>동</th><th>층</th><th>용도</th><th>상태</th><th class="n">임대면적</th><th class="n">전용면적</th><th>임차인</th><th class="c">더보기</th></tr></thead>
+    <tbody>${P.length?P.map(u=>`<tr class="mrow" onclick="udOpen('${b.id}','${u.no}')">
+      <td><b>${u.no}</b></td><td>${unitDong(u)||dash}</td><td>${flName(u.fl)}</td><td>${u.use}</td><td>${stb(u.st)}</td>
+      <td class="n">${m2(u.area)}</td><td class="n">${m2(u.net)} <span class="c2" style="display:inline;margin:0">${(u.net/u.area*100).toFixed(0)}%</span></td>
+      <td>${u.ten||dash}</td>
+      <td class="c">${moreCell([{t:'상세',go:`udOpen('${b.id}','${u.no}')`}])}</td></tr>`).join('')
+      :`<tr><td colspan="9" style="text-align:center;padding:28px 0;color:var(--muted)">${U.length?'조건에 맞는 유닛이 없습니다':'등록된 유닛이 없습니다'}</td></tr>`}</tbody></table></div>
+    ${pagerHTML(L.length,cur,`(p=>{hp['un${b.id}']=p;render(true);})`)}</div>
+  <div class="hint">줄을 누르면 오른쪽에 유닛 상세가 열립니다. 거기서 고치거나 지우고, 계약 이력에서 계약 상세로 갈 수 있습니다.<br>
+    검색은 유닛번호 · 임차인 이름 일부로 찾습니다. 목업의 용도 · 전용면적은 예시값입니다.</div>`;
 }
 
 /* ═══ 자료 탭 — 체크해서 여러 건을 한 번에 지우고, 줄마다 더보기(상세 · 내려받기 · 삭제) → PRO-3 · DOC-2
@@ -3311,7 +3314,7 @@ function t보고서(bdx){
       <td class="n">${N.bill?won(N.bill):dash}</td><td class="n">${N.bill?won(N.paid):dash}</td>
       <td class="n">${due>0?`<span style="color:var(--warn)">${won(due)}</span>`:N.bill?won(0):dash}</td>
       <td style="padding-left:32px">${sent?d8m('2026-'+sent):dash}</td>
-      <td class="c">${moreCell([{t:'상세',go:`rpOpen('${ym}')`},{t:sent?'다시 보내기':'메일 보내기',go:`frb.ym='${ym}';repSend()`,off:closeOn(b,ym)?'':'마감한 달만 보낼 수 있습니다'},{t:'내려받기',go:`say('${ymKo(ym)} 월 마감 보고서 PDF를 내려받습니다(상세 패널을 열지 않고 바로). 메일에 붙는 PDF와 같습니다.\\n목업에서는 파일을 내려받지 않습니다.')`}])}</td></tr>`;}).join('');
+      <td class="c">${moreCell([{t:'상세',go:`rpOpen('${ym}')`},{t:sent?'다시 보내기':'메일 보내기',go:`rpOpen('${ym}')`,off:closeOn(b,ym)?'':'마감한 달만 보낼 수 있습니다'},{t:'내려받기',go:`say('${ymKo(ym)} 월 마감 보고서 PDF를 내려받습니다(상세 패널을 열지 않고 바로). 메일에 붙는 PDF와 같습니다.\\n목업에서는 파일을 내려받지 않습니다.')`}])}</td></tr>`;}).join('');
   return `${tabBar(fb)}<div class="tbl"><div class="tw"><table>
       <thead><tr><th>청구년월</th><th>마감</th><th class="n">청구액</th><th class="n">수납액</th><th class="n">미납액</th><th style="padding-left:32px">발송 일자</th><th class="c">더보기</th></tr></thead>
       <tbody>${rows||`<tr><td colspan="7" style="text-align:center;padding:28px 0;color:var(--muted)">조건에 맞는 보고서가 없습니다</td></tr>`}</tbody></table></div>${pagerHTML(YM.length,cur,`(p=>{hp['rp${b}']=p;render(true);})`)}</div>

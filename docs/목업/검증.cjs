@@ -1139,14 +1139,22 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
     && nm === '위약금' && doc === '세금계산서' && /placeholder="예: 7월 전기요금 정정"/.test(h1) && NM.BILLS.some(i => i.adhoc && i.n === '7월 전기요금 정정')
     && ord1 === '원상복구비,엘리베이터 사용료,파손 수리비,위약금']); }
 /* 유닛 등록 — 필수 빠지면 막힘 · 번호 중복 막힘 · 전용면적 > 임대면적 막힘 · 지하층 · 카드에 생김 */
-{ const UN = new Function(stub + bare + '; return {unOpen,unSave,unMissing,unHTML,BUILDINGS,PRO3,get un(){return un;},set tab3(v){tab3=v;}};')();
+{ const UN = new Function(stub + bare + '; return {unOpen,unSave,unMissing,unHTML,BUILDINGS,PRO3,setFu,get un(){return un;},set tab3(v){tab3=v;}};')();
   const b = UN.BUILDINGS[0], n0 = b.units.length;
   UN.unOpen('b1'); UN.unSave(); const blocked = b.units.length === n0 && UN.unMissing().includes('유닛고유번호');
   Object.assign(UN.un, {no:'본관801호', fl:'8', use:'사무실', area:'330'}); const dup = UN.unMissing().some(x => /이미 있음/.test(x));
   Object.assign(UN.un, {no:'별관B1', dong:'별관', fk:'지하', fl:'1', area:'120', net:'130'}); const big = UN.unMissing().some(x => /임대면적보다/.test(x));
-  UN.un.net = '96'; const h = UN.unHTML(); UN.unSave(); const u = b.units.at(-1); UN.tab3 = '유닛'; const t = UN.PRO3('b1');
-  r6.push(['유닛 등록 — 필수 빠지면 막힘 · 번호 중복 · 전용면적 > 임대면적 막힘 · 별관 지하 1층 등록 · 전용률 80.0% · 유닛 탭 카드에 생김',
+  UN.un.net = '96'; const h = UN.unHTML(); UN.unSave(); const u = b.units.at(-1); UN.tab3 = '유닛'; UN.setFu('q', '별관B1'); const t = UN.PRO3('b1'); UN.setFu('q', '');
+  r6.push(['유닛 등록 — 필수 빠지면 막힘 · 번호 중복 · 전용면적 > 임대면적 막힘 · 별관 지하 1층 등록 · 전용률 80.0% · 유닛 탭 목록에서 검색됨',
     blocked && dup && big && /80\.0%/.test(h) && b.units.length === n0 + 1 && u.no === '별관B1' && u.fl === -1 && u.st === '공실' && t.includes('별관B1')]); }
+/* 유닛 탭 — 목록(카드 아님) · 검색 · 동 · 층 · 상태 · 용도 필터 · 한 쪽 10줄 */
+{ const UL = new Function(stub + bare + '; return {PRO3,BUILDINGS,setFu,set tab3(v){tab3=v;}};')();
+  UL.tab3 = '유닛'; const b = UL.BUILDINGS[0], nr = h => (h.match(/<tr class="mrow" onclick="udOpen/g) || []).length, h0 = UL.PRO3('b1');
+  const th = /<th>유닛번호<\/th><th>동<\/th><th>층<\/th><th>용도<\/th><th>상태<\/th>/.test(h0) && !/class="units"/.test(h0) && ['전체 동', '전체 층', '전체 상태', '전체 용도'].every(x => h0.includes(x)) && /id="uq"/.test(h0);
+  const pg = nr(h0) === Math.min(10, b.units.length);
+  UL.setFu('st', '공실'); const hv = UL.PRO3('b1'); UL.setFu('st', ''); UL.setFu('dong', '별관'); const hd = UL.PRO3('b1'); UL.setFu('dong', ''); UL.setFu('q', '아이씨비'); const hq = UL.PRO3('b1'); UL.setFu('q', '');
+  const ok = th && pg && nr(hv) === Math.min(10, b.units.filter(u => u.st === '공실').length) && nr(hd) > 0 && !/<b>본관/.test(hd) && nr(hq) === Math.min(10, b.units.filter(u => /아이씨비/.test(u.ten || '')).length) && nr(hq) >= 1;
+  r6.push(['유닛 탭 — 목록 · 검색(유닛번호 · 임차인) · 동 · 층 · 상태 · 용도 필터 · 한 쪽 10줄', ok]); }
 /* 유닛 상세 패널 — 계약 있던 유닛은 삭제·번호 변경 막힘 · 새 유닛은 수정 후 사유 넣고 삭제 */
 { const UD = new Function(stub + bare + '; return {udOpen,udEdit,udSave,udDel,udHTML,unOpen,unSave,BUILDINGS,get ud(){return ud;},get un(){return un;}};')();
   const b = UD.BUILDINGS[0];
