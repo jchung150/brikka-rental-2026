@@ -322,7 +322,7 @@ td.c,th.c{text-align:center}
 .more + .more{margin-left:10px}
 .more.mtg{font-size:16px;line-height:1;padding:0 6px;letter-spacing:0}
 .mmenu{position:fixed;min-width:130px;background:var(--bg);border:1px solid var(--line);border-radius:var(--r);
-  box-shadow:0 10px 30px rgba(0,0,0,.13);z-index:60;padding:5px}
+  box-shadow:0 10px 30px rgba(0,0,0,.13);z-index:120;padding:5px}
 .mmenu .mi{padding:7px 10px;border-radius:var(--r-sm);cursor:pointer;font-size:12.5px;white-space:nowrap}
 .mmenu .mi:hover{background:var(--side-hov);color:var(--pri)}
 .mmenu .mi.off{color:var(--faint);cursor:default}
@@ -4712,6 +4712,8 @@ function moreOpen(id,el){
   m.style.top=(r.bottom+4)+'px'; m.style.right=(window.innerWidth-r.right)+'px';
   m.onclick=e=>{e.stopPropagation();const n=e.target.dataset.n; if(n==null) return; moreClose(); new Function(MORE[id][n].go)();};
   document.body.appendChild(m);
+  /* 아래 공간이 모자라면(패널 아래 버튼 줄 등) 위로 연다 */
+  if(r.bottom+4+m.offsetHeight>window.innerHeight-8) m.style.top=Math.max(8,r.top-4-m.offsetHeight)+'px';
   setTimeout(()=>{document.addEventListener('click',moreClose,{once:true});window.addEventListener('scroll',moreClose,{once:true});});
 }
 function moreClose(){const m=document.getElementById&&document.getElementById('mmenu'); if(m) m.remove();}
@@ -6558,9 +6560,7 @@ function CTR3(k){
     </select>
     <span style="margin-left:auto;display:flex;gap:6px">   <!-- 돈을 다루는 버튼은 원장 탭에만 둔다 -->
       ${ledBtns(k,L)}
-      <button class="btn" onclick="stOpen('${k}')">명세서 보내기</button>
-      <button class="btn" style="display:inline-flex;align-items:center;gap:4px" title="원장 출력 — 지금 보이는 기간의 원장(받을 돈 · 보증금)을 PDF로 내려받습니다" onclick="say('원장 출력 PDF — 지금 보이는 기간의 원장(받을 돈 · 보증금)을 PDF로 내려받습니다.\n목업에서는 파일을 내려받지 않습니다.')">${ic('down',14)}PDF</button>
-      <button class="btn" style="display:inline-flex;align-items:center;gap:4px" title="원장 출력 — 같은 기간 · 같은 칸(날짜 · 거래유형 · 내용 · 차변 · 대변 · 잔액, 시작 · 끝 잔액)을 엑셀로 내려받습니다" onclick="say('원장 출력 엑셀 — PDF와 같은 기간 · 같은 칸(날짜 · 거래유형 · 내용 · 차변 · 대변 · 잔액, 계정마다 시작 · 끝 잔액)을 엑셀(xlsx)로 내려받습니다.\n목업에서는 파일을 내려받지 않습니다.')">${ic('down',14)}엑셀</button></span>
+      <button class="btn" onclick="stOpen('${k}')">명세서 보내기</button></span>
   </div>
   ${LT.html}
   <div class="hint">
@@ -6702,6 +6702,10 @@ function stPreview(c,bd,S){
     <div class="c2" style="margin:6px 0 0;white-space:normal">${c.ten} 귀하 · ${bd.name} ${c.no} · 발행일 ${d8(TODAY_S)}</div>
     ${sec('받을 돈',  '매출채권',S.매출채권)}${sec('보증금','임대보증금',S.임대보증금)}
     <div class="c2" style="margin:12px 0 0;white-space:normal">잔액이 0보다 작으면 과납입니다. 문의: ${bd.name} 관리사무소</div></div>`;}
+/* 명세서 내려받기 — 패널에서 고른 기간 그대로 PDF · 엑셀(같은 칸) → 명세변경_261122 39 */
+const stDown=bad=>menuBtn('내려받기',[
+  {t:'PDF',go:"say('명세서 PDF — 고른 기간의 원장(받을 돈 · 보증금)을 PDF로 내려받습니다. 메일에 붙는 PDF와 같습니다.\\n목업에서는 파일을 내려받지 않습니다.')",off:bad?'시작일이 끝일보다 늦습니다':''},
+  {t:'엑셀',go:"say('명세서 엑셀 — PDF와 같은 기간 · 같은 칸(날짜 · 거래유형 · 내용 · 차변 · 대변 · 잔액, 계정마다 시작 · 끝 잔액)을 엑셀(xlsx)로 내려받습니다.\\n목업에서는 파일을 내려받지 않습니다.')",off:bad?'시작일이 끝일보다 늦습니다':''}]);
 function stHTML(){
   if(DRAWER!=='stmt'||!st) return '';
   if(st.pv){const c=CTRS.find(x=>ckey(x)===st.k), bd=BUILDINGS.find(x=>x.id===c.b)||BUILDINGS[0], to=billTo(c), S=stSum(st.k,st.from,st.to);
@@ -6710,7 +6714,7 @@ function stHTML(){
       <button class="x" onclick="closeDrawer()">✕</button></div>
     <div class="db">${stPreview(c,bd,S)}</div>
     <div class="df"><button class="btn" onclick="stSet('pv',false)">← 돌아가기</button>
-      <button class="btn" onclick="say('PDF 다운로드 — 위에 보이는 명세서를 PDF 파일로 내려받는다(목업은 버튼만)')">PDF 다운로드</button>
+      ${stDown(false)}
       <button class="btn pri" ${to.length?'':'disabled'} onclick="stSend()">메일 보내기</button></div>
   </div></div>`;}
   const c=CTRS.find(x=>ckey(x)===st.k), bd=BUILDINGS.find(x=>x.id===c.b)||BUILDINGS[0], to=billTo(c), bad=dnum(st.from)>dnum(st.to), S=bad?null:stSum(st.k,st.from,st.to);
@@ -6729,9 +6733,10 @@ function stHTML(){
       <div class="fg"><div class="fl">보낼 곳</div>
         ${R('받는 사람',to.length?`<span class="fv">${to.map(x=>x.n).join(', ')}</span>`:'<span class="fv" style="color:var(--danger)">청구서 메일 받는 담당자가 없습니다(요약 › 담당자)</span>')}
         ${R('메모',`<input type="text" value="${st.memo}" placeholder="메일 본문에 붙일 말 (선택)" oninput="st.memo=this.value">`)}
-        <div class="c2" style="margin:2px 0 0;white-space:normal">그 기간의 원장(받을 돈 · 보증금, 거래마다 날짜 · 내용 · 금액 · 잔액)을 PDF로 붙여 보냅니다. 원장 출력 PDF와 같은 내용입니다.</div></div>
+        <div class="c2" style="margin:2px 0 0;white-space:normal">그 기간의 원장(받을 돈 · 보증금, 거래마다 날짜 · 내용 · 금액 · 잔액)을 PDF로 붙여 보냅니다. 보내지 않고 내려받기만 하려면 아래 「내려받기」에서 PDF · 엑셀을 고릅니다.</div></div>
     </div>
     <div class="df"><button class="btn" onclick="closeDrawer()">닫기</button>
+      ${stDown(bad)}
       <button class="btn" ${bad?'disabled':''} onclick="stSet('pv',true)">미리보기</button>
       <button class="btn pri" ${to.length&&!bad?'':'disabled'} onclick="stSend()">메일 보내기</button></div>
   </div></div>`;

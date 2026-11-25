@@ -696,15 +696,15 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   const once = '수납 176383 / 수납 취소 5176383';
   r6.push(['같은 날 원장은 한 일 순서대로 — 보증금 상계 500만 → 취소 → 상계 500만 → 취소 · 잔액이 줄마다 맞음',
     seq === once + ' / 수납 176383' && seq2 === once + ' / ' + once]); }
-/* 계약 상세 주차 탭 — 건물 주차 탭과 같은 표를 그 계약 하나로(계약 필터 없음 · 처음부터 펼침 · 차량 추가는 그 계약으로) · 원장 출력은 아이콘 버튼 */
+/* 계약 상세 주차 탭 — 건물 주차 탭과 같은 표를 그 계약 하나로(계약 필터 없음 · 처음부터 펼침 · 차량 추가는 그 계약으로) · 원장 내려받기는 명세서 보내기 패널 */
 { const PK = new Function(stub + bare + '; seedJuly(); return {CTR3,VEH,set tab3c(v){tab3c=v;}};')();
   PK.tab3c = '주차'; const k = 'b1본관801호', h = PK.CTR3(k), mine = PK.VEH.filter(v => v.k === k);
   const others = PK.VEH.filter(v => v.k !== k && v.plate && !mine.some(m => m.plate === v.plate));
   PK.tab3c = '원장'; const hl = PK.CTR3(k);
-  r6.push(['계약 상세 주차 탭 — 탭 6개(요약 · 청구·수납 · 원장 · 주차 · 자료보관 · 이력) · 그 계약 차량만 한 단(묶음 줄 · 펼치기 · 계약고유이름 없음 · 대수는 필터 줄) · 계약 필터 없음 · 주차구분 필터 · 차량 추가는 그 계약 · 원장 출력은 아이콘(글자 버튼 없음)',
+  r6.push(['계약 상세 주차 탭 — 탭 6개(요약 · 청구·수납 · 원장 · 주차 · 자료보관 · 이력) · 그 계약 차량만 한 단(묶음 줄 · 펼치기 · 계약고유이름 없음 · 대수는 필터 줄) · 계약 필터 없음 · 주차구분 필터 · 차량 추가는 그 계약 · 원장 탭에 원장 출력 버튼 없음(내려받기는 명세서 보내기 패널)',
     />주차<\/button>/.test(h) && mine.length > 0 && mine.every(v => h.includes(v.plate)) && others.every(v => !h.includes(v.plate))
     && !/전체 계약/.test(h) && /전체 주차구분/.test(h) && /<th>차량 소유자<\/th>/.test(h) && !/계약고유이름/.test(h) && !/전체 펼치기|전체 접기/.test(h) && !/class="grp"/.test(h) && /총 \d+대 · 무료/.test(h) && h.includes(`vehOpen('b1',0,'${k}')`)
-    && !/>원장 출력<\/button>/.test(hl) && /title="원장 출력 — /.test(hl)]); }
+    && !/원장 출력/.test(hl) && /명세서 보내기/.test(hl)]); }
 /* 요약 탭 주차정보 카드 — 무료 주차 대수 · 차량 대수 · 경고 · 주차 탭 링크만(차량 목록 · 차량 추가 없음) */
 { const PC = new Function(stub + bare + '; seedJuly(); return {CTR3,MORE,set tab3c(v){tab3c=v;}};')();
   PC.tab3c = '요약'; PC.MORE.length = 0; const h = PC.CTR3('b1본관801호'), card = h.slice(h.indexOf('주차정보'), h.indexOf('냉난방기'));
@@ -1501,8 +1501,8 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   const k = 'b1별관301호'; SP.stOpen(k); const h0 = SP.stHTML(); SP.stSet('pv', true); const h1 = SP.stHTML();
   const S = SP.stSum(k, SP.st.from, SP.st.to), ok = ['매출채권', '임대보증금'].every(a => { const L = SP.stLines(k, SP.st.from, SP.st.to, a);
     return L.length > 0 && L[L.length - 1].bal === S[a].close && L.reduce((x, l) => x + l.dr - l.cr, 0) === (a === '매출채권' ? 1 : -1) * (S[a].close - S[a].open); });
-  r6.push(['명세서 보내기 — 미리보기 버튼 → 보낼 PDF 그대로(원장 명세서 · 받을 돈 · 보증금마다 시작 잔액 · 거래 · 끝 잔액 · 청구서 한 줄) · 돌아가기 · 미리보기에서도 메일 보내기 · 줄 잔액이 끝 잔액과 맞음',
-    /stSet\('pv',true\)">미리보기/.test(h0) && /원장 명세서/.test(h1) && /시작 잔액/.test(h1) && /26\.07월분 청구서/.test(h1) && /돌아가기/.test(h1) && /PDF 다운로드/.test(h1) && /stSend\(\)">메일 보내기/.test(h1) && ok]); }
+  r6.push(['명세서 보내기 — 미리보기 버튼 → 보낼 PDF 그대로(원장 명세서 · 받을 돈 · 보증금마다 시작 잔액 · 거래 · 끝 잔액 · 청구서 한 줄) · 돌아가기 · 내려받기(PDF · 엑셀) · 미리보기에서도 메일 보내기 · 줄 잔액이 끝 잔액과 맞음',
+    /stSet\('pv',true\)">미리보기/.test(h0) && /원장 명세서/.test(h1) && /시작 잔액/.test(h1) && /26\.07월분 청구서/.test(h1) && /돌아가기/.test(h1) && /내려받기 ▾/.test(h1) && /내려받기 ▾/.test(h0) && /stSend\(\)">메일 보내기/.test(h1) && ok]); }
 /* 청구서 모양 · 미리보기 — 청구서 발행 · 청구서 보기 · 청구 추가 · 해지 처리 · 미납 안내가 같은 청구서 모양을 쓴다 */
 { const PV = new Function(stub + bare + '; seedJuly(); return {pv1Open,billView,ipvHTML,fixOpen,fxSet,pvAdhOpen,termOpen,termSet,pvTermOpen,unbilled,termMode,CTRS,ckey,TERMS,ISS,BILLS,pvDueOpen,f1,get tm(){return tm;},get ipv(){return ipv;}};')();
   const k = 'b1별관301호', c = PV.CTRS.find(x => PV.ckey(x) === k), pay = h => (h.match(/납부하실 금액(?: \(미납액\))?<\/span><span[^>]*>([^<]+)/) || [])[1];
