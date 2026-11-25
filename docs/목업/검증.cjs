@@ -167,6 +167,23 @@ for (const b of ['b2']) run('PRO-3 ' + b, "tab3='요약';PRO3('" + b + "')");
   const lim = zipBad && bigBad && okUp;
   const ok = list && byT && del && upl && lim; if (!ok) fail = 1;
   console.log('② 자료 보관함 — 모든 문서 한 목록(귀속 대상 · 크기) · 기간 먼저 · 귀속 대상 필터 · 체크 → ZIP · 함께 삭제(사유) · 업로드에서 건물 고름 · ZIP · 20MB 넘는 파일 막힘 · HWP 됨  ' + (ok ? 'OK' : '✗ ' + JSON.stringify({list, byT, del, upl, lim}))); }
+/* 입금 수정 · 취소(PAY-9) — 마감한 달은 막힘 · 배분 다시 하기(총액 고정 · 남는 돈은 과납액 · 원장은 수납 취소 후 다시 기록 · 이력) · 매칭 무효(대기열로) · 직접 입력: 입금 무효(무효로 남음 · 대기열에서 빠짐) · 날짜 · 입금자명 고치기 · 금액 칸 없음 */
+{ const stub9 = stub.replace("const location={hash:''}", "const location={hash:'#/pay-13'}");
+  const P9 = new Function(stub9 + bare + '; seedJuly(); return {RC,useRC,p9Open,p9HTML,p9Run,p9Cands,p9WhyNot,ledgerOf,ctrPay,rcIsOpen,rcConfirm,CLOG,get BANKS(){return BANKS;},get p9(){return p9;}};')();
+  P9.useRC('b1'); P9.RC.f.ym = '2026-07'; const d1 = P9.RC.P.dep.find(d => (P9.RC.dec[d.no] || {}).done); const blk = /마감한 달/.test(P9.p9WhyNot(d1.no));
+  P9.RC.f.b = 'b2'; P9.useRC('b2'); P9.RC.f.ym = '2026-07';
+  const d = P9.RC.P.dep.find(x => ((P9.RC.dec[x.no] || {}).done || {lines: []}).lines.length > 1), k = P9.RC.dec[d.no].done.lines[0].k, ym = P9.RC.dec[d.no].done.lines[0].ym;
+  P9.p9Open(d.no); const C = P9.p9Cands(d.no); P9.p9.mode = 'al'; C.forEach((i, j) => P9.p9.al[i.id] = String(j === 0 ? i.room : 0)); P9.p9.why = '시험';
+  const ph = P9.p9HTML(); P9.p9Run(); const r2 = P9.RC.dec[d.no].done;
+  const al = /배분 합계/.test(ph) && !/금액<\/span><input/.test(ph) && r2.lines.length === 1 && r2.rest === d.amt - r2.lines[0].pay && P9.ledgerOf(k).rows.some(x => x.type === '수납 취소') && /배분 다시 함/.test((P9.CLOG[k] || [])[0].sum);
+  P9.p9Open(d.no); P9.p9.mode = 'un'; P9.p9.why = '시험'; P9.p9Run(); const un = P9.rcIsOpen(d) && P9.ctrPay(k, ym).due === d.amt;
+  const B8 = P9.BANKS['2026-08'] = P9.BANKS['2026-08'] || {skip:0, head:[], map:{}, rows:[], dep:[], wd:[]};
+  const nm = Object.keys(P9.RC.alias).find(n => /하니커피/.test(n)); B8.dep.push({no:951, dt:'2026-08-09 10:00:00', kind:'직접 입력', name:nm, amt:100000, out:0, src:'직접 입력', by:'슈퍼관리자', at:'2026-08-09 10:05', memo:'', bank:false, acct:''});
+  P9.RC.f.ym = '2026-08'; P9.rcConfirm(951); const dm = B8.dep.find(x => x.no === 951), conf = !!(P9.RC.dec[951] || {}).done;
+  P9.p9Open(951); const ph2 = P9.p9HTML(); P9.p9.mode = 'ed'; P9.p9.name = '하니커피 본사'; P9.p9.why = '이름 오타'; P9.p9Run(); const ed = dm.name === '하니커피 본사';
+  P9.p9Open(951); P9.p9.mode = 'vo'; P9.p9.why = '잘못 넣음'; P9.p9Run(); const vo = conf && /입금 무효/.test(ph2) && /날짜 · 입금자명 고치기/.test(ph2) && !!dm.void && !P9.rcIsOpen(dm) && (P9.RC.dec[951] || {}).void;
+  const ok = blk && al && un && ed && vo; if (!ok) fail = 1;
+  console.log('② 입금 수정 · 취소 — 마감한 달 막힘 · 배분 다시 하기(총액 고정 · 남는 돈 과납액 · 수납 취소 후 다시 기록 · 이력) · 매칭 무효(대기열로 · 미납액 돌아옴) · 직접 입력 고치기 · 입금 무효(무효로 남음) · 금액 칸 없음  ' + (ok ? 'OK' : '✗ ' + JSON.stringify({blk, al, un, ed, vo}))); }
 /* 발송 내역(NTF-6) — 보낸 그대로 남김 · 실패는 자동으로 다시 보내지 않음 · 다시 보내면 새 줄(원래 줄 그대로) · 보내는 화면(청구서 발행 · 미납 안내 · 명세서 · 웰컴)이 남김 → 명세변경_261122 38 */
 { const M = new Function(stub + bare + '; seedJuly(); return {mailRows,NTF6,mvOpen,mvHTML,mailResend,dashItems,issueAsk,issueGo,dueMail,stOpen,stSend,CTRS,ckey,setFm,set f1b(v){f1.b=v;}};')();
   const R0 = M.mailRows(), n0 = R0.length, fl = R0.filter(m => m.st === '실패'), f = fl[0];

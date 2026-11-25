@@ -519,6 +519,9 @@ table.nowr th,table.nowr td{white-space:nowrap}
 .drow .dw{text-align:right;font-size:12px;font-weight:600;white-space:nowrap;color:var(--ink-2,inherit)}
 .drow .dw.late{color:var(--warn)}.drow .dw .c2{font-weight:400;margin:0}
 .dgo{color:var(--faint);font-size:16px}
+.seg{display:flex;gap:0;border:1px solid var(--line);border-radius:var(--r-sm);overflow:hidden;width:max-content;max-width:100%}
+.seg button{border:0;border-right:1px solid var(--line);background:var(--bg);color:inherit;padding:7px 12px;font:inherit;font-size:12.5px;cursor:pointer}.seg button:last-child{border-right:0}
+.seg button.on{background:var(--pri-bg);color:var(--pri);font-weight:600}.seg button:disabled{color:var(--faint);cursor:not-allowed}
 tr.mrow{cursor:pointer}tr.mrow td{white-space:nowrap}
 .tmg{display:grid;grid-template-columns:repeat(auto-fill,minmax(420px,1fr));gap:12px;margin-bottom:12px;align-items:start}
 @media (max-width:520px){.tmg{grid-template-columns:1fr}}
@@ -1401,6 +1404,7 @@ function drawerHTML(){
   if(DRAWER==='mlv') return mvHTML();
   if(DRAWER==='repview') return repPanels();
   if(DRAWER==='cndet') return cnHTML();
+  if(DRAWER==='pay9') return p9HTML();
   if(DRAWER!=='additem') return '';
   const used=BLD.charge.filter(c=>c.use).map(c=>c.it);
   const rest=MASTER.filter(m=>!m.fixed&&!BILL[m.code].on&&used.includes(m.name));
@@ -3532,6 +3536,86 @@ function DOC1(){
     여러 문서를 체크하면 ZIP 하나로 내려받거나 함께 지울 수 있습니다. 목업 문서는 카리나빌딩 예시뿐입니다.</div>`;
 }
 
+/* ═══ PAY-9 입금 수정 · 취소 — 입금 매칭에서 확정한 입금의 오른쪽 패널. 원장은 지우지 않고 `수납 취소`를 더한 뒤 다시 기록한다.
+   은행 입금: 배분 다시 하기 · 매칭 무효(입금 매칭 대기로) / 직접 입력(은행 확인 전): 배분 다시 하기 · 입금 무효 · 날짜 · 입금자명 · 메모 고치기.
+   입금액은 어떤 입금도 고치지 않는다 → 07 PAY-9 · 확인요청_261107 요청 4 · 명세변경_261122 45 ═══ */
+let p9=null;
+const p9Dep=no=>RC.P.dep.find(x=>x.no===no);
+const p9Manual=d=>d.src==='직접 입력'&&!d.bank;
+/* 막힘 — 입금일이 마감한 달 · 이 입금으로 생긴 과납을 이미 썼거나 환불함(원장 상계 취소와 같은 기준) */
+function p9WhyNot(no){const d=p9Dep(no), x=RC.dec[no]||{}, r=x.done; if(!r) return '확정하지 않은 입금입니다';
+  const ymd=d.dt.slice(0,10).replace(/\./g,'-'); if(closedBy(RC.b,ymd.slice(0,7),TODAY_S)) return '입금일이 마감한 달입니다. 마감을 취소해야 고칠 수 있습니다';
+  const rec=payRec('d'+no); if(rec){const w=cancelWhyNot('pay',rec); if(w&&!/^마감한 달/.test(w)) return w.replace('이 상계','이 입금');}
+  if(r.rest>0&&r.ok&&overOf(r.ok)<r.rest) return '이 입금으로 생긴 과납액을 이미 환불했거나 다음 청구에 썼습니다. 그 환불 · 청구서를 먼저 취소합니다';
+  return '';}
+/* 배분 다시 하기 — 같은 임차인의 계약 청구 안에서. 이 입금의 몫을 빼고 남은 받을 돈까지만 */
+function p9Cands(no){const d=p9Dep(no), r=RC.dec[no].done, B=rcBiz(), keys=(B[r.biz]?B[r.biz].ctrs:[]).map(ckey), t=d.dt.slice(0,10).replace(/\./g,'-'), rec=payRec('d'+no);
+  const own=id=>rec?rec.ev.filter(e=>e.id===id).reduce((a,e)=>a+e.amt,0):0;
+  return BILLS.filter(i=>keys.includes(i.k)&&!closedBy(bOfK(i.k),i.ym,t)&&dnum(i.date||billOn(i.ym,bOfK(i.k)))<=dnum(t))
+    .map(i=>({...i,own:own(i.id),room:i.amt-cutOf(i.id)-(paidNet(i.id)-own(i.id))})).filter(i=>i.room>0||i.own>0)
+    .sort((a,b)=>a.ym<b.ym?-1:a.ym>b.ym?1:prioOf(a.n.split(' ')[0])-prioOf(b.n.split(' ')[0]));}
+function p9Open(no){const d=p9Dep(no); p9={no,mode:'',why:'',al:{},dt:d.dt.slice(0,10).replace(/\./g,'-'),name:d.name,memo:d.memo||''};
+  p9Cands(no).forEach(i=>p9.al[i.id]=String(i.own||''));DRAWER='pay9';render(true);}
+function p9Bad(){if(!p9.mode) return '할 일을 고르세요'; if(!p9.why.trim()) return '사유를 넣으세요';
+  if(p9.mode==='al'){const d=p9Dep(p9.no), C=p9Cands(p9.no), sum=C.reduce((a,i)=>a+(numOf(p9.al[i.id])||0),0);
+    const over=C.find(i=>(numOf(p9.al[i.id])||0)>i.room); if(over) return `${over.no} ${over.n}에 받을 돈(${won(over.room)})보다 많이 넣었습니다`;
+    if(sum>d.amt) return `배분 합계가 입금액(${won(d.amt)})보다 많습니다`;}
+  if(p9.mode==='ed'&&!p9.name.trim()) return '입금자명을 넣으세요';
+  return '';}
+function p9Run(){if(p9Bad()) return; const {no,mode,why}=p9, d=p9Dep(no), r=RC.dec[no].done, rec=payRec('d'+no), w=why.trim();
+  const log=(sum)=>[...new Set((rec?rec.ev:[]).map(e=>(BILLS.find(i=>i.id===e.id)||{}).k).filter(Boolean))].forEach(k=>clog(k,'수납',mode==='al'?'배분재조정':'무효처리',sum,w));
+  if(mode==='al'){const C=p9Cands(no), date=rec?rec.date:p9.dt;
+    if(rec) cancelRec('pay',rec,w);
+    const lines=C.filter(i=>numOf(p9.al[i.id])>0).map(i=>{const a=numOf(p9.al[i.id]); addPay(i.id,a,date,`${d.dt.slice(11,19)} ${d.name}`,'d'+no); return {...i,pay:a,after:a>=i.room?'완납':'부분납'};});
+    const rest=d.amt-lines.reduce((a,l)=>a+l.pay,0), B=rcBiz();
+    Object.assign(r,{lines,all:lines,rest,ok:rest>0?((lines[lines.length-1]||{}).k||ckey(B[r.biz].ctrs[0])):null,basis:'배분 다시 함',sq:++paySeq});
+    log(`입금 배분 다시 함 — ${d.name} ${won(d.amt)}`);}
+  if(mode==='un'||mode==='vo'){if(rec) cancelRec('pay',rec,w); log(`${mode==='un'?'매칭 무효':'입금 무효'} — ${d.name} ${won(d.amt)}`);
+    if(mode==='un'){delete RC.dec[no]; RC.cur=no;}
+    else{d.void={why:w,by:'슈퍼관리자',at:`${TODAY_S} ${new Date().toTimeString().slice(0,5)}`}; RC.dec[no]={void:d.void};}}
+  if(mode==='ed'){const dt=p9.dt.replace(/-/g,'.'), chg=[];
+    if(dt!==d.dt.slice(0,10)) chg.push(['입금일',d.dt.slice(0,10),dt]); if(p9.name.trim()!==d.name) chg.push(['입금자명',d.name,p9.name.trim()]); if(p9.memo.trim()!==(d.memo||'')) chg.push(['메모',d.memo||'—',p9.memo.trim()||'—']);
+    d.dt=dt+d.dt.slice(10); d.name=p9.name.trim(); d.memo=p9.memo.trim();
+    if(rec) rec.ev.forEach(e=>(PAYEV[e.id]||[]).forEach(x=>{if(x.dep==='d'+no){x.date=p9.dt; x.src=`${d.dt.slice(11,19)} ${d.name}`;}}));
+    [...new Set((rec?rec.ev:[]).map(e=>(BILLS.find(i=>i.id===e.id)||{}).k).filter(Boolean))].forEach(k=>clog(k,'수납','수정',`직접 입력한 입금 고침 — ${chg.map(c=>c[0]).join(' · ')}`,w,chg));}
+  p9=null; DRAWER=null; render(true);}
+function p9HTML(){
+  if(DRAWER!=='pay9'||!p9) return '';
+  const d=p9Dep(p9.no), r=(RC.dec[p9.no]||{}).done; if(!d||!r) return '';
+  const man=p9Manual(d), why=p9WhyNot(p9.no), bad=p9Bad(), bn=BUILDINGS.find(x=>x.id===RC.b)||BUILDINGS[0];
+  const Rw=(k,v)=>`<div class="fr"><span class="fk">${k}</span><span class="fv">${v}</span></div>`;
+  const src=d.src==='직접 입력'?`직접 입력 · ${d.bank?'은행 확인됨':'은행 확인 전'}`:(d.src||'자동 수집');
+  const M=[['al','배분 다시 하기',''],man?['vo','입금 무효','']:['un','매칭 무효',''],...(man?[['ed','날짜 · 입금자명 고치기','']]:[])];
+  const seg=`<div class="seg">${M.map(([k,t])=>`<button class="${p9.mode===k?'on':''}" ${why?'disabled':''} onclick="p9.mode='${k}';render(true)">${t}</button>`).join('')}</div>`;
+  let body='';
+  if(p9.mode==='al'){const C=p9Cands(p9.no), sum=C.reduce((a,i)=>a+(numOf(p9.al[i.id])||0),0);
+    body=`<div class="tw" style="border:1px solid var(--line);border-radius:var(--r-sm)"><table><thead><tr><th>청구</th><th class="n">받을 돈</th><th class="n">이 입금 배분</th></tr></thead>
+      <tbody>${C.map(i=>`<tr><td>${cname(bn.alias,i.no,(CTRS.find(c=>ckey(c)===i.k)||{}).ten)} <span class="c2" style="display:inline;margin:0">${i.ym.slice(2).replace('-','.')}월분 ${i.n}</span></td><td class="n">${won(i.room)}</td>
+        <td class="n"><input type="text" inputmode="numeric" value="${p9.al[i.id]?num(numOf(p9.al[i.id])):''}" onchange="p9.al['${i.id}']=this.value;render(true)" style="width:110px;text-align:right;border:1px solid var(--line);border-radius:var(--r-sm);padding:5px 7px;font:inherit;background:var(--bg);color:inherit"></td></tr>`).join('')}
+        <tr class="sumr"><td>배분 합계 · 남는 돈(과납액)</td><td></td><td class="n">${won(sum)} · ${won(Math.max(0,d.amt-sum))}</td></tr></tbody></table></div>
+      <div class="c2" style="white-space:normal">입금액 ${won(d.amt)}은 그대로입니다. 같은 임차인의 청구 안에서만 나눕니다(다른 임차인 것이면 매칭 무효 후 다시 매칭). 남는 돈은 과납액이 됩니다. 원장에는 원래 수납을 「수납 취소」하고 새로 기록합니다.</div>`;}
+  if(p9.mode==='un') body=`<div class="c2" style="white-space:normal">이 입금의 배분을 모두 「수납 취소」하고 입금 매칭 대기열로 되돌립니다. 은행 기록은 그대로이고 다시 매칭합니다.</div>`;
+  if(p9.mode==='vo') body=`<div class="c2" style="white-space:normal">잘못 넣은 직접 입력을 되돌립니다. 배분을 모두 「수납 취소」하고, 입금과 직접 입력 행은 지우지 않고 「무효」로 남습니다. 금액이 틀렸으면 무효 후 다시 직접 입력합니다.</div>`;
+  if(p9.mode==='ed') body=`<div class="fr"><span class="fk">입금일</span><input type="date" value="${p9.dt}" max="${TODAY_S}" onchange="p9.dt=this.value"></div>
+      <div class="fr"><span class="fk">입금자명</span><input type="text" value="${p9.name.replace(/"/g,'&quot;')}" oninput="p9.name=this.value"></div>
+      <div class="fr"><span class="fk">메모</span><input type="text" value="${p9.memo.replace(/"/g,'&quot;')}" oninput="p9.memo=this.value"></div>
+      <div class="c2" style="white-space:normal">금액은 고치지 않습니다. 틀렸으면 입금 무효 후 다시 직접 입력합니다.</div>`;
+  return `<div class="dro"><div class="ov" onclick="closeDrawer()"></div><div class="pn" style="width:600px">
+    <div class="dh"><div><div class="t">입금 수정 · 취소</div><div class="s">${d.dt.slice(0,16)} · ${d.name} · ${won(d.amt)}</div></div><button class="x" onclick="closeDrawer()">✕</button></div>
+    <div class="db">
+      <div class="fg">${Rw('출처',src)}${Rw('확정',r.auto?'자동 확정':`${r.by||'슈퍼관리자'} 확정`)}${Rw('지금 배분',(r.lines||[]).map(l=>`${l.no} ${l.n} ${won(l.pay)}`).join(' · ')||'—')}${r.rest>0?Rw('과납액',won(r.rest)):''}</div>
+      ${why?`<div class="prev warn2" style="margin:0 0 12px"><div class="pt">고칠 수 없습니다</div>${why}</div>`:''}
+      <div class="fg"><div class="fl">할 일</div>${seg}</div>
+      ${p9.mode?`<div class="fg">${body}</div>
+      <div class="fg"><div class="fr"><span class="fk">사유 <b style="color:var(--warn)">*</b></span><input type="text" placeholder="예: 관리비로 낸 돈이 임대료에 배분됨" value="${p9.why.replace(/"/g,'&quot;')}" oninput="p9.why=this.value;document.getElementById('p9ok').disabled=!!p9BadNow()"></div>
+        <div class="c2" style="white-space:normal">사유는 변경 이력에 남습니다.</div></div>`:''}
+      ${p9.mode&&bad&&bad!=='사유를 넣으세요'?`<div class="c2" style="color:var(--danger)">${bad}</div>`:''}
+    </div>
+    <div class="df"><button class="btn" onclick="closeDrawer()">취소</button><button class="btn pri" id="p9ok" ${bad||why?'disabled':''} onclick="p9Run()">${{al:'배분 다시 하기',un:'매칭 무효',vo:'입금 무효',ed:'저장'}[p9.mode]||'실행'}</button></div>
+  </div></div>`;
+}
+const p9BadNow=()=>p9Bad()||p9WhyNot(p9.no);
+
 /* ═══ 임시 — 메일 문구 9종(초안 · 대표 검토 중). 칸({ })은 시스템이 채운다. 검토가 끝나면 메뉴와 함께 지운다 ═══ */
 function TMPMAIL(){
   const bd={ph:1,name:'{건물명}',acct:'{은행 계좌번호}',acctName:'{예금주}',feeAcct:'{은행 계좌번호}',billDay:'{청구일}',dueDay:'{납부마감일 규칙}'};
@@ -3586,7 +3670,7 @@ function dashItems(){
   add('fetch','은행 거래내역 수집 중단','24시간 넘게 은행 거래내역을 가져오지 못했습니다. 그동안 들어온 입금이 보이지 않습니다',
     Bs.filter(b=>FETCH_STOP[b.id]).map(b=>({n:b.name,d:`마지막 수집 ${d8(FETCH_STOP[b.id])}`,when:dLeft(FETCH_STOP[b.id].slice(0,10)),age:-dday(FETCH_STOP[b.id].slice(0,10)),go:`suGo('${b.id}','pay-13')`})));
   add('manual','은행에서 확인되지 않은 직접 입력','직접 넣은 입금이 7일이 지나도 은행 기록과 맞춰지지 않았습니다. 잘못 넣었으면 입금 무효로 되돌립니다',
-    Bs.filter(b=>BANKS_BY[b.id]).flatMap(b=>Object.values(BANKS_BY[b.id]).flatMap(P=>P.dep.filter(x=>x.src==='직접 입력'&&!x.bank&&dday((x.at||x.dt).slice(0,10))<=-7))
+    Bs.filter(b=>BANKS_BY[b.id]).flatMap(b=>Object.values(BANKS_BY[b.id]).flatMap(P=>P.dep.filter(x=>x.src==='직접 입력'&&!x.bank&&!x.void&&dday((x.at||x.dt).slice(0,10))<=-7))
       .map(x=>({n:`${b.name} · ${x.name}`,d:won(x.amt),when:`${d8((x.at||x.dt).slice(0,10)).slice(5)} 입력 · ${dLeft((x.at||x.dt).slice(0,10))}`,age:-dday((x.at||x.dt).slice(0,10)),go:`suGo('${b.id}','pay-13')`}))));
   /* 계약 */
   const nextOf=k=>CTRS.some(x=>x.prev===k);
@@ -4668,7 +4752,7 @@ function rcRun(){
 }
 /* 대기열 — 입금일시 오름차순. 같은 임차인이 나눠 낸 입금은 앞 것을 먼저 확정해야 한다 */
 const rcQueue=()=>[...RC.P.dep].sort((a,b)=>a.dt<b.dt?-1:a.dt>b.dt?1:0);
-const rcIsOpen=d=>{const x=RC.dec[d.no]||{};return !x.done&&!x.ex&&!x.mis;};
+const rcIsOpen=d=>{const x=RC.dec[d.no]||{};return !x.done&&!x.ex&&!x.mis&&!x.void&&!d.void;};
 const rcNext=()=>(rcQueue().find(rcIsOpen)||{}).no||null;
 /* 청구항목 — 이번 회차가 아닌 청구(밀린 달)만 달을 붙인다 */
 const ymTag=l=>l.n+(l.ym!==RC.f.ym?` <span class="c2" style="color:var(--warn);margin-left:4px">${l.ym.slice(2).replace('-','.')}월분</span>`:'');
@@ -4884,7 +4968,7 @@ function PAY13_0(){
   const PG13=paged('pay13',Q,HMAIN,sig13);
   const queue=PG13.rows.map(q=>{
     const x=RC.dec[q.no]||{}, on=q.no===RC.cur;
-    const tag=x.done?'<span class="bd ok">확정</span>'
+    const tag=x.void||q.void?'<span class="bd mu">무효</span>':x.done?'<span class="bd ok">확정</span>'
       :x.ex?'<span class="bd mu">무시</span>'
       :x.mis?'<span class="bd ac">오납</span>'
       :(g=>`<span class="bd ${BADGE6[g.st]}">${LABEL6[g.st]}</span>`)(rcGuess(q,B));
@@ -4896,7 +4980,11 @@ function PAY13_0(){
   /* 선택한 입금 */
   let panel='';
   const x=RC.dec[d.no]||{};
-  if(x.done){
+  if(x.void){
+    panel=`<div class="card"><div class="cc" style="padding:18px 20px"><div style="display:flex;align-items:center;gap:8px"><span class="bd mu">무효</span><span class="c2" style="margin:0">${x.void.at.replace(/-/g,'.')} · ${x.void.by} · 사유: ${x.void.why}</span></div>
+      <div style="display:flex;align-items:baseline;gap:14px;margin-top:8px"><span style="font-size:17px;font-weight:700">${d.name}</span><span class="big">${won(d.amt)}</span></div>
+      <div class="c2" style="white-space:normal;margin-top:8px">잘못 넣은 직접 입력이라 무효로 되돌렸습니다. 기록은 지우지 않고 남깁니다. 금액이 틀렸으면 다시 직접 입력합니다.</div></div></div>`;
+  }else if(x.done){
     const r=x.done, ctOf=k=>CTRS.find(y=>ckey(y)===k)||{};
     /* 이 입금에서 생긴 과납 — 배분하고 남은 돈 · 나중에 감액으로 옮겨진 돈 */
     const ovL=[...(r.rest>0?[{k:r.ok,amt:r.rest,why:'배분하고 남은 돈'}]:[]),
@@ -4905,7 +4993,7 @@ function PAY13_0(){
     panel=`<div class="card"><div class="cc" style="padding:18px 20px">
       <div style="display:flex;align-items:center;gap:8px"><span class="bd ok">확정</span>
         <span class="c2" style="margin:0">${depMeta(d,`${r.auto?'자동 확정':`${r.by||'슈퍼관리자'} 확정`}(${r.basis})`)}</span>
-        <button class="btn sm" style="margin-left:auto" onclick="say('PAY-9 수납 내역 수정 및 취소 — 배분 재조정 또는 무효 처리. 입금액은 수정할 수 없다')">수정·취소</button></div>
+        <button class="btn sm" style="margin-left:auto" onclick="p9Open(${d.no})">수정 · 취소</button></div>
       <div style="display:flex;align-items:baseline;gap:14px;margin-top:8px">
         <span style="font-size:17px;font-weight:700">${d.name}</span><span class="big">${won(d.amt)}</span>
         <span class="c2" style="margin:0">→ ${B[r.biz]?B[r.biz].n:''}</span></div></div></div>
