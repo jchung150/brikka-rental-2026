@@ -99,6 +99,20 @@ for (const b of ['b2', 'b4']) run('PRO-3 ' + b, "tab3='요약';PRO3('" + b + "')
     && kt && kt.lines.some(l => l.n === '전기요금' && l.amt > 0) && kt.lines.some(l => l.n === '수도요금' && l.amt > 0);
   if (!ok) fail = 1;
   console.log('② 관리비 정산 건물 전환 · 뉴진스하우스 옥상 중계기 3대(전기 · 수도 배율 1.0)  ' + (ok ? 'OK' : '✗')); }
+/* 대시보드(DASH-1) — 확인이 필요한 일: 건수가 0이면 숨김 · 건물을 고르면 그 건물만 · 처리하면 사라짐. 직원 알림은 이 화면 하나(종 모양 알림 없음) → 명세변경_261122 38 · 41 */
+{ const D = new Function(stub + bare + '; seedJuly(); return {dashItems,DASH1,PROG,HROWS,setB:v=>{fdb=v}};')();
+  const on = () => Object.fromEntries(D.dashItems().filter(x => x.rows.length).map(x => [x.k, x.rows]));
+  const a = on(), h = D.DASH1();
+  const all = ['settle', 'wait', 'issue', 'term', 'adj', 'mgmt', 'mail'].every(k => a[k]) && !a.fetch && !a.manual && !a.dep && !a.close
+    && a.issue[0].n === '카즈하타워' && /16일 지남/.test(a.issue[0].when) && a.mgmt[0].n === '뉴진스하우스' && /38일 남음/.test(a.mgmt[0].when)
+    && /쿠키랩/.test(a.term[0].n) && /아마데우스/.test(a.adj[0].n) && /김하늘/.test(a.wait.map(r => r.d).join()) && a.wait[0].n === '카리나빌딩';
+  const view = /확인이 필요한 일/.test(h) && /최근 작업 이력/.test(h) && /공실률/.test(h) && /숨긴 항목: 은행 거래내역 수집 중단/.test(h) && D.HROWS.dash.length === 10;
+  D.setB('b2'); const b = on(); const one = !b.settle && !b.issue && !b.adj && b.wait.length === 1 && b.term && b.mail;
+  D.setB(''); D.PROG.b1.settle = '확정'; D.PROG.b4.inv = 14; const c = on(); const gone = !c.settle && !c.issue;
+  const bell = !/toggleNoti|id="noti"/.test(html) && /location\.hash\|\|'#\/dash-1'/.test(html);
+  const ok = all && view && one && gone && bell;
+  if (!ok) fail = 1;
+  console.log('② 대시보드 — 확인이 필요한 일 7개 항목(정산 미확정 · 처리하지 않은 입금 · 발행하지 않은 청구서 · 해지 처리 · 인상 예약 · 위탁운영계약 · 메일 실패) · 0건은 숨김 · 건물 필터 · 처리하면 사라짐 · 종 모양 알림 없음  ' + (ok ? 'OK' : '✗ ' + JSON.stringify({all, view, one, gone, bell}))); }
 run('PRO-3 관리비 설정 패널 — 임대료 · 전기요금 같은 구성', "loadCS('rent');DRAWER='chargeset';const a=csHTML();loadCS('elec');const b=csHTML();if(!/근거 문서/.test(a)||!/배분 방식/.test(a)||!/disabled/.test(a))throw new Error('구성 다름')");
 run('PRO-3 카즈하타워 관리비', "tab3='관리비';PRO3('b4')");
 run('PAY-12', 'PAY12()');

@@ -78,19 +78,6 @@ svg{flex:none}
 .me .mt .a{font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .me .mt .b{font-size:10.5px;color:var(--muted)}
 .me .ch{color:var(--faint);font-size:11px}
-.nw{position:absolute;bottom:52px;left:10px;width:318px;background:var(--bg);border:1px solid var(--line);
-  border-radius:var(--r);box-shadow:0 12px 32px rgba(0,0,0,.14);z-index:40;overflow:hidden}
-.nw .nh{display:flex;align-items:center;padding:11px 14px;border-bottom:1px solid var(--line-2)}
-.nw .nh b{font-size:12.5px}
-.nw .nh .cl{margin-left:auto;font-size:11px;color:var(--muted);cursor:pointer}
-.nw .nh .cl:hover{color:var(--ink-2)}
-.nw .ni{display:flex;gap:9px;padding:10px 14px;border-bottom:1px solid var(--line-2);cursor:pointer}
-.nw .ni:last-child{border-bottom:0}
-.nw .ni:hover{background:var(--side-hov)}
-.nw .ni .nb{flex:1;min-width:0}
-.nw .ni .nt{font-size:12px;font-weight:500;margin-bottom:2px}
-.nw .ni .nd{font-size:11px;color:var(--muted);line-height:1.5}
-.nw .ni .ng{font-size:10.5px;color:var(--faint);white-space:nowrap}
 
 /* PAY-10 정산 */
 .fbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:16px}
@@ -256,7 +243,6 @@ table.bt2 td{padding:9px 12px}
 .app.fold .nsub::before{display:none}
 .app.fold .sfi{flex-direction:column;gap:2px;padding-bottom:4px}
 .app.fold .me{justify-content:center;padding:7px 0}
-.app.fold .nw{left:calc(100% + 8px);bottom:10px}
 .app.fold .nav a,.app.fold .nav .gh{justify-content:center;padding:9px 0;gap:0}
 .app.fold .nav a span,.app.fold .nav .gh span,.app.fold .nav .cv{display:none}
 .app.fold .nsub{display:none!important}
@@ -521,6 +507,10 @@ table.nowr th,table.nowr td{white-space:nowrap}
 .plk{cursor:pointer}.plk:hover,.plk:hover *{color:var(--pri)}
 .dlt{font-size:11px;font-weight:700;margin-left:4px}
 .dlt.up{color:var(--warn)} .dlt.dn{color:var(--muted)}
+.card.dk{cursor:pointer}.card.dk:hover{border-color:var(--pri)}
+.dst tr.dsr{cursor:pointer}.dst tr.dsr:hover td{background:var(--pri-bg)}
+.dst tr.dsd{cursor:pointer}.dst tr.dsd td{background:var(--bg-2,color-mix(in srgb,var(--ink) 2%,var(--bg)))}.dst tr.dsd:hover td{background:var(--pri-bg)}
+.dsc{display:inline-block;width:18px;color:var(--muted)}
 </style>
 
 <div class="app" id="app">
@@ -533,27 +523,11 @@ table.nowr th,table.nowr td{white-space:nowrap}
     <div class="sf">
       <div class="sfi">
         <button class="ib" onclick="toggleFold()" title="메뉴 접기/펼치기"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18"/></svg></button>
-        <button class="ib" onclick="toggleNoti(event)" title="알림"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg><span class="dot"></span></button>
       </div>
       <div class="me" onclick="say('USER-1 프로필 · 로그아웃 — 아직 미구현')">
         <div class="av">슈</div>
         <div class="mt"><div class="a">슈퍼관리자</div><div class="b">슈퍼관리자</div></div>
         <span class="ch">⇅</span>
-      </div>
-      <div class="nw" id="noti" style="display:none">
-        <div class="nh"><b>알림</b><span class="cl" onclick="event.stopPropagation();closeNoti()">모두 지우기</span></div>
-        <div class="ni" onclick="go('pay-10')"><span class="bd wa">주의</span>
-          <div class="nb"><div class="nt">8월 정산 미확정</div>
-            <div class="nd">카리나빌딩 · 청구일(8/19)까지 9일 남았습니다.</div></div>
-          <span class="ng">3시간 전</span></div>
-        <div class="ni" onclick="go('pay-12')"><span class="bd ac">정보</span>
-          <div class="nb"><div class="nt">7월 월 마감 완료</div>
-            <div class="nd">카리나빌딩 · 8/5 마감. 미납 1건은 다음 달로 이월됐습니다.</div></div>
-          <span class="ng">5일 전</span></div>
-        <div class="ni" onclick="go('pro-3/b2')"><span class="bd ac">정보</span>
-          <div class="nb"><div class="nt">위탁운영계약 만료 임박</div>
-            <div class="nd">뉴진스하우스 · 38일 남음</div></div>
-          <span class="ng">어제</span></div>
       </div>
     </div>
   </aside>
@@ -843,7 +817,7 @@ let f10ym='2026-08', f10b='b1';
 const PROG={
  b1:{settle:'작성중',inv:0,invN:13,amt:0,paid:0,paidN:0,closed:false,closedAt:null,due:'08-31'},
  b2:{settle:'확정', inv:0,invN:11,amt:0,paid:0,paidN:0,closed:false,closedAt:null,due:'09-10'},
- b4:{settle:'미착수',inv:0,invN:14,amt:0,paid:0,paidN:0,closed:false,closedAt:null,due:'08-31'},
+ b4:{settle:'확정',inv:0,invN:14,amt:0,paid:0,paidN:0,closed:false,closedAt:null,due:'08-31'},
 };
 /* 지난 회차(7월) — 모두 발행·마감했다. 카리나빌딩은 원장에서 계산한다 → PAY12 */
 const PROG7={
@@ -1474,10 +1448,7 @@ function paintOp(){
   $('#opAv').style.background=o.t?'var(--warn)':'var(--pri)';
   $('#opName').style.color=o.t?'var(--warn)':'';
 }
-function toggleNoti(e){e.stopPropagation();const n=$('#noti');
-  n.style.display=n.style.display==='none'?'block':'none';}
-function closeNoti(){$('#noti').style.display='none';}
-addEventListener('click',e=>{if(!e.target.closest('.sf'))closeNoti();
+addEventListener('click',e=>{
   if(BSW&&!e.target.closest('.bsw')){BSW=false;render();}
   if(CSW&&!e.target.closest('.bsw')){CSW=false;render(true);}});
 function ddBadge(end){
@@ -1518,7 +1489,7 @@ function toggleG(k){
   go(g.over||g.items[0].id);}
 function foldG(k){OPEN[k]=!OPEN[k];LS.set('brikka.open',OPEN);
   paintNav((location.hash||'#/pro-1').replace(/^#\//,''));}
-function toggleFold(){FOLD=!FOLD;LS.set('brikka.fold',FOLD);paintFold();closeNoti();}
+function toggleFold(){FOLD=!FOLD;LS.set('brikka.fold',FOLD);paintFold();}
 function paintFold(){$('#app').classList.toggle('fold',FOLD);}
 
 /* ═══ PRO-1 ═══ */
@@ -3063,6 +3034,117 @@ function PAY12(){
     마감·마감 취소 기록은 변경 이력에 남습니다.</div>`;
 }
 
+/* ═══ DASH-1 대시보드 — 로그인하면 처음 보는 화면. 1단 지금 상태 · 2단 확인이 필요한 일(핵심) · 3단 최근 작업 이력.
+   직원에게 가는 알림은 이 화면 하나다. 메일 · 팝업 · 알림 목록(종 모양)을 두지 않는다 → 명세변경_261122 38 ═══ */
+/* 메일 발송 기록 — 발송 내역(NTF-6) 자료. 지금은 대시보드 「메일 발송 실패」 예시만 */
+const MAIL_LOG=[
+  {at:'2026-07-25 10:02',kind:'청구서',b:'b2',k:'b2본관601호',rel:'7월분 청구서',to:'박지훈 · jihoon@tokki-apparel.kr',st:'실패',why:'수신 서버 응답: 주소 없음 (550 5.1.1 user unknown)'}];
+/* 은행 거래내역 수집 — 24시간 넘게 못 가져온 건물(마지막 성공 시각). 목업에는 없다 */
+const FETCH_STOP={};
+let fdb='', dsOpen={};
+const dsTog=k=>{dsOpen[k]=!dsOpen[k];render(true);};
+const dsGo=js=>{eval(js);};
+/* 날짜까지 남은 · 지난 날 */
+const dLeft=d=>{const n=dday(d);return n>0?`${n}일 남음`:n===0?'오늘':`${-n}일 지남`;};
+function dashItems(){
+  const Bs=BUILDINGS.filter(b=>!fdb||b.id===fdb), inB=c=>!fdb||c.b===fdb, BN=id=>(BUILDINGS.find(x=>x.id===id)||{}), d8=d=>d.replace(/-/g,'.');
+  const ym='2026-08', ctrName=c=>cname(BN(c.b).alias,c.no,c.ten), toC=c=>`go('ctr-3/${encodeURIComponent(ckey(c))}')`;
+  const L=[];
+  const add=(k,t,why,rows)=>L.push({k,t,why,rows});
+  /* 정산 · 발행 — 청구일이 기준 */
+  add('settle','정산이 확정되지 않은 건물','이번 회차 청구서를 발행할 수 없습니다',
+    Bs.filter(b=>bOp(b.id)==='운영중'&&PROG[b.id]&&PROG[b.id].settle!=='확정').map(b=>{const bd=dayRule(b.billDay,ym);
+      return {n:b.name,d:`${+ym.slice(5)}월분 정산 ${PROG[b.id].settle}`,when:`청구일 ${d8(bd).slice(5)} · ${dLeft(bd)}`,age:-dday(bd),go:`f10b='${b.id}';go('pay-10')`};}));
+  add('wait','처리하지 않은 입금','임차인이 냈는데 미납으로 보입니다. 미매칭 · 무시 · 오납만 셉니다(자동 확정은 빼고)',
+    Bs.filter(b=>BANKS_BY[b.id]&&rcOpenB(b.id)).map(b=>{const ds=Object.values(BANKS_BY[b.id]).flatMap(P=>P.dep.filter(rcIsOpen)).sort((p,q)=>p.dt<q.dt?-1:1);
+      return {n:b.name,d:(nm=>`${ds.length}건 · ${nm.slice(0,2).join(' · ')}${nm.length>2?' 외':''}`)([...new Set(ds.map(x=>x.name))]),when:`${d8(ds[0].dt.slice(0,10)).slice(5)} 입금 · ${dLeft(ds[0].dt.slice(0,10))}`,age:-dday(ds[0].dt.slice(0,10)),go:`suGo('${b.id}','pay-13')`};}));
+  add('issue','발행하지 않은 청구서','정산은 끝났는데 청구일이 지나도록 발행하지 않았습니다. 그 달 수납이 모두 밀립니다',
+    Bs.filter(b=>bOp(b.id)==='운영중'&&PROG[b.id]&&PROG[b.id].settle==='확정'&&dday(dayRule(b.billDay,ym))<0&&mcNum(b.id,ym).n<PROG[b.id].invN).map(b=>{const bd=dayRule(b.billDay,ym),N=mcNum(b.id,ym);
+      return {n:b.name,d:`${+ym.slice(5)}월분 ${N.N-N.n}건 발행 전`,when:`청구일 ${d8(bd).slice(5)} · ${dLeft(bd)}`,age:-dday(bd),go:`f1.b='${b.id}';go('pay-1')`};}));
+  /* 은행 거래내역 */
+  add('fetch','은행 거래내역 수집 중단','24시간 넘게 은행 거래내역을 가져오지 못했습니다. 그동안 들어온 입금이 보이지 않습니다',
+    Bs.filter(b=>FETCH_STOP[b.id]).map(b=>({n:b.name,d:`마지막 수집 ${d8(FETCH_STOP[b.id])}`,when:dLeft(FETCH_STOP[b.id].slice(0,10)),age:-dday(FETCH_STOP[b.id].slice(0,10)),go:`suGo('${b.id}','pay-13')`})));
+  add('manual','은행에서 확인되지 않은 직접 입력','직접 넣은 입금이 7일이 지나도 은행 기록과 맞춰지지 않았습니다. 잘못 넣었으면 입금 무효로 되돌립니다',
+    Bs.filter(b=>BANKS_BY[b.id]).flatMap(b=>Object.values(BANKS_BY[b.id]).flatMap(P=>P.dep.filter(x=>x.src==='직접 입력'&&!x.bank&&dday((x.at||x.dt).slice(0,10))<=-7))
+      .map(x=>({n:`${b.name} · ${x.name}`,d:won(x.amt),when:`${d8((x.at||x.dt).slice(0,10)).slice(5)} 입력 · ${dLeft((x.at||x.dt).slice(0,10))}`,age:-dday((x.at||x.dt).slice(0,10)),go:`suGo('${b.id}','pay-13')`}))));
+  /* 계약 */
+  const nextOf=k=>CTRS.some(x=>x.prev===k);
+  add('term','해지 처리가 필요한 계약','종료일이 30일 안으로 다가왔거나 지났는데 해지 처리도 재계약도 없습니다. 해지 처리를 해야 마지막 청구가 끝납니다',
+    CTRS.filter(c=>inB(c)&&(c.st==='진행중'||c.st==='종료됨')&&!TERMS[ckey(c)]&&!nextOf(ckey(c))&&dday(ctrEnd(c))<=30&&(c.st==='진행중'||dday(ctrEnd(c))>-60))
+      .map(c=>({n:ctrName(c),d:`종료일 ${d8(ctrEnd(c))}`,when:dLeft(ctrEnd(c)),age:-dday(ctrEnd(c)),go:toC(c)})));
+  add('dep','보증금 미입금 상태의 준비중 계약','보증금을 다 받아야 진행중으로 바꿉니다',
+    CTRS.filter(c=>inB(c)&&c.st==='준비중'&&ledgerOf(ckey(c)).bal.임대보증금<ctrDeposit(c))
+      .map(c=>({n:ctrName(c),d:`보증금 ${won(ledgerOf(ckey(c)).bal.임대보증금)} / ${won(ctrDeposit(c))}`,when:`시작일 ${d8(c.base)} · ${dLeft(c.base)}`,age:-dday(c.base),go:toC(c)})));
+  add('adj','임대료 인상 예약 도래','30일 안에 새 금액으로 청구됩니다. 계약서와 맞는지 확인합니다(놓쳐도 청구는 바르게 됩니다)',
+    CTRS.filter(c=>inB(c)&&c.st==='진행중').flatMap(c=>(c.adj||[]).filter(a=>dday(a.d)>0&&dday(a.d)<=30).map(a=>({c,a})))
+      .map(({c,a})=>({n:ctrName(c),d:[a.rent?`임대료 ${won(a.rent)}`:'',a.mgmt?`고정관리비 ${won(a.mgmt)}`:''].filter(Boolean).join(' · '),when:`적용일 ${d8(a.d).slice(5)} · ${dLeft(a.d)}`,age:-dday(a.d),go:toC(c)})));
+  /* 건물 */
+  add('mgmt','위탁운영계약 만료 임박','만료되면 그 건물의 관리 권한이 없어집니다(90일 안)',
+    Bs.filter(b=>b.mgmtEnd&&dday(b.mgmtEnd)<=90).map(b=>({n:b.name,d:`위탁운영계약 ${d8(b.mgmtStart)} ~ ${d8(b.mgmtEnd)}`,when:dLeft(b.mgmtEnd),age:-dday(b.mgmtEnd),go:`go('pro-3/${b.id}')`})));
+  /* 마감 · 메일 */
+  add('close','마감을 기다리는 달','납부마감일이 지났는데 아직 마감하지 않은 달입니다',
+    Bs.flatMap(b=>MC_YMS.filter(m=>m<ym&&!(MC[b.id]||{})[m]&&dday(mcDue(b.id,m))<0).map(m=>({n:`${b.name} ${+m.slice(5)}월분`,d:'열림',when:`납부마감일 ${d8(mcDue(b.id,m)).slice(5)} · ${dLeft(mcDue(b.id,m))}`,age:-dday(mcDue(b.id,m)),go:`f12='${m}';go('pay-12')`}))));
+  add('mail','메일 발송 실패','임차인 · 임대인에게 메일이 가지 않았습니다. 자동으로 다시 보내지 않습니다',
+    MAIL_LOG.filter(m=>m.st==='실패'&&(!fdb||m.b===fdb)).map(m=>{const c=CTRS.find(x=>ckey(x)===m.k);
+      return {n:c?ctrName(c):m.rel,d:`${m.rel} · ${m.why.replace(/^수신 서버 응답: /,'').replace(/ \(.*/,'')}`,when:`${d8(m.at.slice(0,10)).slice(5)} 발송 · ${dLeft(m.at.slice(0,10))}`,age:-dday(m.at.slice(0,10)),go:`go('ntf-6')`};}));
+  L.forEach(x=>x.rows.sort((p,q)=>q.age-p.age));
+  return L;
+}
+function DASH1(){
+  const Bs=BUILDINGS.filter(b=>!fdb||b.id===fdb), dash='<span style="color:var(--faint)">—</span>';
+  /* 1단 — 지금 상태 */
+  const unit=Bs.reduce((a,b)=>a+b.unitCnt,0), vac=Bs.reduce((a,b)=>a+b.vacCnt,0);
+  const LY='2026-07', B7=Bs.map(b=>mcNum(b.id,LY)), bill=B7.reduce((a,n)=>a+(n.bill||0),0), paid=B7.reduce((a,n)=>a+(n.paid||0),0);
+  const SU=Bs.map(b=>suOf(b.id)), due=SU.reduce((a,x)=>a+x.due,0), fee=SU.reduce((a,x)=>a+x.fee,0), dueN=SU.reduce((a,x)=>a+x.dueN,0);
+  const live=CTRS.filter(c=>c.st==='진행중'&&(!fdb||c.b===fdb)).map(c=>dday(ctrEnd(c))), exp=n=>live.filter(d=>d>=0&&d<=n).length;
+  const card=(k,v,d,go,warn)=>`<div class="card dk" style="margin:0" onclick="${go}"><div class="cc" style="padding:14px 16px">
+      <div style="font-size:11.5px;color:var(--muted)">${k}</div>
+      <div style="font-size:17px;font-weight:700;margin:3px 0 1px;${warn?'color:var(--warn)':''}">${v}</div>
+      <div class="c2">${d}</div></div></div>`;
+  const top=[
+    card('공실률',`${unit?(vac/unit*100).toFixed(1):'0.0'}%`,`공실 ${vac} / 전체 ${unit}유닛`,`go('pro-1')`),
+    card(`${+LY.slice(5)}월분 청구 · 수납`,won(paid),`청구 ${won(bill)} · 수납률 ${bill?Math.round(paid/bill*100):0}%`,`f12='${LY}';go('pay-12')`),
+    card('미납',won(due),`${dueN}개 계약 · 연체료(예상) ${won(fee)}`,`${fdb?`f2.b='${fdb}';`:''}go('pay-2')`,due>0),
+    card('만료 임박 계약',`${exp(90)}건`,`90일 안 ${exp(90)} · 60일 안 ${exp(60)} · 30일 안 ${exp(30)}`,`f1c.dd='90';f1c.st='진행중';f1c.b='${fdb}';go('ctr-1')`)].join('');
+  /* 2단 — 확인이 필요한 일. 건수가 0인 항목은 숨긴다 */
+  const L=dashItems(), on=L.filter(x=>x.rows.length), off=L.filter(x=>!x.rows.length);
+  const body=on.map(x=>{const op=!!dsOpen[x.k], o=x.rows[0];
+    return `<tr class="dsr" onclick="dsTog('${x.k}')">
+        <td><span class="dsc">${op?'▾':'▸'}</span><b>${x.t}</b><div class="c2" style="margin-left:18px;white-space:normal">${x.why}</div></td>
+        <td class="n"><b style="color:var(--warn)">${x.rows.length}건</b></td>
+        <td class="c2" style="margin:0;white-space:nowrap">${o.when}</td>
+        <td class="c"><span class="lk" onclick="event.stopPropagation();${o.go}">${x.rows.length>1?'가장 급한 건 →':'이동 →'}</span></td></tr>`
+      +(op?x.rows.map(r=>`<tr class="dsd" onclick="${r.go}">
+        <td style="padding-left:34px"><div class="c1">${r.n}</div><div class="c2">${r.d}</div></td><td></td>
+        <td class="c2" style="margin:0;white-space:nowrap">${r.when}</td><td class="c"><span class="lk">이동 →</span></td></tr>`).join(''):'');}).join('');
+  /* 3단 — 최근 작업 이력 10건 */
+  const H=Bs.flatMap(histB).filter(r=>!HDEL.has(hKey(r))).sort((p,q)=>p.at<q.at?1:p.at>q.at?-1:0).slice(0,10);
+  HROWS.dash=H;
+  return `
+  <div class="ph"><h1>대시보드</h1><span class="sid">DASH-1</span></div>
+  <div class="fbar">
+    <select onchange="fdb=this.value;render()"><option value="">전체 건물</option>
+      ${BUILDINGS.map(b=>`<option value="${b.id}" ${fdb===b.id?'selected':''}>${b.name}</option>`).join('')}</select>
+    <span style="color:var(--muted);font-size:12px">${TODAY_S.replace(/-/g,'.')} 기준</span></div>
+  <div class="two" style="grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px">${top}</div>
+  <div class="card"><div class="ct">확인이 필요한 일<span class="sub">${on.length?`${on.length}개 항목 · ${on.reduce((a,x)=>a+x.rows.length,0)}건`:'처리할 일이 없습니다'}</span></div>
+    ${on.length?`<div class="tw"><table class="dst">
+      <thead><tr><th>항목</th><th class="n">건수</th><th>가장 급한 건</th><th class="c">전체보기</th></tr></thead>
+      <tbody>${body}</tbody></table></div>`:`<div class="cc"><div class="c2" style="margin:0">지금 확인할 일이 없습니다.</div></div>`}</div>
+  <div class="card"><div class="ct">최근 작업 이력<span class="sub">최근 10건</span><span class="ca"><span class="lk" style="font-weight:400;font-size:12px" onclick="go('rec-1')">전체보기 →</span></span></div>
+    <div class="tw"><table>
+      <thead><tr><th>일시</th><th>대상 종류</th><th>대상 이름</th><th>변경 유형</th><th>처리자</th></tr></thead>
+      <tbody>${H.length?H.map((r,i)=>`<tr style="cursor:pointer" onclick="hdOpen('dash',${i})">
+        <td style="white-space:nowrap">${r.at.replace(/-/g,'.')}</td><td><span class="bd mu">${r.kind}</span></td>
+        <td><div class="c1">${r.name}</div><div class="c2">${fdb?'':`${(BUILDINGS.find(b=>b.id===(r.b||(r.k||'').slice(0,2)))||{}).name||''} · `}${r.sum}</div></td><td>${r.type}</td><td style="white-space:nowrap">${r.by}</td></tr>`).join('')
+        :`<tr><td colspan="5" style="text-align:center;padding:28px 0;color:var(--muted)">이력이 없습니다</td></tr>`}</tbody></table></div></div>
+  <div class="hint">
+    직원에게 가는 알림은 이 화면 하나입니다. 메일이나 팝업으로 따로 알리지 않습니다. 처리하면 그 줄이 사라지고, 건수가 0인 항목은 보이지 않습니다.<br>
+    항목을 누르면 대상이 펼쳐지고, 대상을 누르면 처리하는 화면으로 갑니다. 「가장 급한 건」은 가장 오래 기다렸거나 날짜가 가장 가까운 건입니다.<br>
+    ${off.length?`지금 해당이 없어 숨긴 항목: ${off.map(x=>x.t).join(' · ')}.<br>`:''}
+    목업 예시: 카즈하타워 8월분(청구일 7/25)은 정산을 확정하고 발행하지 않은 상태, 아마데우스 9/1 임대료 인상 예약, 토끼어패럴 7월분 청구서 메일 실패.</div>`;
+}
+
 /* ═══ PAY-14 수납 현황 — 「수납 관리」 메뉴를 누르면 열린다. 오늘 기준으로 건물마다 돈의 상태를 본다(달을 고르지 않는다).
    칸을 누르면 그 건물을 고른 채로 일하는 화면(입금 매칭 · 미납 관리 · 수납 내역)으로 간다. 명세변경에는 적지 않는다 — 화면 구성이라 목업이 기준이다 ═══ */
 /* 원장 자료가 있는 건물 — 카리나빌딩 · 뉴진스하우스. 나머지는 목업 예시값. 은행 거래내역(입금 매칭)은 카리나빌딩뿐이다 */
@@ -3216,7 +3298,7 @@ function TODO(id){
   const m=ALL.find(i=>i.id===id);
   return `<div class="ph"><h1>${m?m.n:id}</h1>${m?`<span class="sid">${m.sid}</span>`:''}</div>
   <div class="tbl"><div class="empty"><div class="t">아직 만들지 않은 화면입니다</div>
-    구현된 화면 — <b>PRO-1</b> 건물 목록 · <b>PRO-3</b> 건물 상세 ·
+    구현된 화면 — <b>DASH-1</b> 대시보드 · <b>PRO-1</b> 건물 목록 · <b>PRO-3</b> 건물 상세 ·
     <b>PAY-12</b> 청구 현황 · <b>PAY-10</b> 관리비 정산 · <b>PAY-1</b> 청구서 발행 ·
     <b>PAY-13</b> 입금 매칭 · <b>PAY-6</b> 수납 내역 · <b>PAY-2</b> 미납 관리</div></div>`;   /* PAY-8 수납 내역은 PAY-6에 합쳤다 */
 }
@@ -3252,6 +3334,7 @@ const CTRS=[
  {b:'b1',no:'본관701호',ten:'(주)아이씨비',st:'진행중',base:'2024-03-01',
   it:[['임대료',8900000],['고정관리비',2650000],['전기요금'],['전력기금'],['TV수신료'],['수도요금'],['정화조청소비'],['교통유발부담금']]},
  {b:'b1',no:'본관601호',ten:'유한회사아마데우스',st:'진행중',base:'2025-01-15',
+  adj:[{d:'2026-09-01',rent:10741500,mgmt:3234000,memo:'계약서 특약 — 2026.09부터 5% 인상'}],
   it:[['임대료',9300000],['고정관리비',2800000],['전기요금'],['전력기금'],['TV수신료'],['수도요금'],['정화조청소비'],['교통유발부담금']]},
  {b:'b1',no:'본관501호',ten:'㈜케이더블유인터내셔널',st:'진행중',base:'2024-07-01',
   it:[['임대료',9681000],['고정관리비',2700000],['전기요금'],['전력기금'],['TV수신료'],['수도요금'],['정화조청소비'],['교통유발부담금']]},
@@ -6510,7 +6593,7 @@ function ledHTML(){
 function render(keep){
   const y=window.scrollY||0;
   MORE.length=0; moreClose();
-  const h=(location.hash||'#/pro-1').replace(/^#\//,'');
+  const h=(location.hash||'#/dash-1').replace(/^#\//,'');
   const [id,arg]=h.split('/');
   /* 다른 화면으로 옮겨 가면 그 화면이 속한 그룹을 펼친다. 같은 화면을 다시 그릴 때는 건드리지 않는다 */
   if(id!==render.last){const g=MENU.find(m=>m.items&&(m.items.some(i=>i.id===id)||m.over===id));
@@ -6521,7 +6604,8 @@ function render(keep){
   /* 은행 거래내역을 보는 건물 — 입금 매칭 · 수납 내역은 고른 건물. 나머지 화면은 카리나빌딩 */
   useRC(id==='pay-13'||id==='pay-6'?RC.f.b:'b1');
   let html,crumb;
-  if(id==='pro-1'){html=PRO1();crumb='<b>건물 관리</b>';}
+  if(id==='dash-1'){html=DASH1();crumb='<b>대시보드</b>';}
+  else if(id==='pro-1'){html=PRO1();crumb='<b>건물 관리</b>';}
   else if(id==='pro-2'){html=PRO2();crumb='<span class="c" onclick="go(\'pro-1\')">건물 관리</span> <span>›</span> <b>새로운 건물 등록</b>';}
   else if(id==='pro-3'){const b=BUILDINGS.find(x=>x.id===arg)||BUILDINGS[0];
     html=PRO3(arg);crumb=`<span class="c" onclick="go('pro-1')">건물 관리</span> <span>›</span> <b>${b.name}</b>`;}
