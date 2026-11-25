@@ -167,23 +167,18 @@ for (const b of ['b2']) run('PRO-3 ' + b, "tab3='요약';PRO3('" + b + "')");
   const lim = zipBad && bigBad && okUp;
   const ok = list && byT && del && upl && lim; if (!ok) fail = 1;
   console.log('② 자료 보관함 — 모든 문서 한 목록(귀속 대상 · 크기) · 기간 먼저 · 귀속 대상 필터 · 체크 → ZIP · 함께 삭제(사유) · 업로드에서 건물 고름 · ZIP · 20MB 넘는 파일 막힘 · HWP 됨  ' + (ok ? 'OK' : '✗ ' + JSON.stringify({list, byT, del, upl, lim}))); }
-/* 입금 수정 · 취소(PAY-9) — 마감한 달은 막힘 · 배분 다시 하기(총액 고정 · 남는 돈은 과납액 · 원장은 수납 취소 후 다시 기록 · 이력) · 매칭 무효(대기열로) · 직접 입력: 입금 무효(무효로 남음 · 대기열에서 빠짐) · 날짜 · 입금자명 고치기 · 금액 칸 없음 */
+/* 매칭 무효 — 입금 매칭 확정 카드의 버튼 · 마감한 달은 막힘 · 사유 없음 · 대기열로 돌아오고 미납액이 살아남 · 원장은 수납 취소 · 이력 · 배분 다시 하기 · 직접 입력 없음 → 명세변경_261122 45 */
 { const stub9 = stub.replace("const location={hash:''}", "const location={hash:'#/pay-13'}");
-  const P9 = new Function(stub9 + bare + '; seedJuly(); return {RC,useRC,p9Open,p9HTML,p9Run,p9Cands,p9WhyNot,ledgerOf,ctrPay,rcIsOpen,rcConfirm,CLOG,get BANKS(){return BANKS;},get p9(){return p9;}};')();
-  P9.useRC('b1'); P9.RC.f.ym = '2026-07'; const d1 = P9.RC.P.dep.find(d => (P9.RC.dec[d.no] || {}).done); const blk = /마감한 달/.test(P9.p9WhyNot(d1.no));
-  P9.RC.f.b = 'b2'; P9.useRC('b2'); P9.RC.f.ym = '2026-07';
-  const d = P9.RC.P.dep.find(x => ((P9.RC.dec[x.no] || {}).done || {lines: []}).lines.length > 1), k = P9.RC.dec[d.no].done.lines[0].k, ym = P9.RC.dec[d.no].done.lines[0].ym;
-  P9.p9Open(d.no); const C = P9.p9Cands(d.no); P9.p9.mode = 'al'; C.forEach((i, j) => P9.p9.al[i.id] = String(j === 0 ? i.room : 0)); P9.p9.why = '시험';
-  const ph = P9.p9HTML(); P9.p9Run(); const r2 = P9.RC.dec[d.no].done;
-  const al = /배분 합계/.test(ph) && !/금액<\/span><input/.test(ph) && r2.lines.length === 1 && r2.rest === d.amt - r2.lines[0].pay && P9.ledgerOf(k).rows.some(x => x.type === '수납 취소') && /배분 다시 함/.test((P9.CLOG[k] || [])[0].sum);
-  P9.p9Open(d.no); P9.p9.mode = 'un'; P9.p9.why = '시험'; P9.p9Run(); const un = P9.rcIsOpen(d) && P9.ctrPay(k, ym).due === d.amt;
-  const B8 = P9.BANKS['2026-08'] = P9.BANKS['2026-08'] || {skip:0, head:[], map:{}, rows:[], dep:[], wd:[]};
-  const nm = Object.keys(P9.RC.alias).find(n => /하니커피/.test(n)); B8.dep.push({no:951, dt:'2026-08-09 10:00:00', kind:'직접 입력', name:nm, amt:100000, out:0, src:'직접 입력', by:'슈퍼관리자', at:'2026-08-09 10:05', memo:'', bank:false, acct:''});
-  P9.RC.f.ym = '2026-08'; P9.rcConfirm(951); const dm = B8.dep.find(x => x.no === 951), conf = !!(P9.RC.dec[951] || {}).done;
-  P9.p9Open(951); const ph2 = P9.p9HTML(); P9.p9.mode = 'ed'; P9.p9.name = '하니커피 본사'; P9.p9.why = '이름 오타'; P9.p9Run(); const ed = dm.name === '하니커피 본사';
-  P9.p9Open(951); P9.p9.mode = 'vo'; P9.p9.why = '잘못 넣음'; P9.p9Run(); const vo = conf && /입금 무효/.test(ph2) && /날짜 · 입금자명 고치기/.test(ph2) && !!dm.void && !P9.rcIsOpen(dm) && (P9.RC.dec[951] || {}).void;
-  const ok = blk && al && un && ed && vo; if (!ok) fail = 1;
-  console.log('② 입금 수정 · 취소 — 마감한 달 막힘 · 배분 다시 하기(총액 고정 · 남는 돈 과납액 · 수납 취소 후 다시 기록 · 이력) · 매칭 무효(대기열로 · 미납액 돌아옴) · 직접 입력 고치기 · 입금 무효(무효로 남음) · 금액 칸 없음  ' + (ok ? 'OK' : '✗ ' + JSON.stringify({blk, al, un, ed, vo}))); }
+  const UM = new Function(stub9 + bare + '; seedJuly(); return {RC,useRC,PAY13,rcUnWhy,rcUnmatch,ledgerOf,ctrPay,rcIsOpen,CLOG,DASH1};')();
+  UM.useRC('b1'); UM.RC.f.ym = '2026-07'; const d1 = UM.RC.P.dep.find(d => (UM.RC.dec[d.no] || {}).done); UM.RC.cur = d1.no; const h1 = UM.PAY13();
+  const blk = /마감한 달/.test(UM.rcUnWhy(d1.no)) && /disabled title="입금일이 마감한 달/.test(h1) && !/거래내역 직접 입력|수정 · 취소/.test(h1);
+  UM.RC.f.b = 'b2'; UM.useRC('b2'); UM.RC.f.ym = '2026-07';
+  const d = UM.RC.P.dep.find(x => ((UM.RC.dec[x.no] || {}).done || {lines: []}).lines.length > 1), k = UM.RC.dec[d.no].done.lines[0].k, ym = UM.RC.dec[d.no].done.lines[0].ym;
+  UM.RC.cur = d.no; const h2 = UM.PAY13(); const btn = new RegExp(`onclick="rcUnmatch\\(${d.no}\\)">매칭 무효`).test(h2) && UM.rcUnWhy(d.no) === '';
+  UM.rcUnmatch(d.no); const un = UM.rcIsOpen(d) && UM.ctrPay(k, ym).due === d.amt && UM.ledgerOf(k).rows.some(x => x.type === '수납 취소') && /매칭 무효/.test((UM.CLOG[k] || [])[0].sum) && (UM.CLOG[k] || [])[0].why === '';
+  const noManual = !/은행에서 확인되지 않은 직접 입력/.test(UM.DASH1());
+  const ok = blk && btn && un && noManual; if (!ok) fail = 1;
+  console.log('② 매칭 무효 — 입금 매칭 확정 카드 버튼 · 카리나 7월(마감)은 막힘 · 뉴진스 7월은 사유 없이 바로 대기열로 · 미납액 돌아옴 · 원장 수납 취소 · 이력(사유 없음) · 직접 입력 · 수정·취소 · 대시보드 직접 입력 항목 없음  ' + (ok ? 'OK' : '✗ ' + JSON.stringify({blk, btn, un, noManual}))); }
 /* 발송 내역(NTF-6) — 보낸 그대로 남김 · 실패는 자동으로 다시 보내지 않음 · 다시 보내면 새 줄(원래 줄 그대로) · 보내는 화면(청구서 발행 · 미납 안내 · 명세서 · 웰컴)이 남김 → 명세변경_261122 38 */
 { const M = new Function(stub + bare + '; seedJuly(); return {mailRows,NTF6,mvOpen,mvHTML,mailResend,dashItems,issueAsk,issueGo,dueMail,stOpen,stSend,CTRS,ckey,setFm,set f1b(v){f1.b=v;}};')();
   const R0 = M.mailRows(), n0 = R0.length, fl = R0.filter(m => m.st === '실패'), f = fl[0];
@@ -944,20 +939,17 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   NV.loc.hash = '#/pay-12'; NV.OPEN['청구'] = true; NV.toggleG('청구'); const c = NV.loc.hash, folded = !NV.OPEN['청구'];
   r6.push(['메뉴 그룹 이름 — 청구서 발행에서 「청구 관리」 → 청구 현황 · 입금 매칭에서 「수납 관리」 → 수납 현황 · 청구 현황에서 「청구 관리」 → 그대로 두고 접힘',
     a === '#/pay-12' && b === '#/pay-14' && c === '#/pay-12' && folded]); }
-/* 은행 자동 수집 — 7월 입금 중 등록된 입금자명은 시스템이 자동 확정 · 8월 미매칭 입금 1건은 청구서 발행 · 수납 현황에 보임 · 직접 입력은 매칭을 거쳐 자동 확정 · 마감한 달은 못 넣음 → 24 */
-{ const AU = new Function(stub + bare + '; seedJuly(); return {RC,BANKS,PAY1,PAY13,PAY14,suOf,rcOpenB,bdOpen,bdSet,bdSave,bdMissing,bdHTML,ledgerOf,setRC,get bd(){return bd;},set f1b(v){f1.b=v;}};')();
+/* 은행 자동 수집 — 7월 입금 중 등록된 입금자명은 시스템이 자동 확정 · 8월 미매칭 입금 1건은 청구서 발행 · 수납 현황에 보임 → 24 */
+{ const AU = new Function(stub + bare + '; seedJuly(); return {RC,BANKS,PAY1,PAY13,PAY14,suOf,rcOpenB,ledgerOf,setRC,set f1b(v){f1.b=v;}};')();
   const D7 = AU.BANKS['2026-07'].dep.map(d => AU.RC.dec[d.no]).filter(x => x && x.done), nAuto = D7.filter(x => x.done.auto && x.done.by === '시스템').length, nHand = D7.filter(x => !x.done.auto).length;
   const autoNo = AU.BANKS['2026-07'].dep.find(d => (AU.RC.dec[d.no] || {}).done && AU.RC.dec[d.no].done.auto).no;
   AU.setRC('ym', '2026-07'); AU.RC.cur = autoNo; const h7 = AU.PAY13();
   AU.f1b = 'b1'; const h1 = AU.PAY1(), w = AU.suOf('b1').wait;
   AU.setRC('ym', '2026-08'); const h8 = AU.PAY13();
-  AU.bdOpen(); AU.bdSet('d', '2026-07-20'); AU.bdSet('t', '1000'); const tOk = AU.bdMissing().every(m => !/시각/.test(m)); AU.bdSet('name', '(주)비씨에이전시'); AU.bdSet('amt', '100000'); const closed = AU.bdMissing().some(m => /7월은 마감했습니다/.test(m));
-  const bal0 = AU.ledgerOf('b1별관301호').bal.매출채권; AU.bdSet('d', '2026-08-09'); AU.bdSet('t', '25:00'); const tBad = AU.bdMissing().some(m => /14:05처럼/.test(m)); AU.bdSet('t', '10:00'); AU.bdSave();
-  const nd = AU.BANKS['2026-08'].dep.find(d => d.src === '직접 입력'), x = AU.RC.dec[nd.no] || {}, h9 = AU.PAY13();
-  r6.push(['은행 자동 수집 — 7월 입금 ' + nAuto + '건 자동 확정(시스템) · 나머지 ' + nHand + '건 담당자 · 확정 패널은 짧게 「07.25 10:16 · 자동 확정(등록된 입금자명)」(전체는 마우스를 올리면 · 계좌 하나인 건물은 계좌 생략) · 마지막 수집 시각 · 8월 미래상사 미매칭 1건 → 청구서 발행 안내 · 수납 현황 1건 · 직접 입력: 7월(마감) 막힘 · 8/9 비씨에이전시 100,000 → 자동 확정 · 원장 −100,000 · 「직접 입력 · 은행 확인 전」',
+  const h9 = h8;
+  r6.push(['은행 자동 수집 — 7월 입금 ' + nAuto + '건 자동 확정(시스템) · 나머지 ' + nHand + '건 담당자 · 확정 패널은 짧게 「07.25 10:16 · 자동 확정(등록된 입금자명)」(전체는 마우스를 올리면 · 계좌 하나인 건물은 계좌 생략) · 마지막 수집 시각 · 8월 미래상사 미매칭 1건 → 청구서 발행 안내 · 수납 현황 1건',
     nAuto > 0 && nHand > 0 && />07\.\d\d \d\d:\d\d · 자동 확정\(등록된 입금자명\)<\/span>/.test(h7) && /title="[^"]*자동 수집/.test(h7) && !/계좌이체 · 입금 계좌/.test(h7.replace(/title="[^"]*"/g, '')) && /거래내역 <b[^>]*>08\.10 09:00<\/b>까지/.test(h7)
-    && /미매칭 입금 1건이 있습니다/.test(h1) && /발행은 막지 않습니다/.test(h1) && w === 1 && /미래상사/.test(h8)
-    && closed && tOk && tBad && nd && nd.dt === '2026-08-09 10:00:00' && nd.by === '슈퍼관리자' && x.done && x.done.auto && AU.ledgerOf('b1별관301호').bal.매출채권 === bal0 - 100000 && /직접 입력 · 은행 확인 전/.test(h9)]); }
+    && /미매칭 입금 1건이 있습니다/.test(h1) && /발행은 막지 않습니다/.test(h1) && w === 1 && /미래상사/.test(h8)]); }
 /* 연체료 일부 감면 — 청구서에 들어간 연체료 줄을 청구 감액으로 줄인다(일반내역서 · 부가세 없음) → 18-2 */
 { const CF = new Function(stub + bare + '; seedJuly(); return {fixOpen,fxSet,fxConfirm,fixHTML,ledgerOf,cutBills};')();
   const k = 'b1별관301호', can = CF.cutBills(k).some(i => i.reg && i.amt === 29911);
@@ -1377,8 +1369,7 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
   Object.assign(BK.bk, {a:'신한은행 140-012-772301', file:'뉴진스_7월.xlsx'}); BK.bkSave(); const n1 = BK.BKUP.length;
   BK.bkOpen(); Object.assign(BK.bk, {a:'신한은행 140-012-772301', file:'뉴진스_7월.xlsx'}); BK.bkSave(); const dup = BK.BKUP.length === n1 && BK.bkMissing().some(m => /이미 올렸습니다/.test(m));
   Object.assign(BK.bk, {a:'신한은행 140-012-772415'}); BK.bkSave(); const other = BK.BKUP.length === n1 + 1;
-  BK.setRC('b', 'b2'); const bdTwo = (() => { const H = new Function(stub + bare + '; RC.f.b="b2"; bdOpen(); return bdHTML();')(); return /입금 계좌 선택/.test(H) && /임대료 계좌 · 신한은행 140-012-772301/.test(H) && /관리비 계좌/.test(H); })();
-  r6.push(['은행 거래내역 업로드 — 오른쪽 패널 · 입금 계좌 선택(계좌 하나면 잠김) · 같은 계좌 같은 파일만 중복으로 막음 · 입금마다 입금 계좌 표시 · 6월도 자동 수집(올린 파일 없음) · 직접 입력도 계좌가 둘인 건물은 계좌를 고름', one && shown && two && need && dup && other && bdTwo]); }
+  r6.push(['은행 거래내역 업로드 — 오른쪽 패널 · 입금 계좌 선택(계좌 하나면 잠김) · 같은 계좌 같은 파일만 중복으로 막음 · 입금마다 입금 계좌 표시 · 6월도 자동 수집(올린 파일 없음)', one && shown && two && need && dup && other]); }
 /* 건물 상세 계약 탭 — 요약과 유닛 사이 · 계약 목록과 같은 표 · 그 건물 계약만 · 등록 버튼은 건물을 골라 둔 채 · 냉난방기 칸은 다른 카드와 같은 줄 모양 */
 { const BT = new Function(stub + bare + '; seedJuly(); return {PRO3,CTR1,CTR2,CTRS,BUILDINGS,set tab3(v){tab3=v;},set nc(v){nc=v;}};')();
   BT.tab3 = '요약'; const h0 = BT.PRO3('b1'); BT.tab3 = '계약'; const h1 = BT.PRO3('b1'), h2 = BT.PRO3('b2');
