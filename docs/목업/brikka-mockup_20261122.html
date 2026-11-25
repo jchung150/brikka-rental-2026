@@ -86,7 +86,7 @@ svg{flex:none}
 .pgr button{min-width:30px;height:30px;padding:0 8px;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:var(--r-sm);font:inherit;font-size:12.5px;cursor:pointer}
 .pgr button.on{background:var(--pri);border-color:var(--pri);color:#fff;font-weight:600}
 .pgr button:disabled{opacity:.4;cursor:default}
-.fbar select,.ph.pbar select.pctl{border:1px solid var(--line);background:var(--bg);padding:8px 11px;border-radius:var(--r-sm);
+.fbar select{border:1px solid var(--line);background:var(--bg);padding:8px 11px;border-radius:var(--r-sm);
   font-size:12.5px;min-width:150px}
 .fbar input.fq{border:1px solid var(--line);background:var(--bg);padding:8px 11px;border-radius:var(--r-sm);font-size:12.5px;width:220px}
 .fbar .fqw{position:relative;display:inline-flex;align-items:center}
@@ -275,11 +275,9 @@ table.bt2 td{padding:9px 12px}
 .ph h1{margin:0;font-size:19px;font-weight:700;letter-spacing:-.01em}
 .ph .sid{font-size:10.5px;color:var(--muted);background:var(--neutral-bg);padding:2px 8px;border-radius:99px;font-weight:500}
 .ph .act{margin-left:auto;display:flex;gap:8px}
-/* 화면 제목 줄 — 위에 붙어 있고 아래에 회색 선이 본문 끝까지. 시험: 대시보드만 */
-.ph.pbar{position:sticky;top:0;z-index:5;background:var(--canvas);margin:0 -28px 18px;padding:14px 28px;border-bottom:1px solid var(--line)}
+/* 화면 제목 줄 — 아래에 회색 선이 본문 끝까지 · 버전과 날짜를 같은 줄 오른쪽에. 시험: 대시보드만 */
+.ph.pbar{margin:0 -28px 18px;padding:14px 28px;border-bottom:1px solid var(--line)}
 .ph.pbar .act{align-items:center;gap:0}
-/* 제목 줄 안의 화면 조작(필터 · 주요 버튼) — 제목 바로 오른쪽 */
-.ph.pbar .pctl{margin-left:14px}
 /* 제목 줄이 있는 화면은 위쪽 버전 · 날짜 줄을 제목 줄 오른쪽으로 옮긴다(한 줄) */
 .main:has(.pbar) .top{display:none}
 .main:has(.pbar) .wrap{padding-top:0}
@@ -3668,10 +3666,10 @@ function DASH1(){
   const H=Bs.flatMap(histB).concat(CON_LOG.filter(r=>!fdb||r.bs.includes(fdb))).filter(r=>!HDEL.has(hKey(r))).sort((p,q)=>p.at<q.at?1:p.at>q.at?-1:0).slice(0,10);
   HROWS.dash=H;
   return `
-  <div class="ph pbar"><h1>대시보드</h1><span class="sid">DASH-1</span>
-    <select class="pctl" onchange="fdb=this.value;render()"><option value="">전체 건물</option>
-      ${BUILDINGS.map(b=>`<option value="${b.id}" ${fdb===b.id?'selected':''}>${b.name}</option>`).join('')}</select>
-    <div class="act">${(document.querySelector('header.top')||{}).innerHTML||''}</div></div>
+  <div class="ph pbar"><h1>대시보드</h1><span class="sid">DASH-1</span><div class="act">${(document.querySelector('header.top')||{}).innerHTML||''}</div></div>
+  <div class="fbar">
+    <select onchange="fdb=this.value;render()"><option value="">전체 건물</option>
+      ${BUILDINGS.map(b=>`<option value="${b.id}" ${fdb===b.id?'selected':''}>${b.name}</option>`).join('')}</select></div>
   <div class="two" style="grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px">${top}</div>
   <div class="dgrid">${cards.join('')}</div>
   <div class="card"><div class="ct">최근 변경 이력<span class="sub">최근 10건</span><span class="ca"><span class="lk" style="font-weight:400;font-size:12px" onclick="go('rec-1')">전체보기 →</span></span></div>
