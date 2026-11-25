@@ -15,7 +15,7 @@ const bare = src.replace(/seedJuly\(\);paintOp\(\);paintFold\(\);render\(\);/, '
 
 const stub = `
 const document={querySelector:()=>({innerHTML:'',style:{},classList:{toggle(){}},textContent:''}),
-  querySelectorAll:()=>[],addEventListener(){}};
+  querySelectorAll:()=>[],getElementById:()=>null,addEventListener(){}};
 const window={scrollTo(){},addEventListener(){}};
 const location={hash:''};
 const addEventListener=()=>{};
@@ -99,6 +99,22 @@ for (const b of ['b2']) run('PRO-3 ' + b, "tab3='요약';PRO3('" + b + "')");
     && kt && kt.lines.some(l => l.n === '전기요금' && l.amt > 0) && kt.lines.some(l => l.n === '수도요금' && l.amt > 0);
   if (!ok) fail = 1;
   console.log('② 관리비 정산 건물 전환 · 뉴진스하우스 옥상 중계기 3대(전기 · 수도 배율 1.0)  ' + (ok ? 'OK' : '✗')); }
+/* 발송 내역(NTF-6) — 보낸 그대로 남김 · 실패는 자동으로 다시 보내지 않음 · 다시 보내면 새 줄(원래 줄 그대로) · 보내는 화면(청구서 발행 · 미납 안내 · 명세서 · 웰컴)이 남김 → 명세변경_261122 38 */
+{ const M = new Function(stub + bare + '; seedJuly(); return {mailRows,NTF6,mvOpen,mvHTML,mailResend,dashItems,issueAsk,issueGo,dueMail,stOpen,stSend,CTRS,ckey,setFm,set f1b(v){f1.b=v;}};')();
+  const R0 = M.mailRows(), n0 = R0.length, fl = R0.filter(m => m.st === '실패'), f = fl[0];
+  const seed = n0 === 57 && fl.length === 1 && /토끼어패럴/.test(f.rel) && /sampel/.test(f.to[0].mail) && R0.filter(m => m.kind === '청구서').length === 46
+    && !R0.some(m => /인증 코드|비밀번호 찾기/.test(m.kind)) && R0.some(m => m.kind === '계정 초대' && m.how === '자동') && R0.some(m => m.kind === '비밀번호 변경 알림');
+  const h = M.NTF6(); const list = /발송 내역/.test(h) && /다시 보내지 않은 실패 1건/.test(h) && /전체 발송종류/.test(h);
+  M.mvOpen(f.id, 1); const ph = M.mvHTML(); M.mailResend(); const R1 = M.mailRows(), nw = R1[R1.length - 1];
+  const re = /보낸 때와 주소가 다릅니다/.test(ph) && /📎 청구서_2026-07_본관601호\.pdf/.test(ph) && R1.length === n0 + 1 && f.st === '실패' && f.re === nw.id && nw.of === f.id
+    && nw.st === '성공' && /sample\.kr/.test(nw.to[0].mail) && !M.dashItems().find(x => x.k === 'mail').rows.length;
+  M.f1b = 'b1'; const k = 'b1별관301호'; M.issueAsk([k]); M.issueGo(true); const n2 = M.mailRows().length, bm = M.mailRows().at(-1);
+  M.issueAsk(['b1본관801호', 'b1본관701호']); M.issueGo(true); const n3 = M.mailRows().length, mg = M.mailRows().at(-1);
+  M.dueMail([k]); const dm = M.mailRows().at(-1); M.stOpen(k); M.stSend(); const sm = M.mailRows().at(-1);
+  const hooks = bm.kind === '청구서' && bm.ym === '2026-08' && bm.ks[0] === k && n3 === n2 + 1 && mg.ks.length === 2
+    && dm.kind === '미납 안내' && sm.kind === '원장 명세서';
+  const ok = seed && list && re && hooks; if (!ok) fail = 1;
+  console.log('② 발송 내역 — 6 · 7월 청구서 46통(합쳐 보내기 한 통, 토끼어패럴 7월분 실패 1건) · 다시 보내면 새 줄(지금 담당자 주소) · 원래 줄 그대로 · 대시보드에서 빠짐 · 발행 · 미납 안내 · 명세서가 남김  ' + (ok ? 'OK' : '✗ ' + JSON.stringify({seed, list, re, hooks}))); }
 /* 대시보드(DASH-1) — 확인이 필요한 일: 건수가 0이면 숨김 · 건물을 고르면 그 건물만 · 처리하면 사라짐. 직원 알림은 이 화면 하나(종 모양 알림 없음) → 명세변경_261122 38 · 41 */
 { const D = new Function(stub + bare + '; seedJuly(); return {dashItems,DASH1,PROG,HROWS,akOpen,akOK,akHTML,CTRS,CTR3,setB:v=>{fdb=v},set tab3c(v){tab3c=v;}};')();
   const on = () => Object.fromEntries(D.dashItems().filter(x => x.rows.length).map(x => [x.k, x.rows]));

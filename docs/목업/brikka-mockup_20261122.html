@@ -1377,6 +1377,7 @@ function drawerHTML(){
   if(DRAWER==='mclose') return mcHTML();
   if(DRAWER==='citem') return ciHTML();
   if(DRAWER==='adjok') return akHTML();
+  if(DRAWER==='mlv') return mvHTML();
   if(DRAWER!=='additem') return '';
   const used=BLD.charge.filter(c=>c.use).map(c=>c.it);
   const rest=MASTER.filter(m=>!m.fixed&&!BILL[m.code].on&&used.includes(m.name));
@@ -3025,11 +3026,139 @@ function PAY12(){
     마감·마감 취소 기록은 변경 이력에 남습니다.</div>`;
 }
 
+/* ═══ NTF-6 발송 내역 — 시스템이 보낸 메일을 보내던 그대로 남긴다(제목 · 본문 · 첨부 · 받는 주소). 지우지 않는다.
+   실패해도 자동으로 다시 보내지 않는다. 다시 보내면 새 줄이 생기고 원래 줄은 그대로다 → 09 NTF-6 · 명세변경_261122 38 ═══
+   로그인 인증 코드 · 비밀번호 찾기 메일은 여기 남기지 않는다(보안 로그) */
+const MAIL_KINDS=['청구서','청구서 재발송','미납 안내','원장 명세서','웰컴 메시지','임대인 보고서','계정 초대','비밀번호 재설정','비밀번호 변경 알림'];
+const MAIL_LOG=[]; let mailSeq=0, mailSeeded=false;
+const OWN_MAIL={카리나:'karina@owner-sample.kr',윈터:'winter@owner-sample.kr',뉴진스:'newjeans@owner-sample.kr',민지:'minji@owner-sample.kr'};
+const ymKo=ym=>`${ym.slice(0,4)}년 ${+ym.slice(5)}월분`;
+/* 계약 메일 한 통 — 받는 사람은 발송 당시 주소 그대로 남긴다 */
+function mailAdd(o){const m={id:++mailSeq,st:'성공',why:'',how:'수동',by:'시스템',att:[],...o}; MAIL_LOG.push(m); return m;}
+function billMail(keys,ym,at,by,kind){
+  const cs=keys.map(k=>CTRS.find(x=>ckey(x)===k)), c=cs[0], bd=BUILDINGS.find(x=>x.id===c.b)||BUILDINGS[0], to=billTo(c);
+  if(!to.length) return null;
+  const nos=cs.map(x=>x.no).join(' · '), due=dueStr(ym,c.b);
+  return mailAdd({at,kind:kind||'청구서',b:c.b,ks:keys,ym,rel:`${cname(bd.alias,c.no,c.ten)}${cs.length>1?` 외 ${cs.length-1}건`:''} · ${ymKo(ym)}`,
+    to:to.map(x=>({n:x.n,mail:x.mail})),how:'수동',by,
+    subj:`[${bd.name}] ${ymKo(ym)} 청구서${kind==='청구서 재발송'?'(다시 보냄)':''}`,
+    body:`${c.ten} 담당자님, 안녕하세요.\n${bd.name} ${nos} ${ymKo(ym)} 청구서를 보내드립니다.\n\n납부마감일: ${due.replace(/-/g,'.')}\n납부 계좌: ${bd.acct} (${bd.acctName})\n\n자세한 내역은 첨부한 청구서를 확인해 주세요.\n${bd.name} 관리사무소 드림`,
+    att:[{n:`청구서_${ym}_${cs.map(x=>x.no).join('_')}.pdf`,go:`billView('${keys[0]}','${ym}')`}]});}
+function dueMailOne(k,at,by){const c=CTRS.find(x=>ckey(x)===k), bd=BUILDINGS.find(x=>x.id===c.b)||BUILDINGS[0], p=pplOf(c)[0], a=arrears(c);
+  return mailAdd({at,kind:'미납 안내',b:c.b,ks:[k],rel:cname(bd.alias,c.no,c.ten),to:[{n:p.n,mail:p.mail}],how:'수동',by,
+    subj:`[${bd.name}] 미납 안내`,
+    body:`${c.ten} 담당자님, 안녕하세요.\n${bd.name} ${c.no}의 납부마감일이 지난 금액이 있어 알려 드립니다.\n\n미납액: ${won(a.due)}\n연체료(예상): ${won(a.fee)}\n납부 계좌: ${bd.acct} (${bd.acctName})\n\n달마다 미납액 · 연체일수 · 연체료는 첨부한 미납 안내를 확인해 주세요. 이미 내셨다면 이 메일은 무시하셔도 됩니다.\n${bd.name} 관리사무소 드림`,
+    att:[{n:`미납안내_${c.no}.pdf`,go:`pvDueOpen(['${k}'])`}]});}
+/* 미납 관리에서 고른 계약에 미납 안내를 보낸다 */
+function dueMail(keys){keys.forEach(k=>dueMailOne(k,`${TODAY_S} ${new Date().toTimeString().slice(0,5)}`,'슈퍼관리자'));
+  sel2={}; say(`미납 안내 메일 ${keys.length}건을 보냈습니다 — 발송 내역에서 볼 수 있습니다`); render(true);}
+function welcomeMail(k,at,by){const c=CTRS.find(x=>ckey(x)===k), bd=BUILDINGS.find(x=>x.id===c.b)||BUILDINGS[0], p=pplOf(c)[0];
+  return mailAdd({at,kind:'웰컴 메시지',b:c.b,ks:[k],rel:cname(bd.alias,c.no,c.ten),to:[{n:p.n,mail:p.mail}],how:'수동',by,
+    subj:`[${bd.name}] 입주를 환영합니다`,body:`${c.ten} 담당자님, ${bd.name} ${c.no} 계약을 환영합니다.\n\n계약 기간: ${c.base.replace(/-/g,'.')} ~ ${ctrEnd(c).replace(/-/g,'.')}\n관리사무소 연락처: ${mgrTel((bd.mgrs||[])[0])}\n\n청구서는 매달 이 주소로 보내드립니다.\n${bd.name} 관리사무소 드림`});}
+function stmtMail(k,from,to,memo,at,by){const c=CTRS.find(x=>ckey(x)===k), bd=BUILDINGS.find(x=>x.id===c.b)||BUILDINGS[0], T=billTo(c);
+  return mailAdd({at,kind:'원장 명세서',b:c.b,ks:[k],rel:`${cname(bd.alias,c.no,c.ten)} · ${from.replace(/-/g,'.')} ~ ${to.replace(/-/g,'.')}`,to:T.map(x=>({n:x.n,mail:x.mail})),how:'수동',by,
+    subj:`[${bd.name}] 거래 명세서 (${from.replace(/-/g,'.')} ~ ${to.replace(/-/g,'.')})`,
+    body:`${c.ten} 담당자님, 안녕하세요.\n요청하신 기간의 거래 명세서(받을 돈 · 보증금)를 보내드립니다.${memo?`\n\n${memo}`:''}\n\n${bd.name} 관리사무소 드림`,
+    att:[{n:`거래명세서_${c.no}_${from}_${to}.pdf`,go:`stOpen('${k}')`}]});}
+/* 목업 예시 — 6 · 7월 청구서 메일(청구서 합쳐 보내기는 한 통), 미납 안내, 임대인 보고서, 웰컴(중계기), 계정 메일.
+   뉴진스 토끼어패럴 7월분은 담당자 주소 오타로 실패했다(지금 주소는 고쳐져 있다 → 다시 보내면 간다) */
+function mailSeed(){if(mailSeeded) return; mailSeeded=true;
+  const t=(d,seed)=>`${d} ${hTime(seed)}`;
+  ['2026-06','2026-07'].forEach(ym=>BUILDINGS.forEach(bd=>{
+    const cs=CTRS.filter(c=>c.b===bd.id&&c.st==='진행중'&&c.base.slice(0,7)<=ym), done=new Set(), by=bd.id==='b1'?'김관리':'이담당';
+    cs.forEach(c=>{if(done.has(ckey(c))) return; const g=MERGE_PDF[c.ten]?cs.filter(x=>x.ten===c.ten):[c]; g.forEach(x=>done.add(ckey(x)));
+      const m=billMail(g.map(ckey),ym,`${billOn(ym,bd.id)} ${String(10+g.length%2).padStart(2,'0')}:${String(2+cs.indexOf(c)).padStart(2,'0')}`,by);
+      if(m&&bd.id==='b2'&&c.no==='본관601호'&&ym==='2026-07'){m.st='실패';m.why='수신 서버 응답: 주소 없음 (550 5.1.1 user unknown)';m.to=m.to.map(x=>({...x,mail:x.mail.replace('sample','sampel')}));}});}));
+  CTRS.filter(c=>c.b==='b1'&&c.st==='진행중'&&arrears(c).due>0).forEach(c=>dueMailOne(ckey(c),t('2026-08-04','due'+c.no),'김관리'));
+  Object.entries(REPS).forEach(([b,o])=>Object.entries(o).forEach(([ym,d])=>{const bd=BUILDINGS.find(x=>x.id===b); if(!bd) return;
+    mailAdd({at:t('2026-'+d,'rep'+b+ym),kind:'임대인 보고서',b,rel:`${bd.name} · ${ymKo(ym)}`,to:bd.owners.map(o=>({n:o.n,mail:OWN_MAIL[o.n]||''})),how:'수동',by:'슈퍼관리자',
+      subj:`[${bd.name}] ${ymKo(ym)} 임대 현황 보고`,body:`${bd.owner} 님, 안녕하세요.\n${bd.name}의 ${ymKo(ym)} 임대 현황(청구 · 수납 · 미납 · 공실)을 보고드립니다.\n자세한 내용은 첨부한 보고서를 확인해 주세요.\n\n(주)테온하우스 드림`,
+      att:[{n:`임대인보고서_${bd.name}_${ym}.pdf`,go:`say('임대인 보고서 PDF — 보고서 화면(REP-1)은 아직 목업에 없습니다')`}]});}));
+  CTRS.filter(c=>c.b==='b2'&&c.base==='2026-06-01').forEach((c,i)=>welcomeMail(ckey(c),`2026-05-27 14:${String(10+i*3).padStart(2,'0')}`,'이담당'));
+  const acct=(at,kind,n,how,by,subj,body)=>{const g=mgrOf(n); mailAdd({at,kind,rel:`사용자 ${n}`,to:[{n,mail:g.mail}],how,by,subj,body});};
+  acct('2026-06-02 11:20','계정 초대','최현우','자동','시스템','[BRIKKA] 계정에 초대되었습니다','최현우 님, (주)테온하우스가 BRIKKA 관리자 계정을 만들었습니다.\n아래 링크를 눌러 비밀번호를 정하세요. 링크는 한 번만 쓸 수 있습니다.\n\n[비밀번호 정하기]');
+  acct('2026-06-02 11:34','비밀번호 변경 알림','최현우','자동','시스템','[BRIKKA] 비밀번호가 바뀌었습니다','최현우 님, 2026.06.02 11:34에 BRIKKA 비밀번호가 바뀌었습니다.\n본인이 바꾸지 않았다면 바로 로그인 화면에서 비밀번호를 찾아 바꾸고 슈퍼관리자에게 알리세요.');
+  acct('2026-07-14 09:12','비밀번호 재설정','박현장','수동','슈퍼관리자','[BRIKKA] 비밀번호 재설정','박현장 님, 관리자가 비밀번호 재설정 메일을 보냈습니다.\n아래 링크를 눌러 새 비밀번호를 정하세요. 링크는 한 번만 쓸 수 있습니다.\n\n[새 비밀번호 정하기]');
+  acct('2026-07-14 09:20','비밀번호 변경 알림','박현장','자동','시스템','[BRIKKA] 비밀번호가 바뀌었습니다','박현장 님, 2026.07.14 09:20에 BRIKKA 비밀번호가 바뀌었습니다.\n본인이 바꾸지 않았다면 바로 로그인 화면에서 비밀번호를 찾아 바꾸고 슈퍼관리자에게 알리세요.');
+}
+const mailRows=()=>{mailSeed(); return MAIL_LOG;};
+/* 다시 보내기 — 새 줄. 계약 메일은 지금 담당자 주소로 보낸다(발송 당시 주소가 틀렸으면 담당자 정보를 먼저 고친다). 원래 줄은 고치지 않고 「다시 보냄」만 표시 */
+function mailNowTo(m){const c=m.ks&&CTRS.find(x=>ckey(x)===m.ks[0]); if(!c) return m.to;
+  const L=m.kind==='미납 안내'||m.kind==='웰컴 메시지'?[pplOf(c)[0]]:billTo(c); return L.map(x=>({n:x.n,mail:x.mail}));}
+function mailResend(){const m=MAIL_LOG.find(x=>x.id===mv.id); if(!m) return; const to=mailNowTo(m); if(!to.length) return;
+  const n=mailAdd({...m,id:undefined,at:`${TODAY_S} ${new Date().toTimeString().slice(0,5)}`,to,how:'수동',by:'슈퍼관리자',st:'성공',why:'',of:m.id,re:null});
+  n.id=++mailSeq; m.re=n.id; mv={id:n.id,re:false}; render(true);}
+let fm={kind:'',how:'',st:'',from:'',to:'',q:''}, mv=null, mp=1;
+const setFm=(k,v)=>{fm[k]=v;mp=1;render();};
+function mvOpen(id,re){mv={id,re:!!re};DRAWER='mlv';render(true);}
+const MST={'성공':'ok','실패':'da','대기':'mu'};
+function NTF6(){
+  const d8=d=>d.replace(/-/g,'.');
+  const R=mailRows().filter(m=>(!fm.kind||m.kind===fm.kind)&&(!fm.how||m.how===fm.how)&&(!fm.st||m.st===fm.st)
+      &&(!fm.from||m.at.slice(0,10)>=fm.from)&&(!fm.to||m.at.slice(0,10)<=fm.to)&&qHit(fm.q,m.to.flatMap(x=>[x.n,x.mail]).concat([m.rel])))
+    .sort((p,q)=>p.at<q.at?1:p.at>q.at?-1:q.id-p.id);
+  const N=Math.max(1,Math.ceil(R.length/HPER)), cur=Math.min(mp,N), P=R.slice((cur-1)*HPER,cur*HPER);
+  const S=(f,opts,lab)=>`<select onchange="setFm('${f}',this.value)"><option value="">${lab}</option>${opts.map(v=>`<option ${fm[f]===v?'selected':''}>${v}</option>`).join('')}</select>`;
+  const nFail=mailRows().filter(m=>m.st==='실패'&&!m.re).length;
+  return `
+  <div class="ph"><h1>발송 내역</h1><span class="sid">NTF-6</span></div>
+  <div class="fbar">
+    ${qBox('mq',fm.q,'setFm')}
+    ${S('kind',MAIL_KINDS,'전체 발송종류')}${S('how',['수동','자동'],'전체 발송방식')}${S('st',['성공','실패','대기'],'전체 상태')}
+    <input type="date" value="${fm.from}" onchange="setFm('from',this.value)" title="기간 시작"><span style="color:var(--faint)">~</span>
+    <input type="date" value="${fm.to}" onchange="setFm('to',this.value)" title="기간 끝">
+    <span style="margin-left:auto;color:var(--muted);font-size:12px">${R.length}건${nFail?` · <b style="color:var(--danger)">다시 보내지 않은 실패 ${nFail}건</b>`:''}</span></div>
+  <div class="tbl"><div class="tw"><table>
+    <thead><tr><th>발송일시</th><th>발송종류</th><th>받는 사람</th><th>관련 대상</th><th>발송방식</th><th class="c">상태</th><th class="c">더보기</th></tr></thead>
+    <tbody>${P.length?P.map(m=>`<tr style="cursor:pointer" onclick="mvOpen(${m.id})">
+      <td style="white-space:nowrap">${d8(m.at)}</td>
+      <td style="white-space:nowrap">${m.kind}</td>
+      <td><div class="c1">${m.to.map(x=>x.n).join(', ')}</div><div class="c2">${m.to.map(x=>x.mail).join(', ')}</div></td>
+      <td>${m.rel}</td>
+      <td style="white-space:nowrap">${m.how==='자동'?'자동':'수동'}<div class="c2">${m.by}</div></td>
+      <td class="c"><span class="bd ${MST[m.st]}">${m.st}</span>${m.st==='실패'?`<div class="c2" style="color:var(--danger);white-space:normal">${m.why.replace(/^수신 서버 응답: /,'').replace(/ \(.*/,'')}</div>`:''}${m.re?'<div class="c2">다시 보냄</div>':''}${m.of?'<div class="c2">다시 보낸 메일</div>':''}</td>
+      <td class="c">${moreCell([{t:'내용 보기',go:`mvOpen(${m.id})`},{t:'다시 보내기',go:`mvOpen(${m.id},1)`,off:m.ks||m.to.length?'':'받는 사람이 없습니다'}])}</td></tr>`).join('')
+      :`<tr><td colspan="7" style="text-align:center;padding:28px 0;color:var(--muted)">조건에 맞는 발송 내역이 없습니다</td></tr>`}</tbody></table></div>
+    ${pagerHTML(R.length,cur,`(p=>{mp=p;render(true);})`)}</div>
+  <div class="hint">
+    시스템이 보낸 메일을 <b>보내던 그대로</b>(제목 · 본문 · 첨부 · 받는 주소) 남깁니다. 담당자 주소를 나중에 바꿔도 여기 주소는 그대로입니다. 지우지 않습니다.<br>
+    실패해도 자동으로 다시 보내지 않습니다. 주소가 틀렸으면 계약의 담당자 정보를 고친 뒤 다시 보냅니다. 다시 보내면 새 줄이 생기고 원래 줄은 그대로입니다.<br>
+    수동은 담당자가 보내기를 누른 메일(청구서 · 미납 안내 · 원장 명세서 · 웰컴 · 임대인 보고서 · 비밀번호 재설정), 자동은 시스템이 보낸 메일(계정 초대 · 비밀번호 변경 알림)입니다.
+    로그인 인증 코드 · 비밀번호 찾기 메일은 여기 남기지 않습니다(보안 로그).</div>`;
+}
+function mvHTML(){
+  if(DRAWER!=='mlv'||!mv) return '';
+  const m=MAIL_LOG.find(x=>x.id===mv.id); if(!m) return '';
+  const Rw=(k,v)=>`<div class="fr"><span class="fk">${k}</span><span class="fv">${v}</span></div>`, d8=d=>d.replace(/-/g,'.');
+  const now=mailNowTo(m), diff=now.map(x=>x.mail).join()!==m.to.map(x=>x.mail).join();
+  return `<div class="dro"><div class="ov" onclick="closeDrawer()"></div><div class="pn">
+    <div class="dh"><div><div class="t">${mv.re?'다시 보내기':'발송 내용'}</div><div class="s">${m.kind} · ${d8(m.at)}</div></div>
+      <button class="x" onclick="closeDrawer()">✕</button></div>
+    <div class="db">
+      <div class="fg"><div class="fl">발송 정보</div>
+        ${Rw('상태',`<span class="bd ${MST[m.st]}">${m.st}</span>${m.st==='실패'?`<div class="c2" style="color:var(--danger);white-space:normal">${m.why}</div>`:''}`)}
+        ${Rw('받는 사람',m.to.map(x=>`${x.n} &lt;${x.mail}&gt;`).join('<br>')+'<div class="c2">보낸 때의 주소</div>')}
+        ${Rw('관련 대상',m.rel)}${Rw('발송방식',`${m.how} · ${m.by}`)}
+        ${m.of?Rw('원래 메일',`<span class="lk" onclick="mvOpen(${m.of})">${d8((MAIL_LOG.find(x=>x.id===m.of)||{at:''}).at)} 발송 →</span>`):''}
+        ${m.re?Rw('다시 보낸 메일',`<span class="lk" onclick="mvOpen(${m.re})">${d8((MAIL_LOG.find(x=>x.id===m.re)||{at:''}).at)} 발송 →</span>`):''}</div>
+      <div class="fg"><div class="fl">메일 내용</div>
+        <div style="border:1px solid var(--line);border-radius:var(--r-sm);padding:12px 14px">
+          <div style="font-weight:700;margin-bottom:8px">${m.subj}</div>
+          <div style="white-space:pre-wrap;font-size:12.5px;line-height:1.7">${m.body}</div>
+          ${m.att.length?`<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--line-2)">${m.att.map(a=>`<span class="lk" onclick="${a.go}">📎 ${a.n}</span>`).join('<br>')}</div>`:''}</div>
+        <div class="c2" style="white-space:normal">보낸 때의 제목 · 본문 · 첨부 그대로입니다. 첨부를 누르면 그 문서를 봅니다.</div></div>
+      ${mv.re?`<div class="fg"><div class="fl">다시 보낼 곳</div>
+        ${now.length?now.map(x=>`<div>${x.n} &lt;${x.mail}&gt;</div>`).join(''):'<div style="color:var(--danger)">받는 사람이 없습니다 — 계약의 담당자에서 청구서 메일 받는 사람을 정하세요</div>'}
+        ${diff&&now.length?'<div class="c2" style="white-space:normal;color:var(--warn)">보낸 때와 주소가 다릅니다. 지금 담당자 주소로 보냅니다.</div>':''}
+        <div class="c2" style="white-space:normal">같은 내용을 새 메일로 보냅니다. 발송 내역에 새 줄이 생기고 이 줄은 그대로 남습니다.</div></div>`:''}
+    </div>
+    <div class="df">${mv.re?`<button class="btn" onclick="mv.re=false;render(true)">취소</button><button class="btn pri" ${now.length?'':'disabled'} onclick="mailResend()">다시 보내기</button>`
+      :`<button class="btn" onclick="mv.re=true;render(true)">다시 보내기</button><button class="btn" onclick="closeDrawer()">닫기</button>`}</div>
+  </div></div>`;
+}
+
 /* ═══ DASH-1 대시보드 — 로그인하면 처음 보는 화면. 1단 지금 상태 · 2단 확인이 필요한 일(핵심) · 3단 최근 작업 이력.
    직원에게 가는 알림은 이 화면 하나다. 메일 · 팝업 · 알림 목록(종 모양)을 두지 않는다 → 명세변경_261122 38 ═══ */
-/* 메일 발송 기록 — 발송 내역(NTF-6) 자료. 지금은 대시보드 「메일 발송 실패」 예시만 */
-const MAIL_LOG=[
-  {at:'2026-07-25 10:02',kind:'청구서',b:'b2',k:'b2본관601호',rel:'7월분 청구서',to:'박지훈 · jihoon@tokki-apparel.kr',st:'실패',why:'수신 서버 응답: 주소 없음 (550 5.1.1 user unknown)'}];
 /* 은행 거래내역 수집 — 24시간 넘게 못 가져온 건물(마지막 성공 시각). 목업에는 없다 */
 const FETCH_STOP={};
 let fdb='', dsOpen={};
@@ -3072,9 +3201,9 @@ function dashItems(){
   /* 마감 · 메일 */
   add('close','마감을 기다리는 달','납부마감일이 지났는데 아직 마감하지 않은 달입니다',
     Bs.flatMap(b=>MC_YMS.filter(m=>m<ym&&!(MC[b.id]||{})[m]&&dday(mcDue(b.id,m))<0).map(m=>({n:`${b.name} ${+m.slice(5)}월분`,d:'열림',when:`납부마감일 ${d8(mcDue(b.id,m)).slice(5)} · ${dLeft(mcDue(b.id,m))}`,age:-dday(mcDue(b.id,m)),go:`f12='${m}';go('pay-12')`}))));
-  add('mail','메일 발송 실패','임차인 · 임대인에게 메일이 가지 않았습니다. 자동으로 다시 보내지 않습니다',
-    MAIL_LOG.filter(m=>m.st==='실패'&&(!fdb||m.b===fdb)).map(m=>{const c=CTRS.find(x=>ckey(x)===m.k);
-      return {n:c?ctrName(c):m.rel,d:`${m.rel} · ${m.why.replace(/^수신 서버 응답: /,'').replace(/ \(.*/,'')}`,when:`${d8(m.at.slice(0,10)).slice(5)} 발송 · ${dLeft(m.at.slice(0,10))}`,age:-dday(m.at.slice(0,10)),go:`go('ntf-6')`};}));
+  add('mail','메일 발송 실패','임차인 · 임대인에게 메일이 가지 않았습니다. 자동으로 다시 보내지 않습니다. 다시 보내면 빠집니다',
+    mailRows().filter(m=>m.st==='실패'&&!m.re&&(!fdb||m.b===fdb)).map(m=>{const c=m.ks&&CTRS.find(x=>ckey(x)===m.ks[0]);
+      return {n:c?ctrName(c):m.rel,d:`${m.kind}${m.ym?' · '+ymKo(m.ym):''} · ${m.why.replace(/^수신 서버 응답: /,'').replace(/ \(.*/,'')}`,when:`${d8(m.at.slice(0,10)).slice(5)} 발송 · ${dLeft(m.at.slice(0,10))}`,age:-dday(m.at.slice(0,10)),go:`go('ntf-6');mvOpen(${m.id},1)`};}));
   L.forEach(x=>x.rows.sort((p,q)=>q.age-p.age));
   return L;
 }
@@ -3287,7 +3416,7 @@ function TODO(id){
   const m=ALL.find(i=>i.id===id);
   return `<div class="ph"><h1>${m?m.n:id}</h1>${m?`<span class="sid">${m.sid}</span>`:''}</div>
   <div class="tbl"><div class="empty"><div class="t">아직 만들지 않은 화면입니다</div>
-    구현된 화면 — <b>DASH-1</b> 대시보드 · <b>PRO-1</b> 건물 목록 · <b>PRO-3</b> 건물 상세 ·
+    구현된 화면 — <b>DASH-1</b> 대시보드 · <b>NTF-6</b> 발송 내역 · <b>PRO-1</b> 건물 목록 · <b>PRO-3</b> 건물 상세 ·
     <b>PAY-12</b> 청구 현황 · <b>PAY-10</b> 관리비 정산 · <b>PAY-1</b> 청구서 발행 ·
     <b>PAY-13</b> 입금 매칭 · <b>PAY-6</b> 수납 내역 · <b>PAY-2</b> 미납 관리</div></div>`;   /* PAY-8 수납 내역은 PAY-6에 합쳤다 */
 }
@@ -3406,7 +3535,14 @@ function issue1(keys){if(f1.b==='b1') snapDates(SETTLE.ym); const R=ISSUE(); key
     /* 넣었든 뺐든(감면) 발행일 전날(해지하는 계약은 해지일)까지의 연체료는 정리됐다. 취소하면 되돌린다 */
     ISS[k]={at:TODAY_S,mail:mail1&&billTo(CTRS.find(x=>ckey(x)===k)).length>0,fee:c&&c.feeIn?fee:0,feeAll:fee,cut:FEE_CUT[k],bills:c&&LEDB.includes(f1.b)?regBills(c,to):[]}; if(fee) FEE_CUT[k]=to;
     /* 남은 과납(선납 포함)이 있으면 발행하면서 새 청구에 먼저 배분한다 → 4.3.4 */
-    if(c&&LEDB.includes(f1.b)) creditK(k,SETTLE.ym,TODAY_S);});sel1={};render(true);}
+    if(c&&LEDB.includes(f1.b)) creditK(k,SETTLE.ym,TODAY_S);});
+  /* 청구서 메일 — 발송 내역에 남긴다. 청구서 합쳐 보내기는 한 통. 같은 달 청구서를 이미 보냈으면 청구서 재발송 */
+  if(mail1){const done=new Set(), now=`${TODAY_S} ${new Date().toTimeString().slice(0,5)}`;
+    keys.forEach(k=>{if(done.has(k)) return; const c=CTRS.find(x=>ckey(x)===k); if(!c) return;
+      const g=MERGE_PDF[c.ten]?keys.filter(x=>{const y=CTRS.find(z=>ckey(z)===x);return y&&y.ten===c.ten&&y.b===c.b;}):[k]; g.forEach(x=>done.add(x));
+      const again=mailRows().some(m=>(m.kind==='청구서'||m.kind==='청구서 재발송')&&m.ym===SETTLE.ym&&m.ks.includes(k));
+      billMail(g,SETTLE.ym,now,'슈퍼관리자',again?'청구서 재발송':'청구서');});}
+  sel1={};render(true);}
 /* 이번 회차 청구서의 연체료가 끝나는 날 — 발행일 전날. 해지일이 이번 회차면 해지일까지 넣는다 → 18-5 */
 const feeTo1=k=>termIn(k,SETTLE.ym)||dayBefore(TODAY_S);
 /* 발행한 정기 청구서를 원장의 청구 건으로 남긴다(카리나빌딩) — 넣은 항목만. 청구 감액 · 보증금 상계가 이 청구 건을 쓴다 */
@@ -5019,7 +5155,7 @@ function PAY2(){
   <div class="ph"><h1>미납 관리</h1><span class="sid">PAY-2</span>
     <div class="act">
       <button class="btn" ${nSel?'':'disabled'} onclick="pvDueOpen(${JSON.stringify(rows.filter(a=>sel2[a.k]&&(a.due>0||a.fee>0)).map(a=>a.k)).replace(/"/g,"'")})">미리보기</button>
-      <button class="btn pri" ${nSel?'':'disabled'} onclick="say('미납 안내 메일 — 월별 미납액·연체일수·연체료 내역을 담아 임차인 담당자에게 보낸다')">미납 안내 메일${nSel?` ${nSel}건`:''}</button></div>
+      <button class="btn pri" ${nSel?'':'disabled'} onclick="dueMail(${JSON.stringify(rows.filter(a=>sel2[a.k]&&(a.due>0||a.fee>0)).map(a=>a.k)).replace(/"/g,"'")})">미납 안내 메일${nSel?` ${nSel}건`:''}</button></div>
   </div>
   <div class="fbar">
     <select onchange="setF2('b',this.value)">
@@ -5232,6 +5368,7 @@ function ncSave(welcome){
   if(nc.proxy) CPROXY[k]={n:nc.xn,tel:nc.xtel,mail:nc.xmail,addr:nc.xaddr};
   const hvs=nc.hvs.filter(x=>x.n.trim()&&parseInt(x.q)>0&&x.t); if(hvs.length) CHVAC[k]=hvs.map(x=>({n:x.n.trim(),q:parseInt(x.q),t:x.t,m:x.m.trim()}));
   if(nc.rnw) CPPL[k]=[{n:nc.pn,t:nc.pt,tel:nc.ptel,mail:nc.pmail},...pplOf(CTRS.find(x=>ckey(x)===nc.rnw)).slice(1).map(x=>({...x}))];
+  if(welcome){mailRows(); welcomeMail(k,`${TODAY_S} ${new Date().toTimeString().slice(0,5)}`,'슈퍼관리자');}
   nc=null; tab3c='요약'; go('ctr-3/'+k);
 }
 /* 렌트프리 기간은 일수로 받는다 — 계약시작일 포함 N일. 11/1부터 30일 → 11/30까지. 끝나는 날을 직접 고치면 일수가 따라 바뀐다 */
@@ -5614,12 +5751,12 @@ function ctrMore(c,k,pre=[]){
       {t:`재계약 취소`,go:`rnxOpen('${k}')`},
       {t:R,off:'진행중인 계약만 재계약할 수 있습니다'},
       {t:'해지',off:'시작 전인 연장 계약은 재계약 취소로 처리합니다'},
-      {t:'웰컴 재전송',go:`clog('${k}','계약','발송','웰컴 메일 재전송');render(true)`},
+      {t:'웰컴 재전송',go:`clog('${k}','계약','발송','웰컴 메일 재전송');mailRows();welcomeMail('${k}',TODAY_S+' '+new Date().toTimeString().slice(0,5),'슈퍼관리자');render(true)`},
       {t:'계약 삭제',off:'연장 계약은 재계약 취소로 지웁니다'}]
     :[{t:R,go:`rnwOpen('${k}')`,off:!on?'진행중인 계약만 재계약할 수 있습니다':c.next?'이미 재계약을 등록했습니다. 연장 계약에서 취소할 수 있습니다':''},
       {t:'해지',go:`termOpen('${k}')`,off:on||c.st==='종료됨'&&!TERMS[k]&&!c.next?'':'진행중인 계약 · 해지 처리 전에 끝난 계약만 해지할 수 있습니다'},
       {t:'해지 취소',go:`tcxOpen('${k}')`,off:!(TERMS[k]||{}).act?'해지 처리하지 않은 계약입니다':tcxWhyNot(k)},
-      {t:'웰컴 재전송',go:`clog('${k}','계약','발송','웰컴 메일 재전송');render(true)`},
+      {t:'웰컴 재전송',go:`clog('${k}','계약','발송','웰컴 메일 재전송');mailRows();welcomeMail('${k}',TODAY_S+' '+new Date().toTimeString().slice(0,5),'슈퍼관리자');render(true)`},
       {t:'계약 삭제',off:bills?'청구서를 발행한 계약은 지울 수 없습니다':'목업에서는 지우지 않습니다'}]));
 }
 
@@ -6443,7 +6580,7 @@ function dueDoc(k){const c=CTRS.find(x=>ckey(x)===k), b=BUILDINGS.find(x=>x.id==
   </div>`;}
 function pvDueOpen(keys){ipvOpen({title:'미납 안내 미리보기',sub:'메일에 붙는 PDF 그대로입니다',pick:'미납 안내',
   docs:()=>keys.map(k=>{const c=CTRS.find(x=>ckey(x)===k); return {label:cname((BUILDINGS.find(x=>x.id===c.b)||{}).alias,c.no,c.ten),html:dueDoc(k)};}),
-  act:{t:`미납 안내 메일 ${keys.length}건`,go:"closeDrawer();say('미납 안내 메일 — 월별 미납액·연체일수·연체료 내역을 담아 임차인 담당자에게 보낸다')"}});}
+  act:{t:`미납 안내 메일 ${keys.length}건`,go:`closeDrawer();dueMail(${JSON.stringify(keys).replace(/"/g,"'")})`}});}
 /* 미리보기 패널 — 문서 여러 장이면 위에서 고른다. 다른 패널에서 열었으면 「돌아가기」로 그 패널로 */
 let ipv=null;
 function ipvOpen(o){ipv={idx:0,prev:DRAWER,...o}; if(!ipv.docs().length) return; DRAWER='ipv'; render(true);}
@@ -6477,6 +6614,7 @@ function stSum(k,from,to){const rows=ledgerOf(k).rows, o={};
   return o;}
 function stSend(){if(!st) return; const c=CTRS.find(x=>ckey(x)===st.k), to=billTo(c); if(!to.length||dnum(st.from)>dnum(st.to)) return;
   clog(st.k,'청구','발송',`원장 명세서 메일 — ${st.from.replace(/-/g,'.')} ~ ${st.to.replace(/-/g,'.')} · ${to.map(x=>x.n).join(', ')}`,st.memo.trim());
+  mailRows(); stmtMail(st.k,st.from,st.to,st.memo.trim(),`${TODAY_S} ${new Date().toTimeString().slice(0,5)}`,'슈퍼관리자');
   DRAWER=null;st=null;render(true);}
 /* 명세서 미리보기 — 보낼 PDF 그대로. 계정(받을 돈 · 보증금)마다 시작 잔액 → 그 기간 거래(오래된 것부터) → 끝 잔액.
    원장처럼 청구서 한 장 · 입금 한 건을 한 줄로 묶는다. 취소된 거래는 원래 줄(취소됨)과 취소 줄을 함께 싣는다 → 30-3 */
@@ -6633,6 +6771,7 @@ function render(keep){
   else if(id==='pay-2'){html=PAY2();crumb='수납 관리 <span>›</span> <b>미납 관리</b>';}
   else if(id==='pay-14'){html=PAY14();crumb='수납 관리 <span>›</span> <b>수납 현황</b>';}
   else if(id==='pay-13'){html=PAY13();crumb='수납 관리 <span>›</span> <b>입금 매칭</b>';}
+  else if(id==='ntf-6'){html=NTF6();crumb='이력 관리 <span>›</span> <b>발송 내역</b>';}
   else{html=TODO(id);const g=MENU.find(m=>m.items&&m.items.some(i=>i.id===id));
     const m=ALL.find(i=>i.id===id);
     crumb=(g?g.g+' <span>›</span> ':'')+`<b>${m?m.n:'—'}</b>`;}
