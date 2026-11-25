@@ -3311,7 +3311,7 @@ function t보고서(bdx){
       <td class="n">${N.bill?won(N.bill):dash}</td><td class="n">${N.bill?won(N.paid):dash}</td>
       <td class="n">${due>0?`<span style="color:var(--warn)">${won(due)}</span>`:N.bill?won(0):dash}</td>
       <td style="padding-left:32px">${sent?d8m('2026-'+sent):dash}</td>
-      <td class="c">${moreCell([{t:'상세',go:`rpOpen('${ym}')`},{t:'내려받기',go:`say('${ymKo(ym)} 월 마감 보고서 PDF를 내려받습니다(상세 패널을 열지 않고 바로). 메일에 붙는 PDF와 같습니다.\\n목업에서는 파일을 내려받지 않습니다.')`}])}</td></tr>`;}).join('');
+      <td class="c">${moreCell([{t:'상세',go:`rpOpen('${ym}')`},{t:sent?'다시 보내기':'메일 보내기',go:`frb.ym='${ym}';repSend()`,off:closeOn(b,ym)?'':'마감한 달만 보낼 수 있습니다'},{t:'내려받기',go:`say('${ymKo(ym)} 월 마감 보고서 PDF를 내려받습니다(상세 패널을 열지 않고 바로). 메일에 붙는 PDF와 같습니다.\\n목업에서는 파일을 내려받지 않습니다.')`}])}</td></tr>`;}).join('');
   return `${tabBar(fb)}<div class="tbl"><div class="tw"><table>
       <thead><tr><th>청구년월</th><th>마감</th><th class="n">청구액</th><th class="n">수납액</th><th class="n">미납액</th><th style="padding-left:32px">발송 일자</th><th class="c">더보기</th></tr></thead>
       <tbody>${rows||`<tr><td colspan="7" style="text-align:center;padding:28px 0;color:var(--muted)">조건에 맞는 보고서가 없습니다</td></tr>`}</tbody></table></div>${pagerHTML(YM.length,cur,`(p=>{hp['rp${b}']=p;render(true);})`)}</div>
