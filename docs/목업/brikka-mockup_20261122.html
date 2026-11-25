@@ -525,6 +525,19 @@ tr.mrow{cursor:pointer}tr.mrow td{white-space:nowrap}
 .tml{border:1px solid var(--line);border-radius:var(--r-sm);padding:12px 14px}
 .tms{font-weight:700;margin-bottom:8px}.tmb{white-space:pre-wrap;font-size:12.5px;line-height:1.7}
 .tph{color:var(--pri);background:var(--pri-bg);border-radius:3px;padding:0 2px}
+.rcal{position:relative;display:inline-block}
+.rbtn{display:inline-flex;align-items:center;gap:6px}.rbtn.on{border-color:var(--pri);color:var(--pri)}
+.rpop{position:absolute;top:calc(100% + 6px);left:0;z-index:70;width:292px;background:var(--bg);border:1px solid var(--line);border-radius:var(--r);box-shadow:0 10px 30px rgba(0,0,0,.18);padding:12px}
+.rq{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.rqc{font-size:11.5px;padding:3px 9px;border:1px solid var(--line);border-radius:99px;cursor:pointer}.rqc:hover{border-color:var(--pri);color:var(--pri)}
+.rh{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;font-size:13px}
+.rn{cursor:pointer;padding:2px 8px;border-radius:var(--r-sm);font-size:15px}.rn:hover{background:var(--side-hov)}.rn.off{color:var(--faint);cursor:default}.rn.off:hover{background:none}
+.rg{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;text-align:center;font-size:12px}
+.rw{color:var(--muted);font-size:11px;padding:3px 0}
+.rd{padding:6px 0;border-radius:var(--r-sm);cursor:pointer;font-variant-numeric:tabular-nums}.rd:hover{background:var(--side-hov)}
+.rd.in{background:var(--pri-bg);border-radius:0}.rd.ed{background:var(--pri);color:#fff}.rd.off{color:var(--faint);cursor:default}.rd.off:hover{background:none}
+.rs{margin:10px 0 8px;font-size:12px}
+.rf{display:flex;justify-content:flex-end;gap:6px}
 .dmore{padding:9px 16px;border-top:1px solid var(--line-2);font-size:12px;color:var(--pri);cursor:pointer;text-align:center}
 </style>
 
@@ -562,6 +575,7 @@ tr.mrow{cursor:pointer}tr.mrow td{white-space:nowrap}
 /* ═══ 아이콘 ═══ */
 const I={
  down:'<path d="M12 4v11M7 10l5 5 5-5M5 20h14"/>',
+ cal:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>',
  dash:'<path d="M3 3h7v9H3zM14 3h7v5h-7zM14 12h7v9h-7zM3 16h7v5H3z"/>',
  bldg:'<path d="M3 21h18M5 21V5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v16M15 9h2a2 2 0 0 1 2 2v10M9 7h2M9 11h2M9 15h2"/>',
  file:'<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/>',
@@ -1450,7 +1464,8 @@ function paintOp(){
 }
 addEventListener('click',e=>{
   if(BSW&&!e.target.closest('.bsw')){BSW=false;render();}
-  if(CSW&&!e.target.closest('.bsw')){CSW=false;render(true);}});
+  if(CSW&&!e.target.closest('.bsw')){CSW=false;render(true);}
+  if(P3&&!e.target.closest('.rcal')){P3=null;render(true);}});
 function ddBadge(end){
   const d=dday(end);
   if(d<0) return `<span class="bd da">만료됨 · ${num(-d)}일 경과</span>`;
@@ -6303,9 +6318,33 @@ function CTR3sum(c,k){
 }
 
 /* ═══ CTR-3 계약 원장 — 이 계약의 모든 돈 거래를 있는 그대로. 추가만 하고 고치지 않는다 ═══ */
-let f3={per:'',tp:''};
-/* 원장 기간 — 최근 1 · 3 · 12개월 */
-const f3Range=()=>[f3.per?new Date((dnum(TODAY_S)-({'1':30,'3':91,'12':365}[f3.per]))*864e5).toISOString().slice(0,10):null,null];
+let f3={from:'',to:'',tp:''};
+/* 원장 기간 — 달력에서 시작일 · 끝일을 고른다(비우면 전체 기간). 명세서 보내기는 이 기간 그대로 보낸다 */
+const f3Range=()=>[f3.from||null,f3.to||null];
+let P3=null;   /* 열린 기간 달력 — {from,to,ym} */
+const isoD=(y,m,d)=>`${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+const ymAdd=(ym,n)=>{const [y,m]=ym.split('-').map(Number), d=new Date(Date.UTC(y,m-1+n,1));return d.toISOString().slice(0,7);};
+const dAgo=n=>new Date((dnum(TODAY_S)-n)*864e5).toISOString().slice(0,10);
+function p3Open(){P3=P3?null:{from:f3.from,to:f3.to,ym:(f3.to||f3.from||TODAY_S).slice(0,7)};render(true);}
+function p3Day(d){if(!P3.from||P3.to){P3.from=d;P3.to='';} else if(d<P3.from){P3.from=d;} else P3.to=d; render(true);}
+function p3Set(from,to){f3.from=from;f3.to=to;P3=null;render(true);}
+const f3Label=()=>f3.from||f3.to?`${d8m(f3.from||'')} ~ ${d8m(f3.to||TODAY_S)}`:'전체 기간';
+function p3HTML(){
+  if(!P3) return '';
+  const [y,m]=P3.ym.split('-').map(Number), dow=new Date(Date.UTC(y,m-1,1)).getUTCDay(), n=mDays(P3.ym);
+  const a=P3.from, b=P3.to||P3.from, cells=[];
+  for(let i=0;i<dow;i++) cells.push('<span></span>');
+  for(let d=1;d<=n;d++){const iso=isoD(y,m,d), fut=iso>TODAY_S, ed=iso===a||iso===P3.to, inr=a&&b&&iso>a&&iso<b;
+    cells.push(`<span class="rd ${fut?'off':''} ${ed?'ed':inr?'in':''}" ${fut?'':`onclick="p3Day('${iso}')"`}>${d}</span>`);}
+  const Q=[['전체 기간','',''],['이번 달',TODAY_S.slice(0,7)+'-01',TODAY_S],['최근 3개월',dAgo(91),TODAY_S],['최근 12개월',dAgo(365),TODAY_S],['올해',TODAY_S.slice(0,4)+'-01-01',TODAY_S]];
+  return `<div class="rpop" onclick="event.stopPropagation()">
+    <div class="rq">${Q.map(([t,f,e])=>`<span class="rqc" onclick="p3Set('${f}','${e}')">${t}</span>`).join('')}</div>
+    <div class="rh"><span class="rn" onclick="P3.ym=ymAdd(P3.ym,-1);render(true)">‹</span><b>${y}년 ${m}월</b><span class="rn ${P3.ym>=TODAY_S.slice(0,7)?'off':''}" onclick="${P3.ym>=TODAY_S.slice(0,7)?'':'P3.ym=ymAdd(P3.ym,1);render(true)'}">›</span></div>
+    <div class="rg">${['일','월','화','수','목','금','토'].map(w=>`<span class="rw">${w}</span>`).join('')}${cells.join('')}</div>
+    <div class="rs">${a?`<b>${d8m(a)}</b> ~ ${P3.to?`<b>${d8m(P3.to)}</b>`:'<span style="color:var(--faint)">끝일을 고르세요</span>'}`:'<span style="color:var(--faint)">시작일을 고르세요</span>'}</div>
+    <div class="rf"><button class="btn" onclick="P3=null;render(true)">취소</button><button class="btn pri" ${a?'':'disabled'} onclick="p3Set(P3.from,P3.to||P3.from)">적용</button></div>
+  </div>`;
+}
 /* 거래유형 필터 — 고른 유형과 그 취소 줄을 함께 보인다(수납 → 수납 · 수납 취소). 잔액 칸은 거르기 전 원장 그대로 */
 const F3TP=['청구','감액','수납','환불','보증금 예치','보증금 상계','보증금 반환'];
 const setF3=(k,v)=>{f3[k]=v;render();};
@@ -6552,9 +6591,7 @@ function CTR3(k){
   })();
   return CTR3head(c,k)+`
   <div class="fbar">
-    <select onchange="setF3('per',this.value)">
-      ${[['','전체 기간'],['1','최근 1개월'],['3','최근 3개월'],['12','최근 12개월']].map(([v,t])=>`<option value="${v}" ${f3.per===v?'selected':''}>${t}</option>`).join('')}
-    </select>
+    <span class="rcal"><button class="btn rbtn ${f3.from||f3.to?'on':''}" onclick="event.stopPropagation();p3Open()">${ic('cal',14)}${f3Label()} ▾</button>${p3HTML()}</span>
     <select onchange="setF3('tp',this.value)">
       ${[['','전체 거래유형'],...F3TP.map(t=>[t,t])].map(([v,t])=>`<option value="${v}" ${(f3.tp||'')===v?'selected':''}>${t}</option>`).join('')}
     </select>
@@ -6726,9 +6763,7 @@ function stHTML(){
       <button class="x" onclick="closeDrawer()">✕</button></div>
     <div class="db">
       <div class="fg"><div class="fl">기간</div>
-        ${R('시작일',`<input type="date" value="${st.from}" max="${TODAY_S}" onchange="stSet('from',this.value)">`)}
-        ${R('끝일',`<input type="date" value="${st.to}" max="${TODAY_S}" onchange="stSet('to',this.value)">`,'원장에서 고른 기간이 미리 들어갑니다. 전체 기간이면 계약 시작일 ~ 오늘입니다')}
-        ${bad?'<div class="c2" style="margin:-4px 0 9px 114px;color:var(--danger)">시작일이 끝일보다 늦습니다</div>':''}</div>
+        ${R('기간',`<span class="fv"><b>${d8m(st.from)} ~ ${d8m(st.to)}</b></span>`,'원장 탭에서 고른 기간입니다. 바꾸려면 패널을 닫고 원장 탭의 기간을 고르세요. 전체 기간이면 계약 시작일 ~ 오늘입니다')}</div>
       ${S?acc('받을 돈',S.매출채권,'청구 (차변)','감액 · 수납 (대변)')+acc('보증금',S.임대보증금,'예치 (대변)','상계 · 반환 (차변)'):''}
       <div class="fg"><div class="fl">보낼 곳</div>
         ${R('받는 사람',to.length?`<span class="fv">${to.map(x=>x.n).join(', ')}</span>`:'<span class="fv" style="color:var(--danger)">청구서 메일 받는 담당자가 없습니다(요약 › 담당자)</span>')}

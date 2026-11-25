@@ -170,7 +170,7 @@ run('CTR-3 계약 전환 메뉴', "CSW=true;tab3c='원장';CTR3('b1별관301호'
 run('CTR-3 청구항목 패널', "ciOpen('b1별관301호','rent');ci.its.임대료.amt='1';ciHTML();ciOpen('b1별관301호','adj');ciHTML();ciOpen('b1별관301호','rent');ciHTML();cx3Open('b1본관801호','ppl');cx3HTML();cx3Open('b1본관301호','ctr');cx3HTML()");
 run('CTR-3 원장 비씨에이전시', "tab3c='원장';CTR3('b1별관301호')");
 run('CTR-3 원장 전체 펼침', "tab3c='원장';g3All=true;CTR3('b1본관101호')");
-run('CTR-3 원장 필터', "tab3c='원장';f3={per:'3'};CTR3('b1본관302호')");
+run('CTR-3 원장 필터', "tab3c='원장';f3={from:'2026-06-01',to:'2026-07-31',tp:''};CTR3('b1본관302호');P3={from:'2026-06-01',to:'',ym:'2026-06'};CTR3('b1본관302호');p3Day('2026-07-15');p3HTML()");
 run('CTR-3 없는 계약', "CTR3('b9없음')");
 run('PAY-2 펼침 · 달별 미납 상세 패널', "seedJuly();g2All=true;PAY2();openDue('b1별관301호','2026-06');dueHTML();openDue('b1별관301호','2026-07');dueHTML();openDue('b1본관B201호','2026-06');dueHTML()");
 run('PAY-2 종료 계약', "f2.cs='종료';PAY2()");
@@ -837,12 +837,12 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
 /* 원장 기간 지정 · 명세서 보내기 — 기간 지정이면 그 기간 줄만 · 명세서는 기간의 시작 · 끝 잔액(받을 돈 · 보증금) · 담당자에게 메일 · 이력에 남음 */
 { const SM = new Function(stub + bare + '; seedJuly(); return {CTR3,ledgerOf,stOpen,stSet,stHTML,stSend,stSum,setF3,CLOG,billTo,CTRS,set tab3c(v){tab3c=v;}};')();
   const k = 'b1별관301호', L = SM.ledgerOf(k); SM.tab3c = '원장';
-  SM.setF3('per', '1'); const h = SM.CTR3(k); SM.stOpen(k); const h0 = SM.stHTML(); SM.setF3('per', '');
-  SM.stOpen(k); SM.stSet('from', '2026-07-01'); SM.stSet('to', '2026-07-31'); const h1 = SM.stHTML(); const S = SM.stSum(k, '2026-07-01', '2026-07-31'), A = SM.stSum(k, '2000-01-01', '2026-08-10');
+  SM.setF3('from', '2026-07-11'); const h = SM.CTR3(k); SM.stOpen(k); const h0 = SM.stHTML();
+  SM.setF3('from', '2026-07-01'); SM.setF3('to', '2026-07-31'); SM.stOpen(k); const h1 = SM.stHTML(); SM.setF3('from', ''); SM.setF3('to', ''); const he = SM.CTR3(k); const S = SM.stSum(k, '2026-07-01', '2026-07-31'), A = SM.stSum(k, '2000-01-01', '2026-08-10');
   const pre = L.rows.filter(r => r.acc === '매출채권' && r.date < '2026-07-01').at(-1), last = L.rows.filter(r => r.acc === '매출채권' && r.date <= '2026-07-31').at(-1);
   SM.stSend(); const lg = (SM.CLOG[k] || [])[0];
-  r6.push(['명세서 보내기 — 원장 기간(최근 1개월 → 07.11부터)이 미리 들어감 · 원장에 기간 지정 없음 · 7/1~7/31 · 시작 잔액 = 6월 끝 잔액 · 끝 잔액 = 7/31 잔액 · 전체 기간 끝 잔액 = 지금 잔액(받을 돈 · 보증금) · 보내면 이력 「원장 명세서 메일」',
-    !/기간 지정/.test(h) && /value="2026-07-11"/.test(h0) && /value="2026-07-01"/.test(h1) && /value="2026-07-31"/.test(h1)
+  r6.push(['명세서 보내기 — 원장 탭 달력에서 고른 기간 그대로(07.11 ~ 오늘 · 7/1 ~ 7/31 · 비우면 「전체 기간」) · 패널에는 기간 칸 없음 · 시작 잔액 = 6월 끝 잔액 · 끝 잔액 = 7/31 잔액 · 전체 기간 끝 잔액 = 지금 잔액(받을 돈 · 보증금) · 보내면 이력 「원장 명세서 메일」',
+    /2026\.07\.11 ~ 2026\.08\.10 ▾/.test(h) && /전체 기간 ▾/.test(he) && /<b>2026\.07\.11 ~ 2026\.08\.10<\/b>/.test(h0) && /<b>2026\.07\.01 ~ 2026\.07\.31<\/b>/.test(h1) && !/type="date"/.test(h1)
     && S.매출채권.open === pre.bal && S.매출채권.close === last.bal && A.매출채권.close === L.bal.매출채권 && A.임대보증금.close === L.bal.임대보증금
     && SM.billTo(SM.CTRS.find(c => c.no === '별관301호' && c.b === 'b1')).length > 0 && lg && /원장 명세서 메일 — 2026\.07\.01 ~ 2026\.07\.31/.test(lg.sum)]); }
 /* 수납 현황 — 오늘 기준 건물마다 확인 필요 입금 · 미납(계약 수) · 연체료 · 과납 · 최근 30일 수납액 · 칸을 누르면 그 건물을 고른 채로 이동 */
