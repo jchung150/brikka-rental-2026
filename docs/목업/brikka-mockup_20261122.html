@@ -1516,7 +1516,7 @@ function toggleFold(){FOLD=!FOLD;LS.set('brikka.fold',FOLD);paintFold();}
 function paintFold(){$('#app').classList.toggle('fold',FOLD);}
 
 /* ═══ PRO-1 ═══ */
-let f1p={q:'',kind:'',vac:'',mgr:''};
+let f1p={q:'',b:'',vac:'',mgr:''};
 const setF1p=(k,v)=>{f1p[k]=v;render();};
 /* ═══ PRO-2 건물 등록 — 건물 상세 요약 탭과 같은 카드 · 같은 순서를 입력 칸으로 바꾼 화면.
    공용시설 · 등록 차량은 하나씩 늘어나는 목록이라 등록 후 상세에서 넣는다 ═══ */
@@ -1701,7 +1701,7 @@ function PRO2(){
 function bDel(id){const i=BUILDINGS.findIndex(b=>b.id===id); if(i<0||BUILDINGS[i].units.length||CTRS.some(c=>c.b===id)) return; BUILDINGS.splice(i,1); render(true);}
 function PRO1(){
   const list=BUILDINGS.filter(b=>qHit(f1p.q,[b.name,b.alias,b.addr,b.addr2,...b.owners.map(o=>o.n),...b.mgrs])
-    &&(!f1p.kind||b.kind===f1p.kind)&&(!f1p.mgr||(f1p.mgr==='-'?!b.mgrs.length:b.mgrs.includes(f1p.mgr))));
+    &&(!f1p.b||b.id===f1p.b)&&(!f1p.mgr||(f1p.mgr==='-'?!b.mgrs.length:b.mgrs.includes(f1p.mgr))));
   const PG=paged('pro1',list,HMAIN,JSON.stringify(f1p));
   const rows=PG.rows.map(b=>{
     const d=dday(b.mgmtEnd);
@@ -1719,8 +1719,8 @@ function PRO1(){
   <div class="ph"><h1>건물 목록</h1><span class="sid">PRO-1</span></div>
   <div class="fbar">
     ${qBox('bq',f1p.q,'setF1p')}
-    <select onchange="setF1p('kind',this.value)"><option value="">전체 건물유형</option>
-      ${BKIND.map(k=>`<option ${f1p.kind===k?'selected':''}>${k}</option>`).join('')}</select>
+    <select onchange="setF1p('b',this.value)"><option value="">전체 건물</option>
+      ${BUILDINGS.map(b=>`<option value="${b.id}" ${f1p.b===b.id?'selected':''}>${b.name}</option>`).join('')}</select>
     <select onchange="setF1p('mgr',this.value)"><option value="">전체 건물관리자</option>
       ${BMGRS.map(x=>`<option ${f1p.mgr===x.n?'selected':''}>${x.n}</option>`).join('')}<option value="-" ${f1p.mgr==='-'?'selected':''}>지정 안 됨</option></select>
     <span style="margin-left:auto;display:flex;gap:6px"><button class="btn pri" onclick="nb=null;go('pro-2')">+ 새로운 건물 등록</button></span>

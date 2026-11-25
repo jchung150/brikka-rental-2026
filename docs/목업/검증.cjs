@@ -57,7 +57,7 @@ run('CTR-2 빈 화면', "nc=null;CTR2()");
 run('CTR-2 입력 · 조회 · 토글', "nc=null;CTR2();ncSet('no','본관302호');ncSet('start','2026-09-01');nc.biz='211-86-40519';ncLookup();ncSet('diff',true);ncSet('proxy',true);ncSet('agent',true);ncSet('late',true);nc.adj.push({d:'',t:'임대료',amt:''});CTR2()");
 run('CTR-2 렌트프리', "nc=null;CTR2();ncSet('start','2026-11-01');ncSet('rf','있음');CTR2();ncSet('rfD','30');CTR2();ncSet('rfEnd','2026-10-01');ncSet('rfMgmt',true);CTR2();ncSet('rf','없음');ncSet('late',true);ncSet('lateD','2026-10-01');CTR2()");
 run('CTR-2 다른 건물', "nc=null;CTR2();ncSet('b','b2');CTR2()");
-run('PRO-1 필터', "f1p={q:'',kind:'오피스빌딩',vac:'0'};PRO1()");
+run('PRO-1 필터', "f1p={q:'',b:'b1',vac:'0'};PRO1()");
 for (const t of ['요약', '유닛', '자료보관', '관리비'])
   run('PRO-3 ' + t, "tab3='" + t + "';PRO3('b1')");
 run('PRO-3 유닛 · 다음 계약', "CTRS.push({b:'b1',no:'본관302호',key:'b1본관302호@2026-11-01',ten:'(주)새임차',st:'준비중',base:'2026-11-01',it:[['임대료',3000000]]});tab3='유닛';PRO3('b1')");
