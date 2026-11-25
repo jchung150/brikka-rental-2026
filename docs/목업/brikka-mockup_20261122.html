@@ -508,9 +508,18 @@ table.nowr th,table.nowr td{white-space:nowrap}
 .dlt{font-size:11px;font-weight:700;margin-left:4px}
 .dlt.up{color:var(--warn)} .dlt.dn{color:var(--muted)}
 .card.dk{cursor:pointer}.card.dk:hover{border-color:var(--pri)}
-.dst tr.dsr{cursor:pointer}.dst tr.dsr:hover td{background:var(--pri-bg)}
-.dst tr.dsd{cursor:pointer}.dst tr.dsd td{background:var(--bg-2,color-mix(in srgb,var(--ink) 2%,var(--bg)))}.dst tr.dsd:hover td{background:var(--pri-bg)}
-.dsc{display:inline-block;width:18px;color:var(--muted)}
+.dsec{display:flex;align-items:baseline;gap:8px;margin:4px 0 10px;font-size:13.5px}
+.dgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-bottom:16px;align-items:start}
+@media (max-width:900px){.dgrid{grid-template-columns:1fr}}
+.dcard > .ct{border-bottom:1px solid var(--line)}
+.drow{display:flex;align-items:center;gap:12px;padding:10px 16px;border-bottom:1px solid var(--line-2);cursor:pointer}
+.drow:last-child{border-bottom:0}.drow:hover{background:var(--pri-bg)}
+.drow .dm{flex:1;min-width:0}.drow .dm .c2{white-space:normal}
+.dact{font-weight:700;color:var(--pri);margin-left:2px}
+.drow .dw{text-align:right;font-size:12px;font-weight:600;white-space:nowrap;color:var(--ink-2,inherit)}
+.drow .dw.late{color:var(--warn)}.drow .dw .c2{font-weight:400;margin:0}
+.dgo{color:var(--faint);font-size:16px}
+.dmore{padding:9px 16px;border-top:1px solid var(--line-2);font-size:12px;color:var(--pri);cursor:pointer;text-align:center}
 </style>
 
 <div class="app" id="app">
@@ -3107,16 +3116,24 @@ function DASH1(){
     card('미납',won(due),`${dueN}개 계약 · 연체료(예상) ${won(fee)}`,`${fdb?`f2.b='${fdb}';`:''}go('pay-2')`,due>0),
     card('만료 임박 계약',`${exp(90)}건`,`90일 안 ${exp(90)} · 60일 안 ${exp(60)} · 30일 안 ${exp(30)}`,`f1c.dd='90';f1c.st='진행중';f1c.b='${fdb}';go('ctr-1')`)].join('');
   /* 2단 — 확인이 필요한 일. 건수가 0인 항목은 숨긴다 */
-  const L=dashItems(), on=L.filter(x=>x.rows.length), off=L.filter(x=>!x.rows.length);
-  const body=on.map(x=>{const op=!!dsOpen[x.k], o=x.rows[0];
-    return `<tr class="dsr" onclick="dsTog('${x.k}')">
-        <td><span class="dsc">${op?'▾':'▸'}</span><b>${x.t}</b><div class="c2" style="margin-left:18px;white-space:normal">${x.why}</div></td>
-        <td class="n"><b style="color:var(--warn)">${x.rows.length}건</b></td>
-        <td class="c2" style="margin:0;white-space:nowrap">${o.when}</td>
-        <td class="c"><span class="lk" onclick="event.stopPropagation();${o.go}">${x.rows.length>1?'가장 급한 건 →':'이동 →'}</span></td></tr>`
-      +(op?x.rows.map(r=>`<tr class="dsd" onclick="${r.go}">
-        <td style="padding-left:34px"><div class="c1">${r.n}</div><div class="c2">${r.d}</div></td><td></td>
-        <td class="c2" style="margin:0;white-space:nowrap">${r.when}</td><td class="c"><span class="lk">이동 →</span></td></tr>`).join(''):'');}).join('');
+  const L=dashItems(), by=Object.fromEntries(L.map(x=>[x.k,x])), off=L.filter(x=>!x.rows.length);
+  /* 업무별 카드 — 카드 안에 할 일을 바로 보인다. 할 일이 없는 카드는 숨긴다. 급한 순으로 5줄, 더 있으면 펼친다 */
+  const CARDS=[['bill','청구',['settle','issue','close']],['pay','입금',['wait','fetch','manual']],
+    ['ctr','계약',['term','dep','adj']],['etc','건물 · 메일',['mgmt','mail']]];
+  const ACT={settle:'정산 확정',issue:'청구서 발행',close:'월 마감',wait:'입금 확인',fetch:'은행 연결 확인',manual:'직접 입력 확인',
+    term:'해지 처리',dep:'보증금 받기',adj:'인상 금액 확인',mgmt:'위탁운영계약 갱신',mail:'메일 다시 보내기'};
+  const cards=CARDS.map(([ck,ct,ks])=>{
+    const rows=ks.flatMap(k=>by[k].rows.map(r=>({...r,k,t:by[k].t,why:by[k].why}))).sort((p,q)=>q.age-p.age);
+    if(!rows.length) return '';
+    const all=!!dsOpen[ck], show=all?rows:rows.slice(0,5);
+    return `<div class="card dcard" style="margin:0"><div class="ct">${ct}<span class="sub">${rows.length}건</span></div>
+      <div class="dlist">${show.map(r=>`<div class="drow" onclick="${r.go}" title="${r.why}">
+        <div class="dm"><div class="c1">${r.n} <span class="dact">${ACT[r.k]}</span></div>
+          <div class="c2">${r.t} · ${r.d}</div></div>
+        <div class="dw ${r.age>0?'late':''}">${r.when.split(' · ').pop()}<div class="c2">${r.when.includes(' · ')?r.when.split(' · ')[0]:''}</div></div>
+        <span class="dgo">›</span></div>`).join('')}</div>
+      ${rows.length>5?`<div class="dmore" onclick="dsTog('${ck}')">${all?'접기':`${rows.length-5}건 더 보기`}</div>`:''}</div>`;}).filter(Boolean);
+  const nAll=L.reduce((a,x)=>a+x.rows.length,0);
   /* 3단 — 최근 작업 이력 10건 */
   const H=Bs.flatMap(histB).filter(r=>!HDEL.has(hKey(r))).sort((p,q)=>p.at<q.at?1:p.at>q.at?-1:0).slice(0,10);
   HROWS.dash=H;
@@ -3127,10 +3144,8 @@ function DASH1(){
       ${BUILDINGS.map(b=>`<option value="${b.id}" ${fdb===b.id?'selected':''}>${b.name}</option>`).join('')}</select>
     <span style="color:var(--muted);font-size:12px">${TODAY_S.replace(/-/g,'.')} 기준</span></div>
   <div class="two" style="grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px">${top}</div>
-  <div class="card"><div class="ct">확인이 필요한 일<span class="sub">${on.length?`${on.length}개 항목 · ${on.reduce((a,x)=>a+x.rows.length,0)}건`:'처리할 일이 없습니다'}</span></div>
-    ${on.length?`<div class="tw"><table class="dst">
-      <thead><tr><th>항목</th><th class="n">건수</th><th>가장 급한 건</th><th class="c">전체보기</th></tr></thead>
-      <tbody>${body}</tbody></table></div>`:`<div class="cc"><div class="c2" style="margin:0">지금 확인할 일이 없습니다.</div></div>`}</div>
+  <div class="dsec"><b>확인이 필요한 일</b><span class="c2" style="margin:0">${nAll?`${nAll}건`:'지금 확인할 일이 없습니다'}</span></div>
+  ${cards.length?`<div class="dgrid">${cards.join('')}</div>`:''}
   <div class="card"><div class="ct">최근 작업 이력<span class="sub">최근 10건</span><span class="ca"><span class="lk" style="font-weight:400;font-size:12px" onclick="go('rec-1')">전체보기 →</span></span></div>
     <div class="tw"><table>
       <thead><tr><th>일시</th><th>대상 종류</th><th>대상 이름</th><th>변경 유형</th><th>처리자</th></tr></thead>
@@ -3140,7 +3155,7 @@ function DASH1(){
         :`<tr><td colspan="5" style="text-align:center;padding:28px 0;color:var(--muted)">이력이 없습니다</td></tr>`}</tbody></table></div></div>
   <div class="hint">
     직원에게 가는 알림은 이 화면 하나입니다. 메일이나 팝업으로 따로 알리지 않습니다. 처리하면 그 줄이 사라지고, 건수가 0인 항목은 보이지 않습니다.<br>
-    항목을 누르면 대상이 펼쳐지고, 대상을 누르면 처리하는 화면으로 갑니다. 「가장 급한 건」은 가장 오래 기다렸거나 날짜가 가장 가까운 건입니다.<br>
+    줄을 누르면 처리하는 화면으로 갑니다. 카드 안은 급한 순(오래 기다린 것 · 날짜가 가까운 것)이고 5건이 넘으면 펼쳐서 봅니다. 할 일이 없는 카드는 보이지 않습니다.<br>
     ${off.length?`지금 해당이 없어 숨긴 항목: ${off.map(x=>x.t).join(' · ')}.<br>`:''}
     목업 예시: 카즈하타워 8월분(청구일 7/25)은 정산을 확정하고 발행하지 않은 상태, 아마데우스 9/1 임대료 인상 예약, 토끼어패럴 7월분 청구서 메일 실패.</div>`;
 }
