@@ -3447,12 +3447,12 @@ function cnHTML(){
         +'<div class="c2" style="white-space:normal">이메일은 월 마감 보고서를 받는 곳입니다. 이 임대인의 모든 건물에 반영됩니다.</div>'
       :G('기본 정보',Rw('사업자등록번호',o.biz)+Rw('구분',o.kind)+Rw('주소',o.addr))
         +G('연락',Rw('연락처',o.tel)+Rw('이메일',o.mail||'<span style="color:var(--warn)">미입력 — 월 마감 보고서를 보낼 수 없습니다</span>','월 마감 보고서 받는 곳'))
-        +G(`보유 건물 ${o.bs.length}개`,`<div class="tw" style="border:1px solid var(--line);border-radius:var(--r-sm)"><table><thead><tr><th>건물</th><th class="n">지분</th><th>위탁운영계약</th></tr></thead>
+        +G('보유 건물',`<div class="tw" style="border:1px solid var(--line);border-radius:var(--r-sm)"><table><thead><tr><th>건물</th><th class="n">지분</th><th>위탁운영계약</th></tr></thead>
           <tbody>${o.bs.map(({b,share})=>{const d=dday(b.mgmtEnd);return `<tr class="mrow" onclick="closeDrawer();tab3='요약';go('pro-3/${b.id}')"><td>${b.name}</td><td class="n">${share}%</td><td>~ ${d8m(b.mgmtEnd)} <span class="c2" style="display:inline;margin:0;${d<=90?'color:var(--warn)':''}">${d>=0?`${d}일 남음`:'만료'}</span></td></tr>`;}).join('')}</tbody></table></div>
           <div class="c2" style="white-space:normal">건물을 누르면 건물 상세로 갑니다(월 마감 보고서는 건물 상세 › 보고서). 수수료 · 운영방식은 대외비라 보이지 않습니다.</div>`);}
   if(k==='중개사'){const a=agList().find(x=>(x.no||x.n)===id); name=a.n;
     body=G('사무소',Rw('등록번호',a.no)+Rw('대표자',a.ceo)+Rw('소재지',a.addr))+G('연락',Rw('연락처',a.tel))
-      +G(`중개한 계약 ${a.cs.length}건`,`<div class="tw" style="border:1px solid var(--line);border-radius:var(--r-sm)"><table><thead><tr><th>계약고유이름</th><th>상태</th><th class="n">수수료율</th></tr></thead>
+      +G('중개 내역',`<div class="tw" style="border:1px solid var(--line);border-radius:var(--r-sm)"><table><thead><tr><th>계약고유이름</th><th>상태</th><th class="n">수수료율</th></tr></thead>
         <tbody>${a.cs.map(c=>`<tr class="mrow" onclick="closeDrawer();tab3c='요약';go('ctr-3/${encodeURIComponent(ckey(c))}')"><td>${cname(BN(c.b).alias,c.no,c.ten)}</td><td><span class="bd ${c.st==='진행중'?'ok':'mu'}">${c.st}</span></td><td class="n">${c.ag.fee?`${c.ag.fee}%`:'<span style="color:var(--warn)">미입력</span>'}</td></tr>`).join('')}</tbody></table></div>
         <div class="c2" style="white-space:normal">중개사 정보와 수수료율은 계약마다 넣고 계약 상세의 중개사 카드에서 고칩니다. 수수료율은 기록만 하고 계산에 쓰지 않습니다.</div>`);}
   const bad=edit?cnBad():'';

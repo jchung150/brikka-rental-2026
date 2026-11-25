@@ -136,7 +136,7 @@ for (const b of ['b2']) run('PRO-3 ' + b, "tab3='요약';PRO3('" + b + "')");
   TN.cv.f.sub = '0001'; TN.cnSave(); const ted = bad && blocked && !TN.cv.edit && !!TN.RC.alias['아이씨비 주식회사'] && TN.ttaxOf('(주)아이씨비').sub === '0001';
   TN.cnOpen('임대인', '105-81-42117'); const p2 = TN.cnHTML(); const own = /karina@owner-sample\.kr/.test(p2) && /월 마감 보고서 받는 곳/.test(p2) && /60%/.test(p2) && /위탁운영계약/.test(p2) && !/수수료율/.test(p2);
   TN.cnEdit(); TN.cv.f.mail = 'karina2@owner-sample.kr'; TN.cnSave(); const oed = TN.OWN_MAIL['카리나'] === 'karina2@owner-sample.kr';
-  TN.cnOpen('중개사', '11440-2019-00123'); const p3 = TN.cnHTML(); const ag = /마포센트럴공인중개사사무소/.test(p3) && /중개한 계약/.test(p3) && !/>수정</.test(p3);
+  TN.cnOpen('중개사', '11440-2019-00123'); const p3 = TN.cnHTML(); const ag = /마포센트럴공인중개사사무소/.test(p3) && /중개 내역/.test(p3) && !/>수정</.test(p3);
   TN.cnOpen('임차인', encodeURIComponent('(주)비씨에이전시')); TN.cnEdit(); TN.cv.f.name = '(유)유니버셜대부'; TN.cnSave(); const dupBlk = TN.cv.edit;
   TN.cv.f.name = '(주)비씨에이전시코리아'; TN.cnSave(); const rn = dupBlk && TN.CTRS.some(c => c.ten === '(주)비씨에이전시코리아') && !TN.CTRS.some(c => c.ten === '(주)비씨에이전시') && TN.tenAliases('(주)비씨에이전시코리아').includes('(주)비씨에이전시') && TN.ttaxOf('(주)비씨에이전시코리아').mail[0] === 'account@bcagency.kr' && /상호 변경/.test(((TN.CLOG['b1별관301호'] || [])[0] || {}).sum || '');
   const ok = list && byAlias && byB && ten && ted && own && oed && ag && rn; if (!ok) fail = 1;
