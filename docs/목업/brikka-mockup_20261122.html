@@ -275,12 +275,11 @@ table.bt2 td{padding:9px 12px}
 .ph h1{margin:0;font-size:19px;font-weight:700;letter-spacing:-.01em}
 .ph .sid{font-size:10.5px;color:var(--muted);background:var(--neutral-bg);padding:2px 8px;border-radius:99px;font-weight:500}
 .ph .act{margin-left:auto;display:flex;gap:8px}
-/* 화면 제목 줄 — 버전과 날짜를 같은 줄 오른쪽에(위쪽 줄 없음). 시험: 대시보드만 */
-.ph.pbar{margin:0 0 18px;padding-top:16px}
-.ph.pbar .act{align-items:center;gap:0}
-/* 제목 줄이 있는 화면은 위쪽 버전 · 날짜 줄을 제목 줄 오른쪽으로 옮긴다(한 줄) */
-.main:has(.pbar) .top{display:none}
-.main:has(.pbar) .wrap{padding-top:0}
+/* 화면 제목 줄 — 목업 버전 · 날짜를 제목과 같은 줄 오른쪽 끝에 둔다(위쪽 줄 없음). 제목 줄이 없는 화면은 위쪽 줄을 그대로 보인다 */
+.ph .pver{margin-left:auto;display:flex;align-items:center}
+.ph .act ~ .pver{margin-left:16px}
+.main:has(#view .ph .pver) .top{display:none}
+.main:has(#view .ph .pver) .wrap{padding-top:16px}
 
 /* ── 부품 ── */
 .btn{border:1px solid var(--line);background:var(--bg);color:var(--ink-2);padding:7px 13px;
@@ -3666,7 +3665,7 @@ function DASH1(){
   const H=Bs.flatMap(histB).concat(CON_LOG.filter(r=>!fdb||r.bs.includes(fdb))).filter(r=>!HDEL.has(hKey(r))).sort((p,q)=>p.at<q.at?1:p.at>q.at?-1:0).slice(0,10);
   HROWS.dash=H;
   return `
-  <div class="ph pbar"><h1>대시보드</h1><span class="sid">DASH-1</span><div class="act">${(document.querySelector('header.top')||{}).innerHTML||''}</div></div>
+  <div class="ph"><h1>대시보드</h1><span class="sid">DASH-1</span></div>
   <div class="fbar">
     <select onchange="fdb=this.value;render()"><option value="">전체 건물</option>
       ${BUILDINGS.map(b=>`<option value="${b.id}" ${fdb===b.id?'selected':''}>${b.name}</option>`).join('')}</select></div>
@@ -7186,6 +7185,8 @@ function render(keep){
     crumb=(g?g.g+' <span>›</span> ':'')+`<b>${m?m.n:'—'}</b>`;}
   /* 브레드크럼은 두지 않는다 — 화면 깊이가 2단(목록 → 상세)뿐이고 왼쪽 메뉴 · 제목이 위치를 보여 준다 */
   $('#view').innerHTML=html+drawerHTML();
+  /* 목업 버전 · 날짜를 그 화면 제목 줄 오른쪽 끝으로 */
+  {const ph=document.querySelector('#view .ph'), tp=document.querySelector('header.top'); if(ph&&tp&&ph.insertAdjacentHTML) ph.insertAdjacentHTML('beforeend',`<div class="pver">${tp.innerHTML}</div>`);}
   if(keep) window.scrollTo(0,y); else if(!DRAWER) window.scrollTo(0,0);
 }
 /* 화면을 옮기면 맨 위부터 보인다 — 이벤트 객체가 keep으로 들어가지 않게 감싼다 */
