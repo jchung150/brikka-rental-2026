@@ -640,6 +640,9 @@ const MENU=[
    {id:'user-1',n:'프로필',sid:'USER-1',i:'user'}]},
  /* 임시 — 메일 문구 검토용(초안, 대표 검토 중 · 명세변경에는 아직 없음). 검토가 끝나면 지운다 */
  {id:'tmp-mail',n:'메일 문구 (임시)',sid:'삭제 예정',i:'mail'},
+ /* 임시 — 문서 검토용. 보내는 PDF를 화면 크기로 크게 본다. 검토가 끝나면 지운다 */
+ {id:'tmp-rep',n:'월 마감 보고서 (임시)',sid:'삭제 예정',i:'chart'},
+ {id:'tmp-stmt',n:'원장 명세서 (임시)',sid:'삭제 예정',i:'file'},
 ];
 const ALL=MENU.flatMap(m=>m.items||[m]);
 /* 열림 상태 · 접힘 상태 — 브라우저에 기억시킨다 */
@@ -3572,6 +3575,26 @@ function rcUnmatch(no){if(rcUnWhy(no)) return; const d=RC.P.dep.find(x=>x.no===n
   delete RC.dec[no]; RC.cur=no; render(true);}
 
 /* ═══ 임시 — 메일 문구 9종(초안 · 대표 검토 중). 칸({ })은 시스템이 채운다. 검토가 끝나면 메뉴와 함께 지운다 ═══ */
+/* ═══ 임시 — 월 마감 보고서 · 원장 명세서 검토용. 보낼 때 붙는 PDF와 같은 내용을 크게 본다. 검토가 끝나면 메뉴와 함께 지운다 ═══ */
+let tr={b:'b1',ym:'2026-07'}, ts={k:'',per:'all'};
+function TMPREP(){
+  const S=(k,opts)=>`<select onchange="tr.${k}=this.value;render()">${opts.map(([v,t])=>`<option value="${v}" ${tr[k]===v?'selected':''}>${t}</option>`).join('')}</select>`;
+  return `<div class="ph"><h1>월 마감 보고서</h1><span class="sid">임시 · 삭제 예정</span></div>
+  <div class="fbar">${S('b',BUILDINGS.map(b=>[b.id,b.name]))}${S('ym',MC_YMS.slice().reverse().map(v=>[v,ymKo(v)]))}</div>
+  <div style="max-width:880px">${repDoc(tr.b,tr.ym)}</div>
+  <div class="hint">건물 상세 › 보고서 탭에서 보내는 PDF와 같은 내용입니다(마감 전인 달은 숫자가 바뀔 수 있음). 문구 · 칸 · 순서를 여기서 보고 고칠 곳을 말씀해 주세요. 검토가 끝나면 이 메뉴는 지웁니다.</div>`;
+}
+function TMPSTMT(){
+  const cs=CTRS.filter(c=>c.st==='진행중').sort((a,c)=>a.b<c.b?-1:a.b>c.b?1:a.no<c.no?-1:1);
+  if(!ts.k) ts.k=ckey(cs.find(c=>c.b==='b1'&&c.no==='별관301호')||cs[0]);
+  const c=CTRS.find(x=>ckey(x)===ts.k), bd=BUILDINGS.find(x=>x.id===c.b)||BUILDINGS[0];
+  const P={all:[c.base,TODAY_S,'전체 기간'],'07':['2026-07-01','2026-07-31','2026년 7월'],'06':['2026-06-01','2026-06-30','2026년 6월']}, [f,t]=P[ts.per];
+  return `<div class="ph"><h1>원장 명세서</h1><span class="sid">임시 · 삭제 예정</span></div>
+  <div class="fbar"><select onchange="ts.k=this.value;render()">${cs.map(x=>`<option value="${ckey(x)}" ${ts.k===ckey(x)?'selected':''}>${cname((BUILDINGS.find(b=>b.id===x.b)||{}).alias,x.no,x.ten)}</option>`).join('')}</select>
+    <select onchange="ts.per=this.value;render()">${Object.entries(P).map(([v,x])=>`<option value="${v}" ${ts.per===v?'selected':''}>${x[2]}</option>`).join('')}</select></div>
+  <div style="max-width:880px">${(()=>{const keep=st; st={k:ts.k,from:f,to:t,memo:''}; const h=stPreview(c,bd,stSum(ts.k,f,t)); st=keep; return h;})()}</div>
+  <div class="hint">계약 상세 › 원장 탭 「명세서 보내기」에서 보내는 PDF와 같은 내용입니다. 기간은 실제로는 원장 탭에서 고릅니다. 문구 · 칸 · 순서를 여기서 보고 고칠 곳을 말씀해 주세요. 검토가 끝나면 이 메뉴는 지웁니다.</div>`;
+}
 function TMPMAIL(){
   const bd={ph:1,name:'{건물명}',acct:'{은행 계좌번호}',acctName:'{예금주}',feeAcct:'{은행 계좌번호}',billDay:'{청구일}',dueDay:'{납부마감일 규칙}'};
   const ten='{임차인} {담당자}';
@@ -7189,6 +7212,8 @@ function render(keep){
   else if(id==='rec-1'){html=REC1();crumb='';}
   else if(id==='doc-1'){html=DOC1();crumb='';}
   else if(id==='tmp-mail'){html=TMPMAIL();crumb='<b>메일 문구 (임시)</b>';}
+  else if(id==='tmp-rep'){html=TMPREP();crumb='<b>월 마감 보고서 (임시)</b>';}
+  else if(id==='tmp-stmt'){html=TMPSTMT();crumb='<b>원장 명세서 (임시)</b>';}
   else{html=TODO(id);const g=MENU.find(m=>m.items&&m.items.some(i=>i.id===id));
     const m=ALL.find(i=>i.id===id);
     crumb=(g?g.g+' <span>›</span> ':'')+`<b>${m?m.n:'—'}</b>`;}
