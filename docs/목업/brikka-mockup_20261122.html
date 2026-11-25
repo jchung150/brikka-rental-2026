@@ -2671,7 +2671,7 @@ function pay10Head(sel){
   </div>
   <div class="fbar">
     <select onchange="f10b=this.value;render()">${BUILDINGS.filter(b=>b.id!=='b3').map(b=>`<option value="${b.id}" ${f10b===b.id?'selected':''}>${b.name}</option>`).join('')}</select>
-    <select onchange="f10ym=this.value;render()">${[['2026-08','2026년 8월'],['2026-07','2026년 7월'],['2026-06','2026년 6월']]
+    <select onchange="f10ym=this.value;render()">${[['2026-08','2026년 8월분'],['2026-07','2026년 7월분'],['2026-06','2026년 6월분']]
       .map(([v,t])=>`<option value="${v}" ${f10ym===v?'selected':''}>${t}</option>`).join('')}</select>
   </div>
   ${!sel?'':`<div class="itab">
@@ -3026,7 +3026,7 @@ function PAY12(){
   return `
   <div class="ph"><h1>청구 현황</h1><span class="sid">PAY-12</span></div>
   <div class="fbar">
-    <select onchange="f12=this.value;render()">${MC_YMS.slice().reverse().map(v=>`<option value="${v}" ${f12===v?'selected':''}>${v.replace('-','년 ').replace(/년 0/,'년 ')}월</option>`).join('')}</select>
+    <select onchange="f12=this.value;render()">${MC_YMS.slice().reverse().map(v=>`<option value="${v}" ${f12===v?'selected':''}>${v.replace('-','년 ').replace(/년 0/,'년 ')}월분</option>`).join('')}</select>
     <span style="color:var(--muted);font-size:12px">건물 ${BUILDINGS.length}개 · 정산 확정 ${T.done} · 월 마감 ${T.closed}</span>
   </div>
   <div class="two" style="grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px">
@@ -3581,7 +3581,7 @@ function mcHTML(){
   const bad=mcChecks(b,ym).filter(x=>!x.ok);
   return `<div class="dro"><div class="ov" onclick="closeDrawer()"></div><div class="pn">
     <div class="dh"><div><div class="t">${undo?'마감 취소':'월 마감'}</div>
-      <div class="s">${bn.name} · ${ym.replace('-','년 ')}월</div></div>
+      <div class="s">${bn.name} · ${ym.replace('-','년 ').replace(/년 0/,'년 ')}월분</div></div>
       <button class="x" onclick="closeDrawer()">✕</button></div>
     <div class="db">
       ${undo&&mcCarryUsed(b,ym)?`<div class="prev warn2"><div class="pt">마감을 취소할 수 없습니다</div>
@@ -3758,7 +3758,7 @@ function issueHTML(){
   if(DRAWER!=='issue'||!ia1) return '';
   const n=ia1.keys.length, one=n===1?CTRS.find(x=>ckey(x)===ia1.keys[0]):null, bd=one&&(BUILDINGS.find(x=>x.id===one.b)||BUILDINGS[0]);
   return `<div class="dro"><div class="ov" onclick="closeDrawer()"></div><div class="pn">
-    <div class="dh"><div><div class="t">청구서 발행</div><div class="s">${one?cname(bd.alias,one.no,one.ten):`${n}건`} · ${SETTLE.ym.replace('-','년 ').replace(/년 0/,'년 ')}월</div></div>
+    <div class="dh"><div><div class="t">청구서 발행</div><div class="s">${one?cname(bd.alias,one.no,one.ten):`${n}건`} · ${SETTLE.ym.replace('-','년 ').replace(/년 0/,'년 ')}월분</div></div>
       <button class="x" onclick="closeDrawer()">✕</button></div>
     <div class="db"><div style="white-space:normal;line-height:1.7">청구서 <b>${n}건</b>을 발행합니다.<br>임차인에게 청구서가 담긴 메일을 보내시겠습니까?${(m=>m?`<div class="c2" style="margin-top:8px">${n>1?`${m}건은 `:''}청구서 메일 받는 담당자가 없어 메일을 보내지 않습니다(계약 상세 › 요약 › 담당자).</div>`:'')(ia1.keys.filter(k=>!billTo(CTRS.find(x=>ckey(x)===k)).length).length)}</div></div>
     <div class="df"><button class="btn" onclick="closeDrawer()">닫기</button>
@@ -3787,7 +3787,7 @@ function cancelHTML(){
   if(DRAWER!=='cancel'||!cx1) return '';
   const c=CTRS.find(x=>ckey(x)===cx1.k), bd=BUILDINGS.find(x=>x.id===c.b)||BUILDINGS[0];
   return `<div class="dro"><div class="ov" onclick="closeDrawer()"></div><div class="pn">
-    <div class="dh"><div><div class="t">청구서 취소</div><div class="s">${cname(bd.alias,c.no,c.ten)} · ${SETTLE.ym.replace('-','년 ').replace(/년 0/,'년 ')}월</div></div>
+    <div class="dh"><div><div class="t">청구서 취소</div><div class="s">${cname(bd.alias,c.no,c.ten)} · ${SETTLE.ym.replace('-','년 ').replace(/년 0/,'년 ')}월분</div></div>
       <button class="x" onclick="closeDrawer()">✕</button></div>
     <div class="db">
       <div class="c2" style="margin:-2px 0 12px;white-space:normal">원장에 <b>청구 취소</b>가 기록되고 이 계약은 <b>발행 대기</b>로 돌아갑니다. 고친 뒤 다시 발행하세요.</div>
@@ -3944,7 +3944,7 @@ function PAY1(){
     <select onchange="setF1('b',this.value)">
       ${BUILDINGS.map(b=>`<option value="${b.id}" ${f1.b===b.id?'selected':''}>${b.name}</option>`).join('')}
     </select>
-    <select onchange="setF1('ym',this.value)">${[['2026-08','2026년 8월'],['2026-07','2026년 7월'],['2026-06','2026년 6월']]
+    <select onchange="setF1('ym',this.value)">${[['2026-08','2026년 8월분'],['2026-07','2026년 7월분'],['2026-06','2026년 6월분']]
       .map(([v,t])=>`<option value="${v}" ${f1.ym===v?'selected':''}>${t}</option>`).join('')}</select>
     <select onchange="setF1('st',this.value)">
       ${['','발행 대기','발행 완료'].map(v=>`<option value="${v}" ${f1.st===v?'selected':''}>${v||'전체 상태'}</option>`).join('')}
@@ -4882,7 +4882,7 @@ function PAY6_0(){
       ${BUILDINGS.map(b=>`<option value="${b.id}" ${RC.f.b===b.id?'selected':''}>${b.name}</option>`).join('')}
     </select>
     <select onchange="setRC('ym',this.value)">
-      ${[['2026-08','2026년 8월'],['2026-07','2026년 7월'],['2026-06','2026년 6월']].map(([v,t])=>
+      ${[['2026-08','2026년 8월분'],['2026-07','2026년 7월분'],['2026-06','2026년 6월분']].map(([v,t])=>
         `<option value="${v}" ${RC.f.ym===v?'selected':''}>${t}</option>`).join('')}
     </select>
     <select onchange="setRC('st',this.value)">
