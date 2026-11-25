@@ -144,7 +144,7 @@ for (const b of ['b2']) run('PRO-3 ' + b, "tab3='요약';PRO3('" + b + "')");
 /* 변경 이력(REC-1) — 모든 건물 · 연락처 수정(대상 종류 임차인 · 임대인)도 남음 · 필터(건물 · 대상 종류 · 변경 유형 · 처리자 · 기간 달력) · 검색 · 줄을 누르면 상세 패널 */
 { const RC1 = new Function(stub + bare + '; seedJuly(); return {REC1,HROWS,frc,cnOpen,cnEdit,cnSave,hdOpen,hdHTML,p3Open,p3Set,histAll,get cv(){return cv;}};')();
   const h0 = RC1.REC1(), n0 = RC1.HROWS.rec.length;
-  const base = /변경 이력/.test(h0) && n0 > 50 && /전체 처리자/.test(h0) && /전체 대상 종류/.test(h0) && /전체 기간/.test(h0) && RC1.HROWS.rec.some(r => r.kind === '월 마감');
+  const base = /변경 이력/.test(h0) && n0 > 50 && /전체 담당자/.test(h0) && /전체 대상 종류/.test(h0) && /전체 기간/.test(h0) && RC1.HROWS.rec.some(r => r.kind === '월 마감');
   RC1.cnOpen('임차인', encodeURIComponent('(주)아이씨비')); RC1.cnEdit(); RC1.cv.f.ceo = '정하늘2'; RC1.cnSave();
   RC1.cnOpen('임대인', '105-81-42117'); RC1.cnEdit(); RC1.cv.f.tel = '010-1111-2222'; RC1.cnSave();
   RC1.frc.kind = '임차인'; RC1.REC1(); const t = RC1.HROWS.rec[0]; RC1.frc.kind = '임대인'; RC1.REC1(); const o = RC1.HROWS.rec[0]; RC1.frc.kind = '';
@@ -1421,7 +1421,7 @@ run('CTR-3 원장 미납 이월', "seedJuly();tab3c='원장';g3All=true;CTR3('b1
 { const HI = new Function(stub + bare + '; seedJuly(); return {PRO3,CTR3,histB,BUILDINGS,cx3Open,cx3Save,setFh,hdOpen,hdHTML,hdDelete,get hdDel(){return hdDel;},HROWS,set tab3(v){tab3=v;},set tab3c(v){tab3c=v;},hp,get cx3(){return cx3;}};')();
   HI.tab3 = '이력'; const hb = HI.PRO3('b1'); HI.tab3c = '이력'; const hc = HI.CTR3('b1본관801호');
   const th = h => (h.match(/<thead><tr><th>일시<\/th>.*?<\/tr><\/thead>/) || [''])[0], nRow = h => (h.match(/<td><span class="bd mu">/g) || []).length;
-  const same = th(hb) && th(hb) === th(hc) && /<th>대상 종류<\/th><th>대상 이름<\/th><th>변경 유형<\/th><th>변경 요약<\/th><th>처리자<\/th>/.test(th(hb));
+  const same = th(hb) && th(hb) === th(hc) && /<th>대상 종류<\/th><th>대상 이름<\/th><th>변경 유형<\/th><th>변경 요약<\/th><th>담당자<\/th>/.test(th(hb));
   const allT = HI.histB(HI.BUILDINGS[0]).every(r => /^\d{4}-\d\d-\d\d \d\d:\d\d$/.test(r.at));
   const ui = [hb, hc].every(h => !/<div class="ct">이력<\/div>/.test(h) && /<div class="fbar"><span class="fqw">.*?id="hq"/.test(h) && !/class="hint"/.test(h.split('id="hq"')[1] || ''));
   const page = nRow(hb) === 10 && /<\/table>\s*<div class="pgr">[\s\S]*?<\/div><\/div>/.test(hb) && /hp\['bb1'\]=p/.test(hb);
