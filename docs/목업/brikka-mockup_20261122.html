@@ -3370,10 +3370,10 @@ function CONTACTS(){
   <div class="ph"><h1>연락처</h1><span class="sid">USER-6 · 8 · 10</span></div>
   <div class="fbar">${qBox('cq2',fct.q,'setFct')}${S('kind',[['','전체 구분'],['임차인','임차인'],['임대인','임대인'],['중개사','중개사']])}${S('b',[['','전체 건물'],...BUILDINGS.map(b=>[b.id,b.name])])}</div>
   <div class="tbl"><div class="tw"><table>
-    <thead><tr><th>구분</th><th>이름</th><th>연락할 사람</th><th>연락처</th><th>이메일</th><th>건물 · 유닛</th><th class="c">더보기</th></tr></thead>
+    <thead><tr><th>이름</th><th>구분</th><th>연락할 사람</th><th>연락처</th><th>이메일</th><th>건물 · 유닛</th><th class="c">더보기</th></tr></thead>
     <tbody>${R.length?PG.rows.map(x=>`<tr class="mrow" onclick="${x.go}">
-      <td><span class="bd ${KB[x.k]}">${x.k}</span></td>
       <td><span class="c1">${x.name}</span></td>
+      <td><span class="bd ${KB[x.k]}">${x.k}</span></td>
       <td>${x.per||dash}</td><td>${x.tel||dash}</td><td>${x.mail||dash}</td><td>${x.rel}</td>
       <td class="c">${moreCell([{t:'상세',go:x.go}])}</td></tr>`).join('')
       :`<tr><td colspan="7" style="text-align:center;padding:28px 0;color:var(--muted)">조건에 맞는 연락처가 없습니다</td></tr>`}</tbody></table></div>${PG.pager}</div>
