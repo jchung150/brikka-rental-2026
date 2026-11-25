@@ -3343,31 +3343,30 @@ function tenSum(ten){
   const bill=BILLS.filter(i=>ks.has(i.k)).reduce((a,i)=>a+i.amt,0);
   let paid=0,last=null; BILLS.filter(i=>ks.has(i.k)).forEach(i=>(PAYEV[i.id]||[]).forEach(e=>{if(String(e.dep).startsWith('cr')) return; paid+=e.amt; if(!last||e.date>last) last=e.date;}));
   return {bill,paid,due:cs.reduce((a,c)=>a+arrears(c).due,0),dep:cs.reduce((a,c)=>a+ledgerOf(ckey(c)).bal.임대보증금,0),last};}
-let f6t={b:'',st:'진행중',kind:'',due:'',q:''}, tab7='요약', te=null;
+let f6t={b:'',st:'진행중',q:''}, tab7='요약', te=null;
 const setF6t=(k,v)=>{f6t[k]=v;render();};
 function USER6(){
   const dash='<span style="color:var(--faint)">—</span>', BN=id=>(BUILDINGS.find(x=>x.id===id)||{});
   const names=[...new Set(CTRS.map(c=>c.ten))];
   const rows=names.map(ten=>{const cs=tenCtrs(ten).filter(c=>(!f6t.b||c.b===f6t.b)&&(!f6t.st||c.st===f6t.st)); if(!cs.length) return null;
-      const I=tenInfo(ten), due=cs.reduce((a,c)=>a+arrears(c).due,0), p=pplOf(cs[0])[0];
-      return {ten,cs,I,due,p};}).filter(x=>x&&(!f6t.kind||x.I.kind===f6t.kind)&&(!f6t.due||x.due>0)&&qHit(f6t.q,[x.ten,x.I.biz,x.I.ceo,...tenAliases(x.ten)]));
+      const I=tenInfo(ten), p=pplOf(cs[0])[0];
+      return {ten,cs,I,p};}).filter(x=>x&&qHit(f6t.q,[x.ten,x.I.biz,x.I.ceo,...tenAliases(x.ten)]));
   const S=(k,opts)=>`<select onchange="setF6t('${k}',this.value)">${opts.map(([v,t])=>`<option value="${v}" ${f6t[k]===v?'selected':''}>${t}</option>`).join('')}</select>`;
   return `
   <div class="ph"><h1>임차인</h1><span class="sid">USER-6</span></div>
   <div class="fbar">${qBox('tq',f6t.q,'setF6t')}
     ${S('b',[['','전체 건물'],...BUILDINGS.map(b=>[b.id,b.name])])}${S('st',[['','전체 계약상태'],['진행중','진행중'],['준비중','준비중'],['종료됨','종료됨']])}
-    ${S('kind',[['','전체 사업자구분'],['법인','법인'],['개인','개인사업자']])}${S('due',[['','미납 전체'],['1','미납 있음']])}</div>
+</div>
   <div class="tbl"><div class="tw"><table>
-    <thead><tr><th>상호</th><th>사업자구분</th><th>대표자</th><th>임차 유닛</th><th>대표 담당자</th><th class="n">미납액</th><th class="c">더보기</th></tr></thead>
+    <thead><tr><th>상호</th><th>사업자구분</th><th>대표자</th><th>임차 유닛</th><th>대표 담당자</th><th class="c">더보기</th></tr></thead>
     <tbody>${rows.length?rows.map(x=>`<tr class="mrow" onclick="tab7='요약';go('user-7/${encodeURIComponent(x.ten)}')">
       <td><div class="c1">${x.ten}</div><div class="c2">${x.I.biz}</div></td>
       <td>${x.I.kind==='개인'?'개인사업자':x.I.kind}</td><td>${x.I.ceo}</td>
       <td>${[...new Set(x.cs.map(c=>BN(c.b).alias))].map(al=>`${al} ${x.cs.filter(c=>BN(c.b).alias===al).map(c=>c.no).join(' · ')}`).join(' / ')}</td>
       <td><div class="c1">${x.p.n}</div><div class="c2">${x.p.tel||''}</div></td>
-      <td class="n">${x.due?`<span style="color:var(--warn)">${won(x.due)}</span>`:dash}</td>
       <td class="c">${moreCell([{t:'상세',go:`tab7='요약';go('user-7/${encodeURIComponent(x.ten)}')`}])}</td></tr>`).join('')
-      :`<tr><td colspan="7" style="text-align:center;padding:28px 0;color:var(--muted)">조건에 맞는 임차인이 없습니다</td></tr>`}</tbody></table></div></div>
-  <div class="hint">임차인은 사업자 단위로 한 줄입니다. 한 사업자가 여러 유닛 · 건물을 빌리면 임차 유닛 칸에 묶어 보입니다. 미납액은 그 사업자의 모든 계약을 합한 금액입니다.<br>
+      :`<tr><td colspan="6" style="text-align:center;padding:28px 0;color:var(--muted)">조건에 맞는 임차인이 없습니다</td></tr>`}</tbody></table></div></div>
+  <div class="hint">임차인은 사업자 단위로 한 줄입니다. 한 사업자가 여러 유닛 · 건물을 빌리면 임차 유닛 칸에 묶어 보입니다. 미납은 상세의 거래 요약에서 봅니다.<br>
     검색은 상호 · 사업자등록번호 · 대표자 · 입금자명 별칭으로 합니다. 사업자등록번호와 대표자는 목업 예시값입니다.</div>`;
 }
 function USER7(ten){
