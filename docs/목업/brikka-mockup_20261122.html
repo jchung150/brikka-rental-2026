@@ -2398,11 +2398,10 @@ function docHTML(){
       <button class="x" onclick="closeDrawer()">✕</button></div>
     <div class="db">
       <div class="fg"><div class="fl">지울 문서</div>${ds.map(d=>`<div class="fr"><span class="fv">${dTitle(d)} <span class="c2">${docExt(d.t)} · ${d.sz}</span></span></div>`).join('')}</div>
-      <div class="fg"><div class="fl">삭제 사유 (필수)</div>
-        <input type="text" value="${dc.why}" oninput="dc.why=this.value;document.getElementById('dcok').disabled=!this.value.trim()" style="${inp};width:100%"></div>
+      <div class="fg"><div class="fr"><span class="fk">삭제 사유 <b style="color:var(--warn)">*</b></span><input type="text" placeholder="예: 같은 파일을 두 번 올림" value="${dc.why}" oninput="dc.why=this.value;document.getElementById('dcok').disabled=!this.value.trim()"></div></div>
       <div class="c2" style="margin:0;white-space:normal">지운 문서는 되돌릴 수 없습니다. 삭제 기록은 사유와 함께 변경 이력에 남습니다.</div>
     </div>
-    <div class="df"><button class="btn pri" id="dcok" disabled onclick="docDel()">삭제</button></div>
+    <div class="df"><button class="btn" onclick="closeDrawer()">취소</button><button class="btn" id="dcok" style="color:var(--danger)" ${dc.why.trim()?'':'disabled'} onclick="docDel()">삭제</button></div>
   </div></div>`;}
   const d=b.docs[dc.i], ext=docExt(d.t);
   return `<div class="dro"><div class="ov" onclick="closeDrawer()"></div><div class="pn">
@@ -6840,20 +6839,20 @@ function hdHTML(){
   if(DRAWER!=='hdet'||!hd) return '';
   const r=hd, Rw=(k,v)=>`<div class="fr"><span class="fk">${k}</span><span class="fv">${v}</span></div>`, d=a=>a.replace(/-/g,'.');
   return `<div class="dro"><div class="ov" onclick="closeDrawer()"></div><div class="pn">
-    <div class="dh"><div><div class="t">이력 상세</div><div class="s">${r.name}</div></div>
+    <div class="dh"><div><div class="t">이력 상세</div><div class="s">${recName(r)}</div></div>
       <button class="x" onclick="closeDrawer()">✕</button></div>
     <div class="db">
       <div class="fg">
-        ${Rw('일시',d(r.at))}${Rw('대상 종류',`<span class="bd mu">${r.kind}</span>`)}${Rw('대상 이름',r.name)}${Rw('변경 유형',r.type)}
+        ${Rw('일시',d(r.at))}${Rw('대상 종류',`<span class="bd mu">${r.kind}</span>`)}${Rw('대상 이름',recName(r))}${Rw('변경 유형',r.type)}
         ${Rw('변경 요약',r.sum)}${Rw('담당자',r.by)}${Rw('사유',r.why||'—')}</div>
       ${r.chg&&r.chg.length?`<div class="fg"><div class="fl">변경 항목</div>
         <div class="tw" style="border:1px solid var(--line);border-radius:var(--r-sm)"><table><thead><tr><th>항목</th><th>변경 전</th><th>변경 후</th></tr></thead>
         <tbody>${r.chg.map(([f,a,b])=>`<tr><td>${f}</td><td class="c2" style="margin:0">${a}</td><td><b>${b}</b></td></tr>`).join('')}</tbody></table></div></div>`:''}
+      ${hdDel?`<div class="fg"><div class="fl">이 이력 지우기</div>
+        <div class="fr"><span class="fk">삭제 사유 <b style="color:var(--warn)">*</b></span><input type="text" placeholder="예: 잘못 남은 예시 기록" value="${hdDel.why}" oninput="hdDel.why=this.value;document.getElementById('hdok').disabled=!this.value.trim()"></div>
+        <div class="c2" style="white-space:normal">원장 거래는 지워지지 않습니다. 지운 기록은 사유와 함께 따로 남습니다. 슈퍼관리자만 지울 수 있습니다.</div></div>`:''}
     </div>
-    ${hdDel?`<div class="df" style="flex-direction:column;align-items:stretch;gap:8px">
-        <div class="c2" style="margin:0;white-space:normal">이 이력을 지웁니다. 원장 거래는 지워지지 않습니다. 슈퍼관리자만 지울 수 있습니다.</div>
-        <input type="text" placeholder="삭제 사유 (필수)" value="${hdDel.why}" oninput="hdDel.why=this.value;document.getElementById('hdok').disabled=!this.value.trim()" style="border:1px solid var(--line);border-radius:var(--r-sm);padding:7px 9px;font:inherit">
-        <div style="display:flex;gap:6px;justify-content:flex-end"><button class="btn" onclick="hdDel=null;render(true)">취소</button><button class="btn" id="hdok" style="color:var(--danger)" ${hdDel.why.trim()?'':'disabled'} onclick="hdDelete()">삭제</button></div></div>`
+    ${hdDel?`<div class="df"><button class="btn" onclick="hdDel=null;render(true)">취소</button><button class="btn" id="hdok" style="color:var(--danger)" ${hdDel.why.trim()?'':'disabled'} onclick="hdDelete()">삭제</button></div>`
     :`<div class="df"><button class="btn" title="슈퍼관리자만" style="color:var(--danger)" onclick="hdDel={why:''};render(true)">삭제</button><button class="btn" onclick="closeDrawer()">닫기</button></div>`}
   </div></div>`;
 }
