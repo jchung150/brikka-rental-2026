@@ -3036,30 +3036,58 @@ const OWN_MAIL={카리나:'karina@owner-sample.kr',윈터:'winter@owner-sample.k
 const ymKo=ym=>`${ym.slice(0,4)}년 ${+ym.slice(5)}월분`;
 /* 계약 메일 한 통 — 받는 사람은 발송 당시 주소 그대로 남긴다 */
 function mailAdd(o){const m={id:++mailSeq,ch:'이메일',st:'성공',why:'',how:'수동',by:'시스템',att:[],...o}; MAIL_LOG.push(m); return m;}
+/* 메일 문구 — 명세변경_261122 42. 문구는 고정이고 { } 칸만 시스템이 채운다. 9종 모두 같은 틀:
+   제목 [보내는 곳] 내용 · 본문 인사 → 내용 → (첨부 안내) → 서명. 건물 메일 서명은 건물 · 운영사 · 건물 관리자에서, 계정 메일은 BRIKKA · 운영사 */
+const d8m=d=>(d||'').replace(/-/g,'.');
+const ruleKo=r=>(r||'').replace('전월','전달 ').replace('당월','').replace('익월','다음 달 ').replace(/\s+/g,' ').trim();
+const signB=bd=>{const g=mgrOf((bd.mgrs||[])[0]); return `──\n${bd.name} 관리사무소 · ${g.co||'(주)테온하우스'}\n담당 ${g.n} · ${g.tel||''} · ${g.mail||''}\n이 메일은 보내기 전용입니다. 문의는 위 담당자에게 해 주세요.`;};
+const signA=()=>`──\nBRIKKA · (주)테온하우스\n이 메일은 보내기 전용입니다.`;
+const payLine=bd=>bd.feeAcct&&bd.feeAcct!==bd.acct?`납부 계좌: 임대료 ${bd.acct} (${bd.acctName}) · 관리비 ${bd.feeAcct} (${bd.feeAcctName})`:`납부 계좌: ${bd.acct} (${bd.acctName})`;
+function mailText(kind,v){
+  const B=v.bd, hi=`${v.who} 님, 안녕하세요.\n\n`;
+  const T={
+    '청구서':()=>[`[${B&&B.name}] ${v.ym&&ymKo(v.ym)} 청구서 (${v.nos})`,
+      `${hi}${B&&B.name} ${v.nos}의 ${v.ym&&ymKo(v.ym)} 청구서를 보내드립니다.\n\n납부마감일: ${d8m(v.due)}\n${B&&payLine(B)}\n\n항목별 금액은 첨부한 청구서를 확인해 주세요.`],
+    '청구서 재발송':()=>[`[${B&&B.name}] ${v.ym&&ymKo(v.ym)} 청구서 다시 보냄 (${v.nos})`,
+      `${hi}앞서 보내드린 ${B&&B.name} ${v.nos}의 ${v.ym&&ymKo(v.ym)} 청구서를 바로잡아 다시 보내드립니다.\n이전 청구서는 쓰지 마시고 이 청구서로 납부해 주세요.\n\n납부마감일: ${d8m(v.due)}\n${B&&payLine(B)}\n\n항목별 금액은 첨부한 청구서를 확인해 주세요.`],
+    '미납 안내':()=>[`[${B&&B.name}] 미납 안내 (${v.nos})`,
+      `${hi}${B&&B.name} ${v.nos}에 납부마감일이 지난 금액이 있어 알려 드립니다.\n\n미납액: ${won(v.due||0)}\n연체료(예상): ${won(v.fee||0)} (${d8m(v.on)} 기준)\n${B&&payLine(B)}\n\n달마다 미납액 · 연체일수 · 연체료는 첨부한 미납 안내를 확인해 주세요.\n이미 납부하셨다면 이 안내와 엇갈린 것이니 양해 부탁드립니다.`],
+    '원장 명세서':()=>[`[${B&&B.name}] 거래 명세서 (${v.nos} · ${d8m(v.from)} ~ ${d8m(v.to)})`,
+      `${hi}${B&&B.name} ${v.nos}의 ${d8m(v.from)} ~ ${d8m(v.to)} 거래 명세서(받을 돈 · 보증금)를 보내드립니다.${v.memo?`\n\n${v.memo}`:''}\n\n첨부한 명세서를 확인해 주세요.`],
+    '웰컴 메시지':()=>[`[${B&&B.name}] 입주를 환영합니다 (${v.nos})`,
+      `${hi}${v.ten}의 ${B&&B.name} ${v.nos} 계약을 환영합니다.\n\n계약 기간: ${d8m(v.from)} ~ ${d8m(v.to)}\n청구서: 매달 ${B&&ruleKo(B.billDay)}에 메일로 보내드리고, 납부마감일은 ${B&&ruleKo(B.dueDay)}입니다.\n${B&&payLine(B)}\n\n궁금한 점은 아래 담당자에게 연락해 주세요.`],
+    '임대인 보고서':()=>[`[${B&&B.name}] ${v.ym&&ymKo(v.ym)} 운영 보고`,
+      `${hi}${B&&B.name}의 ${v.ym&&ymKo(v.ym)} 운영 보고서를 보내드립니다.\n\n청구: ${won(v.bill||0)} · 수납: ${won(v.paid||0)} · 미납: ${won(Math.max(0,(v.bill||0)-(v.paid||0)))}\n공실: ${v.vac||0} / ${v.unit||0}유닛\n\n자세한 내용은 첨부한 보고서를 확인해 주세요.`],
+    '계정 초대':()=>[`[BRIKKA] (주)테온하우스 관리자 계정 초대`,
+      `${hi}(주)테온하우스가 BRIKKA 관리자 계정을 만들었습니다.\n아래 버튼을 눌러 비밀번호를 정하면 바로 쓸 수 있습니다. 링크는 24시간 동안 한 번만 쓸 수 있습니다.\n\n[비밀번호 정하기]\n\n초대받을 일이 없다면 이 메일을 무시하세요.`],
+    '비밀번호 재설정':()=>[`[BRIKKA] 비밀번호 재설정`,
+      `${hi}비밀번호 재설정 요청을 받았습니다.\n아래 버튼을 눌러 새 비밀번호를 정하세요. 링크는 1시간 동안 한 번만 쓸 수 있습니다.\n\n[새 비밀번호 정하기]\n\n요청하지 않았다면 이 메일을 무시하세요. 비밀번호는 바뀌지 않습니다.`],
+    '비밀번호 변경 알림':()=>[`[BRIKKA] 비밀번호가 바뀌었습니다`,
+      `${hi}${d8m(v.at)}에 BRIKKA 비밀번호가 바뀌었습니다.\n본인이 바꾸셨다면 확인만 하시면 됩니다.\n\n본인이 바꾸지 않았다면 바로 로그인 화면의 「비밀번호를 잊으셨나요?」로 비밀번호를 바꾸고 슈퍼관리자에게 알리세요.`]};
+  const [subj,body]=T[kind]();
+  return {subj,body:`${body}\n\n${B?signB(B):signA()}`};
+}
 function billMail(keys,ym,at,by,kind){
   const cs=keys.map(k=>CTRS.find(x=>ckey(x)===k)), c=cs[0], bd=BUILDINGS.find(x=>x.id===c.b)||BUILDINGS[0], to=billTo(c);
   if(!to.length) return null;
-  const nos=cs.map(x=>x.no).join(' · '), due=dueStr(ym,c.b);
-  return mailAdd({at,kind:kind||'청구서',b:c.b,ks:keys,ym,rel:`${cname(bd.alias,c.no,c.ten)}${cs.length>1?` 외 ${cs.length-1}건`:''} · ${ymKo(ym)}`,
+  const nos=cs.map(x=>x.no).join(' · '), kd=kind||'청구서';
+  return mailAdd({at,kind:kd,b:c.b,ks:keys,ym,rel:`${cname(bd.alias,c.no,c.ten)}${cs.length>1?` 외 ${cs.length-1}건`:''} · ${ymKo(ym)}`,
     to:to.map(x=>({n:x.n,mail:x.mail})),how:'수동',by,
-    subj:`[${bd.name}] ${ymKo(ym)} 청구서${kind==='청구서 재발송'?'(다시 보냄)':''}`,
-    body:`${c.ten} 담당자님, 안녕하세요.\n${bd.name} ${nos} ${ymKo(ym)} 청구서를 보내드립니다.\n\n납부마감일: ${due.replace(/-/g,'.')}\n납부 계좌: ${bd.acct} (${bd.acctName})\n\n자세한 내역은 첨부한 청구서를 확인해 주세요.\n${bd.name} 관리사무소 드림`,
+    ...mailText(kd,{bd,who:`${c.ten} ${to[0].n}`,ym,nos,due:dueStr(ym,c.b)}),
     att:[{n:`청구서_${ym}_${cs.map(x=>x.no).join('_')}.pdf`,go:`billView('${keys[0]}','${ym}')`}]});}
 function dueMailOne(k,at,by){const c=CTRS.find(x=>ckey(x)===k), bd=BUILDINGS.find(x=>x.id===c.b)||BUILDINGS[0], p=pplOf(c)[0], a=arrears(c);
   return mailAdd({at,kind:'미납 안내',b:c.b,ks:[k],rel:cname(bd.alias,c.no,c.ten),to:[{n:p.n,mail:p.mail}],how:'수동',by,
-    subj:`[${bd.name}] 미납 안내`,
-    body:`${c.ten} 담당자님, 안녕하세요.\n${bd.name} ${c.no}의 납부마감일이 지난 금액이 있어 알려 드립니다.\n\n미납액: ${won(a.due)}\n연체료(예상): ${won(a.fee)}\n납부 계좌: ${bd.acct} (${bd.acctName})\n\n달마다 미납액 · 연체일수 · 연체료는 첨부한 미납 안내를 확인해 주세요. 이미 내셨다면 이 메일은 무시하셔도 됩니다.\n${bd.name} 관리사무소 드림`,
+    ...mailText('미납 안내',{bd,who:`${c.ten} ${p.n}`,nos:c.no,due:a.due,fee:a.fee,on:at.slice(0,10)}),
     att:[{n:`미납안내_${c.no}.pdf`,go:`pvDueOpen(['${k}'])`}]});}
 /* 미납 관리에서 고른 계약에 미납 안내를 보낸다 */
 function dueMail(keys){keys.forEach(k=>dueMailOne(k,`${TODAY_S} ${new Date().toTimeString().slice(0,5)}`,'슈퍼관리자'));
   sel2={}; say(`미납 안내 메일 ${keys.length}건을 보냈습니다 — 발송 내역에서 볼 수 있습니다`); render(true);}
 function welcomeMail(k,at,by){const c=CTRS.find(x=>ckey(x)===k), bd=BUILDINGS.find(x=>x.id===c.b)||BUILDINGS[0], p=pplOf(c)[0];
   return mailAdd({at,kind:'웰컴 메시지',b:c.b,ks:[k],rel:cname(bd.alias,c.no,c.ten),to:[{n:p.n,mail:p.mail}],how:'수동',by,
-    subj:`[${bd.name}] 입주를 환영합니다`,body:`${c.ten} 담당자님, ${bd.name} ${c.no} 계약을 환영합니다.\n\n계약 기간: ${c.base.replace(/-/g,'.')} ~ ${ctrEnd(c).replace(/-/g,'.')}\n관리사무소 연락처: ${mgrTel((bd.mgrs||[])[0])}\n\n청구서는 매달 이 주소로 보내드립니다.\n${bd.name} 관리사무소 드림`});}
+    ...mailText('웰컴 메시지',{bd,who:`${c.ten} ${p.n}`,ten:c.ten,nos:c.no,from:c.base,to:ctrEnd(c)})});}
 function stmtMail(k,from,to,memo,at,by){const c=CTRS.find(x=>ckey(x)===k), bd=BUILDINGS.find(x=>x.id===c.b)||BUILDINGS[0], T=billTo(c);
-  return mailAdd({at,kind:'원장 명세서',b:c.b,ks:[k],rel:`${cname(bd.alias,c.no,c.ten)} · ${from.replace(/-/g,'.')} ~ ${to.replace(/-/g,'.')}`,to:T.map(x=>({n:x.n,mail:x.mail})),how:'수동',by,
-    subj:`[${bd.name}] 거래 명세서 (${from.replace(/-/g,'.')} ~ ${to.replace(/-/g,'.')})`,
-    body:`${c.ten} 담당자님, 안녕하세요.\n요청하신 기간의 거래 명세서(받을 돈 · 보증금)를 보내드립니다.${memo?`\n\n${memo}`:''}\n\n${bd.name} 관리사무소 드림`,
+  return mailAdd({at,kind:'원장 명세서',b:c.b,ks:[k],rel:`${cname(bd.alias,c.no,c.ten)} · ${d8m(from)} ~ ${d8m(to)}`,to:T.map(x=>({n:x.n,mail:x.mail})),how:'수동',by,
+    ...mailText('원장 명세서',{bd,who:`${c.ten} ${T[0].n}`,nos:c.no,from,to,memo}),
     att:[{n:`거래명세서_${c.no}_${from}_${to}.pdf`,go:`stOpen('${k}')`}]});}
 /* 목업 예시 — 6 · 7월 청구서 메일(청구서 합쳐 보내기는 한 통), 미납 안내, 임대인 보고서, 웰컴(중계기), 계정 메일.
    뉴진스 토끼어패럴 7월분은 담당자 주소 오타로 실패했다(지금 주소는 고쳐져 있다 → 다시 보내면 간다) */
@@ -3071,16 +3099,16 @@ function mailSeed(){if(mailSeeded) return; mailSeeded=true;
       const m=billMail(g.map(ckey),ym,`${billOn(ym,bd.id)} ${String(10+g.length%2).padStart(2,'0')}:${String(2+cs.indexOf(c)).padStart(2,'0')}`,by);
       if(m&&bd.id==='b2'&&c.no==='본관601호'&&ym==='2026-07'){m.st='실패';m.why='수신 서버 응답: 주소 없음 (550 5.1.1 user unknown)';m.to=m.to.map(x=>({...x,mail:x.mail.replace('sample','sampel')}));}});}));
   CTRS.filter(c=>c.b==='b1'&&c.st==='진행중'&&arrears(c).due>0).forEach(c=>dueMailOne(ckey(c),t('2026-08-04','due'+c.no),'김관리'));
-  Object.entries(REPS).forEach(([b,o])=>Object.entries(o).forEach(([ym,d])=>{const bd=BUILDINGS.find(x=>x.id===b); if(!bd) return;
+  Object.entries(REPS).forEach(([b,o])=>Object.entries(o).forEach(([ym,d])=>{const bd=BUILDINGS.find(x=>x.id===b); if(!bd) return; const N=mcNum(b,ym);
     mailAdd({at:t('2026-'+d,'rep'+b+ym),kind:'임대인 보고서',b,rel:`${bd.name} · ${ymKo(ym)}`,to:bd.owners.map(o=>({n:o.n,mail:OWN_MAIL[o.n]||''})),how:'수동',by:'슈퍼관리자',
-      subj:`[${bd.name}] ${ymKo(ym)} 임대 현황 보고`,body:`${bd.owner} 님, 안녕하세요.\n${bd.name}의 ${ymKo(ym)} 임대 현황(청구 · 수납 · 미납 · 공실)을 보고드립니다.\n자세한 내용은 첨부한 보고서를 확인해 주세요.\n\n(주)테온하우스 드림`,
+      ...mailText('임대인 보고서',{bd,who:bd.owners.map(o=>o.n).join(' · '),ym,bill:N.bill,paid:N.paid,vac:bd.vacCnt,unit:bd.unitCnt}),
       att:[{n:`임대인보고서_${bd.name}_${ym}.pdf`,go:`say('임대인 보고서 PDF — 보고서 화면(REP-1)은 아직 목업에 없습니다')`}]});}));
   CTRS.filter(c=>c.b==='b2'&&c.base==='2026-06-01').forEach((c,i)=>welcomeMail(ckey(c),`2026-05-27 14:${String(10+i*3).padStart(2,'0')}`,'이담당'));
-  const acct=(at,kind,n,how,by,subj,body)=>{const g=mgrOf(n); mailAdd({at,kind,rel:`사용자 ${n}`,to:[{n,mail:g.mail}],how,by,subj,body});};
-  acct('2026-06-02 11:20','계정 초대','최현우','자동','시스템','[BRIKKA] 계정에 초대되었습니다','최현우 님, (주)테온하우스가 BRIKKA 관리자 계정을 만들었습니다.\n아래 링크를 눌러 비밀번호를 정하세요. 링크는 한 번만 쓸 수 있습니다.\n\n[비밀번호 정하기]');
-  acct('2026-06-02 11:34','비밀번호 변경 알림','최현우','자동','시스템','[BRIKKA] 비밀번호가 바뀌었습니다','최현우 님, 2026.06.02 11:34에 BRIKKA 비밀번호가 바뀌었습니다.\n본인이 바꾸지 않았다면 바로 로그인 화면에서 비밀번호를 찾아 바꾸고 슈퍼관리자에게 알리세요.');
-  acct('2026-07-14 09:12','비밀번호 재설정','박현장','수동','슈퍼관리자','[BRIKKA] 비밀번호 재설정','박현장 님, 관리자가 비밀번호 재설정 메일을 보냈습니다.\n아래 링크를 눌러 새 비밀번호를 정하세요. 링크는 한 번만 쓸 수 있습니다.\n\n[새 비밀번호 정하기]');
-  acct('2026-07-14 09:20','비밀번호 변경 알림','박현장','자동','시스템','[BRIKKA] 비밀번호가 바뀌었습니다','박현장 님, 2026.07.14 09:20에 BRIKKA 비밀번호가 바뀌었습니다.\n본인이 바꾸지 않았다면 바로 로그인 화면에서 비밀번호를 찾아 바꾸고 슈퍼관리자에게 알리세요.');
+  const acct=(at,kind,n,how,by)=>{const g=mgrOf(n); mailAdd({at,kind,rel:`사용자 ${n}`,to:[{n,mail:g.mail}],how,by,...mailText(kind,{who:n,at})});};
+  acct('2026-06-02 11:20','계정 초대','최현우','자동','시스템');
+  acct('2026-06-02 11:34','비밀번호 변경 알림','최현우','자동','시스템');
+  acct('2026-07-14 09:12','비밀번호 재설정','박현장','수동','슈퍼관리자');
+  acct('2026-07-14 09:20','비밀번호 변경 알림','박현장','자동','시스템');
 }
 const mailRows=()=>{mailSeed(); return MAIL_LOG;};
 /* 다시 보내기 — 새 줄. 계약 메일은 지금 담당자 주소로 보낸다(발송 당시 주소가 틀렸으면 담당자 정보를 먼저 고친다). 원래 줄은 고치지 않고 「다시 보냄」만 표시 */
