@@ -179,6 +179,12 @@ for (const b of ['b2']) run('PRO-3 ' + b, "tab3='요약';PRO3('" + b + "')");
   const noManual = !/은행에서 확인되지 않은 직접 입력/.test(UM.DASH1());
   const ok = blk && btn && un && noManual; if (!ok) fail = 1;
   console.log('② 매칭 무효 — 입금 매칭 확정 카드 버튼 · 카리나 7월(마감)은 막힘 · 뉴진스 7월은 사유 없이 바로 대기열로 · 미납액 돌아옴 · 원장 수납 취소 · 이력(사유 없음) · 직접 입력 · 수정·취소 · 대시보드 직접 입력 항목 없음  ' + (ok ? 'OK' : '✗ ' + JSON.stringify({blk, btn, un, noManual}))); }
+/* 대시보드 최근 변경 이력 = 변경 이력(REC-1)과 같은 칸 · 같은 순서 · 최근 10건 · 더보기(상세 · 삭제) */
+{ const DR = new Function(stub + bare + '; seedJuly(); return {DASH1,REC1};')();
+  const th = h => ((h.match(/<thead><tr><th>일시<\/th>[\s\S]*?<\/tr><\/thead>/) || [])[0] || ''), hd = DR.DASH1(), hr = DR.REC1();
+  const sec = hd.slice(hd.indexOf('최근 변경 이력')), n = (sec.match(/onclick="hdOpen\('dash',\d+\)"/g) || []).length;
+  const ok = th(sec) !== '' && th(sec) === th(hr) && n === 10 && (sec.match(/title="더보기"/g) || []).length === 10 && !/작업 이력/.test(hd); if (!ok) fail = 1;
+  console.log('② 대시보드 최근 변경 이력 — 변경 이력과 같은 칸 · 순서 · 더보기 · 최근 10건  ' + (ok ? 'OK' : '✗ ' + JSON.stringify({same: th(sec) === th(hr), n}))); }
 /* 발송 내역(NTF-6) — 보낸 그대로 남김 · 실패는 자동으로 다시 보내지 않음 · 다시 보내면 새 줄(원래 줄 그대로) · 보내는 화면(청구서 발행 · 미납 안내 · 명세서 · 웰컴)이 남김 → 명세변경_261122 38 */
 { const M = new Function(stub + bare + '; seedJuly(); return {mailRows,NTF6,mvOpen,mvHTML,mailResend,dashItems,issueAsk,issueGo,dueMail,stOpen,stSend,CTRS,ckey,setFm,set f1b(v){f1.b=v;}};')();
   const R0 = M.mailRows(), n0 = R0.length, fl = R0.filter(m => m.st === '실패'), f = fl[0];
